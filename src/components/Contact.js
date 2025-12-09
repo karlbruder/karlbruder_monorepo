@@ -5,7 +5,7 @@ import Col from 'react-bootstrap/Col';
 
 const MapsButton = () => {
   return (
-    <a href="https://goo.gl/maps/ijnUT4xnCa64bTKi6" target="_blank">
+    <a href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A" target="_blank">
       <img src={process.env.PUBLIC_URL + '/icons/maps.png'} height="20" />
     </a>
   )
@@ -54,9 +54,9 @@ const Contact = () => {
             xs={12} sm={6}
           >
             <p>
-              Estação Ferroviária de São Carlos<br/>
-              Praça Antônio Prado, São Carlos - SP<br/>
-              CEP 13569-532 | <MapsButton />
+              Academia Performance<br/>
+              Jesuíno de Arruda, 1533 - Jardim Sao Carlos, São Carlos - SP<br/>
+              CEP 13560-642 | <MapsButton />
             </p>
           </Col>
 
