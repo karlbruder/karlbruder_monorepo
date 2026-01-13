@@ -1,10 +1,17 @@
+
+
 const Home = () => {
-  return (
-    <main>
-      <h1>Karlbruder</h1>
-      <p>Home page</p>
-    </main>
-  );
+
+  return(
+
+        <div>
+            <h1>Welcome to the Home Page</h1>
+            <p>you are logged.</p>
+        </div>
+
+    );
+
+
 };
 
 export default Home;
