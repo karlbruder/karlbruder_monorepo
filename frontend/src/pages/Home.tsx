@@ -1,14 +1,14 @@
 import { useAuth } from "react-oidc-context";
 import { Navigate } from "react-router-dom";
+import cognitoAuthConfig from "../config/cognito";
 
 const Home = () => {
     const auth = useAuth();
 
     const signOutRedirect = () => {
-        // TODO fazer nao usar direto do .env
-        const clientId = import.meta.env.VITE_COGNITO_CLIENT_ID as string;
-        const logoutUri = import.meta.env.VITE_COGNITO_LOGOUT_URI as string;
-        const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN as string;
+        const clientId = cognitoAuthConfig.client_id;
+        const logoutUri = cognitoAuthConfig.logout_redirect_uri;
+        const cognitoDomain = cognitoAuthConfig.cognitoDomain;
         auth.removeUser();
         window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
     };
