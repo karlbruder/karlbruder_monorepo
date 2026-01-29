@@ -1,9 +1,9 @@
 
 from fastapi import FastAPI
 
-app = FastAPI()
+karlbruder_app = FastAPI()
 
 
-@app.get("/")
+@karlbruder_app.get("/")
 def read_root():
     return {"Hello": "World"}
