@@ -49,6 +49,24 @@ const Weapons = () => {
                             Arma dos guardiões reais, o poderoso brandir do montate enfrenta as multidões, firmando terreno e impondo order. O general Dom Diogo Gomes de Figueyredo deixou em sua memória, ensinamentos para domar este monstro frente a tempestade.
                         </p>
                     </Col>
+                    <Col sm={12} md={6} className='px-5'>
+                        <h4>Esgrima Olímpica</h4>
+                        <div className='py-2'>
+                            <img src={process.env.PUBLIC_URL + `/weapons/olimpica.png`} alt='Imagem Vetorizada de uma Espada com Broquel' style={{width: '128px', height: '128px'}}/>
+                        </div>
+                        <p>
+                            Dos salões de duelo às arenas modernas, a esgrima olímpica preserva a nobreza da lâmina em forma esportiva. Florete, espada e sabre exigem velocidade, disciplina, leitura do adversário e domínio absoluto do tempo, onde um único toque pode decidir o combate.
+                        </p>
+                    </Col>
+                    <Col sm={12} md={6} className='px-5'>
+                        <h4>Espada e Broquel</h4>
+                        <div className='py-2'>
+                            <img src={process.env.PUBLIC_URL + `/weapons/espada_e_broquel.png`} alt='Imagem Vetorizada de uma Espada com Broquel' style={{width: '128px', height: '128px'}}/>
+                        </div>
+                        <p>
+                            Antiga arte dos manuscritos medievais, a espada e broquel une a lâmina de uma mão ao pequeno escudo do combatente. Entre coberturas, entradas e golpes precisos, o praticante aprende a avançar protegido, dominar a curta distância e transformar defesa em ataque.
+                        </p>
+                    </Col>
                 </Row>
             </Container>
         </div>
