@@ -1,5 +1,5 @@
 
-import { Header, Banner, About, Weapons, Gallery, Partner, Contact, Footer } from './components';
+import { Header, Banner, About, Weapons, Training, Gallery, Partner, Contact, Footer } from './components';
 
 const App = () => {
   return (
@@ -8,6 +8,7 @@ const App = () => {
       <Banner/>
       <About/>
       <Weapons/>
+      <Training/>
       <Gallery/>
       <Partner/>
       <Contact/>

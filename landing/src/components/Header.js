@@ -28,6 +28,7 @@ const Header = () => {
           <Nav>
             <Nav.Link href='#about' style={navLink}>Sobre</Nav.Link>
             <Nav.Link href='#weapons' style={navLink}>Modalidades</Nav.Link>
+            <Nav.Link href='#training' style={navLink}>Aulas</Nav.Link>
             <Nav.Link href='#gallery' style={navLink}>Galeria</Nav.Link>
             <Nav.Link href='#partner' style={navLink}>Parceiros</Nav.Link>
             <Nav.Link href='#contact' style={navLink}>Contato</Nav.Link>

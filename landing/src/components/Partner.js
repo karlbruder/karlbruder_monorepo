@@ -16,7 +16,7 @@ const Partner = () => {
                     <Col sm={1} md={2} className='px-5'> 
                         <a href="https://www.faitsdarmes.com/en/" target="_blank"rel="noopener noreferrer follow"  title="Faits D'Armes" >
 
-                            <img src={process.env.PUBLIC_URL + `/logos/logo_faits_darmes.png` }alt="Faits d'Armes Store Logo" width="200" height="100"/>
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_faits_darmes.png`} alt="Faits d'Armes Store Logo" width="200" height="100"/>
                         </a>
                     </Col>
 
@@ -30,7 +30,7 @@ const Partner = () => {
                     <Col sm={1} md={2} className='px-5'> 
                         <a href="https://www.instagram.com/cantodoaco/" target="_blank"rel="noopener noreferrer follow"  title="Canto do Aço" >
 
-                            <img src={process.env.PUBLIC_URL + `/logos/logo_canto_do_aco.png` } alt="Canto do Aço Logo" width="150" height="150"/>
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_canto_do_aco.png`} alt="Canto do Aço Logo" width="150" height="150"/>
                         </a>
                     </Col>
 
