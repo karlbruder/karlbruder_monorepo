@@ -32,14 +32,6 @@ const Header = () => {
             <Nav.Link href='#partner' style={navLink}>Parceiros</Nav.Link>
             <Nav.Link href='#contact' style={navLink}>Contato</Nav.Link>
           </Nav>
-          <Navbar.Brand href='#partner' className='justify-content-end'>
-            <img 
-              src="https://faitsdarmes.com/img/cms/partner-kit/white_blackbg.png" 
-              alt="This club is an official partner of Faits d'Armes store"
-              height='80vh'
-              className='d-inline-block align-top'
-            />
-          </Navbar.Brand>
         </Navbar.Collapse>
       </Container>
     </Navbar>
