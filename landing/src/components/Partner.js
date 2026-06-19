@@ -5,7 +5,7 @@ import Col from 'react-bootstrap/Col';
 const Partner = () => {
   return (
     <div id="partner">
-        <Container fluid className='bg-black text-white text-center pt-4'>
+        <Container fluid className='bg-black text-white text-center pt-4 pb-4'>
                 <Row className='justify-content-center'>
                     <Col xs={6} md={3} className='text-center'>
                         <h3>Parceiros</h3>
