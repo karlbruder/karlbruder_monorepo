@@ -8,15 +8,15 @@ const Training = () => {
         <div id='training' className='bg-dark text-white pt-5 pb-5'>
             <Container fluid className='gap-5'>
                 <Row className="justify-content-md-center pb-3">
-                    <Col xs={12} md={4}> 
-                        <img src={process.env.PUBLIC_URL + `/ads/aula_sanca.jpeg`} 
+                    <Col xs={12} md={4}>
+                        <img src={process.env.PUBLIC_URL + `/ads/aula_sanca.jpg`}
                         style={{ objectFit: 'cover', display: 'block' }}
-                        className="img-fluid h-100" 
+                        className="img-fluid h-100"
                         alt="Imagem com informações das aulas em São Carlos."/>
                     </Col>
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
                         <h4>São Carlos/SP — HEMA Regular</h4>
-                        <b>Modalidade: HEMA / Espada Longa</b> <br/> 
+                        <b>Modalidade: HEMA / Espada Longa</b> <br/>
                         <b>📅 Dias: Segunda e Quarta-Feira</b>    <br/>
                         <b>⏰ Horário: 19h às 21h</b>             <br/>
                         <b>💸 Valor mensal: R$200,00</b>          <br/>
@@ -41,7 +41,7 @@ const Training = () => {
                             Turma voltada para iniciantes, com introdução aos fundamentos da esgrima histórica, progressão técnica e contato inicial com a arte da espada. <br/>
                             No mesmo horário, há espaço para sparring livre de HEMA avançado, destinado a praticantes com equipamento completo.
                         </span> <br/>
-                        
+
                         <hr/>
 
                         <h4>São Carlos/SP — Esgrima Olímpica: Fundamentos</h4>
@@ -52,7 +52,7 @@ const Training = () => {
                         <b>💸 Valor mensal: R$200,00</b>       <br/>
                         <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder"}/> <br/>
 
-                        <span> 
+                        <span>
                             Turma voltada aos fundamentos da esgrima olímpica, com trabalho de base, deslocamento, distância, tempo, ataque, defesa e construção técnica. <br/>
                             As inscrições estão abertas. As aulas começam em julho, assim que for fechado o mínimo de alunos necessário para o uso do espaço na academia.
                         </span> <br/>
@@ -61,11 +61,11 @@ const Training = () => {
                 <hr/>
                 <Row className="flex-row-reverse justify-content-md-center pt-3">
                     <Col xs={12} md={4}>
-                        <img src={process.env.PUBLIC_URL + `/ads/aula_itapira.jpeg`}
+                        <img src={process.env.PUBLIC_URL + `/ads/aula_itapira.jpg`}
                         style={{ objectFit: 'cover', display: 'block' }}
-                        className="img-fluid h-100" 
-                        alt="Imagem com informações das aulas em São Carlos."/> 
-                    </Col>  
+                        className="img-fluid h-100"
+                        alt="Imagem com informações das aulas em São Carlos."/>
+                    </Col>
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
                         <h4>Itapira/SP — Espada Longa</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
@@ -87,10 +87,10 @@ const Training = () => {
 
                         Nova turma em Itapira, com vagas limitadas. Não é necessário ter experiência prévia.
                     </Col>
-                     
+
                 </Row>
             </Container>
-        </div> 
+        </div>
     );
   };
 
