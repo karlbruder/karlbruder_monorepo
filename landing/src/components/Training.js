@@ -70,7 +70,7 @@ const Training = () => {
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
                         <b>Dia: sexta-feira</b>                <br/>
                         <b>Horário: 19h30 às 21h</b>           <br/>
-                        <b>Local: Itapira/SP</b>               <br/>
+                        <b>Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP</b> <br/>
                         <b>Valor mensal: R$60,00</b>           <br/>
 
                         Turma de espada longa voltada para iniciantes e praticantes em desenvolvimento. Não é necessário ter experiência prévia. <br/>
@@ -82,7 +82,7 @@ const Training = () => {
                         <b>Dia: sexta-feira</b>                <br/>
                         <b>Horário: 18h30 às 19h30</b>         <br/>
                         <b>Início: 24 de julho</b>             <br/>
-                        <b>Local: Itapira/SP</b>               <br/>
+                        <b>Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP</b>               <br/>
                         <b>Valor mensal: R$60,00</b>           <br/>
 
                         Nova turma em Itapira, com vagas limitadas. Não é necessário ter experiência prévia.

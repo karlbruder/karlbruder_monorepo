@@ -34,6 +34,19 @@ const YoutubeButton = () => {
   )
 }
 
+const MapsLink = ({ href, label }) => {
+  return (
+    <a
+      href={href}
+      style={{ textDecoration: "none", color: "white", fontWeight: "bold" }}
+      rel="noreferrer"
+      target="_blank">
+      📍 {label}
+    </a>
+  )
+}
+
+
 const Contact = () => {
   // TODO READ VALUES FROM CONFIG
   return (
@@ -48,10 +61,8 @@ const Contact = () => {
                 <Row className='d-flex flex-column'>
                   <Col> <h5>Localizações</h5> </Col>
                   <Col>
-                    <a href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A"
-                    style={{textDecoration: "none", color: 'white', fontWeight: "bold"}} rel='noreferrer' target="_blank">📍 São Carlos</a> <br/>
-                    <a href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7"
-                    style={{textDecoration: "none", color: 'white', fontWeight: "bold"}} rel='noreferrer' target="_blank">📍 Itapira</a>
+                    <MapsLink href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A" label="São Carlos" /> <br/>
+                    <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label="Itapira" />
                   </Col>
                 </Row>
               </Container>
