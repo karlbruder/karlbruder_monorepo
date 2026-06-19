@@ -1,6 +1,7 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import MapsLink from './MapsLink';
 
 const Training = () => {
     return (
@@ -16,10 +17,10 @@ const Training = () => {
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
                         <h4>São Carlos/SP — HEMA Regular</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/> 
-                        <b>Dias: Segunda e Quarta-Feira</b>    <br/>
-                        <b>Horário: 19h às 21h</b>             <br/>
-                        <b>Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder</b> <br/>
-                        <b>Valor mensal: R$200,00</b>          <br/>
+                        <b>📅 Dias: Segunda e Quarta-Feira</b>    <br/>
+                        <b>⏰ Horário: 19h às 21h</b>             <br/>
+                        <b>💸 Valor mensal: R$200,00</b>          <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder"}/> <br/>
 
                         <span>
                             Na segunda-feira, o treino é voltado aos fundamentos técnicos, com trabalho de base, deslocamento, cortes, defesas e construção marcial. <br/>
@@ -31,10 +32,10 @@ const Training = () => {
                         <h4>São Carlos/SP — HEMA Iniciante aos Sábados</h4>
 
                         <b>Modalidade: HEMA iniciante</b> <br/>
-                        <b>Dia: Sábado</b>                <br/>
-                        <b>Horário: 10h às 12h</b>        <br/>
-                        <b>Local: Chácara Recanto Vovô Fernando, nas Chácaras Leila, próximo ao bairro Tutoya do Vale</b> <br/>
-                        <b>Valor mensal: R$150,00</b>     <br/>
+                        <b>📅 Dia: Sábado</b>                <br/>
+                        <b>⏰ Horário: 10h às 12h</b>        <br/>
+                        <b>💸 Valor mensal: R$150,00</b>     <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/kPUdDcUhz8uiug246"} label={"Local: Chácara Recanto Vovô Fernando, nas Chácaras Leila, próximo ao bairro Tutoya do Vale"}/> <br/>
 
                         <span>
                             Turma voltada para iniciantes, com introdução aos fundamentos da esgrima histórica, progressão técnica e contato inicial com a arte da espada. <br/>
@@ -46,10 +47,10 @@ const Training = () => {
                         <h4>São Carlos/SP — Esgrima Olímpica: Fundamentos</h4>
 
                         <b>Modalidade: Esgrima Olímpica</b> <br/>
-                        <b>Dia: Terça-feira</b>             <br/>
-                        <b>Horário: 19h às 21h</b>          <br/>
-                        <b>Local: Academia Performance – Segundo andar, Sala de Armas Karlbrüder</b> <br/>
-                        <b>Valor mensal: R$200,00</b>       <br/>
+                        <b>📅 Dia: Terça-feira</b>             <br/>
+                        <b>⏰ Horário: 19h às 21h</b>          <br/>
+                        <b>💸 Valor mensal: R$200,00</b>       <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder"}/> <br/>
 
                         <span> 
                             Turma voltada aos fundamentos da esgrima olímpica, com trabalho de base, deslocamento, distância, tempo, ataque, defesa e construção técnica. <br/>
@@ -68,10 +69,10 @@ const Training = () => {
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
                         <h4>Itapira/SP — Espada Longa</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>Dia: sexta-feira</b>                <br/>
-                        <b>Horário: 19h30 às 21h</b>           <br/>
-                        <b>Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP</b> <br/>
-                        <b>Valor mensal: R$60,00</b>           <br/>
+                        <b>📅 Dia: sexta-feira</b>                <br/>
+                        <b>⏰ Horário: 19h30 às 21h</b>           <br/>
+                        <b>💸 Valor mensal: R$60,00</b>           <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP"}/> <br/>
 
                         Turma de espada longa voltada para iniciantes e praticantes em desenvolvimento. Não é necessário ter experiência prévia. <br/>
 
@@ -79,11 +80,10 @@ const Training = () => {
 
                         <h4>Itapira/SP — Nova Turma de Espada Longa</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>Dia: sexta-feira</b>                <br/>
-                        <b>Horário: 18h30 às 19h30</b>         <br/>
-                        <b>Início: 24 de julho</b>             <br/>
-                        <b>Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP</b>               <br/>
-                        <b>Valor mensal: R$60,00</b>           <br/>
+                        <b>📅 Dia: sexta-feira</b> <br/>
+                        <b>⏰ Horário: 18h30 às 19h30 - Início: 24 de julho</b> <br/>
+                        <b>💸 Valor mensal: R$60,00</b>           <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP"}/> <br/>
 
                         Nova turma em Itapira, com vagas limitadas. Não é necessário ter experiência prévia.
                     </Col>

@@ -1,6 +1,7 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import MapsLink from './MapsLink';
 
 const HomeButton = () => {
   return (
@@ -33,19 +34,6 @@ const YoutubeButton = () => {
     </a>
   )
 }
-
-const MapsLink = ({ href, label }) => {
-  return (
-    <a
-      href={href}
-      style={{ textDecoration: "none", color: "white", fontWeight: "bold" }}
-      rel="noreferrer"
-      target="_blank">
-      📍 {label}
-    </a>
-  )
-}
-
 
 const Contact = () => {
   // TODO READ VALUES FROM CONFIG
