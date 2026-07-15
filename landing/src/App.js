@@ -1,9 +1,11 @@
 
 import { Header, Banner, About, Weapons, Training, Gallery, Partner, Contact, Footer } from './components';
+import { LanguageProvider } from './components/LanguageContext';
 
 const App = () => {
   return (
     <>
+    <LanguageProvider>
       <Header/>
       <Banner/>
       <About/>
@@ -13,6 +15,7 @@ const App = () => {
       <Partner/>
       <Contact/>
       <Footer/>
+    </LanguageProvider>
     </>
   );
 }

@@ -2,6 +2,7 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import MapsLink from './MapsLink';
+import { useTranslation } from './LanguageContext';
 
 const HomeButton = () => {
   return (
@@ -37,6 +38,7 @@ const YoutubeButton = () => {
 
 const Contact = () => {
   // TODO READ VALUES FROM CONFIG
+  const { t } = useTranslation();
   return (
     <div id='contact'>
       <Container fluid className='d-flex justify-content-center bg-black text-white pt-4 pb-3 border-top'>
@@ -47,7 +49,7 @@ const Contact = () => {
 
               <Container fluid>
                 <Row className='d-flex flex-column'>
-                  <Col> <h5>Localizações</h5> </Col>
+                  <Col> <h5>{t.contact.titleLocation}</h5> </Col>
                   <Col>
                     <MapsLink href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A" label="São Carlos" /> <br/>
                     <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label="Itapira" />
@@ -61,7 +63,7 @@ const Contact = () => {
             xs={12} sm={6}>
             <Container fluid>
               <Row className='d-flex flex-column'>
-                <Col> <h5>Contato</h5> </Col>
+                <Col> <h5>{t.contact.titleContact}</h5> </Col>
                 <Col className='d-flex flex-row'>
                   <HomeButton /><WhatsappButton /><InstagramButton /><YoutubeButton />
                 </Col>

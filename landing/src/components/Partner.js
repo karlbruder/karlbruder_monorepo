@@ -1,14 +1,16 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { useTranslation } from './LanguageContext';
 
 const Partner = () => {
+  const { t } = useTranslation();
   return (
     <div id="partner">
         <Container fluid className='bg-black text-white text-center pt-4 pb-4'>
                 <Row className='justify-content-center'>
                     <Col xs={6} md={3} className='text-center'>
-                        <h3>Parceiros</h3>
+                        <h3>{t.partner.title}</h3>
                         <hr/>
                     </Col>
                 </Row>

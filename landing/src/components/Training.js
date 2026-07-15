@@ -2,59 +2,62 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import MapsLink from './MapsLink';
+import { useTranslation } from './LanguageContext';
 
 const Training = () => {
+        const { t } = useTranslation();
     return (
         <div id='training' className='bg-dark text-white pt-5 pb-5'>
             <Container fluid className='gap-5'>
                 <Row className="justify-content-md-center pb-3">
                     <Col xs={12} md={4}>
                         <img src={process.env.PUBLIC_URL + `/ads/aula_sanca.jpg`}
-                        style={{ objectFit: 'cover', display: 'block' }}
-                        className="img-fluid h-100"
+                        style={{ objectFit: 'contain', width: '100%', display: 'block' }}
+                        className="img-fluid"
                         alt="Imagem com informações das aulas em São Carlos."/>
                     </Col>
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
-                        <h4>São Carlos/SP — HEMA Regular</h4>
-                        <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>📅 Dias: Segunda e Quarta-Feira</b>    <br/>
-                        <b>⏰ Horário: 19h às 21h</b>             <br/>
-                        <b>💸 Valor mensal: R$200,00</b>          <br/>
-                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – segundo andar, Sala de Armas Karlbrüder"}/> <br/>
+                        <h4>{t.training.saoCarlosRegular.title}</h4>
+
+                        <b>{t.training.saoCarlosRegular.modality}</b>  <br/>
+                        <b>{t.training.saoCarlosRegular.days}</b>      <br/>
+                        <b>{t.training.saoCarlosRegular.time}</b>      <br/>
+                        <b>{t.training.saoCarlosRegular.price}</b>     <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={t.training.saoCarlosRegular.location}/> <br/>
 
                         <span>
-                            Na segunda-feira, o treino é voltado aos fundamentos técnicos, com trabalho de base, deslocamento, cortes, defesas e construção marcial. <br/>
-                            Na quarta-feira, o foco avança para técnicas mais desenvolvidas, aplicação prática e sparring.
+                            {t.training.saoCarlosRegular.text} <br/>
+                            {t.training.saoCarlosRegular.text2}
                         </span> <br/>
 
                         <hr/>
 
-                        <h4>São Carlos/SP — HEMA Iniciante aos Sábados</h4>
+                        <h4>{t.training.saoCarlosBeginner.title}</h4>
 
-                        <b>Modalidade: HEMA iniciante</b> <br/>
-                        <b>📅 Dia: Sábado</b>                <br/>
-                        <b>⏰ Horário: 10h às 12h</b>        <br/>
-                        <b>💸 Valor mensal: R$150,00</b>     <br/>
-                        <MapsLink href={"https://maps.app.goo.gl/kPUdDcUhz8uiug246"} label={"Local: Chácara Recanto Vovô Fernando, nas Chácaras Leila, próximo ao bairro Tutoya do Vale"}/> <br/>
+                        <b>{t.training.saoCarlosBeginner.modality}</b> <br/>
+                        <b>{t.training.saoCarlosBeginner.days}</b>                <br/>
+                        <b>{t.training.saoCarlosBeginner.time}</b>        <br/>
+                        <b>{t.training.saoCarlosBeginner.price}</b>     <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/kPUdDcUhz8uiug246"} label={t.training.saoCarlosBeginner.location}/> <br/>
 
                         <span>
-                            Turma voltada para iniciantes, com introdução aos fundamentos da esgrima histórica, progressão técnica e contato inicial com a arte da espada. <br/>
-                            No mesmo horário, há espaço para sparring livre de HEMA avançado, destinado a praticantes com equipamento completo.
+                            {t.training.saoCarlosBeginner.text} <br/>
+                            {t.training.saoCarlosBeginner.text2}
                         </span> <br/>
 
                         <hr/>
 
-                        <h4>São Carlos/SP — Esgrima Olímpica: Fundamentos</h4>
+                        <h4>{t.training.saoCarlosOlympic.title}</h4>
 
-                        <b>Modalidade: Esgrima Olímpica</b> <br/>
-                        <b>📅 Dia: Terça-Feira</b>             <br/>
-                        <b>⏰ Horário: 19h às 21h</b>          <br/>
-                        <b>💸 Valor mensal: R$200,00</b>       <br/>
-                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – segundo andar, Sala de Armas Karlbrüder"}/> <br/>
+                        <b>{t.training.saoCarlosOlympic.modality}</b> <br/>
+                        <b>{t.training.saoCarlosOlympic.days}</b>             <br/>
+                        <b>{t.training.saoCarlosOlympic.time}</b>          <br/>
+                        <b>{t.training.saoCarlosOlympic.price}</b>       <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={t.training.saoCarlosOlympic.location}/> <br/>
 
                         <span>
-                            Turma voltada aos fundamentos da esgrima olímpica, com trabalho de base, deslocamento, distância, tempo, ataque, defesa e construção técnica. <br/>
-                            As inscrições estão abertas. As aulas começam em julho, assim que for alcançado o mínimo de alunos necessário para o uso do espaço na academia.
+                            {t.training.saoCarlosOlympic.text} <br/>
+                            {t.training.saoCarlosOlympic.text2}
                         </span> <br/>
                     </Col>
                 </Row>
@@ -62,30 +65,30 @@ const Training = () => {
                 <Row className="flex-row-reverse justify-content-md-center pt-3">
                     <Col xs={12} md={4}>
                         <img src={process.env.PUBLIC_URL + `/ads/aula_itapira.jpg`}
-                        style={{ objectFit: 'cover', display: 'block' }}
-                        className="img-fluid h-100"
+                        style={{ objectFit: 'contain', width: '100%', display: 'block' }}
+                        className="img-fluid"
                         alt="Imagem com informações das aulas em São Carlos."/>
                     </Col>
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
-                        <h4>Itapira/SP — Espada Longa</h4>
-                        <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>📅 Dia: Sexta-Feira</b>                <br/>
-                        <b>⏰ Horário: 19h30 às 21h</b>           <br/>
-                        <b>💸 Valor mensal: R$60,00</b>           <br/>
-                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperança, Itapira - SP"}/> <br/>
+                        <h4>{t.training.itapiraLongsword.title}</h4>
+                        <b>{t.training.itapiraLongsword.modality}</b> <br/>
+                        <b>{t.training.itapiraLongsword.days}</b>                <br/>
+                        <b>{t.training.itapiraLongsword.time}</b>           <br/>
+                        <b>{t.training.itapiraLongsword.price}</b>           <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={t.training.itapiraLongsword.location}/> <br/>
 
-                        Turma de espada longa voltada para iniciantes e praticantes em desenvolvimento. Não é necessário ter experiência prévia. <br/>
+                        {t.training.itapiraLongsword.text} <br/>
 
                         <hr/>
 
-                        <h4>Itapira/SP — Nova Turma de Espada Longa</h4>
-                        <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>📅 Dia: Sexta-Feira</b> <br/>
-                        <b>⏰ Horário: 18h30 às 19h30 - Início: 24 de julho</b> <br/>
-                        <b>💸 Valor mensal: R$60,00</b>           <br/>
-                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperança, Itapira - SP"}/> <br/>
+                        <h4>{t.training.itapiraNewClass.title}</h4>
+                        <b>{t.training.itapiraNewClass.modality}</b> <br/>
+                        <b>{t.training.itapiraNewClass.days}</b> <br/>
+                        <b>{t.training.itapiraNewClass.time}</b> <br/>
+                        <b>{t.training.itapiraNewClass.price}</b> <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={t.training.itapiraNewClass.location}/> <br/>
 
-                        Nova turma em Itapira, com vagas limitadas. Não é necessário ter experiência prévia.
+                        {t.training.itapiraNewClass.text}
                     </Col>
 
                 </Row>

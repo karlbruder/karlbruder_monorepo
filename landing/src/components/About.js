@@ -1,19 +1,20 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-
+import { useTranslation } from './LanguageContext';
 
 const About = () => {
+  const { t } = useTranslation();
   return (
     <div id='about'>
       <Container fluid className='bg-dark text-white pt-2'>
         <Row className='justify-content-center'>
           <Col sm={6} className='text-center'>
             <>
-              <h3>Sobre</h3>
+              <h3>{t.about.title}</h3>
               <hr/>
               <p>
-                Fundado em 2016 por uma iniciativa de alunos da Universidade de São Paulo (USP) e da Universidade Federal de São Carlos (UFSCar), o grupo Karlbrüder é um dos pioneiros no Brasil na prática da esgrima histórica. Inspirado na Irmandade de São Marcos (Marxbrüder), icônica guilda de esgrima alemã dos séculos XV e XVI, o grupo tem suas origens na prática da esgrima alemã e posteriormente expadiu a prática e estudo de outras armas e escolas de esgrima.
+                {t.about.text}
               </p>
             </>
           </Col>
