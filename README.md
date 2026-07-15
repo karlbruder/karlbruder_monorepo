@@ -1,6 +1,6 @@
 # Karlbruder Website
 
-This is the landing page of the Karlbruder fencing guild =D
+This is the landing page of the Karlbrüder fencing guild =D
 
 The purpose of this page is to be a short display of what the group is about and also link to other social media and forms of contact.
 

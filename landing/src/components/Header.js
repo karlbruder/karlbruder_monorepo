@@ -18,7 +18,7 @@ const Header = () => {
             src={process.env.PUBLIC_URL + '/logos/logo_white_with_name.png'}
             height='60vh'
             className='d-inline-block align-top'
-            alt='Karlbruder logo'
+            alt='Karlbrüder logo'
           />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="menu">

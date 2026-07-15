@@ -20,11 +20,11 @@ const Training = () => {
                         <b>📅 Dias: Segunda e Quarta-Feira</b>    <br/>
                         <b>⏰ Horário: 19h às 21h</b>             <br/>
                         <b>💸 Valor mensal: R$200,00</b>          <br/>
-                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder"}/> <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – segundo andar, Sala de Armas Karlbrüder"}/> <br/>
 
                         <span>
                             Na segunda-feira, o treino é voltado aos fundamentos técnicos, com trabalho de base, deslocamento, cortes, defesas e construção marcial. <br/>
-                            Na quinta-feira, o foco avança para técnicas mais desenvolvidas, aplicação prática e sparring.
+                            Na quarta-feira, o foco avança para técnicas mais desenvolvidas, aplicação prática e sparring.
                         </span> <br/>
 
                         <hr/>
@@ -47,14 +47,14 @@ const Training = () => {
                         <h4>São Carlos/SP — Esgrima Olímpica: Fundamentos</h4>
 
                         <b>Modalidade: Esgrima Olímpica</b> <br/>
-                        <b>📅 Dia: Terça-feira</b>             <br/>
+                        <b>📅 Dia: Terça-Feira</b>             <br/>
                         <b>⏰ Horário: 19h às 21h</b>          <br/>
                         <b>💸 Valor mensal: R$200,00</b>       <br/>
-                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – Segundo Andar, Sala de Armas Karlbrüder"}/> <br/>
+                        <MapsLink href={"https://maps.app.goo.gl/S27W8DLRVZovKMg6A"} label={"Local: Academia Performance – segundo andar, Sala de Armas Karlbrüder"}/> <br/>
 
                         <span>
                             Turma voltada aos fundamentos da esgrima olímpica, com trabalho de base, deslocamento, distância, tempo, ataque, defesa e construção técnica. <br/>
-                            As inscrições estão abertas. As aulas começam em julho, assim que for fechado o mínimo de alunos necessário para o uso do espaço na academia.
+                            As inscrições estão abertas. As aulas começam em julho, assim que for alcançado o mínimo de alunos necessário para o uso do espaço na academia.
                         </span> <br/>
                     </Col>
                 </Row>
@@ -69,10 +69,10 @@ const Training = () => {
                     <Col xs={12} md={4} className='mt-4 mt-md-0'>
                         <h4>Itapira/SP — Espada Longa</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>📅 Dia: sexta-feira</b>                <br/>
+                        <b>📅 Dia: Sexta-Feira</b>                <br/>
                         <b>⏰ Horário: 19h30 às 21h</b>           <br/>
                         <b>💸 Valor mensal: R$60,00</b>           <br/>
-                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP"}/> <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperança, Itapira - SP"}/> <br/>
 
                         Turma de espada longa voltada para iniciantes e praticantes em desenvolvimento. Não é necessário ter experiência prévia. <br/>
 
@@ -80,10 +80,10 @@ const Training = () => {
 
                         <h4>Itapira/SP — Nova Turma de Espada Longa</h4>
                         <b>Modalidade: HEMA / Espada Longa</b> <br/>
-                        <b>📅 Dia: sexta-feira</b> <br/>
+                        <b>📅 Dia: Sexta-Feira</b> <br/>
                         <b>⏰ Horário: 18h30 às 19h30 - Início: 24 de julho</b> <br/>
                         <b>💸 Valor mensal: R$60,00</b>           <br/>
-                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperanca, Itapira - SP"}/> <br/>
+                        <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label={"Local: R. Antônia Pupa, 93 - Vila Esperança, Itapira - SP"}/> <br/>
 
                         Nova turma em Itapira, com vagas limitadas. Não é necessário ter experiência prévia.
                     </Col>

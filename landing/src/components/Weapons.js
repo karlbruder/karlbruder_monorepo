@@ -19,7 +19,7 @@ const Weapons = () => {
                             <i class="icon-liech-v2" style={{fontSize: '128px'}}></i>
                         </div>
                         <p>
-                            O mestre Johannes Liechtenauer marcou a sociedade do século XIV com sua forma de combate eficiente. Desferindo de forma tática, golpes velozes e contra-ataques calculados, capazes de finalizar duelos em instantes.
+                            O mestre Johannes Liechtenauer marcou a tradição da esgrima alemã com sua forma eficiente de combate. Desferindo de forma tática, golpes velozes e contra-ataques calculados, capazes de finalizar duelos em instantes.
                         </p>
                     </Col>
                     <Col sm={12} md={6} className='px-5'>
@@ -28,7 +28,7 @@ const Weapons = () => {
                             <i class="icon-fiori-v10" style={{fontSize: '128px'}}></i>
                         </div>
                         <p>
-                            A arte da batalha exclusiva aos nobre. O mestre Fiori del Liberi ensinou aos cavaleiros do século XVI uma poderosa e completa forma de lutar a curta distância, destruindo seus oponentes em embates ferozes.
+                            A arte da batalha exclusiva aos nobres. O mestre Fiori dei Liberi ensinou aos cavaleiros do século XVI uma poderosa e completa forma de lutar a curta distância, destruindo seus oponentes em embates ferozes.
                         </p>
                     </Col>
                     <Col sm={12} md={6} className='px-5'>
@@ -37,7 +37,7 @@ const Weapons = () => {
                             <i class="icon-sabre-v2" style={{fontSize: '128px'}}></i>
                         </div>
                         <p>
-                            Destinado aos lordes e oficiais, a lâmina fria do sabre corta de forma elegante e letal. Durante o século XIX, o renomado espadachim e capitão Alfred Hutton ensinou aos seus regimentos de forma estruturada e altamente detalhada na arte do sabre.
+                            Durante o século XIX, o renomado espadachim e capitão Alfred Hutton ensinou de forma estruturada e altamente detalhada a arte do sabre aos seus regimentos. Destinada aos lordes e oficiais, a lâmina fria do sabre corta de forma elegante e letal.
                         </p>
                     </Col>
                     <Col sm={12} md={6} className='px-5'>
@@ -46,7 +46,7 @@ const Weapons = () => {
                             <i class="icon-montante-v3" style={{fontSize: '128px'}}></i>
                         </div>
                         <p>
-                            Arma dos guardiões reais, o poderoso brandir do montate enfrenta as multidões, firmando terreno e impondo order. O general Dom Diogo Gomes de Figueyredo deixou em sua memória, ensinamentos para domar este monstro frente a tempestade.
+                            Arma dos guardiões reais, o poderoso brandir do montante enfrenta as multidões, firmando terreno e impondo ordem. O general Dom Diogo Gomes de Figueyredo deixou em sua memória, ensinamentos para domar este monstro frente à tempestade.
                         </p>
                     </Col>
                     <Col sm={12} md={6} className='px-5'>

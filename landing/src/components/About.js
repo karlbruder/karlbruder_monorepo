@@ -13,7 +13,7 @@ const About = () => {
               <h3>Sobre</h3>
               <hr/>
               <p>
-                Fundado em 2016 por uma iniciativa de alunos da Universidade de São Paulo (USP) e da Universidade Federal de São Carlos (UFScar), o grupo Karlbruder é um dos pioneiros no Brasil na prática da esgrima histórica. Inspirado na Irmandade de São Marcos (Maxbruder), icônica guilda de esgrima alemã dos séculos XV e XVI, o grupo tem suas origens na prática da esgrima alemã e posteriormente expadiu a prática e estudo de outras armas e escolas de esgrima.
+                Fundado em 2016 por uma iniciativa de alunos da Universidade de São Paulo (USP) e da Universidade Federal de São Carlos (UFSCar), o grupo Karlbrüder é um dos pioneiros no Brasil na prática da esgrima histórica. Inspirado na Irmandade de São Marcos (Marxbrüder), icônica guilda de esgrima alemã dos séculos XV e XVI, o grupo tem suas origens na prática da esgrima alemã e posteriormente expadiu a prática e estudo de outras armas e escolas de esgrima.
               </p>
             </>
           </Col>
