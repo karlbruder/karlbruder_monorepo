@@ -1,4 +1,4 @@
-name: Deploy Landing Page
+name: Deploy - Landing Page
 
 on:
   workflow_dispatch:

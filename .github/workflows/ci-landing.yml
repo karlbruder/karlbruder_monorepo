@@ -1,4 +1,4 @@
-name: Validate Landing Page
+name: CI - Landing Page
 
 on:
   pull_request:
