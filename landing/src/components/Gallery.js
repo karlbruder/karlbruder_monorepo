@@ -32,7 +32,7 @@ const PhotosGrid = ({ photos }) => {
           <img
             src={process.env.PUBLIC_URL + `/gallery/${photo}`}
             style={{width: '100%'}}
-            alt={`Karl Bruder Hematology gallery photo ${photo.replace('.jpg', '')}`}
+            alt={`Karl Bruder Hematology gallery ${photo.replace('.jpg', '')}`}
           />
         </Col>
       ))}
