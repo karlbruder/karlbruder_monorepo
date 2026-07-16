@@ -1,37 +1,48 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { useTranslation } from './LanguageContext';
 
 const Partner = () => {
+  const { t } = useTranslation();
   return (
     <div id="partner">
-        <Container fluid className='bg-black text-white text-center pt-4'>
+        <Container fluid className='bg-black text-white text-center pt-4 pb-4'>
                 <Row className='justify-content-center'>
                     <Col xs={6} md={3} className='text-center'>
-                        <h3>Parceiros</h3>
+                        <h3>{t.partner.title}</h3>
                         <hr/>
                     </Col>
                 </Row>
-                <Row>
-                    <Col sm={12} md={6} className='px-5'> 
-                        <a href="https://www.faitsdarmes.com/en/" target="_blank"rel="noopener noreferrer follow"  title="Faits D'Armes Store: Specialists in equipment for Historical European Martial Arts (HEMA)" >
+                <Row className='justify-content-center gap-5'>
+                    <Col sm={1} md={2} className='px-5'> 
+                        <a href="https://sparringglove.com/" target="_blank"rel="noopener noreferrer follow"  title="Sparring Gloves" >
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_sparring_gloves.png`} alt="Sparring Gloves Logo" width="150" height="150"/>
+                        </a>
+                    </Col>  
 
-                            <img src="https://faitsdarmes.com/img/cms/partner-kit/faitsdarmes-partner-300x300-black.png" alt="This club is an official partner of Faits d'Armes store" width="300" height="300"/>
+                    <Col sm={1} md={2} className='px-5'> 
+                        <a href="https://linktr.ee/manziniswordmaker" target="_blank"rel="noopener noreferrer follow"  title="Manzini Swordmaker" >
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_mazini.png`} alt="Manzini Swordmaker Logo" width="150" height="150"/>
                         </a>
                     </Col>
-                    <Col className='text-center'>
-                        <p>
-                            Temos o prazer de anunciar o início da nossa parceria oficial com a Faits d’Armes.
-                        </p>
-                        <p>
-                            Essa colaboração representa um passo importante para o nosso clube, unindo-nos a um fornecedor reconhecido pela qualidade de seus equipamentos e pelo compromisso com os praticantes.
-                        </p>
-                        <p>
-                            Temos plena confiança de que essa parceria será um grande sucesso e trará benefícios concretos aos nossos membros, garantindo acesso a materiais confiáveis para treino e competição, além de condições especiais e descontos.
-                        </p>
-                        <p>
-                            Agradecemos à Faits d’Armes pela confiança e apoio, e estamos entusiasmados para construir juntos uma parceria sólida e duradoura.
-                        </p>
+
+                    <Col sm={1} md={2} className='px-5'> 
+                        <a href="https://www.instagram.com/cantodoaco/" target="_blank"rel="noopener noreferrer follow"  title="Canto do Aço" >
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_canto_do_aco.png`} alt="Canto do Aço Logo" width="150" height="150"/>
+                        </a>
+                    </Col>
+
+                    <Col sm={1} md={2} className='px-5'> 
+                        <a href="https://linktr.ee/flechebrasil" target="_blank" rel="noopener noreferrer follow"  title="Flèche" >
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_fleche.jpg`} alt="Fléche Store Logo" width="150" height="150"/>
+                        </a>
+                    </Col>
+
+                    <Col sm={1} md={2} className='px-5'> 
+                        <a href="https://www.faitsdarmes.com/en/" target="_blank"rel="noopener noreferrer follow"  title="Faits D'Armes" >
+                            <img src={process.env.PUBLIC_URL + `/logos/logo_faits_darmes.png`} alt="Faits d'Armes Store Logo" width="200" height="150"/>
+                        </a>
                     </Col>
                 </Row>
         </Container>

@@ -1,15 +1,8 @@
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-
-
-const MapsButton = () => {
-  return (
-    <a href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A" target="_blank">
-      <img src={process.env.PUBLIC_URL + '/icons/maps.png'} height="20" />
-    </a>
-  )
-}
+import MapsLink from './MapsLink';
+import { useTranslation } from './LanguageContext';
 
 const HomeButton = () => {
   return (
@@ -45,26 +38,38 @@ const YoutubeButton = () => {
 
 const Contact = () => {
   // TODO READ VALUES FROM CONFIG
+  const { t } = useTranslation();
   return (
     <div id='contact'>
-      <Container fluid className='bg-black text-white pt-3'>
+      <Container fluid className='d-flex justify-content-center bg-black text-white pt-4 pb-3 border-top'>
         <Row>
           <Col
-            className='d-flex justify-content-center'
-            xs={12} sm={6}
-          >
-            <p>
-              Academia Performance<br/>
-              Jesuíno de Arruda, 1533 - Jardim Sao Carlos, São Carlos - SP<br/>
-              CEP 13560-642 | <MapsButton />
-            </p>
+            className='d-flex '
+            xs={12} sm={6}>
+
+              <Container fluid>
+                <Row className='d-flex flex-column'>
+                  <Col> <h5>{t.contact.titleLocation}</h5> </Col>
+                  <Col>
+                    <MapsLink href="https://maps.app.goo.gl/S27W8DLRVZovKMg6A" label="São Carlos" /> <br/>
+                    <MapsLink href="https://maps.app.goo.gl/kdNhRqJdvh9TBZRP7" label="Itapira" />
+                  </Col>
+                </Row>
+              </Container>
           </Col>
 
           <Col
-            className='d-flex justify-content-center align-items-center pb-3'
-            xs={12} sm={6}
-          >
-            <HomeButton /><WhatsappButton /><InstagramButton /><YoutubeButton />
+            className='d-flex justify-content-center align-items-center pb-3 mt-3 mt-sm-0'
+            xs={12} sm={6}>
+            <Container fluid>
+              <Row className='d-flex flex-column'>
+                <Col> <h5>{t.contact.titleContact}</h5> </Col>
+                <Col className='d-flex flex-row'>
+                  <HomeButton /><WhatsappButton /><InstagramButton /><YoutubeButton />
+                </Col>
+              </Row>
+            </Container>
+            
           </Col>
         </Row>
       </Container>
