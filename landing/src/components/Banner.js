@@ -13,11 +13,12 @@ const Banner = () => {
     <Container fluid  className='text-center bg-black'>
       <Carousel>
         {photos.map(photo => (
-            <Carousel.Item>
+            <Carousel.Item key={photo}>
               <img
                 src={process.env.PUBLIC_URL + `/banner/${photo}`}
                 width='85%'
                 className='d-inline-block'
+                alt={`Karl Bruder Hematology banner ${photo.replace('.jpg', '')}`}
               />
             </Carousel.Item>
         ))}

@@ -24,27 +24,15 @@ const galleryPhotos = [
   '18.jpg',
 ];
 
-const openFullSize = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
 const PhotosGrid = ({ photos }) => {
   return (
     <>
       {photos.map(photo => (
-        <Col lg={4} sm={6} className='d-inline-block'>
-          {/* TODO open the fullsized photo on a modal
-          <a href='#' onClick={openFullSize}>
-            <img
-              src={process.env.PUBLIC_URL + `/gallery/${photo}`}
-              style={{width: '640px', height: '350px', objectFit:'cover'}}
-              />
-          </a>
-          */}
+        <Col key={photo} lg={4} sm={6} className='d-inline-block'>
           <img
             src={process.env.PUBLIC_URL + `/gallery/${photo}`}
             style={{width: '100%'}}
+            alt={`Karl Bruder Hematology gallery photo ${photo.replace('.jpg', '')}`}
           />
         </Col>
       ))}
@@ -67,8 +55,8 @@ const Gallery = () => {
       <Container fluid  className='text-center bg-dark'>
         <Row>
           <Carousel>
-            {getPaginatedPhotos(galleryPhotos).map(page => (
-              <Carousel.Item>
+            {getPaginatedPhotos(galleryPhotos).map((page, index) => (
+              <Carousel.Item key={index}>
                 <PhotosGrid photos={page}/>
               </Carousel.Item>
             ))}

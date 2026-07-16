@@ -6,32 +6,32 @@ import { useTranslation } from './LanguageContext';
 
 const HomeButton = () => {
   return (
-    <a href="#">
-      <img src={process.env.PUBLIC_URL + '/icons/home.jpg'} height="38px" hspace="5" />
+    <a href="/" aria-label="Home">
+      <img src={process.env.PUBLIC_URL + '/icons/home.jpg'} height="38px" hspace="5" alt="Home" />
     </a>
   )
 }
 
 const WhatsappButton = () => {
   return (
-    <a href="https://wa.me/5516997632102" target="_blank">
-      <img src={process.env.PUBLIC_URL + '/icons/whatsapp.png'} height="38px" hspace="5" />
+    <a href="https://wa.me/5516997632102" target="_blank" rel="noreferrer" aria-label="Contact us on WhatsApp">
+      <img src={process.env.PUBLIC_URL + '/icons/whatsapp.png'} height="38px" hspace="5" alt="WhatsApp" />
     </a>
   )
 }
 
 const InstagramButton = () => {
   return (
-    <a href="https://www.instagram.com/karlbruder.hema/?hl=pt-br" target="_blank">
-      <img src={process.env.PUBLIC_URL + '/icons/instagram.png'} height="38px" hspace="5" />
+    <a href="https://www.instagram.com/karlbruder.hema/?hl=pt-br" target="_blank" rel="noreferrer" aria-label="Follow us on Instagram">
+      <img src={process.env.PUBLIC_URL + '/icons/instagram.png'} height="38px" hspace="5" alt="Instagram" />
     </a>
   )
 }
 
 const YoutubeButton = () => {
   return (
-    <a href="https://www.youtube.com/channel/UCEzgHTyAzDwL1-KTYvd9m4w" target="_blank">
-      <img src={process.env.PUBLIC_URL + '/icons/youtube.png'} height="38px" hspace="5" />
+    <a href="https://www.youtube.com/channel/UCEzgHTyAzDwL1-KTYvd9m4w" target="_blank" rel="noreferrer" aria-label="Watch us on YouTube">
+      <img src={process.env.PUBLIC_URL + '/icons/youtube.png'} height="38px" hspace="5" alt="YouTube" />
     </a>
   )
 }
