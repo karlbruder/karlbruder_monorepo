@@ -10,8 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
-    name: Lint and production build
+  build:
     runs-on: ubuntu-latest
 
     defaults:
