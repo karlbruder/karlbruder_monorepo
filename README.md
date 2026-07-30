@@ -1,43 +1,76 @@
-# Karlbruder Website
+# Karlbrüder
 
-This is the landing page of the Karlbrüder fencing guild =D
+Monorepo do site e do sistema da escola de esgrima Karlbrüder.
 
-The purpose of this page is to be a short display of what the group is about and also link to other social media and forms of contact.
+## Estrutura
 
-The site was build using **React** and will be hosted on the clound under the domain <a href='http://karlbruder.com'>karlbruder.com</a>
+- `landing/`: site institucional público em React.
+- `frontend/`: aplicação React com TypeScript e Vite.
+- `backend/`: API FastAPI gerenciada com Poetry.
+- `compose.yml`: ambiente local com frontend, backend e PostgreSQL.
 
----
+Nesta etapa, a aplicação local não possui autenticação. O ambiente é composto
+somente pelo frontend, pelo backend e pelo PostgreSQL local.
 
-## Structure
+## Requisitos
 
-The page is divided in smaller React components, those are:
-- **Header**: sticky navbar for website navigation
-- **Banner**: images carousel with badass images for marketing
-- **About**: A brief summary of the group's origins
-- **Weapons**: A brief description of the fencing schools and weapons practiced by the group
-- **Gallery**: images carousels displaying some group events and manual
-- **Contact**: address and other social media
+Para executar todo o ambiente local, instale:
 
+- Git
+- Docker Desktop com Docker Compose
 
-## Installation
+Python, Poetry, Node.js e PostgreSQL não precisam estar instalados diretamente
+na máquina quando o projeto é executado com Docker.
 
-The dependencies are listed in the <a href='./package.json' target='_blank'>package.json</a> file. To install all dependencies, run the following:
-> npm install
+## Executar o sistema
 
+Abra o Docker Desktop e, na raiz do repositório, execute:
 
-## Development
+```powershell
+docker compose up --build
+```
 
-For starting a development server:
-> npm start
+Na primeira execução, o Docker baixará as imagens e construirá o frontend e o
+backend. Aguarde até os serviços aparecerem como iniciados.
 
+Depois, acesse:
 
-## Build
+- Aplicação: http://localhost:3000
+- Diagnóstico visual: http://localhost:3000/health
+- API: http://localhost:8000
+- Documentação Swagger: http://localhost:8000/docs
+- Health do backend: http://localhost:8000/health
+- Health do banco: http://localhost:8000/health/db
 
-For building the production version:
-> npm run build
+O PostgreSQL fica disponível em `localhost:5432` com os seguintes dados locais:
 
----
+```text
+database: kb-db
+user: user
+password: password
+```
 
-### Note on the Weapons icons
+Essas credenciais são exclusivas do ambiente local definido no Compose.
 
-The icons where created using <a href='https://icomoon.io/'>icomoon</a>. To use the icons it necessary to import the ***icomoon.css*** file, which internally relly on the icomoon fonts under the folder ***fonts***.
+## Encerrar o sistema
+
+No terminal em que o Compose está em execução, pressione `Ctrl+C`. Para remover
+os containers e a rede local depois disso, execute:
+
+```powershell
+docker compose down
+```
+
+O volume do PostgreSQL é preservado por esse comando. Não use
+`docker compose down -v` se quiser manter os dados locais.
+
+## Fluxo local
+
+O navegador acessa somente o frontend. O Nginx encaminha requisições iniciadas
+com `/api/` para o FastAPI, e somente o backend acessa o PostgreSQL:
+
+```text
+Navegador -> Nginx/React -> FastAPI -> PostgreSQL
+```
+
+O frontend nunca se conecta diretamente ao banco de dados.
