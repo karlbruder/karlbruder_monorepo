@@ -1,48 +1,50 @@
 # Karlbrüder
 
-Monorepo do site e do sistema da escola de esgrima Karlbrüder.
+Monorepo for the Karlbrüder fencing school website and management system.
 
-## Estrutura
+## Structure
 
-- `landing/`: site institucional público em React.
-- `frontend/`: aplicação React com TypeScript e Vite.
-- `backend/`: API FastAPI gerenciada com Poetry.
-- `compose.yml`: ambiente local com frontend, backend e PostgreSQL.
+* `landing/`: public institutional website built with React.
+* `frontend/`: React application using TypeScript and Vite.
+* `backend/`: FastAPI API managed with Poetry.
+* `compose.yml`: local environment containing the frontend, backend, and PostgreSQL.
 
-Nesta etapa, a aplicação local não possui autenticação. O ambiente é composto
-somente pelo frontend, pelo backend e pelo PostgreSQL local.
+At this stage, the local application does not include authentication. The
+environment consists only of the frontend, backend, and local PostgreSQL
+database.
 
-## Requisitos
+## Requirements
 
-Para executar todo o ambiente local, instale:
+To run the complete local environment, install:
 
-- Git
-- Docker Desktop com Docker Compose
+* Git
+* Docker Desktop with Docker Compose
 
-Python, Poetry, Node.js e PostgreSQL não precisam estar instalados diretamente
-na máquina quando o projeto é executado com Docker.
+Python, Poetry, Node.js, and PostgreSQL do not need to be installed directly on
+the machine when the project is run with Docker.
 
-## Executar o sistema
+## Running the System
 
-Abra o Docker Desktop e, na raiz do repositório, execute:
+Open Docker Desktop and, from the repository root, run:
 
 ```powershell
 docker compose up --build
 ```
 
-Na primeira execução, o Docker baixará as imagens e construirá o frontend e o
-backend. Aguarde até os serviços aparecerem como iniciados.
+On the first run, Docker will download the required images and build the
+frontend and backend. Wait until all services appear as started.
 
-Depois, acesse:
+Then access:
 
-- Aplicação: http://localhost:3000
-- Diagnóstico visual: http://localhost:3000/health
-- API: http://localhost:8000
-- Documentação Swagger: http://localhost:8000/docs
-- Health do backend: http://localhost:8000/health
-- Health do banco: http://localhost:8000/health/db
+* Application: http://localhost:3000
+* Visual diagnostics: http://localhost:3000/health
+* API: http://localhost:8000
+* Swagger documentation: http://localhost:8000/docs
+* Backend health check: http://localhost:8000/health
+* Database health check: http://localhost:8000/health/db
 
-O PostgreSQL fica disponível em `localhost:5432` com os seguintes dados locais:
+PostgreSQL is available at `localhost:5432` using the following local
+credentials:
 
 ```text
 database: kb-db
@@ -50,112 +52,118 @@ user: user
 password: password
 ```
 
-Essas credenciais são exclusivas do ambiente local definido no Compose.
-Elas são intencionalmente simples e não devem ser reutilizadas fora do ambiente
-local. A porta é publicada apenas em `127.0.0.1`, portanto o banco não fica
-exposto diretamente à rede da máquina.
+These credentials are exclusive to the local environment defined in Compose.
+They are intentionally simple and must not be reused outside the local
+environment. The port is published only on `127.0.0.1`, so the database is not
+directly exposed to the machine's network.
 
-Sem `DATABASE_URL` no arquivo `.env` da raiz, o Compose injeta no backend a
-configuração local padrão:
+When `DATABASE_URL` is not defined in the root `.env` file, Compose injects the
+default local configuration into the backend:
 
 ```text
 DATABASE_URL=postgresql://user:password@db:5432/kb-db
 ```
 
-`db` é o nome DNS do serviço dentro da rede do Compose. Para testar o mesmo
-backend com o Supabase, copie [`.env.example`](.env.example) para `.env` e
-preencha `DATABASE_URL` com a URI Postgres do Supabase. O Compose usa a expressão
-`${DATABASE_URL:-postgresql://user:password@db:5432/kb-db}`: uma variável
-preenchida substitui o padrão; ausente ou vazia mantém o banco local.
+`db` is the DNS name of the service within the Compose network. To test the
+same backend with Supabase, copy [`.env.example`](.env.example) to `.env` and
+set `DATABASE_URL` to the Supabase Postgres URI. Compose uses the expression
+`${DATABASE_URL:-postgresql://user:password@db:5432/kb-db}`: a defined value
+overrides the default, while an absent or empty value keeps the local database.
 
-Depois de incluir, alterar ou remover `DATABASE_URL`, recrie o backend:
+After adding, changing, or removing `DATABASE_URL`, recreate the backend
+container:
 
 ```powershell
 docker compose up -d --force-recreate backend
 ```
 
-O serviço `db` continua disponível nos dois casos, mas cada processo do backend
-mantém apenas uma conexão SQL ativa. Os dois bancos não são sincronizados.
-Para executar o backend diretamente na máquina host, defina explicitamente
-`DATABASE_URL`; fora do Compose não existe o fallback com host `db`.
+The `db` service remains available in both cases, but each backend process
+maintains only one active SQL connection. The two databases are not
+synchronized. To run the backend directly on the host machine, explicitly
+define `DATABASE_URL`; outside Compose, there is no fallback using the `db`
+hostname.
 
-## Encerrar o sistema
+## Stopping the System
 
-No terminal em que o Compose está em execução, pressione `Ctrl+C`. Para remover
-os containers e a rede local depois disso, execute:
+In the terminal where Compose is running, press `Ctrl+C`. To remove the
+containers and local network afterward, run:
 
 ```powershell
 docker compose down
 ```
 
-O volume do PostgreSQL é preservado por esse comando. Não use
-`docker compose down -v` se quiser manter os dados locais.
+This command preserves the PostgreSQL volume. Do not use
+`docker compose down -v` if you want to retain the local data.
 
-## Fluxo local
+## Local Request Flow
 
-O navegador acessa somente o frontend. O Nginx encaminha requisições iniciadas
-com `/api/` para o FastAPI, e somente o backend acessa o PostgreSQL:
-
-```text
-Navegador -> Nginx/React -> FastAPI -> PostgreSQL
-```
-
-O frontend nunca se conecta diretamente ao banco de dados.
-
-Os dados locais são independentes dos dados do Supabase e não são sincronizados
-automaticamente. Quando o projeto tiver migrations Alembic, as mesmas migrations
-deverão ser aplicadas nos dois ambientes para manter a estrutura equivalente.
-
-## Banco no deploy: EC2 e Supabase
-
-O `compose.yml` deste repositório é destinado ao desenvolvimento local. No
-deploy da EC2, o backend e o frontend são executados sem o serviço `db`. O
-backend recebe pela variável `DATABASE_URL` a URI do Postgres do mesmo projeto
-Supabase usado pelo Supabase Auth.
-
-Não existe código condicional para criar engines diferentes. A mesma engine lê
-o valor final de `DATABASE_URL`:
+The browser accesses only the frontend. Nginx forwards requests beginning with
+`/api/` to FastAPI, and only the backend accesses PostgreSQL:
 
 ```text
-Local: DATABASE_URL -> Postgres do Compose
-EC2:   DATABASE_URL -> Postgres do Supabase
+Browser -> Nginx/React -> FastAPI -> PostgreSQL
 ```
 
-Como o backend da EC2 é um serviço persistente, escolha no painel **Connect** do
-Supabase uma destas opções:
+The frontend never connects directly to the database.
 
-- conexão direta, quando a EC2/VPC tiver conectividade IPv6 ou o projeto
-  Supabase tiver o add-on IPv4;
-- Supavisor em **session mode**, porta 5432, quando a EC2 tiver somente IPv4.
+Local data is independent from Supabase data and is not synchronized
+automatically. Once the project includes Alembic migrations, the same
+migrations must be applied to both environments to keep their database
+structures equivalent.
 
-Consulte também a documentação oficial sobre
-[conexões Postgres do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).
-Use SSL na conexão remota, por exemplo com `sslmode=require`, caso esse parâmetro
-não esteja presente na URI fornecida pelo painel. Transaction mode é voltado a
-clientes serverless e não é a opção indicada para esse backend persistente.
+## Deployment Database: EC2 and Supabase
 
-A URI contém a senha do banco e deve ser armazenada no AWS Secrets Manager ou
-no SSM Parameter Store e injetada no ambiente do container como `DATABASE_URL`.
-Nunca coloque a URI em código, Dockerfile, arquivos versionados ou variáveis
-`VITE_*`: qualquer variável empacotada no frontend fica visível ao navegador.
+The `compose.yml` file in this repository is intended for local development.
+In the EC2 deployment, the backend and frontend run without the `db` service.
+The backend receives, through the `DATABASE_URL` environment variable, the
+Postgres URI for the same Supabase project used by Supabase Auth.
 
-### Separação de schemas
+There is no conditional code for creating different database engines. The same
+engine reads the final value of `DATABASE_URL`:
 
-O banco Supabase é compartilhado, mas os dados permanecem separados por schema:
+```text
+Local: DATABASE_URL -> Compose Postgres
+EC2:   DATABASE_URL -> Supabase Postgres
+```
 
-- `auth`: gerenciado pelo Supabase Auth;
-- `public`: tabelas, índices e migrations do domínio Karlbruder.
+Because the EC2 backend is a persistent service, select one of the following
+options from the Supabase **Connect** panel:
 
-Modelos e migrations futuros do backend devem criar objetos de domínio
-explicitamente em `public` e não devem alterar objetos pertencentes a `auth`.
+* a direct connection when the EC2 instance or VPC has IPv6 connectivity, or
+  when the Supabase project has the IPv4 add-on;
+* Supavisor in **session mode**, using port 5432, when the EC2 instance supports
+  only IPv4.
 
-### Validação manual na EC2
+See the official documentation on
+[Supabase Postgres connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
+Use SSL for the remote connection, for example with `sslmode=require`, if that
+parameter is not already included in the URI provided by the Supabase panel.
+Transaction mode is intended for serverless clients and is not the recommended
+option for this persistent backend.
 
-Depois de injetar a secret e iniciar o backend sem o Postgres local:
+The URI contains the database password and must be stored in AWS Secrets
+Manager or SSM Parameter Store, then injected into the container environment as
+`DATABASE_URL`. Never place the URI in source code, a Dockerfile, versioned
+files, or `VITE_*` variables: any variable bundled into the frontend is visible
+to the browser.
 
-1. Abra `GET /health` e confirme que a API está ativa.
-2. Abra `GET /health/db`.
-3. Confirme HTTP 200 e a resposta:
+### Schema Separation
+
+The Supabase database is shared, but the data remains separated by schema:
+
+* `auth`: managed by Supabase Auth;
+* `public`: Karlbruder domain tables, indexes, and migrations.
+
+Future backend models and migrations must explicitly create domain objects in
+`public` and must not modify objects belonging to `auth`.
+
+### Manual Validation on EC2
+
+After injecting the secret and starting the backend without local PostgreSQL:
+
+1. Open `GET /health` and confirm that the API is running.
+2. Open `GET /health/db`.
+3. Confirm an HTTP 200 response with the following body:
 
    ```json
    {
@@ -170,15 +178,16 @@ Depois de injetar a secret e iniciar o backend sem o Postgres local:
    }
    ```
 
-`database_target` pode ser `local`, `supabase` ou `external`. No Postgres local,
-`public` existe e `auth` normalmente aparece como `false`; no Supabase, ambos
-devem existir. A ausência de `auth` no banco local não torna o serviço unhealthy.
-Uma falha de configuração, conexão ou consulta retorna HTTP 503 sem expor a URI
-ou detalhes internos. Consulte os logs privados do backend para investigar.
+`database_target` may be `local`, `supabase`, or `external`. In local
+PostgreSQL, `public` exists and `auth` will normally appear as `false`; in
+Supabase, both should exist. The absence of `auth` in the local database does
+not make the service unhealthy. A configuration, connection, or query failure
+returns HTTP 503 without exposing the URI or internal details. Check the
+private backend logs for investigation.
 
-## Testes do backend
+## Backend Tests
 
-Com Python e Poetry instalados:
+With Python and Poetry installed:
 
 ```powershell
 cd backend
@@ -187,6 +196,7 @@ poetry run pytest
 poetry run ruff check database.py main.py tests
 ```
 
-Para o smoke test integrado, execute o Compose e confirme que os serviços
-`db`, `backend` e `frontend` ficam saudáveis. O healthcheck do container backend
-usa `/health/db`, portanto ele só fica saudável quando o `SELECT 1` funciona.
+For the integrated smoke test, start the Compose environment and confirm that
+the `db`, `backend`, and `frontend` services remain healthy. The backend
+container health check uses `/health/db`, so the container is considered
+healthy only when `SELECT 1` succeeds.

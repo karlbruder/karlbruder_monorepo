@@ -1,38 +1,39 @@
-# Backend Karlbruder
+# Karlbruder Backend
 
-API FastAPI responsável pela lógica de domínio e pelo acesso ao Postgres.
+FastAPI API responsible for domain logic and Postgres access.
 
-## Configuração
+## Configuration
 
-`DATABASE_URL` representa a única configuração de conexão SQL:
+`DATABASE_URL` is the sole SQL connection configuration:
 
-- sem a variável no `.env` da raiz, o Docker Compose usa o serviço `db` local;
-- com a variável no `.env`, o Compose usa a URI informada, inclusive Supabase;
-- o deploy na EC2 injeta, por secret, a URI do Postgres do Supabase.
+* if the variable is absent from the root `.env` file, Docker Compose uses the local `db` service;
+* if the variable is defined in `.env`, Compose uses the provided URI, including a Supabase URI;
+* the EC2 deployment injects the Supabase Postgres URI through a secret.
 
-O fallback local pertence ao Compose. Ao executar o backend diretamente na
-máquina, `DATABASE_URL` continua obrigatória. Use
-[`../.env.example`](../.env.example) como referência e não versione credenciais.
+The local fallback is handled by Compose. When running the backend directly on
+the host machine, `DATABASE_URL` remains required. Use
+[`../.env.example`](../.env.example) as a reference, and do not commit
+credentials to version control.
 
-## Desenvolvimento
+## Development
 
 ```powershell
 poetry install
 poetry run uvicorn main:karlbruder_app --reload
 ```
 
-## Testes
+## Tests
 
 ```powershell
 poetry run pytest
 poetry run ruff check database.py main.py tests
 ```
 
-Os critérios da issue PF-01 estão consolidados em
-`tests/pf_01_test_backend_postgres_supabase.py`. Os checks estáticos e unitários
-rodam normalmente; conexões reais são habilitadas explicitamente.
+The acceptance criteria for issue PF-01 are consolidated in
+`tests/pf_01_test_backend_postgres_supabase.py`. Static and unit checks run
+normally, while real database connections must be explicitly enabled.
 
-Com o Compose local já iniciado:
+With the local Compose environment already running:
 
 ```powershell
 $env:PF01_RUN_LOCAL_INTEGRATION = "1"
@@ -40,8 +41,8 @@ poetry run pytest tests/pf_01_test_backend_postgres_supabase.py
 Remove-Item Env:PF01_RUN_LOCAL_INTEGRATION
 ```
 
-Para incluir o aceite remoto, crie o arquivo ignorado `.env.supabase` com a
-`DATABASE_URL` Postgres e execute:
+To include remote acceptance testing, create the ignored `.env.supabase` file
+with the Postgres `DATABASE_URL`, then run:
 
 ```powershell
 $env:PF01_RUN_LOCAL_INTEGRATION = "1"
@@ -51,14 +52,14 @@ Remove-Item Env:PF01_RUN_LOCAL_INTEGRATION
 Remove-Item Env:PF01_RUN_SUPABASE_INTEGRATION
 ```
 
-Sem as flags, os testes que acessariam bancos reais são marcados como skipped.
-O teste nunca imprime a URI nem a senha do Supabase.
+Without these flags, tests that would access real databases are marked as
+skipped. The test never prints the Supabase URI or password.
 
-O endpoint `GET /health/db` executa `SELECT 1`, classifica a conexão como
-`local`, `supabase` ou `external` e informa se os schemas `public` e `auth`
-existem. Retorna HTTP 200 quando as consultas funcionam e HTTP 503 sem detalhes
-sensíveis quando a conexão falha. `auth: false` é esperado no Postgres local.
+The `GET /health/db` endpoint executes `SELECT 1`, classifies the connection as
+`local`, `supabase`, or `external`, and reports whether the `public` and `auth`
+schemas exist. It returns HTTP 200 when the queries succeed and HTTP 503,
+without sensitive details, when the connection fails. `auth: false` is expected
+when using the local Postgres instance.
 
-As tabelas e migrations de domínio devem usar o schema `public`. O schema
-`auth` pertence ao Supabase Auth e não deve ser alterado pelo backend.
-
+Domain tables and migrations must use the `public` schema. The `auth` schema
+belongs to Supabase Auth and must not be modified by the backend.

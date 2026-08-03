@@ -20,7 +20,7 @@ export default function Health() {
       const response = await fetch(`/api${path}`);
 
       if (!response.ok) {
-        throw new Error(`A API respondeu com HTTP ${response.status}`);
+        throw new Error(`The API responded with HTTP ${response.status}`);
       }
 
       return response.json() as Promise<HealthResponse>;
@@ -37,8 +37,8 @@ export default function Health() {
   return (
     <main className="page">
       <section className="panel">
-        <p className="eyebrow">Diagnóstico</p>
-        <h1>Estado dos serviços</h1>
+        <p className="eyebrow">Diagnostics</p>
+        <h1>Service status</h1>
 
         <div className="health-grid">
           <article>
@@ -54,13 +54,13 @@ export default function Health() {
 
         {error && (
           <div className="error-message">
-            <h2>Falha na verificação</h2>
+            <h2>Health check failed</h2>
             <p>{error}</p>
           </div>
         )}
 
         <Link className="secondary-link" to="/">
-          Voltar
+          Back
         </Link>
       </section>
     </main>

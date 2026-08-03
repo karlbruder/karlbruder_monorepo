@@ -5,10 +5,10 @@ export default function Home() {
     <main className="page">
       <section className="panel">
         <p className="eyebrow">Karlbrüder</p>
-        <h1>Ambiente local</h1>
+        <h1>Local environment</h1>
         <p>
-          O frontend está pronto para conversar com o FastAPI e com o
-          PostgreSQL local por meio da API.
+          The frontend is ready to communicate with FastAPI and the local
+          PostgreSQL database through the API.
         </p>
 
         <dl className="status-list">
@@ -21,17 +21,17 @@ export default function Home() {
             <dd>FastAPI</dd>
           </div>
           <div>
-            <dt>Banco</dt>
-            <dd>PostgreSQL local</dd>
+            <dt>Database</dt>
+            <dd>Local PostgreSQL</dd>
           </div>
           <div>
-            <dt>Autenticação</dt>
-            <dd>Não configurada nesta etapa</dd>
+            <dt>Authentication</dt>
+            <dd>Not configured at this stage</dd>
           </div>
         </dl>
 
         <Link className="primary-link" to="/health">
-          Verificar serviços
+          Check services
         </Link>
       </section>
     </main>
