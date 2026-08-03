@@ -4,14 +4,18 @@ FastAPI API responsible for domain logic and Postgres access.
 
 ## Configuration
 
-`DATABASE_URL` is the sole SQL connection configuration:
+The domain database and Supabase Auth database use separate configuration:
 
-* if the variable is absent from the root `.env` file, Docker Compose uses the local `db` service;
-* if the variable is defined in `.env`, Compose uses the provided URI, including a Supabase URI;
-* the EC2 deployment injects the Supabase Postgres URI through a secret.
+* `DATABASE_URL` selects the domain database and defaults to the local `db`
+  service in Docker Compose;
+* `AUTH_DATABASE_URL` always selects the Supabase Postgres database containing
+  the managed `auth` schema;
+* the EC2 deployment injects both values through secrets. They may currently
+  contain the same Supabase URI, but they have independent responsibilities.
 
 The local fallback is handled by Compose. When running the backend directly on
-the host machine, `DATABASE_URL` remains required. Use
+the host machine, `DATABASE_URL` remains required. `AUTH_DATABASE_URL` is
+required when `/health/auth` is called. Use
 [`../.env.example`](../.env.example) as a reference, and do not commit
 credentials to version control.
 
@@ -42,7 +46,7 @@ Remove-Item Env:PF01_RUN_LOCAL_INTEGRATION
 ```
 
 To include remote acceptance testing, create the ignored `.env.supabase` file
-with the Postgres `DATABASE_URL`, then run:
+with the Supabase Postgres `DATABASE_URL`, then run:
 
 ```powershell
 $env:PF01_RUN_LOCAL_INTEGRATION = "1"
@@ -55,11 +59,12 @@ Remove-Item Env:PF01_RUN_SUPABASE_INTEGRATION
 Without these flags, tests that would access real databases are marked as
 skipped. The test never prints the Supabase URI or password.
 
-The `GET /health/db` endpoint executes `SELECT 1`, classifies the connection as
-`local`, `supabase`, or `external`, and reports whether the `public` and `auth`
-schemas exist. It returns HTTP 200 when the queries succeed and HTTP 503,
-without sensitive details, when the connection fails. `auth: false` is expected
-when using the local Postgres instance.
+`GET /health/db` checks only the domain connection and `public` schema.
+`GET /health/auth` independently checks the Supabase Auth connection and `auth`
+schema. Each endpoint returns the configured SQLAlchemy URL with its password
+redacted, so the destination is explicit and no hostname classification is
+needed. A failed or missing connection returns HTTP 503 without internal error
+details.
 
 Domain tables and migrations must use the `public` schema. The `auth` schema
 belongs to Supabase Auth and must not be modified by the backend.

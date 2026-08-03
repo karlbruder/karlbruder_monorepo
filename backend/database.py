@@ -1,10 +1,8 @@
 import os
+from functools import lru_cache
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine, URL, make_url
-
-LOCAL_COMPOSE_DATABASE_HOST = "db"
-SUPABASE_DATABASE_HOST_SUFFIX = ".supabase.com"
+from sqlalchemy.engine import URL, Engine
 
 
 def get_database_url() -> str:
@@ -16,6 +14,15 @@ def get_database_url() -> str:
     return database_url
 
 
+def get_auth_database_url() -> str:
+    auth_database_url = os.getenv("AUTH_DATABASE_URL")
+    if not auth_database_url:
+        raise RuntimeError(
+            "AUTH_DATABASE_URL is required for the Supabase Auth health check."
+        )
+    return auth_database_url
+
+
 def create_database_engine(database_url: str | URL | None = None) -> Engine:
     return create_engine(
         database_url or get_database_url(),
@@ -23,16 +30,10 @@ def create_database_engine(database_url: str | URL | None = None) -> Engine:
     )
 
 
-def classify_database_target(database_url: str | URL) -> str:
-    """Return a safe label for the configured database without exposing its URL."""
-    parsed_url = make_url(database_url)
-    host = (parsed_url.host or "").lower()
-
-    if host == LOCAL_COMPOSE_DATABASE_HOST:
-        return "local"
-    if host.endswith(SUPABASE_DATABASE_HOST_SUFFIX):
-        return "supabase"
-    return "external"
+@lru_cache
+def get_auth_database_engine() -> Engine:
+    """Create the Supabase Auth engine only when its health check is requested."""
+    return create_database_engine(get_auth_database_url())
 
 
 engine = create_database_engine()

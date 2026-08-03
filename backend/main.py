@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from database import classify_database_target, engine
+from database import engine, get_auth_database_engine
 
 logger = logging.getLogger(__name__)
 
@@ -42,33 +42,65 @@ def health_db():
     try:
         with engine.connect() as conn:
             select_one = conn.execute(text("SELECT 1")).scalar_one()
-            existing_schemas = set(
-                conn.execute(
-                    text(
-                        """
-                        SELECT schema_name
-                        FROM information_schema.schemata
-                        WHERE schema_name IN ('public', 'auth')
-                        """
-                    )
-                ).scalars()
-            )
+            public_schema = conn.execute(
+                text(
+                    """
+                    SELECT schema_name
+                    FROM information_schema.schemata
+                    WHERE schema_name = 'public'
+                    """
+                )
+            ).scalar_one_or_none()
             return {
                 "status": "ok",
                 "database": "connected",
-                "database_target": classify_database_target(engine.url),
+                "database_url": engine.url.render_as_string(hide_password=True),
                 "result": select_one,
-                "schemas": {
-                    "public": "public" in existing_schemas,
-                    "auth": "auth" in existing_schemas,
+                "schema": {
+                    "public": public_schema == "public",
                 },
             }
     except Exception:
-        logger.exception("Database connectivity check failed")
+        logger.exception("Domain database connectivity check failed")
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={
                 "status": "error",
                 "database": "disconnected",
+            },
+        )
+
+
+@karlbruder_app.get("/health/auth")
+def health_auth():
+    try:
+        auth_engine = get_auth_database_engine()
+        with auth_engine.connect() as conn:
+            select_one = conn.execute(text("SELECT 1")).scalar_one()
+            auth_schema = conn.execute(
+                text(
+                    """
+                    SELECT schema_name
+                    FROM information_schema.schemata
+                    WHERE schema_name = 'auth'
+                    """
+                )
+            ).scalar_one_or_none()
+            return {
+                "status": "ok",
+                "auth": "connected",
+                "database_url": auth_engine.url.render_as_string(hide_password=True),
+                "result": select_one,
+                "schema": {
+                    "auth": auth_schema == "auth",
+                },
+            }
+    except Exception:
+        logger.exception("Supabase Auth database connectivity check failed")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "error",
+                "auth": "disconnected",
             },
         )

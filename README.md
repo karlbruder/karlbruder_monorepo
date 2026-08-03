@@ -42,6 +42,7 @@ Then access:
 * Swagger documentation: http://localhost:8000/docs
 * Backend health check: http://localhost:8000/health
 * Database health check: http://localhost:8000/health/db
+* Supabase Auth health check: http://localhost:8000/health/auth
 
 PostgreSQL is available at `localhost:5432` using the following local
 credentials:
@@ -70,18 +71,28 @@ set `DATABASE_URL` to the Supabase Postgres URI. Compose uses the expression
 `${DATABASE_URL:-postgresql://user:password@db:5432/kb-db}`: a defined value
 overrides the default, while an absent or empty value keeps the local database.
 
-After adding, changing, or removing `DATABASE_URL`, recreate the backend
-container:
+`AUTH_DATABASE_URL` is independent from `DATABASE_URL` and always points to the
+Supabase Postgres database that owns the `auth` schema. Add it to the root
+`.env` file to enable `/health/auth`:
+
+```text
+AUTH_DATABASE_URL=postgresql://USUARIO:SENHA@HOST:5432/postgres?sslmode=require
+```
+
+If it is absent, the domain API and `/health/db` still work, while
+`/health/auth` returns HTTP 503 to make the missing configuration explicit.
+
+After changing either database URL, recreate the backend container:
 
 ```powershell
 docker compose up -d --force-recreate backend
 ```
 
-The `db` service remains available in both cases, but each backend process
-maintains only one active SQL connection. The two databases are not
-synchronized. To run the backend directly on the host machine, explicitly
-define `DATABASE_URL`; outside Compose, there is no fallback using the `db`
-hostname.
+The `db` service remains available in both cases. The backend keeps the domain
+and Auth connections separate, even when both URLs happen to point to the same
+Supabase project. The databases are not synchronized. To run the backend
+directly on the host machine, explicitly define `DATABASE_URL`; outside
+Compose, there is no fallback using the `db` hostname.
 
 ## Stopping the System
 
@@ -101,7 +112,8 @@ The browser accesses only the frontend. Nginx forwards requests beginning with
 `/api/` to FastAPI, and only the backend accesses PostgreSQL:
 
 ```text
-Browser -> Nginx/React -> FastAPI -> PostgreSQL
+Browser -> Nginx/React -> FastAPI -> Domain PostgreSQL
+                              `----> Supabase Auth PostgreSQL
 ```
 
 The frontend never connects directly to the database.
@@ -115,16 +127,17 @@ structures equivalent.
 
 The `compose.yml` file in this repository is intended for local development.
 In the EC2 deployment, the backend and frontend run without the `db` service.
-The backend receives, through the `DATABASE_URL` environment variable, the
-Postgres URI for the same Supabase project used by Supabase Auth.
-
-There is no conditional code for creating different database engines. The same
-engine reads the final value of `DATABASE_URL`:
+The backend has two explicit connections:
 
 ```text
-Local: DATABASE_URL -> Compose Postgres
-EC2:   DATABASE_URL -> Supabase Postgres
+Local domain: DATABASE_URL      -> Compose Postgres
+EC2 domain:   DATABASE_URL      -> domain Postgres (currently Supabase)
+All Auth:      AUTH_DATABASE_URL -> Supabase Postgres
 ```
+
+This separation lets the domain database move to a self-hosted Postgres later
+without making Supabase Auth appear local or coupling its health to the domain
+database health check.
 
 Because the EC2 backend is a persistent service, select one of the following
 options from the Supabase **Connect** panel:
@@ -141,15 +154,16 @@ parameter is not already included in the URI provided by the Supabase panel.
 Transaction mode is intended for serverless clients and is not the recommended
 option for this persistent backend.
 
-The URI contains the database password and must be stored in AWS Secrets
-Manager or SSM Parameter Store, then injected into the container environment as
-`DATABASE_URL`. Never place the URI in source code, a Dockerfile, versioned
-files, or `VITE_*` variables: any variable bundled into the frontend is visible
-to the browser.
+Both URIs contain database passwords and must be stored in AWS Secrets Manager
+or SSM Parameter Store, then injected into the container environment as
+`DATABASE_URL` and `AUTH_DATABASE_URL`. Never place either URI in source code,
+a Dockerfile, versioned files, or `VITE_*` variables: any variable bundled into
+the frontend is visible to the browser.
 
 ### Schema Separation
 
-The Supabase database is shared, but the data remains separated by schema:
+The responsibilities remain separated by schema, whether or not both schemas
+currently live in the same physical Supabase database:
 
 * `auth`: managed by Supabase Auth;
 * `public`: Karlbruder domain tables, indexes, and migrations.
@@ -162,28 +176,39 @@ Future backend models and migrations must explicitly create domain objects in
 After injecting the secret and starting the backend without local PostgreSQL:
 
 1. Open `GET /health` and confirm that the API is running.
-2. Open `GET /health/db`.
-3. Confirm an HTTP 200 response with the following body:
+2. Open `GET /health/db` and confirm the domain connection and `public` schema:
 
    ```json
    {
      "status": "ok",
      "database": "connected",
-     "database_target": "supabase",
+     "database_url": "postgresql://user:***@domain-db:5432/app",
      "result": 1,
-     "schemas": {
-       "public": true,
+     "schema": {
+       "public": true
+     }
+   }
+   ```
+
+3. Open `GET /health/auth` and confirm the independent Supabase connection and
+   `auth` schema:
+
+   ```json
+   {
+     "status": "ok",
+     "auth": "connected",
+     "database_url": "postgresql://postgres.project:***@pooler.supabase.com:5432/postgres",
+     "result": 1,
+     "schema": {
        "auth": true
      }
    }
    ```
 
-`database_target` may be `local`, `supabase`, or `external`. In local
-PostgreSQL, `public` exists and `auth` will normally appear as `false`; in
-Supabase, both should exist. The absence of `auth` in the local database does
-not make the service unhealthy. A configuration, connection, or query failure
-returns HTTP 503 without exposing the URI or internal details. Check the
-private backend logs for investigation.
+The URLs make the actual destinations visible without guessing from hostname
+patterns; passwords are redacted. A missing configuration, connection, or
+query failure returns HTTP 503 without exposing internal error details. Check
+the private backend logs for investigation.
 
 ## Backend Tests
 
