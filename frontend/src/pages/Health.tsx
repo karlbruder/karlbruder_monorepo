@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 type HealthResponse = {
   status: string;
@@ -13,53 +14,55 @@ export default function Health() {
   const [backend, setBackend] = useState<HealthResponse | null>(null);
   const [db, setDb] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [db_test, setDb_test] = useState<HealthResponse | null>(null);
-
-
-  const API_URL = import.meta.env.VITE_API_URL;
-
 
   useEffect(() => {
-    // test Frontend -> Backend
-    fetch(`${API_URL}/health`)
-      .then(res => res.json())
-      .then(setBackend)
-      .catch(err => setError(err.message));
+    const getHealth = async (path: string) => {
+      const response = await fetch(`/api${path}`);
 
-    // test Backend -> DB -> Frontend
-    fetch(`${API_URL}/health/db`)
-      .then(res => res.json())
-      .then(setDb)
-      .catch(err => setError(err.message));
+      if (!response.ok) {
+        throw new Error(`The API responded with HTTP ${response.status}`);
+      }
 
-    // test frontend -> DB 
-    fetch(`http://localhost:5432`)
-      .then(res => res.json())
-      .then(setDb_test)
-      .catch(err => setError(err.message));
-    
+      return response.json() as Promise<HealthResponse>;
+    };
+
+    Promise.all([getHealth("/health"), getHealth("/health/db")])
+      .then(([backendResponse, dbResponse]) => {
+        setBackend(backendResponse);
+        setDb(dbResponse);
+      })
+      .catch((requestError: Error) => setError(requestError.message));
   }, []);
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Health Check</h1>
+    <main className="page">
+      <section className="panel">
+        <p className="eyebrow">Diagnostics</p>
+        <h1>Service status</h1>
 
-      <h2>Frontend → Backend</h2>
-      <pre>{JSON.stringify(backend, null, 2)}</pre>
+        <div className="health-grid">
+          <article>
+            <h2>Frontend → Backend</h2>
+            <pre>{JSON.stringify(backend, null, 2)}</pre>
+          </article>
 
-      <h2>Backend → Database</h2>
-      <pre>{JSON.stringify(db, null, 2)}</pre>
+          <article>
+            <h2>Backend → PostgreSQL</h2>
+            <pre>{JSON.stringify(db, null, 2)}</pre>
+          </article>
+        </div>
 
-      <h2>Frontend → Database (should not work)</h2>
-      <pre>{JSON.stringify(db_test, null, 2)}</pre>
-      
+        {error && (
+          <div className="error-message">
+            <h2>Health check failed</h2>
+            <p>{error}</p>
+          </div>
+        )}
 
-      {error && (
-        <>
-          <h2>Error</h2>
-          <pre>{error}</pre>
-        </>
-      )}
-    </div>
+        <Link className="secondary-link" to="/">
+          Back
+        </Link>
+      </section>
+    </main>
   );
 }

@@ -31,6 +31,15 @@ black = "^24.2"
 ruff = "^0.3"
 mypy = "^1.8"
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py", "pf_01_test_backend_postgres_supabase.py"]
+markers = [
+    "integration: checks a live local or remote service",
+    "supabase: checks the real Supabase Postgres project",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
