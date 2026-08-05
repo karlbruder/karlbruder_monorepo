@@ -1,9 +1,8 @@
 import logging
-from functools import lru_cache
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from jwt.exceptions import (
@@ -13,7 +12,11 @@ from jwt.exceptions import (
 )
 from pydantic import ValidationError
 
-from models import CurrentUser
+from exceptions import (
+    AuthenticationUnavailableException,
+    InvalidCredentialsException,
+)
+from models import User
 from settings import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
@@ -32,7 +35,6 @@ bearer_scheme = HTTPBearer(
 )
 
 
-@lru_cache
 def get_jwks_client() -> PyJWKClient:
     settings = get_auth_settings()
     return PyJWKClient(
@@ -43,31 +45,16 @@ def get_jwks_client() -> PyJWKClient:
     )
 
 
-def _invalid_credentials() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or expired authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-
-def _authentication_unavailable() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="Authentication service unavailable",
-    )
-
-
 def get_current_user(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
     ],
-) -> CurrentUser:
+) -> User:
     """Verify a Supabase access token and return its user identity claims."""
 
     if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _invalid_credentials()
+        raise InvalidCredentialsException()
 
     try:
         settings = get_auth_settings()
@@ -76,12 +63,12 @@ def get_current_user(
         )
     except ValidationError as exc:
         logger.error("Supabase authentication configuration is invalid")
-        raise _authentication_unavailable() from exc
+        raise AuthenticationUnavailableException() from exc
     except PyJWKClientConnectionError as exc:
         logger.warning("Unable to retrieve Supabase signing keys")
-        raise _authentication_unavailable() from exc
+        raise AuthenticationUnavailableException() from exc
     except (InvalidTokenError, PyJWKClientError) as exc:
-        raise _invalid_credentials() from exc
+        raise InvalidCredentialsException() from exc
 
     try:
         claims = jwt.decode(
@@ -96,9 +83,9 @@ def get_current_user(
         )
 
         if claims["role"] != EXPECTED_ROLE:
-            raise _invalid_credentials()
+            raise InvalidCredentialsException()
 
-        return CurrentUser(
+        return User(
             id=claims["sub"],
             email=claims.get("email") or None,
             user_metadata=claims.get("user_metadata") or {},
@@ -107,4 +94,4 @@ def get_current_user(
     except HTTPException:
         raise
     except (InvalidTokenError, KeyError, TypeError, ValidationError) as exc:
-        raise _invalid_credentials() from exc
+        raise InvalidCredentialsException() from exc

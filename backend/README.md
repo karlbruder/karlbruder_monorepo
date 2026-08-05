@@ -59,9 +59,29 @@ poetry run uvicorn main:karlbruder_app --reload
 
 ## Tests
 
+Install the development dependencies and run the complete test suite from the
+`backend` directory:
+
 ```powershell
+poetry install --with dev
 poetry run pytest
-poetry run ruff check auth.py database.py main.py models.py settings.py tests
+poetry run ruff check auth.py database.py exceptions.py main.py models.py settings.py tests
+```
+
+To run only the authentication tests:
+
+```powershell
+poetry run pytest tests/test_auth.py -v
+```
+
+If Poetry is not installed on the host, rebuild the backend image and run the
+tests in a disposable container. The production image normally contains only
+runtime dependencies, so the command installs the development group inside
+that temporary container:
+
+```powershell
+docker compose build backend
+docker compose run --rm --no-deps backend sh -lc "poetry install --no-root --with dev && poetry run pytest"
 ```
 
 The acceptance criteria for issue PF-01 are consolidated in

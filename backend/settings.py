@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Final
 
 from pydantic import AnyHttpUrl, field_validator
@@ -38,6 +37,5 @@ class AuthSettings(BaseSettings):
         return f"{self.issuer}/.well-known/jwks.json"
 
 
-@lru_cache
 def get_auth_settings() -> AuthSettings:
     return AuthSettings()  # type: ignore[call-arg]

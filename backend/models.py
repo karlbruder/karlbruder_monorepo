@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class CurrentUser(BaseModel):
+class User(BaseModel):
     """The small, verified subset of Supabase claims exposed to routes."""
 
     model_config = ConfigDict(frozen=True)
