@@ -1,11 +1,14 @@
 import logging
+from typing import Annotated
 
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from auth import get_current_user
 from database import engine, get_auth_database_engine
+from models import User
 
 logger = logging.getLogger(__name__)
 
@@ -104,3 +107,10 @@ def health_auth():
                 "auth": "disconnected",
             },
         )
+
+
+@karlbruder_app.get("/api/users/me", response_model=User)
+def read_current_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    return current_user

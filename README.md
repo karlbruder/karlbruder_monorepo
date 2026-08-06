@@ -9,9 +9,10 @@ Monorepo for the Karlbrüder fencing school website and management system.
 * `backend/`: FastAPI API managed with Poetry.
 * `compose.yml`: local environment containing the frontend, backend, and PostgreSQL.
 
-At this stage, the local application does not include authentication. The
-environment consists only of the frontend, backend, and local PostgreSQL
-database.
+The backend can validate Supabase access tokens, while the frontend sign-in
+flow is not yet included. The local environment consists of the frontend,
+backend, and local PostgreSQL database; token verification uses the configured
+hosted Supabase Auth project.
 
 ## Requirements
 
@@ -43,6 +44,7 @@ Then access:
 * Backend health check: http://localhost:8000/health
 * Database health check: http://localhost:8000/health/db
 * Supabase Auth health check: http://localhost:8000/health/auth
+* Authenticated-user smoke test: http://localhost:8000/api/users/me
 
 PostgreSQL is available at `localhost:5432` using the following local
 credentials:
@@ -81,6 +83,16 @@ AUTH_DATABASE_URL=postgresql://USUARIO:SENHA@HOST:5432/postgres?sslmode=require
 
 If it is absent, the domain API and `/health/db` still work, while
 `/health/auth` returns HTTP 503 to make the missing configuration explicit.
+
+Set the public Supabase project root to enable JWT verification:
+
+```text
+SUPABASE_URL=https://PROJECT_REF.supabase.co
+```
+
+`GET /api/users/me` expects `Authorization: Bearer <access_token>` and verifies
+ES256 or RS256 Supabase access tokens with the project's public JWKS. The
+backend does not need the JWT secret or service-role key.
 
 After changing either database URL, recreate the backend container:
 

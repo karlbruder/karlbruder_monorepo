@@ -1,5 +1,4 @@
 import os
-from functools import lru_cache
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
@@ -30,7 +29,6 @@ def create_database_engine(database_url: str | URL | None = None) -> Engine:
     )
 
 
-@lru_cache
 def get_auth_database_engine() -> Engine:
     """Create the Supabase Auth engine only when its health check is requested."""
     return create_database_engine(get_auth_database_url())
