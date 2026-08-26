@@ -13,6 +13,22 @@ COPY . .
 # Build de produção
 RUN npm run build
 
+# ---------- Development stage ----------
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copia dependências
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copia o código
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
 # ---------- Production stage ----------
 FROM nginx:1.25-alpine
 
