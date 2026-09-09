@@ -1,0 +1,863 @@
+.monomachia-page {
+  --mono-ink: #022430;
+  --mono-wine: #642226;
+  --mono-clay: #e19861;
+  --mono-paper: #f2ca93;
+  --mono-cream: #f8e8cb;
+  --mono-white: #fff9ed;
+  min-height: 100vh;
+  overflow: hidden;
+  color: var(--mono-ink);
+  background:
+    radial-gradient(circle at 15% 18%, rgba(225, 152, 97, 0.24), transparent 28rem),
+    linear-gradient(135deg, rgba(249, 236, 211, 0.96) 0%, rgba(242, 209, 162, 0.96) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='48' viewBox='0 0 96 48'%3E%3Cg fill='none' stroke='%23642226' stroke-width='2'%3E%3Cpath d='M0 8h32v32H8V16h16v16h-8v-8'/%3E%3Cpath d='M48 8h32v32H56V16h16v16h-8v-8'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, 96px 48px;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.monomachia-page *,
+.monomachia-page *::before,
+.monomachia-page *::after {
+  box-sizing: border-box;
+}
+
+.monomachia-page a {
+  color: inherit;
+}
+
+.monomachia-skip-link {
+  position: fixed;
+  top: 0;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.7rem 1rem;
+  color: var(--mono-white) !important;
+  background: var(--mono-ink);
+  transform: translateY(-120%);
+  transition: transform 160ms ease;
+}
+
+.monomachia-skip-link:focus {
+  transform: translateY(0);
+}
+
+.monomachia-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100% - 3rem, 1240px);
+  min-height: 88px;
+  margin: 0 auto;
+}
+
+.monomachia-wordmark {
+  display: inline-flex;
+  gap: 0.7rem;
+  align-items: center;
+  text-decoration: none;
+}
+
+.monomachia-wordmark img {
+  width: 52px;
+  height: 52px;
+}
+
+.monomachia-wordmark span {
+  display: grid;
+  line-height: 1;
+}
+
+.monomachia-wordmark strong,
+.monomachia-footer-mark strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.monomachia-wordmark small {
+  margin-top: 0.35rem;
+  color: var(--mono-wine);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.monomachia-header nav {
+  display: flex;
+  gap: clamp(1rem, 2.4vw, 2.4rem);
+  align-items: center;
+}
+
+.monomachia-languages {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding-left: 0.2rem;
+}
+
+.monomachia-languages button {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.35rem 0.45rem;
+  color: var(--mono-ink);
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 900;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  opacity: 0.5;
+  transition: border-color 160ms ease, opacity 160ms ease;
+}
+
+.monomachia-languages button:hover,
+.monomachia-languages button:focus-visible,
+.monomachia-languages button.is-active {
+  border-color: var(--mono-wine);
+  opacity: 1;
+}
+
+.monomachia-languages img {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.monomachia-header nav a {
+  position: relative;
+  font-size: 0.77rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.monomachia-header nav a:not(.monomachia-nav-home)::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.45rem;
+  left: 0;
+  height: 2px;
+  content: "";
+  background: var(--mono-wine);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 180ms ease;
+}
+
+.monomachia-header nav a:hover::after,
+.monomachia-header nav a:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.monomachia-nav-home {
+  padding: 0.7rem 1rem;
+  color: var(--mono-white) !important;
+  background: var(--mono-ink);
+  border: 1px solid var(--mono-ink);
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.monomachia-nav-home:hover,
+.monomachia-nav-home:focus-visible {
+  color: var(--mono-ink) !important;
+  background: transparent;
+}
+
+.monomachia-hero {
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    "copy poster"
+    "partners partners";
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  column-gap: clamp(3rem, 7vw, 7rem);
+  row-gap: 1.5rem;
+  align-items: center;
+  width: min(100% - 3rem, 1240px);
+  min-height: calc(100vh - 88px);
+  margin: 0 auto;
+  padding: 2.25rem 0 1.5rem;
+}
+
+.monomachia-hero::before {
+  position: absolute;
+  top: 8%;
+  left: -11%;
+  z-index: 0;
+  width: 38rem;
+  height: 38rem;
+  pointer-events: none;
+  content: "";
+  border: 1px solid rgba(100, 34, 38, 0.14);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5rem rgba(100, 34, 38, 0.035),
+    0 0 0 10rem rgba(100, 34, 38, 0.025);
+}
+
+.monomachia-hero::after {
+  position: absolute;
+  top: 4%;
+  right: -15%;
+  z-index: 0;
+  color: rgba(100, 34, 38, 0.055);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(7rem, 14vw, 13rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  content: "ΜΟΝΟΜΑΧΙΑ";
+  writing-mode: vertical-rl;
+}
+
+.monomachia-hero-copy {
+  position: relative;
+  z-index: 2;
+  grid-area: copy;
+}
+
+.monomachia-section-label {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin: 0 0 1.2rem;
+  color: var(--mono-wine);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.monomachia-section-label::before {
+  width: 2.5rem;
+  height: 2px;
+  content: "";
+  background: currentColor;
+}
+
+.monomachia-hero-logo {
+  width: clamp(120px, 16vw, 205px);
+  margin: 0 0 1.5rem -0.3rem;
+  filter: drop-shadow(0 1.25rem 1.5rem rgba(2, 36, 48, 0.15));
+}
+
+.monomachia-hero h1 {
+  max-width: 720px;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.2rem, 7vw, 7rem);
+  font-weight: 500;
+  line-height: 0.84;
+  letter-spacing: -0.055em;
+  text-transform: uppercase;
+}
+
+.monomachia-hero-brand {
+  margin: 0.8rem 0 0;
+  color: var(--mono-wine);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.monomachia-lead {
+  max-width: 510px;
+  margin: 1.4rem 0 2.2rem;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  font-weight: 900;
+  line-height: 1.5;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.monomachia-date {
+  display: inline-grid;
+  padding: 0.8rem 1.1rem 0.9rem;
+  color: var(--mono-white);
+  background: var(--mono-wine);
+  border-left: 5px solid var(--mono-clay);
+  box-shadow: 0.65rem 0.65rem 0 var(--mono-ink);
+  transform: rotate(-1deg);
+}
+
+.monomachia-date span {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.monomachia-date strong {
+  margin-top: 0.2rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.3rem, 2.5vw, 2rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.monomachia-location {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin-left: 2rem;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.monomachia-location span {
+  color: var(--mono-wine);
+}
+
+.monomachia-actions {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 2.6rem;
+}
+
+.monomachia-button {
+  padding: 0.9rem 1.3rem;
+  color: var(--mono-white) !important;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-decoration: none;
+  text-transform: uppercase;
+  background: var(--mono-ink);
+  border: 2px solid var(--mono-ink);
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.monomachia-button:hover,
+.monomachia-button:focus-visible {
+  color: var(--mono-ink) !important;
+  background: transparent;
+}
+
+.monomachia-text-link {
+  padding: 0.35rem 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-underline-offset: 0.35rem;
+}
+
+.monomachia-poster-wrap {
+  position: relative;
+  z-index: 2;
+  grid-area: poster;
+  justify-self: center;
+  width: min(100%, 370px);
+  scroll-margin-top: 2rem;
+}
+
+.monomachia-poster-shadow {
+  position: absolute;
+  inset: 1.7rem -1.1rem -1.2rem 1.4rem;
+  background: var(--mono-wine);
+  border: 2px solid var(--mono-ink);
+  transform: rotate(3deg);
+}
+
+.monomachia-poster {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0.75rem;
+  background: #edc58f;
+  border: 2px solid var(--mono-ink);
+  box-shadow: 0 1.8rem 4rem rgba(2, 36, 48, 0.24);
+  transform: rotate(-1.1deg);
+}
+
+.monomachia-poster img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4394 / 6108;
+  object-fit: cover;
+}
+
+.monomachia-poster figcaption {
+  padding: 0.65rem 0 0.05rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.monomachia-info {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(400px, 1.15fr);
+  gap: clamp(3rem, 9vw, 9rem);
+  width: min(100% - 3rem, 1180px);
+  margin: 0 auto;
+  padding: clamp(6rem, 10vw, 10rem) 0;
+}
+
+.monomachia-info::before,
+.monomachia-info::after {
+  position: absolute;
+  z-index: 0;
+  width: 56px;
+  height: 72%;
+  pointer-events: none;
+  content: "";
+  opacity: 0.12;
+  background:
+    linear-gradient(to right, transparent 0 8%, var(--mono-wine) 8% 15%, transparent 15% 28%, var(--mono-wine) 28% 35%, transparent 35% 65%, var(--mono-wine) 65% 72%, transparent 72% 85%, var(--mono-wine) 85% 92%, transparent 92%),
+    linear-gradient(var(--mono-wine), var(--mono-wine)) top / 100% 18px no-repeat,
+    linear-gradient(var(--mono-wine), var(--mono-wine)) bottom / 100% 18px no-repeat;
+}
+
+.monomachia-info::before {
+  bottom: 0;
+  left: -9vw;
+}
+
+.monomachia-info::after {
+  top: 0;
+  right: -9vw;
+}
+
+.monomachia-info-heading,
+.monomachia-info-content {
+  position: relative;
+  z-index: 1;
+}
+
+.monomachia-info h2,
+.monomachia-partners h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.8rem, 5.6vw, 5.4rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.monomachia-origin-copy {
+  max-width: 650px;
+  margin: 0 0 3rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.monomachia-origin-copy p {
+  margin: 0 0 1.35rem;
+  font-size: clamp(1.12rem, 1.8vw, 1.45rem);
+  line-height: 1.65;
+}
+
+.monomachia-origin-copy p:first-child {
+  font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+  line-height: 1.55;
+}
+
+.monomachia-origin-copy strong {
+  color: var(--mono-wine);
+}
+
+.monomachia-facts {
+  margin: 0;
+  border-top: 1px solid rgba(2, 36, 48, 0.35);
+}
+
+.monomachia-facts div {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid rgba(2, 36, 48, 0.35);
+}
+
+.monomachia-facts dt {
+  color: var(--mono-wine);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.monomachia-facts dd {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.monomachia-hero-partners {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-area: partners;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  color: var(--mono-white);
+  background: var(--mono-ink);
+  border: 1px solid rgba(225, 152, 97, 0.7);
+  box-shadow: 0.5rem 0.5rem 0 rgba(100, 34, 38, 0.9);
+  scroll-margin-top: 1rem;
+}
+
+.monomachia-hero-partners-heading span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--mono-clay);
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.monomachia-hero-partners-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.monomachia-partner-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.monomachia-partner-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 76px;
+  padding: 0.4rem;
+  color: var(--mono-ink) !important;
+  text-decoration: none;
+  background: var(--mono-cream);
+  border: 1px solid var(--mono-clay);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.monomachia-partner-card:hover,
+.monomachia-partner-card:focus-visible {
+  box-shadow: 0.25rem 0.25rem 0 var(--mono-clay);
+  transform: translate(-0.1rem, -0.1rem);
+}
+
+.monomachia-partner-card img {
+  width: min(100%, 88px);
+  height: 46px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.monomachia-partner-card--wide img {
+  width: min(100%, 105px);
+}
+
+.monomachia-partner-card span {
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.monomachia-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem max(1.5rem, calc((100vw - 1180px) / 2));
+  color: var(--mono-white);
+  background: #011a23;
+  border-top: 1px solid rgba(225, 152, 97, 0.35);
+}
+
+.monomachia-footer-mark {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.monomachia-footer-mark img {
+  width: 55px;
+  height: 55px;
+}
+
+.monomachia-footer-mark div {
+  display: grid;
+}
+
+.monomachia-footer-mark span,
+.monomachia-footer > a {
+  margin-top: 0.25rem;
+  color: var(--mono-clay);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.monomachia-footer > a {
+  text-underline-offset: 0.3rem;
+}
+
+@media (max-width: 980px) {
+  .monomachia-header {
+    min-height: 76px;
+  }
+
+  .monomachia-header nav a:not(.monomachia-nav-home) {
+    display: none;
+  }
+
+  .monomachia-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.7fr);
+    column-gap: 3rem;
+    min-height: auto;
+  }
+
+  .monomachia-location {
+    display: flex;
+    width: max-content;
+    margin: 1.8rem 0 0;
+  }
+
+  .monomachia-info {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .monomachia-info::before,
+  .monomachia-info::after {
+    display: none;
+  }
+
+}
+
+@media (max-width: 720px) {
+  .monomachia-header,
+  .monomachia-hero,
+  .monomachia-info {
+    width: min(100% - 2rem, 1240px);
+  }
+
+  .monomachia-wordmark span {
+    display: none;
+  }
+
+  .monomachia-nav-home {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.65rem !important;
+  }
+
+  .monomachia-header nav {
+    gap: 0.55rem;
+  }
+
+  .monomachia-languages {
+    gap: 0.1rem;
+  }
+
+  .monomachia-languages button {
+    padding: 0.3rem;
+  }
+
+  .monomachia-languages button span {
+    display: none;
+  }
+
+  .monomachia-hero {
+    grid-template-areas:
+      "copy"
+      "partners"
+      "poster";
+    grid-template-columns: 1fr;
+    gap: 2.75rem;
+    padding: 3rem 0 5rem;
+  }
+
+  .monomachia-hero-copy {
+    text-align: center;
+  }
+
+  .monomachia-hero-logo {
+    width: 135px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .monomachia-hero h1 {
+    max-width: 100%;
+    font-size: clamp(2.7rem, 13.5vw, 4.5rem);
+    line-height: 0.9;
+    overflow-wrap: anywhere;
+  }
+
+  .monomachia-hero-brand {
+    margin-top: 0.9rem;
+  }
+
+  .monomachia-lead {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .monomachia-date {
+    display: grid;
+    width: min(100%, 350px);
+    margin: 0 auto;
+    transform: none;
+  }
+
+  .monomachia-location {
+    justify-content: center;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .monomachia-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: min(100%, 350px);
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .monomachia-button,
+  .monomachia-text-link {
+    text-align: center;
+  }
+
+  .monomachia-poster-wrap {
+    width: min(90%, 430px);
+  }
+
+  .monomachia-hero-partners {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.75rem;
+    text-align: center;
+    box-shadow: 0.35rem 0.35rem 0 rgba(100, 34, 38, 0.9);
+  }
+
+  .monomachia-hero-partners-heading span {
+    display: none;
+  }
+
+  .monomachia-hero-partners-heading h2 {
+    font-size: 1.1rem;
+  }
+
+  .monomachia-hero::after {
+    top: 36%;
+    right: -22%;
+    font-size: 7rem;
+  }
+
+  .monomachia-info {
+    padding: 6rem 0;
+  }
+
+  .monomachia-facts div {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .monomachia-partner-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .monomachia-partner-card {
+    min-width: 0;
+    min-height: 60px;
+    padding: 0.3rem;
+  }
+
+  .monomachia-partner-card img {
+    width: 100%;
+    height: 48px;
+  }
+
+  .monomachia-partner-card span {
+    display: none;
+  }
+
+  .monomachia-footer {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .monomachia-header {
+    width: calc(100% - 1rem);
+  }
+
+  .monomachia-wordmark img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .monomachia-nav-home {
+    padding: 0.5rem 0.65rem;
+    font-size: 0 !important;
+  }
+
+  .monomachia-nav-home::after {
+    content: "↩";
+    font-size: 1rem;
+  }
+
+  .monomachia-hero h1 {
+    font-size: clamp(2.35rem, 13vw, 3.2rem);
+  }
+
+  .monomachia-date {
+    box-shadow: 0.4rem 0.4rem 0 var(--mono-ink);
+  }
+}
+
+@media (max-width: 340px) {
+  .monomachia-partner-grid {
+    gap: 0.2rem;
+  }
+
+  .monomachia-partner-card {
+    min-height: 52px;
+  }
+
+  .monomachia-partner-card img {
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monomachia-page *,
+  .monomachia-page *::before,
+  .monomachia-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

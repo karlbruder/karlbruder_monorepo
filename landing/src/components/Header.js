@@ -15,7 +15,7 @@ const Header = () => {
   return (
     <Navbar className='bg-dark' sticky='top' expand='md'>
       <Container fluid className='px-5'>
-        <Navbar.Brand href='#'>
+        <Navbar.Brand href='/'>
           <img
             src={process.env.PUBLIC_URL + '/logos/logo_white_with_name.png'}
             height='60vh'
@@ -64,12 +64,13 @@ const Header = () => {
         </Navbar.Toggle>
         <Navbar.Collapse id="menu" className='justify-content-end'>
           <Nav>
-            <Nav.Link href='#about' style={navLink}>{t.nav.about}</Nav.Link>
-            <Nav.Link href='#weapons' style={navLink}>{t.nav.weapons}</Nav.Link>
-            <Nav.Link href='#training' style={navLink}>{t.nav.training}</Nav.Link>
-            <Nav.Link href='#gallery' style={navLink}>{t.nav.gallery}</Nav.Link>
-            <Nav.Link href='#partner' style={navLink}>{t.nav.partner}</Nav.Link>
-            <Nav.Link href='#contact' style={navLink}>{t.nav.contact}</Nav.Link>
+            <Nav.Link href='/monomachia' style={navLink}>{t.nav.monomachia}</Nav.Link>
+            <Nav.Link href='/#about' style={navLink}>{t.nav.about}</Nav.Link>
+            <Nav.Link href='/#weapons' style={navLink}>{t.nav.weapons}</Nav.Link>
+            <Nav.Link href='/#training' style={navLink}>{t.nav.training}</Nav.Link>
+            <Nav.Link href='/#gallery' style={navLink}>{t.nav.gallery}</Nav.Link>
+            <Nav.Link href='/#partner' style={navLink}>{t.nav.partner}</Nav.Link>
+            <Nav.Link href='/#contact' style={navLink}>{t.nav.contact}</Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>
