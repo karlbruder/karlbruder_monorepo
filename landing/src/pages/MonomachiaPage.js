@@ -1,35 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from '../components/LanguageContext';
+import partners from '../data/partners';
 import './MonomachiaPage.css';
-
-const partners = [
-  {
-    name: 'Sparring Gloves',
-    href: 'https://sparringglove.com/',
-    logo: '/logos/logo_sparring_gloves.png',
-  },
-  {
-    name: 'Manzini Swordmaker',
-    href: 'https://linktr.ee/manziniswordmaker',
-    logo: '/logos/logo_mazini.png',
-  },
-  {
-    name: 'Canto do Aço',
-    href: 'https://www.instagram.com/cantodoaco/',
-    logo: '/logos/logo_canto_do_aco.png',
-  },
-  {
-    name: 'Flèche Brasil',
-    href: 'https://linktr.ee/flechebrasil',
-    logo: '/logos/logo_fleche.jpg',
-  },
-  {
-    name: "Faits D'Armes",
-    href: 'https://www.faitsdarmes.com/en/',
-    logo: '/logos/logo_faits_darmes_escuro.png',
-    wide: true,
-  },
-];
 
 const MonomachiaPage = () => {
   const { lang, changeLang, t } = useTranslation();
@@ -111,7 +83,6 @@ const MonomachiaPage = () => {
             </div>
 
             <div className="monomachia-actions">
-              <a className="monomachia-button" href="#anuncio">{copy.announcement}</a>
               <a
                 className="monomachia-text-link"
                 href="https://www.instagram.com/karlbruder.hema/?hl=pt-br"

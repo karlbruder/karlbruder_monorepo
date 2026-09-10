@@ -329,25 +329,6 @@
   margin-top: 2.6rem;
 }
 
-.monomachia-button {
-  padding: 0.9rem 1.3rem;
-  color: var(--mono-white) !important;
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.13em;
-  text-decoration: none;
-  text-transform: uppercase;
-  background: var(--mono-ink);
-  border: 2px solid var(--mono-ink);
-  transition: color 160ms ease, background 160ms ease;
-}
-
-.monomachia-button:hover,
-.monomachia-button:focus-visible {
-  color: var(--mono-ink) !important;
-  background: transparent;
-}
-
 .monomachia-text-link {
   padding: 0.35rem 0;
   font-size: 0.8rem;
@@ -537,7 +518,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
@@ -742,7 +723,6 @@
     margin-left: auto;
   }
 
-  .monomachia-button,
   .monomachia-text-link {
     text-align: center;
   }
@@ -784,7 +764,7 @@
   }
 
   .monomachia-partner-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.35rem;
   }
 
