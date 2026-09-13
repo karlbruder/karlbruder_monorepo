@@ -5,7 +5,7 @@
 ### Context
 
 `TournamentSignupCreate` currently performs structural validation only, such as
-required fields, string lengths, numeric ranges, and allowed handedness values.
+required fields, string lengths, and numeric ranges.
 It does not yet establish that identity, contact, document, country, or date
 values are canonical, authentic, or semantically valid.
 
@@ -35,12 +35,12 @@ error rather than modified implicitly.
 ### Security requirements
 
 - Reject unexpected fields and enforce a request-size limit.
-- Never log document identifiers, lookup tokens, safety notes, emergency
-  contacts, email addresses, or phone numbers.
-- Keep `status`, `inscription_number`, `lookup_token`, `safety_note`, and audit
+- Never log document identifiers, safety notes, emergency contacts, email
+  addresses, or phone numbers.
+- Keep `status`, `inscription_number`, `safety_note`, and audit
   timestamps controlled exclusively by the backend.
 - Use parameterized SQLAlchemy operations; do not build SQL from user input.
-- Add abuse protection to the public signup endpoint, including rate limiting
+- Add abuse protection to the signup endpoint, including rate limiting
   and an explicit policy for repeated failed requests.
 - Ensure public responses never expose private participant or staff-only data.
 
@@ -56,3 +56,22 @@ error rather than modified implicitly.
   public-response privacy boundary.
 - Integration tests confirm that direct and concurrent duplicate signups cannot
   bypass the database uniqueness constraint.
+
+## TODO 2 - Add staff authorization
+
+### Context
+
+Tournament creation, publication, and sign-up listing temporarily require only
+a valid Supabase login. Before production use, these operations must require an
+explicit staff authorization decision.
+
+### Requirements
+
+- Store staff authorization in trusted Supabase `app_metadata`, never in
+  user-editable `user_metadata`.
+- Add a reusable FastAPI dependency that returns HTTP 401 for missing or invalid
+  authentication and HTTP 403 for authenticated users without the staff role.
+- Protect tournament management endpoints and any endpoint that exposes
+  non-public sign-up data.
+- Add tests for anonymous, authenticated non-staff, and authenticated staff
+  requests.

@@ -9,10 +9,12 @@ from sqlalchemy import text
 from auth import get_current_user
 from database import engine, get_auth_database_engine
 from models import User
+from tournaments.router import router as tournaments_router
 
 logger = logging.getLogger(__name__)
 
 karlbruder_app = FastAPI()
+karlbruder_app.include_router(tournaments_router)
 
 
 karlbruder_app.add_middleware(

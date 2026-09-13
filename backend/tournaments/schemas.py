@@ -126,10 +126,19 @@ class TournamentSignupCreate(BaseModel):
 
 
 class TournamentSignupResponse(BaseModel):
-    """Minimal receipt returned after a public tournament signup."""
+    """Minimal receipt returned after an authenticated tournament signup."""
 
     model_config = ConfigDict(from_attributes=True)
 
     inscription_number: str
-    lookup_token: str
     status: TournamentSignupStatus
+
+
+class TournamentSignupListItem(BaseModel):
+    """Privacy-safe participant data visible to authenticated users."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    inscription_number: str
+    display_name: str
+    school_name: str

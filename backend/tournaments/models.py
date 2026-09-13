@@ -1,6 +1,5 @@
 from datetime import date, datetime
 from decimal import Decimal
-from secrets import token_urlsafe
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -11,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     Numeric,
+    Sequence,
     String,
     Text,
     UniqueConstraint,
@@ -21,6 +21,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+
+INSCRIPTION_NUMBER_SEQUENCE = Sequence(
+    "tournament_signup_inscription_seq",
+    schema="public",
+)
 
 
 class Tournament(Base):
@@ -148,8 +154,9 @@ class TournamentSignup(Base):
             name="uq_tournament_signups_inscription_number",
         ),
         UniqueConstraint(
-            "lookup_token",
-            name="uq_tournament_signups_lookup_token",
+            "tournament_id",
+            "email",
+            name="uq_tournament_signups_tournament_email",
         ),
         UniqueConstraint(
             "tournament_id",
@@ -157,6 +164,11 @@ class TournamentSignup(Base):
             "document_type",
             "document_id",
             name="uq_tournament_signups_tournament_document",
+        ),
+        UniqueConstraint(
+            "tournament_id",
+            "user_id",
+            name="uq_tournament_signups_tournament_user",
         ),
         {"schema": "public"},
     )
@@ -170,12 +182,9 @@ class TournamentSignup(Base):
         ),
         nullable=False,
     )
+    # Supabase Auth may use a different database, so this has no database FK.
+    user_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
     inscription_number: Mapped[str] = mapped_column(String(20), nullable=False)
-    lookup_token: Mapped[str] = mapped_column(
-        String(64),
-        nullable=False,
-        default=lambda: token_urlsafe(32),
-    )
     status: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
