@@ -85,7 +85,7 @@ const MonomachiaPage = () => {
             <div className="monomachia-actions">
               <a
                 className="monomachia-text-link"
-                href="https://www.instagram.com/karlbruder.hema/?hl=pt-br"
+                href="https://www.instagram.com/monomachia.karlbruder"
                 target="_blank"
                 rel="noreferrer"
               >
