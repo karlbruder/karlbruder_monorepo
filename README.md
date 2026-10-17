@@ -9,10 +9,23 @@ Monorepo for the Karlbrüder fencing school website and management system.
 * `backend/`: FastAPI API managed with Poetry.
 * `compose.yml`: local environment containing the frontend, backend, and PostgreSQL.
 
-The backend can validate Supabase access tokens, while the frontend sign-in
-flow is not yet included. The local environment consists of the frontend,
-backend, and local PostgreSQL database; token verification uses the configured
-hosted Supabase Auth project.
+## Product Specifications
+
+Start with the [specification index](specs/README.md) for intended behavior,
+the [product overview](specs/product.md) for application boundaries and scope,
+and [architecture](specs/architecture.md) for service responsibilities.
+The public website introduces Karlbrüder. The frontend and backend form the
+application for authenticated tournament registration, payment proofs,
+confirmation tracking, and results. Membership and equipment inventory are
+future capabilities. Coding agents should follow [AGENTS.md](AGENTS.md).
+
+The backend includes Supabase access-token verification, and the frontend
+includes Google sign-in through Supabase. Other authentication flows and the
+local service configuration still need verification. See the
+[local-development specification](specs/platform/local-development.md) for
+known differences between setup notes and the current configuration.
+The local environment consists of the frontend, backend, and local PostgreSQL
+database; authentication uses the configured hosted Supabase Auth project.
 
 ## Requirements
 
@@ -136,6 +149,20 @@ migrations must be applied to both environments to keep their database
 structures equivalent.
 
 ## Deployment Database: EC2 and Supabase
+
+The target production application stack is `compose.prod.yml` with separate
+Nginx, frontend, and backend containers. Nginx routes `/api` requests to the
+backend and other application requests to the frontend. Cloudflare handles
+DNS, public TLS, and HTTP-to-HTTPS redirects, with a proxied application A
+record targeting the instance's Elastic IP. Cloudflare connects to the
+self-signed Nginx origin on 443 using Full encryption mode. Only Nginx
+publishes an application host port; frontend and backend ports stay internal.
+Domain data uses Supabase PostgreSQL's `public` schema, with no production database container.
+Production files use S3 and application emails use AWS SES via SMTP. Local
+development uses Docker PostgreSQL with hosted Supabase Auth, and will add
+Ministack for S3 emulation when file storage is implemented. See the
+[architecture diagrams](specs/architecture.md) for these intended stacks and
+their current implementation gaps.
 
 The `compose.yml` file in this repository is intended for local development.
 In the EC2 deployment, the backend and frontend run without the `db` service.
