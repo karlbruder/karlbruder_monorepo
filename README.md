@@ -15,6 +15,51 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 
 Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior; the current application implements Google sign-in/session handling, backend identity verification, and health checks. Tournament registration, payment proofs, results, membership, and inventory are not implemented yet.
 
+## Agentic development
+
+Start from [specifications](specs/README.md) or pick an existing GitHub issue. Invoke the linked skills in your agent chat using `$skill-name` in Codex or `/skill-name` in Claude Code and Cursor. GitHub actions use your own authenticated GitHub CLI account.
+
+### 1. Pick an issue and plan it
+
+The tech lead or developer can use [create-issue](.agents/skills/create-issue/SKILL.md) to clarify a delivery slice from the specs and publish it after approval. **If the issue already exists, pick it from GitHub and start with [plan-issue](.agents/skills/plan-issue/SKILL.md)**, for example `$plan-issue 123`. Review the saved plan before implementation.
+
+```mermaid
+flowchart LR
+    New[New work from specs] --> Create[1a. create-issue]
+    Create --> Issue[GitHub issue]
+    Existing[Pick an existing issue] --> Issue
+    Issue --> Plan[1b. plan-issue]
+```
+
+### 2. Implement, review, and address findings
+
+Run [implement-issue](.agents/skills/implement-issue/SKILL.md), for example `$implement-issue 123`. It creates or resumes the issue branch and moves the Project item to **In Progress** when work starts. Each step includes its tests. **You review, stage, and commit**; the agent suggests a message and waits for your permission before the next step.
+
+```mermaid
+flowchart LR
+    Implement[2a. implement-issue: code and tests] --> Human[2b. Developer reviews and commits]
+    Human -->|All steps complete| Review[2c. review-issue]
+    Review --> Debate[2d. debate-review]
+```
+
+Repeat 2a–2b for every planned step. Then run [review-issue](.agents/skills/review-issue/SKILL.md) to produce findings and runnable probes, and [debate-review](.agents/skills/debate-review/SKILL.md) to assess them skeptically. Pass the review path to the debating agent. You choose which fixes matter; return to 2a–2b for those fixes and recheck the affected findings.
+
+### 3. Open the PR and finish
+
+Run [open-pr](.agents/skills/open-pr/SKILL.md), for example `$open-pr 123`. It publishes the committed branch, opens the PR, and moves the linked issue's Project item to **In Review**, whether it was To Do or In Progress. Branch-only PRs without an associated issue skip the Project update.
+
+```mermaid
+flowchart LR
+    PR[3a. open-pr] --> Lead[3b. Tech lead approves and merges]
+    Lead --> Done[3c. Verify issue closed and Project Done]
+```
+
+Tech-lead change requests return to step 2. For completed issue scope, the PR includes `Closes #123`, which [closes the issue when merged into the default branch](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue). After merge into `master`, verify closure and mark the Project item Done if automation has not done so. Failed Project updates are reported for manual follow-up.
+
+Issue numbers can be replaced with URLs. Review, debate, and PR skills also accept `--source feature/example --target master` without an issue or plan; debate still needs review feedback. Creation, planning, and implementation stay issue-driven.
+
+Plans, checkpoint state, reviews, and probes are saved under Git-ignored `.local/`. Plans are versioned; review/debate folders use `issue-<number>/` or `<target>__<source>/`. Pass the saved paths to resume in a new chat. Local files are not shared through GitHub, so keep issues and PRs self-contained.
+
 ## Local setup with Docker Compose
 
 Install Git and Docker with Docker Compose. Host Python, Poetry, Node.js, and PostgreSQL are unnecessary for these three containerized services. Running the landing site separately requires Node.js and npm.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Issue"
+  short_description: "Clarify scope and write detailed GitHub delivery issues"
+  default_prompt: "Use $create-issue to clarify the work I describe and create a self-contained GitHub issue with detailed task checkboxes."

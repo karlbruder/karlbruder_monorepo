@@ -1,6 +1,8 @@
 .vscode
+.cursor
 .env
 .env.*
 !.env.example
 !**/.env.example
 .DS_Store
+.local

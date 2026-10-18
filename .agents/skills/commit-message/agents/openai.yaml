@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Message"
+  short_description: "Suggest a commit message from chat context and Git diff"
+  default_prompt: "Use $commit-message to suggest a Conventional Commit message from this chat and the Git diff."
