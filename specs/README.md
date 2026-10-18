@@ -10,6 +10,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 | [Architecture](architecture.md) | Service responsibilities, data flow, integrations, and observed implementation gaps |
 | [Open-question index](open-questions.md) | Deduplicated current-scope questions, deferred questions, and technical follow-up owners |
 | [Decisions](decisions/README.md) | Significant choices and superseded directions |
+| [Application wireframes](design/README.md) | Reviewable desktop/mobile journeys linked to rules and acceptance criteria |
 | [Specification template](templates/spec.md) | Starting point for a capability or platform specification |
 
 ## Capability index
@@ -34,6 +35,8 @@ Each document states its delivery scope: initial platform, planned tournament ex
 Rule IDs such as `REG-001` identify intended behavior. Acceptance IDs such as `REG-AC-001` identify observable outcomes. Keep IDs stable when editing. Update a rule's wording and explain significant changes in the PR. Avoid reusing an old ID for a different requirement.
 
 Open questions are unresolved. An illustrative status or implementation option must not be treated as a complete contract. Resolve questions that affect a task before implementing the dependent behavior.
+
+The [wireframes](design/app-wireframes/README.md) illustrate these contracts with stable screen IDs and selectable states. They are draft design artifacts: example values and proposed layouts do not resolve open questions or establish implemented behavior. Reference both the screen/state and the owning rule when scoping a UI issue.
 
 ## Question ownership and terminology
 

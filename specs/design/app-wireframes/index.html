@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Karlbrüder · Wireframes da aplicação</title><link rel="stylesheet" href="wireframes.css"></head>
+<body>
+<header class="review-header"><div><span class="eyebrow">KARLBRÜDER / DESIGN REVIEW</span><h1>Uma plataforma. Todos os nossos torneios.</h1></div><a class="doc-link" href="README.md">Mapa das especificações ↗</a></header>
+<section class="review-controls" aria-label="Controles dos wireframes"><label>Tela<select id="screen-picker"></select></label><label>Estado<select id="state-picker"></select></label><div class="view-controls" aria-label="Largura da prévia"><button id="desktop" aria-pressed="true">Desktop</button><button id="mobile" aria-pressed="false">Celular</button></div><button id="annotations" aria-pressed="true">Notas da spec</button></section>
+<div class="review-caption"><span id="screen-meta"></span><span>Rascunho de design · dados fictícios · sem serviços conectados</span></div>
+<div class="workspace"><main id="prototype" aria-label="Prévia da aplicação"></main><aside id="spec-notes" aria-label="Referências e decisões da tela"></aside></div>
+<footer class="review-footer">Apresentação proposta, não contrato de implementação. Regras de produto permanecem nos specs. <span>app.karlbruder.com · v0.1</span></footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="dialog"><div id="dialog-content"></div><button class="button secondary" id="close-dialog">Fechar</button></dialog>
+<script src="wireframes.js"></script>
+</body></html>
