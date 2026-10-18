@@ -51,12 +51,14 @@ Source inspection on 17 October 2026 found:
 
 Known inconsistencies to resolve in implementation work:
 
-- The root README names frontend port 3000, while Compose now publishes 5173.
 - The frontend development container health check requests port 80, while its command starts Vite on 5173.
 - `frontend/vite.config.ts` has no API proxy, while the Nginx `/api/` proxy is only in the production image. The backend CORS list names localhost:3000.
 - The existing frontend Nginx file strips `/api/`, while the backend identity endpoint already includes `/api`. That configuration must be aligned with the now-defined prefix-preserving contract.
-- Some older backend and UI setup notes describe frontend authentication as absent, but the current entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
-- The frontend README is still template guidance, the landing README is absent, and some backend README test references do not match the current test tree.
+- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app. The Health page also requests `/api/health` paths while backend diagnostics use `/health`; the UI and API paths need reconciliation.
+- The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
+- The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
+
+The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_ANON_KEY` name and default Compose domain data to local PostgreSQL. These documentation fixes do not resolve the remaining application/configuration gaps above.
 
 No services or application tests were run to establish runtime health during this specification pass.
 

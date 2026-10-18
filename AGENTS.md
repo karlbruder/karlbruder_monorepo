@@ -1,5 +1,12 @@
 # Working in the Karlbrüder monorepo
 
+## Directory-specific instructions
+
+- Before working in a directory, check for and read any nested `AGENTS.md` files along the path from the repository root to the files you will change. This includes application directories such as `backend/`, `frontend/`, and `landing/`, and any deeper directories.
+- Apply each nested file's guidelines to code in its directory and descendants, together with the applicable parent instructions. A child file does not govern sibling directories.
+- If child instructions contradict this root file or another applicable parent file, pause the conflicting work and ask the user to confirm which instruction to follow. Identify the conflicting instructions and their file paths, and recommend using the more specific child `AGENTS.md` as the override for its scope. Do not apply that override until the user confirms; continue independent work that is unaffected by the conflict.
+- Honor a conflict resolution the user has already confirmed for the same scope rather than asking again.
+
 ## Product boundaries
 
 - `landing/` is the public website for discovery, group presentation, and links to events and the application.
@@ -36,4 +43,4 @@ The user's latest explicit direction takes precedence over earlier repository do
 - The backend owns domain rules, authorization, and database access. Frontend visibility checks do not replace backend authorization.
 - Supabase Auth owns application identity. Domain objects belong in PostgreSQL's `public` schema. Do not modify Supabase-managed `auth` objects.
 - Keep credentials, personal registration data, payment proofs, and private safety notes out of source files and public assets.
-- For GitHub project changes, follow [the existing project-management guidance](.cursor/rules/website-project-management.mdc), subject to the user's current instructions. Posting comments requires explicit authorization.
+
