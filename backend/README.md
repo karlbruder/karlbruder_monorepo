@@ -85,6 +85,33 @@ staff access. Provision the trusted claim through an authorized Supabase admin
 process; adding text to a client profile cannot grant permissions. This role
 contract applies globally across tournaments, without event-specific grants.
 
+## Tournament signup API
+
+`POST /api/tournaments/{id}/signups` requires a verified Supabase token and
+registers the token owner. The request supplies participant details and separate
+required declarations, including an explicit image-use choice. The server takes
+the owner UUID and account email from the token, compares the submitted email
+using the registration normalization rule, and records the configured terms and
+regulation versions, acceptance time, and request IP. Clients cannot choose an
+owner, status, inscription number, accepted version, or staff safety note.
+Registration requires both versions and an inclusive opening/closing date window
+in fixed UTC-03:00. Staff closure or an unconfigured/outside window returns 400.
+Full capacity does not prevent creation: new signups receive `awaiting_payment`
+and no seat. Active duplicates by owner, normalized email, or normalized document
+within the tournament return 409. A cancelled signup does not block replacement.
+
+`GET /api/tournaments/{id}/signups/{inscription_number}` requires the owner or a
+global admin. Others receive 404, including users who know the number; internal
+tournaments remain hidden from regular users. `GET /api/tournaments/{id}/signups`
+is admin-only and returns complete staff records. Owner responses exclude the
+staff safety note and acceptance IP; no guest or participant-directory signup
+route is provided here. Identity documents, contact information, and safety
+notes must not be logged or exposed through public endpoints.
+
+The configured version identifiers in this API are evidence references, not
+approved consent text. Production registration still needs approved wording,
+private parental-term and proof uploads, and the later payment/staff flows.
+
 ## Tests and lint
 
 From `backend/`:
