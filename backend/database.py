@@ -1,7 +1,13 @@
 import os
+from collections.abc import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+
+class Base(DeclarativeBase):
+    """Metadata for Karlbrüder domain tables in the public schema."""
 
 
 def get_database_url() -> str:
@@ -26,6 +32,7 @@ def create_database_engine(database_url: str | URL | None = None) -> Engine:
     return create_engine(
         database_url or get_database_url(),
         pool_pre_ping=True,
+        hide_parameters=True,
     )
 
 
@@ -35,3 +42,11 @@ def get_auth_database_engine() -> Engine:
 
 
 engine = create_database_engine()
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_session() -> Iterator[Session]:
+    """Provide one transaction boundary per API request."""
+
+    with SessionLocal() as session:
+        yield session
