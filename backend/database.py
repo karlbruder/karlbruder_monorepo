@@ -2,6 +2,11 @@ import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
+
+class Base(DeclarativeBase):
+    """Metadata for Karlbrüder domain tables in the public schema."""
 
 
 def get_database_url() -> str:
@@ -35,3 +40,4 @@ def get_auth_database_engine() -> Engine:
 
 
 engine = create_database_engine()
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)

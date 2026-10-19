@@ -43,6 +43,32 @@ Open `http://localhost:8000/docs` for API documentation and interactive requests
 
 Database diagnostics report schema presence separately from connectivity; inspect the response body. They do not verify that application migrations have been applied. Connection failures return 503; details are logged by the backend.
 
+## Domain migrations
+
+Alembic owns the tournament tables in the domain database selected by `DATABASE_URL`.
+It does not create or modify Supabase-managed `auth` objects. Run migrations from
+`backend/` before starting an API version that uses new tables:
+
+```sh
+poetry run alembic upgrade head
+poetry run alembic current
+```
+
+For local Compose, start the database with `docker compose up -d db` from the
+repository root. The backend image also contains Alembic, so after building it
+you can run `docker compose exec -T backend alembic upgrade head`. In
+production, set `DATABASE_URL` to the intended Supabase PostgreSQL connection
+and run the same upgrade as a controlled deployment step. Never run a downgrade
+on a database containing real registrations without a reviewed data plan.
+
+The registration opening and closing columns are calendar dates interpreted in
+fixed UTC-03:00. `next_inscription_serial` is a tournament-local counter; future
+signup creation must lock its Tournament row while allocating a number.
+Inscription numbers use `T<tournament id>-<six-digit serial>-<Luhn digit>`;
+they are references, not credentials. The accepted terms/regulation version
+columns record references to configured content; approved text and upload flows
+are required before this API can support a production registration journey.
+
 ## Tests and lint
 
 From `backend/`:
