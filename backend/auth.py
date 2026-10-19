@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from jwt.exceptions import (
@@ -45,17 +45,11 @@ def get_jwks_client() -> PyJWKClient:
     )
 
 
-def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(bearer_scheme),
-    ],
-) -> User:
-    """Verify a Supabase access token and return its user identity claims."""
+def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
+    """Verify a supplied Supabase access token and return its claims."""
 
-    if credentials is None or credentials.scheme.lower() != "bearer":
+    if credentials.scheme.lower() != "bearer":
         raise InvalidCredentialsException()
-
     try:
         settings = get_auth_settings()
         signing_key = get_jwks_client().get_signing_key_from_jwt(
@@ -95,3 +89,52 @@ def get_current_user(
         raise
     except (InvalidTokenError, KeyError, TypeError, ValidationError) as exc:
         raise InvalidCredentialsException() from exc
+
+
+def get_current_user(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+) -> User:
+    """Require a verified Supabase user on a protected route."""
+
+    if credentials is None:
+        raise InvalidCredentialsException()
+    return _verify_user(credentials)
+
+
+def get_optional_user(
+    request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+) -> User | None:
+    """Allow guests while rejecting an invalid token when one is supplied."""
+
+    if credentials is None:
+        if request.headers.get("authorization") is not None:
+            raise InvalidCredentialsException()
+        return None
+    return _verify_user(credentials)
+
+
+def get_application_role(user: User | None) -> str:
+    """Read only the trusted Auth-managed app_metadata role claim."""
+
+    if user is None:
+        return "guest"
+    role = user.app_metadata.get("karlbruder_role")
+    if role in ("regular_user", "guild_member", "admin"):
+        return role
+    return "regular_user"
+
+
+def require_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    if get_application_role(current_user) != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user

@@ -69,6 +69,22 @@ they are references, not credentials. The accepted terms/regulation version
 columns record references to configured content; approved text and upload flows
 are required before this API can support a production registration journey.
 
+## Tournament catalog API
+
+`GET /api/tournaments` and `GET /api/tournaments/{id}` show non-internal
+tournaments to guests. Internal tournaments are visible only to guild members
+and guild staff; direct requests by other callers return 404. A supplied invalid
+Bearer token returns 401 even on a guest-readable route. `POST /api/tournaments`
+requires a verified guild staff token and returns 403 for other signed-in users.
+
+The backend reads the application role only from the verified Supabase JWT's
+Auth-managed `app_metadata.karlbruder_role` claim. Supported values are
+`regular_user`, `guild_member`, and `admin`; a missing or unknown value has
+regular-user access. User-editable `user_metadata` never grants membership or
+staff access. Provision the trusted claim through an authorized Supabase admin
+process; adding text to a client profile cannot grant permissions. This role
+contract applies globally across tournaments, without event-specific grants.
+
 ## Tests and lint
 
 From `backend/`:

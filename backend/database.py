@@ -1,8 +1,9 @@
 import os
+from collections.abc import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
 class Base(DeclarativeBase):
@@ -41,3 +42,10 @@ def get_auth_database_engine() -> Engine:
 
 engine = create_database_engine()
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_session() -> Iterator[Session]:
+    """Provide one transaction boundary per API request."""
+
+    with SessionLocal() as session:
+        yield session
