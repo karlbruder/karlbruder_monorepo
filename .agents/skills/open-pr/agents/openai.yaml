@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open PR"
+  short_description: "Open a PR from branch changes, with optional issue context"
+  default_prompt: "Use $open-pr to create a pull request from the current branch against master, using an issue if provided."

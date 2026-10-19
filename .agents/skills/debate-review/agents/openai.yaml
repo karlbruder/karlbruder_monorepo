@@ -1,0 +1,4 @@
+interface:
+  display_name: "Debate Review"
+  short_description: "Challenge review findings and prioritize justified fixes"
+  default_prompt: "Use $debate-review for this issue or --source/--target comparison and save the evidence and assessment locally."

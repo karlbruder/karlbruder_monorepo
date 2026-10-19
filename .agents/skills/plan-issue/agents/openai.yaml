@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Issue"
+  short_description: "Save a focused implementation plan for one GitHub issue"
+  default_prompt: "Use $plan-issue to save a complete issue plan with cohesive commit checkpoints."

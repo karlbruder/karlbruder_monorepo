@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Issue"
+  short_description: "Review issue or branch changes with saved evidence"
+  default_prompt: "Use $review-issue for this issue or --source/--target comparison and save the evidence and assessment locally."
