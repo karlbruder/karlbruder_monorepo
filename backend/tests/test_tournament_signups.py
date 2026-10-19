@@ -79,6 +79,7 @@ def _signup(*, email="fixture@example.test", document="AB-123", **overrides):
         "prior_tournaments_count": 0,
         "emergency_contact_name": "Fixture Contact",
         "emergency_contact_phone": "+55 11 0000-0001",
+        "declares_truthful_information": True,
         "declares_required_equipment": True,
         "declares_physically_fit": True,
         "accepts_regulation": True,
@@ -143,6 +144,7 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     assert number.startswith(f"T{event_id}-000001-")
     assert owner_view["status"] == "awaiting_payment"
     assert owner_view["accepted_terms_version"] == "fixture-terms-v1"
+    assert owner_view["declares_truthful_information"] is True
     assert owner_view["image_use_authorized"] is False
     assert {"safety_note", "acceptance_ip", "user_id", "email_normalized"}.isdisjoint(owner_view)
     with Session(engine) as session:
@@ -150,6 +152,7 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
         assert stored.user_id == owner_id
         assert stored.acceptance_ip == "testclient"
         assert stored.accepted_at is not None
+        assert stored.declares_truthful_information is True
         assert stored.safety_note is None
         stored.safety_note = "Staff-only fixture"
         session.commit()
@@ -166,9 +169,32 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     staff_view = client.get(detail_path, headers=admin).json()
     assert staff_view["safety_note"] == "Staff-only fixture"
     assert staff_view["acceptance_ip"] == "testclient"
+    assert staff_view["declares_truthful_information"] is True
+    assert staff_view["accepted_terms_version"] == "fixture-terms-v1"
+    assert staff_view["accepted_at"] == owner_view["accepted_at"]
     assert staff_view["user_id"] == str(owner_id)
     assert client.get(f"/api/tournaments/{event_id}/signups", headers=admin).json() == [staff_view]
     assert "safety_note" not in client.get(detail_path, headers=owner).json()
+
+
+def test_priv_002_truthfulness_requires_explicit_json_true_without_creating_row(setup):
+    client, key, engine = setup
+    event_id = _create_event(client, key)
+    path = f"/api/tournaments/{event_id}/signups"
+    owner = _headers(key)
+    missing = _signup()
+    missing.pop("declares_truthful_information")
+    for payload in (
+        missing,
+        _signup(declares_truthful_information=False),
+        _signup(declares_truthful_information=1),
+        _signup(declares_truthful_information="true"),
+        _signup(declares_truthful_information=None),
+    ):
+        response = client.post(path, json=payload, headers=owner)
+        assert response.status_code == 422, response.text
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(TournamentSignup)) == 0
 
 
 def test_authentication_owner_claims_and_required_input(setup):

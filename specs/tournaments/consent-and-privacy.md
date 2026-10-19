@@ -14,7 +14,7 @@ Collect the necessary participant declarations, preserve their evidence, and res
 ## Rules
 
 - **PRIV-001:** Present separate choices for regulation acceptance, required data processing, and image-use authorization. Image authorization is recorded separately as consent or refusal. A single blanket checkbox must not replace the individual choices.
-- **PRIV-002:** Required event declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation/refund/disqualification rules. Emergency contact and participation declarations are required by the registration answers. Final wording is still needed; image authorization remains a separate choice rather than a bundled required consent.
+- **PRIV-002:** Required event declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation/refund/disqualification rules. Truthful information is a separate required choice, recorded independently from the other declarations. Emergency contact and participation declarations are required by the registration answers. Final wording is still needed; image authorization remains a separate choice rather than a bundled required consent.
 - **PRIV-003:** Record the accepted regulation/terms version, acceptance time, choices, and the IP evidence requested by the source. The handling and retention of that evidence must be defined in the privacy policy.
 - **PRIV-004:** Private fields include document number, date of birth, email, phone, emergency contacts, payment proofs, staff notes, and safety information. Public representations must use explicit permitted fields rather than exposing complete registration records.
 - **PRIV-005:** Participants may retrieve and correct their own TournamentSignup fields except `safety_note`, `id`, `tournament_id`, `user_id`, `inscription_number`, `created_at`, `updated_at`, and `status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules; changing declarations must preserve earlier acceptance evidence.
@@ -31,7 +31,7 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 
 ## Acceptance criteria
 
-- **PRIV-AC-001:** Required missing acceptances prevent completion, while an image-use choice is recorded independently from other acceptances under the agreed policy.
+- **PRIV-AC-001:** Required missing acceptances, including the separate truthful-information declaration, prevent completion, while an image-use choice is recorded independently from other acceptances under the agreed policy.
 - **PRIV-AC-002:** A completed registration can be associated with the exact accepted terms version and acceptance evidence.
 - **PRIV-AC-003:** Public APIs, participant lists, event pages, and routine exports exclude restricted fields.
 - **PRIV-AC-004:** Registration offers no participant-directory opt-out. Authorized platform users see the permitted directory projection, while restricted fields and internal-event boundaries remain protected.
@@ -44,7 +44,7 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 
 ## Open questions
 
-- **PRIV-Q1:** Do you already have the actual texts or documents participants must read and accept? We still need the wording for the risk/equipment/fitness declarations, the explanation of how registration data is used and visible to other platform users, and the separate permission or refusal to use their image. The types of declarations and separate choices are already decided; this asks for the approved content to display, or who will provide it before release. The event's own regulation remains Tournament configuration.
+- **PRIV-Q1:** Do you already have the actual texts or documents participants must read and accept? We still need the wording for the separate truthful-information declaration, the risk/equipment/fitness declarations, the explanation of how registration data is used and visible to other platform users, and the separate permission or refusal to use their image. The types of declarations and separate choices are already decided; this asks for the approved content to display, or who will provide it before release. The event's own regulation remains Tournament configuration.
 - **PRIV-Q4:** If a participant asks staff to delete their registration data or payment proofs, how should they submit that request, and what should staff delete versus keep? For example, should a completed event's signup be deleted, anonymized, or retained with its payment/audit history? Participants already may edit their allowed fields themselves; this asks how staff handles requests beyond that access. The interim default remains indefinite retention until this exception process is decided.
 
 

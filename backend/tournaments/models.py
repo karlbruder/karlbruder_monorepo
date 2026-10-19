@@ -114,6 +114,9 @@ class TournamentSignup(Base):
             "AND acknowledges_inherent_risks AND accepts_cancellation_policy",
             name="ck_tournament_signups_required_declarations",
         ),
+        CheckConstraint(
+            "declares_truthful_information", name="ck_tournament_signups_truthfulness"
+        ),
         Index("ix_tournament_signups_tournament_id", "tournament_id"),
         Index(
             "uq_tournament_signups_active_user",
@@ -175,6 +178,7 @@ class TournamentSignup(Base):
 
     emergency_contact_name: Mapped[str] = mapped_column(String(200), nullable=False)
     emergency_contact_phone: Mapped[str] = mapped_column(String(40), nullable=False)
+    declares_truthful_information: Mapped[bool] = mapped_column(Boolean, nullable=False)
     declares_required_equipment: Mapped[bool] = mapped_column(Boolean, nullable=False)
     declares_physically_fit: Mapped[bool] = mapped_column(Boolean, nullable=False)
     accepts_regulation: Mapped[bool] = mapped_column(Boolean, nullable=False)

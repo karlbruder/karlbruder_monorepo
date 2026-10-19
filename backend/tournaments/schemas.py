@@ -105,6 +105,7 @@ class SignupCreate(BaseModel):
     special_category_note: str | None = None
     emergency_contact_name: str = Field(min_length=1, max_length=200)
     emergency_contact_phone: str = Field(min_length=1, max_length=40)
+    declares_truthful_information: StrictBool
     declares_required_equipment: StrictBool
     declares_physically_fit: StrictBool
     accepts_regulation: StrictBool
@@ -125,6 +126,7 @@ class SignupCreate(BaseModel):
         return value
 
     @field_validator(
+        "declares_truthful_information",
         "declares_required_equipment", "declares_physically_fit", "accepts_regulation",
         "accepts_data_processing", "acknowledges_inherent_risks", "accepts_cancellation_policy"
     )
@@ -169,6 +171,7 @@ class SignupRead(BaseModel):
     special_category_note: str | None
     emergency_contact_name: str
     emergency_contact_phone: str
+    declares_truthful_information: bool
     declares_required_equipment: bool
     declares_physically_fit: bool
     accepts_regulation: bool

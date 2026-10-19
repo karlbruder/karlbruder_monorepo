@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect, insert, select, text
+from sqlalchemy import MetaData, Table, create_engine, delete, inspect, insert, select, text
 from sqlalchemy.exc import IntegrityError
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
@@ -46,6 +46,7 @@ def _signup(tournament_id, serial, *, user_id=None, email="fixture@example.test"
         "prior_tournaments_count": 0,
         "emergency_contact_name": "Fixture Contact",
         "emergency_contact_phone": "000000001",
+        "declares_truthful_information": True,
         "declares_required_equipment": True,
         "declares_physically_fit": True,
         "accepts_regulation": True,
@@ -88,6 +89,12 @@ def test_postgres_migration_constraints_and_round_trip():
                 inspector.get_table_names(schema=schema)
             )
             assert "auth" not in inspector.get_table_names(schema=schema)
+            columns = {column["name"]: column for column in inspector.get_columns("tournament_signups", schema=schema)}
+            assert columns["declares_truthful_information"]["nullable"] is False
+            assert columns["declares_truthful_information"]["default"] is None
+            assert "ck_tournament_signups_truthfulness" in {
+                check["name"] for check in inspector.get_check_constraints("tournament_signups", schema=schema)
+            }
             indexes = inspector.get_indexes("tournament_signups", schema=schema)
             assert {
                 "uq_tournament_signups_active_user",
@@ -130,6 +137,8 @@ def test_postgres_migration_constraints_and_round_trip():
             _rejected(connection, TournamentSignup, _signup(tournament_id, 5, email="other5@example.test", document="OTHER-5", status="invalid"))
             _rejected(connection, TournamentSignup, _signup(tournament_id, 6, email="other6@example.test", document="OTHER-6", status="confirmed") | {"prior_tournaments_count": -1})
             _rejected(connection, TournamentSignup, _signup(tournament_id, 7, email="other7@example.test", document="OTHER-7") | {"declares_physically_fit": False})
+            _rejected(connection, TournamentSignup, _signup(tournament_id, 9, email="other9@example.test", document="OTHER-9") | {"declares_truthful_information": False})
+            _rejected(connection, TournamentSignup, _signup(tournament_id, 10, email="other10@example.test", document="OTHER-10") | {"declares_truthful_information": None})
             connection.execute(insert(TournamentSignup).values(**_signup(tournament_id, 8, email=first["email"], document=first["document_id"], status="cancelled")))
 
             second_tournament_id = connection.execute(
@@ -138,10 +147,61 @@ def test_postgres_migration_constraints_and_round_trip():
                 .returning(Tournament.id)
             ).scalar_one()
             connection.execute(insert(TournamentSignup).values(**_signup(second_tournament_id, 1, user_id=first["user_id"], email=first["email"], document=first["document_id"])))
+            connection.execute(delete(TournamentSignup))
+            command.downgrade(config, "20261019_0001")
+            assert "declares_truthful_information" not in {
+                column["name"] for column in inspect(connection).get_columns("tournament_signups", schema=schema)
+            }
+            command.upgrade(config, "head")
+            assert "declares_truthful_information" in {
+                column["name"] for column in inspect(connection).get_columns("tournament_signups", schema=schema)
+            }
             command.downgrade(config, "base")
             assert not {"tournaments", "tournament_signups"} & set(
                 inspect(connection).get_table_names(schema=schema)
             )
+    finally:
+        with engine.begin() as connection:
+            connection.execute(text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))
+        engine.dispose()
+
+
+@pytest.mark.integration
+def test_existing_signup_blocks_truthfulness_migration_without_fabricating_consent():
+    url = os.getenv("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set TEST_DATABASE_URL to a disposable PostgreSQL database")
+    engine = create_engine(url)
+    if engine.dialect.name != "postgresql":
+        pytest.fail("TEST_DATABASE_URL must point to PostgreSQL")
+
+    schema = f"test_tournaments_{uuid4().hex}"
+    with engine.begin() as connection:
+        connection.execute(text(f"CREATE SCHEMA {schema}"))
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"SET search_path TO {schema}"))
+            config = _config(connection)
+            command.upgrade(config, "20261019_0001")
+            tournament_id = connection.execute(
+                insert(Tournament)
+                .values(name="Preexisting fixture", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
+                .returning(Tournament.id)
+            ).scalar_one()
+            old_signup = Table("tournament_signups", MetaData(), autoload_with=connection)
+            values = _signup(tournament_id, 1)
+            values.pop("declares_truthful_information")
+            connection.execute(insert(old_signup).values(**values))
+
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                command.upgrade(config, "head")
+
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20261019_0001"
+            assert connection.scalar(text("SELECT count(*) FROM tournament_signups")) == 1
+            assert "declares_truthful_information" not in {
+                column["name"] for column in inspect(connection).get_columns("tournament_signups", schema=schema)
+            }
     finally:
         with engine.begin() as connection:
             connection.execute(text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))

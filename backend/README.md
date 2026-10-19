@@ -60,6 +60,11 @@ you can run `docker compose exec -T backend alembic upgrade head`. In
 production, set `DATABASE_URL` to the intended Supabase PostgreSQL connection
 and run the same upgrade as a controlled deployment step. Never run a downgrade
 on a database containing real registrations without a reviewed data plan.
+Revision `20261019_0002` adds a required truthful-information declaration without
+a server default. Upgrading a database that already has signups will fail rather
+than mark those participants as having made a declaration they did not make.
+Stop that deployment and arrange a separately reviewed evidence/data migration;
+do not backfill the declaration as `true` without participant evidence.
 
 The registration opening and closing columns are calendar dates interpreted in
 fixed UTC-03:00. `next_inscription_serial` is a tournament-local counter; future
@@ -89,10 +94,12 @@ contract applies globally across tournaments, without event-specific grants.
 
 `POST /api/tournaments/{id}/signups` requires a verified Supabase token and
 registers the token owner. The request supplies participant details and separate
-required declarations, including an explicit image-use choice. The server takes
-the owner UUID and account email from the token, compares the submitted email
-using the registration normalization rule, and records the configured terms and
-regulation versions, acceptance time, and request IP. Clients cannot choose an
+required declarations. `declares_truthful_information` is a required JSON boolean
+whose only accepted value is `true`; missing, false, and nonboolean values return
+422. Image use is an independent explicit authorization/refusal choice. The
+server takes the owner UUID and account email from the token, compares the
+submitted email using the registration normalization rule, and records the
+configured terms and regulation versions, acceptance time, and request IP. Clients cannot choose an
 owner, status, inscription number, accepted version, or staff safety note.
 Registration requires both versions and an inclusive opening/closing date window
 in fixed UTC-03:00. Staff closure or an unconfigured/outside window returns 400.
@@ -109,8 +116,10 @@ route is provided here. Identity documents, contact information, and safety
 notes must not be logged or exposed through public endpoints.
 
 The configured version identifiers in this API are evidence references, not
-approved consent text. Production registration still needs approved wording,
-private parental-term and proof uploads, and the later payment/staff flows.
+approved consent text. The truthful-information field is the backend contract
+for a separate future frontend checkbox; its final display text remains open.
+Production registration still needs approved wording, private parental-term
+and proof uploads, and the later payment/staff flows.
 
 ## Tests and lint
 
