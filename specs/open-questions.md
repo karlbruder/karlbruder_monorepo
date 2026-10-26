@@ -1,6 +1,6 @@
 # Open-question index
 
-There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
+There are **2 current-scope question entries** and **17 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
 The counts refer to numbered entries, not individual question marks or subchoices. Current scope means relevant to the tournament/public-website product; an entry blocks only work that depends on its answer. Deferred entries apply to later capabilities and do not block the first registration/proof-review release.
 
@@ -24,9 +24,10 @@ Tournament fee, Pix destination, dates, venue, equipment, regulation, and eligib
 | [Payment gateway](tournaments/payments-and-confirmation.md#deferred-questions) | PAY-Q6 | 1 |
 | [Exports](tournaments/administration.md#deferred-questions) | ADM-Q2 | 1 |
 | [Results](tournaments/results.md#deferred-questions) | RES-Q1–RES-Q4 | 4 |
+| [Swiss competition format](tournaments/swiss-format.md#deferred-questions) | SWI-Q2–SWI-Q4 | 3 |
 | [Messaging extensions](tournaments/communications.md#deferred-questions) | COM-Q3 | 1 |
 | [Association membership](membership/overview.md#deferred-questions) | MEM-Q1–MEM-Q5 | 5 |
-| **Total** | | **14** |
+| **Total** | | **17** |
 
 ## Implementation and operations work
 

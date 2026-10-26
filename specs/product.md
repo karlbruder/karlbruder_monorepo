@@ -55,7 +55,7 @@ Submission and payment-proof upload do not themselves confirm a seat. A minor's 
 | Scope | Capabilities |
 | --- | --- |
 | First usable release | Tournament registration and payment-proof upload/manual review, with supporting authentication, public event information, internal-event restrictions, personal status, required validation, authorized staff review, waitlist email when applicable, and rejected-evidence notification/resubmission |
-| Later tournament capabilities | Results, full tournament administration, broader automatic and editable communications, exports, and broader cancellation/refund workflows; delivery order remains to be scheduled |
+| Later tournament capabilities | Results, [Swiss rounds and a four-fighter round-robin final](tournaments/swiss-format.md), full tournament administration, broader automatic and editable communications, exports, and broader cancellation/refund workflows; delivery order remains to be scheduled |
 | Future association capabilities | Monthly membership status and payment tracking, exemptions and discounts, equipment inventory |
 | Future payment automation | A payment provider or gateway, with separate business rules for tournament fees and membership payments |
 
