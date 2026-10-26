@@ -21,7 +21,7 @@ Allow users to consult results for the Karlbrüder tournaments represented in th
 
 ## Proposed behavior requiring detail
 
-The application needs a way to distinguish results available for consultation from information still being prepared. Staff entry/import methods, publication, and correction workflows still need definition when this later capability is scheduled. This specification does not assume live scoring, automatic bracket generation, match management, HEMA Ratings synchronization, or a particular ranking formula.
+The application needs a way to distinguish results available for consultation from information still being prepared. Staff entry/import methods, publication, and correction workflows still need definition when this later capability is scheduled. The proposed [Swiss rounds and round-robin final](swiss-format.md) define a separate later competition capability for pairing generation, match outcomes, qualification, and stage standings. Results consultation alone does not require that format, live scoring, or HEMA Ratings synchronization.
 
 Users consult results according to RES-004. Participant-directory and results visibility is disclosed in the terms under PRIV-006, without a `show_on_public_list` opt-out. Only permitted display fields are shared; this does not expose private signup records or weaken internal-event restrictions.
 
@@ -42,6 +42,8 @@ None for the first registration/proof-review release. Results are explicitly def
 ## Deferred questions
 
 - **RES-Q1:** What outcomes should results show: rankings, category placements, individual matches, scores, or a document/link?
+
+  This question concerns the published presentation. Competition standings and the proposed champion calculation are owned by the [Swiss-format specification](swiss-format.md).
 - **RES-Q2:** Should guild staff enter results manually, import them, or both?
 - **RES-Q3:** Should users see live/provisional updates or only final published results?
 - **RES-Q4:** How should result corrections, versions, and participant notifications work?

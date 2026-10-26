@@ -22,6 +22,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 | Tournaments | [Catalog](tournaments/catalog.md), [registration](tournaments/registration.md) | frontend, backend |
 | Tournament operations | [Payments and confirmation](tournaments/payments-and-confirmation.md), [capacity and waitlist](tournaments/capacity-and-waitlist.md), [administration](tournaments/administration.md) | frontend, backend |
 | Tournament outputs | [Results](tournaments/results.md), [consent and privacy](tournaments/consent-and-privacy.md), [communications](tournaments/communications.md) | frontend, backend |
+| Tournament competition, later | [Swiss rounds and round-robin final](tournaments/swiss-format.md) | frontend, backend |
 | First major event | [Monomachia 2027](tournaments/events/monomachia-2027.md) | landing, frontend, backend |
 | Future association features | [Membership](membership/overview.md), [equipment inventory](inventory/overview.md) | frontend, backend |
 | Platform | [Local development](platform/local-development.md), [data storage](platform/data-storage.md), [team access](platform/team-access.md), [deployment](platform/deployment.md) | all |
