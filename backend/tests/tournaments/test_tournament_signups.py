@@ -99,6 +99,8 @@ def setup(monkeypatch):
     engine = create_engine(
         "sqlite+pysqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+    with engine.begin() as connection:
+        connection.execute(text("ATTACH DATABASE ':memory:' AS public"))
     Base.metadata.create_all(engine)
 
     def test_session():
@@ -337,17 +339,8 @@ def test_normalized_duplicates_repeated_create_and_cancelled_replacement(setup):
 
 
 @pytest.mark.integration
-def test_postgres_concurrent_duplicate_and_number_allocation(monkeypatch):
-    url = os.getenv("TEST_DATABASE_URL")
-    if not url:
-        pytest.skip("Set TEST_DATABASE_URL to a disposable PostgreSQL database")
-    schema = f"test_signup_api_{uuid4().hex}"
-    setup_engine = create_engine(url)
-    if setup_engine.dialect.name != "postgresql":
-        pytest.fail("TEST_DATABASE_URL must point to PostgreSQL")
-    with setup_engine.begin() as connection:
-        connection.execute(text(f"CREATE SCHEMA {schema}"))
-    engine = create_engine(url, connect_args={"options": f"-csearch_path={schema}"})
+def test_postgres_concurrent_duplicate_and_number_allocation(monkeypatch, disposable_postgres_engine):
+    engine = disposable_postgres_engine
     key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(auth, "get_jwks_client", lambda: StaticJwksClient(key.public_key()))
     monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
@@ -384,7 +377,3 @@ def test_postgres_concurrent_duplicate_and_number_allocation(monkeypatch):
                 assert session.get(Tournament, event_id).next_inscription_serial == 4
     finally:
         karlbruder_app.dependency_overrides.clear()
-        engine.dispose()
-        with setup_engine.begin() as connection:
-            connection.execute(text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))
-        setup_engine.dispose()

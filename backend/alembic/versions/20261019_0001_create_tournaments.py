@@ -62,11 +62,12 @@ def upgrade() -> None:
             "next_inscription_serial BETWEEN 1 AND 1000000",
             name="ck_tournaments_next_serial_range",
         ),
+        schema="public",
     )
     op.create_table(
         "tournament_signups",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("tournament_id", sa.Integer(), sa.ForeignKey("tournaments.id", ondelete="RESTRICT"), nullable=False),
+        sa.Column("tournament_id", sa.Integer(), sa.ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("user_id", sa.Uuid(as_uuid=True), nullable=False),
         sa.Column("inscription_number", sa.String(length=50), nullable=False),
         sa.Column(
@@ -133,8 +134,9 @@ def upgrade() -> None:
             name="ck_tournament_signups_required_declarations",
         ),
         sa.UniqueConstraint("inscription_number", name="uq_tournament_signups_inscription_number"),
+        schema="public",
     )
-    op.create_index("ix_tournament_signups_tournament_id", "tournament_signups", ["tournament_id"])
+    op.create_index("ix_tournament_signups_tournament_id", "tournament_signups", ["tournament_id"], schema="public")
     for name, key in (
         ("uq_tournament_signups_active_user", "user_id"),
         ("uq_tournament_signups_active_email", "email_normalized"),
@@ -146,6 +148,7 @@ def upgrade() -> None:
             ["tournament_id", key],
             unique=True,
             postgresql_where=sa.text("status <> 'cancelled'"),
+            schema="public",
         )
 
 
@@ -156,6 +159,6 @@ def downgrade() -> None:
         "uq_tournament_signups_active_user",
         "ix_tournament_signups_tournament_id",
     ):
-        op.drop_index(name, table_name="tournament_signups")
-    op.drop_table("tournament_signups")
-    op.drop_table("tournaments")
+        op.drop_index(name, table_name="tournament_signups", schema="public")
+    op.drop_table("tournament_signups", schema="public")
+    op.drop_table("tournaments", schema="public")

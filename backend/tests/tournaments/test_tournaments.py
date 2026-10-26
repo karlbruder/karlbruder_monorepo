@@ -10,7 +10,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientConnectionError
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -46,6 +46,8 @@ def client(monkeypatch):
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    with engine.begin() as connection:
+        connection.execute(text("ATTACH DATABASE ':memory:' AS public"))
     Base.metadata.create_all(engine)
 
     def test_session():

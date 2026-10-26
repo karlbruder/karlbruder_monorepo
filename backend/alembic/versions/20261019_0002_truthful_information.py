@@ -20,16 +20,18 @@ def upgrade() -> None:
     op.add_column(
         "tournament_signups",
         sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
+        schema="public",
     )
     op.create_check_constraint(
         "ck_tournament_signups_truthfulness",
         "tournament_signups",
         "declares_truthful_information",
+        schema="public",
     )
 
 
 def downgrade() -> None:
     op.drop_constraint(
-        "ck_tournament_signups_truthfulness", "tournament_signups", type_="check"
+        "ck_tournament_signups_truthfulness", "tournament_signups", type_="check", schema="public"
     )
-    op.drop_column("tournament_signups", "declares_truthful_information")
+    op.drop_column("tournament_signups", "declares_truthful_information", schema="public")

@@ -49,6 +49,7 @@ class Tournament(Base):
             "next_inscription_serial BETWEEN 1 AND 1000000",
             name="ck_tournaments_next_serial_range",
         ),
+        {"schema": "public"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -142,11 +143,12 @@ class TournamentSignup(Base):
             postgresql_where=text("status <> 'cancelled'"),
             sqlite_where=text("status <> 'cancelled'"),
         ),
+        {"schema": "public"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tournament_id: Mapped[int] = mapped_column(
-        ForeignKey("tournaments.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False
     )
     user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     inscription_number: Mapped[str] = mapped_column(String(50), nullable=False)
