@@ -45,7 +45,7 @@ const translations = {
     },
     about: {
       title: "Sobre",
-      text: "Fundado em 2016 por uma iniciativa de alunos da Universidade de São Paulo (USP) e da Universidade Federal de São Carlos (UFSCar), o grupo Karlbrüder é um dos pioneiros no Brasil na prática da esgrima histórica. Inspirado na Irmandade de São Marcos (Marxbrüder), icônica guilda de esgrima alemã dos séculos XV e XVI, o grupo tem suas origens na prática da esgrima alemã e posteriormente expadiu a prática e estudo de outras armas e escolas de esgrima.",
+      text: "Fundado em 2015 por uma iniciativa de alunos da Universidade de São Paulo (USP) e da Universidade Federal de São Carlos (UFSCar), o grupo Karlbrüder é um dos pioneiros no Brasil na prática da esgrima histórica. Inspirado na Irmandade de São Marcos (Marxbrüder), icônica guilda de esgrima alemã dos séculos XV e XVI, o grupo tem suas origens na prática da esgrima alemã e posteriormente expadiu a prática e estudo de outras armas e escolas de esgrima.",
     },
     weapons: {
       title: "Modalidades",
@@ -178,7 +178,7 @@ const translations = {
     },
     about: {
       title: "About",
-      text: "Founded in 2016 by a group of students from the University of São Paulo (USP) and the Federal University of São Carlos (UFSCar), Karlbrüder is one of the pioneers in Brazil for practicing historical European martial arts. Inspired by the Brotherhood of Saint Mark (Marxbrüder), the iconic German fencing guild of the 15th and 16th centuries, the group has its roots in the practice of German fencing and later expanded to include other weapons and schools of historical fencing.",
+      text: "Founded in 2015 by a group of students from the University of São Paulo (USP) and the Federal University of São Carlos (UFSCar), Karlbrüder is one of the pioneers in Brazil for practicing historical European martial arts. Inspired by the Brotherhood of Saint Mark (Marxbrüder), the iconic German fencing guild of the 15th and 16th centuries, the group has its roots in the practice of German fencing and later expanded to include other weapons and schools of historical fencing.",
     },
     weapons: {
       title: "Disciplines",
