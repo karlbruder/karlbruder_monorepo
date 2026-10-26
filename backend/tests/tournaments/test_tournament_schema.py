@@ -16,7 +16,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 from tournaments.inscriptions import format_inscription_number  # noqa: E402
 from tournaments.models import Tournament, TournamentSignup  # noqa: E402
 
-ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
+ALEMBIC_DIR = Path(__file__).resolve().parents[2] / "alembic"
 
 
 def _config(connection):
