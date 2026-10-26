@@ -9,6 +9,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
+from jwt.exceptions import PyJWKClientConnectionError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -27,6 +28,11 @@ class StaticJwksClient:
 
     def get_signing_key_from_jwt(self, _token):
         return SimpleNamespace(key=self.key)
+
+
+class OfflineJwksClient:
+    def get_signing_key_from_jwt(self, _token):
+        raise PyJWKClientConnectionError("offline")
 
 
 @pytest.fixture
@@ -173,6 +179,20 @@ def test_invalid_supplied_bearer_token_fails_even_on_public_read(client):
         headers = {"Authorization": authorization}
         assert test_client.get("/api/tournaments", headers=headers).status_code == 401
         assert test_client.get("/api/tournaments/1", headers=headers).status_code == 401
+
+
+def test_guest_catalog_does_not_fetch_jwks_and_supplied_token_outage_is_503(
+    client, monkeypatch
+):
+    test_client, key = client
+    monkeypatch.setattr(auth, "get_jwks_client", lambda: OfflineJwksClient())
+
+    assert test_client.get("/api/tournaments").status_code == 200
+    assert test_client.get("/api/tournaments/1").status_code == 404
+
+    headers = _headers(key, "regular_user")
+    assert test_client.get("/api/tournaments", headers=headers).status_code == 503
+    assert test_client.get("/api/tournaments/1", headers=headers).status_code == 503
 
 
 @pytest.mark.parametrize(

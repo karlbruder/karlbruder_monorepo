@@ -16,7 +16,7 @@ from exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
-from models import User
+from models import AnonymousUser, User
 from settings import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
@@ -92,38 +92,35 @@ def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
 
 
 def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(bearer_scheme),
-    ],
-) -> User:
-    """Require a verified Supabase user on a protected route."""
-
-    if credentials is None:
-        raise InvalidCredentialsException()
-    return _verify_user(credentials)
-
-
-def get_optional_user(
     request: Request,
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
     ],
-) -> User | None:
-    """Allow guests while rejecting an invalid token when one is supplied."""
+) -> User | AnonymousUser:
+    """Return a verified Supabase user or an explicit guest identity."""
 
     if credentials is None:
         if request.headers.get("authorization") is not None:
             raise InvalidCredentialsException()
-        return None
+        return AnonymousUser()
     return _verify_user(credentials)
 
 
-def get_application_role(user: User | None) -> str:
+def require_authenticated_user(
+    current_user: Annotated[User | AnonymousUser, Depends(get_current_user)],
+) -> User:
+    """Require a verified identity before entering a protected route."""
+
+    if isinstance(current_user, AnonymousUser):
+        raise InvalidCredentialsException()
+    return current_user
+
+
+def get_application_role(user: User | AnonymousUser) -> str:
     """Read only the trusted Auth-managed app_metadata role claim."""
 
-    if user is None:
+    if isinstance(user, AnonymousUser):
         return "guest"
     role = user.app_metadata.get("karlbruder_role")
     if role in ("regular_user", "guild_member", "admin"):
@@ -131,7 +128,7 @@ def get_application_role(user: User | None) -> str:
     return "regular_user"
 
 
-def require_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+def require_admin(current_user: Annotated[User, Depends(require_authenticated_user)]) -> User:
     if get_application_role(current_user) != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -6,9 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from auth import get_application_role, get_current_user, get_optional_user, require_admin
+from auth import (
+    get_application_role,
+    get_current_user,
+    require_admin,
+    require_authenticated_user,
+)
 from database import get_session
-from models import User
+from models import AnonymousUser, User
 from tournaments.models import Tournament, TournamentSignup
 from tournaments.schemas import (
     SignupCreate,
@@ -22,7 +27,7 @@ from tournaments.signups import create_signup, visible_tournament
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
 
-def _can_view_internal(user: User | None) -> bool:
+def _can_view_internal(user: User | AnonymousUser) -> bool:
     return get_application_role(user) in ("guild_member", "admin")
 
 
@@ -41,7 +46,7 @@ def create_tournament(
 
 @router.get("", response_model=list[TournamentRead])
 def list_tournaments(
-    user: Annotated[User | None, Depends(get_optional_user)],
+    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> list[Tournament]:
     query = select(Tournament).order_by(Tournament.starts_at, Tournament.id)
@@ -53,7 +58,7 @@ def list_tournaments(
 @router.get("/{tournament_id}", response_model=TournamentRead)
 def get_tournament(
     tournament_id: int,
-    user: Annotated[User | None, Depends(get_optional_user)],
+    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> Tournament:
     query = select(Tournament).where(Tournament.id == tournament_id)
@@ -72,7 +77,7 @@ def register_for_tournament(
     tournament_id: int,
     payload: SignupCreate,
     request: Request,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> SignupRead:
     if request.client is None:
@@ -105,7 +110,7 @@ def list_signups(
 def get_signup(
     tournament_id: int,
     inscription_number: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> SignupRead | StaffSignupRead:
     visible_tournament(session, tournament_id, user)

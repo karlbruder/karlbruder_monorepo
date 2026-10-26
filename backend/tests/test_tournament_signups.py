@@ -163,6 +163,7 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     assert client.get(detail_path, headers=other).status_code == 404
     assert client.get(detail_path).status_code == 401
     assert client.get(detail_path, headers={"Authorization": "Bearer invalid"}).status_code == 401
+    assert client.get(detail_path, headers={"Authorization": "Basic invalid"}).status_code == 401
     assert client.get(f"/api/tournaments/{event_id}/signups", headers=owner).status_code == 403
     assert client.get(f"/api/tournaments/{event_id}/signups").status_code == 401
     admin = _headers(key, role="admin")
@@ -203,6 +204,7 @@ def test_authentication_owner_claims_and_required_input(setup):
     path = f"/api/tournaments/{event_id}/signups"
     assert client.post(path, json=_signup()).status_code == 401
     assert client.post(path, json=_signup(), headers={"Authorization": "Bearer bad"}).status_code == 401
+    assert client.post(path, json=_signup(), headers={"Authorization": "Basic bad"}).status_code == 401
     owner = _headers(key)
     for changes in (
         {"user_id": str(uuid4())},
