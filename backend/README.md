@@ -43,6 +43,24 @@ Open `http://localhost:8000/docs` for API documentation and interactive requests
 
 Database diagnostics report schema presence separately from connectivity; inspect the response body. They do not verify that application migrations have been applied. Connection failures return 503; details are logged by the backend.
 
+## Domain migrations
+
+Alembic manages the domain tables in the database selected by `DATABASE_URL`.
+From `backend/`, apply migrations before starting an API version that uses new tables:
+
+```sh
+poetry run alembic upgrade head
+poetry run alembic current
+```
+
+Local Compose and production deployment details, including a migration that
+needs special care for existing signups, are in the [migration notes](docs/migrations.md).
+
+## Tournament module
+
+The [tournament guide](tournaments/README.md) explains the catalog and signup
+APIs, access rules, registration behavior, and current release dependencies.
+
 ## Tests and lint
 
 From `backend/`:

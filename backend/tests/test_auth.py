@@ -7,6 +7,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi import Request
 from fastapi.testclient import TestClient
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientConnectionError
@@ -19,6 +20,7 @@ os.environ["SUPABASE_URL"] = SUPABASE_URL
 
 import auth  # noqa: E402
 from main import karlbruder_app  # noqa: E402
+from models import AnonymousUser  # noqa: E402
 
 ISSUER = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
 
@@ -81,6 +83,18 @@ def make_token(
     return token, claims
 
 
+def test_get_current_user_returns_explicit_guest_without_credentials():
+    request = Request({"type": "http", "headers": []})
+
+    guest = auth.get_current_user(request, None)
+
+    assert isinstance(guest, AnonymousUser)
+    assert (guest.id, guest.email, guest.role) == ("", "", "guest")
+    assert auth.get_application_role(guest) == "guest"
+    with pytest.raises(auth.InvalidCredentialsException):
+        auth.require_authenticated_user(guest)
+
+
 def test_users_me_returns_verified_identity(client, signing_key):
     token, claims = make_token(signing_key)
 
@@ -100,6 +114,14 @@ def test_users_me_returns_verified_identity(client, signing_key):
 
 def test_users_me_rejects_missing_token(client):
     response = client.get("/api/users/me")
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+@pytest.mark.parametrize("authorization", ["Basic abc", "Bearer ", "NotBearer abc"])
+def test_users_me_rejects_present_non_bearer_or_empty_credentials(client, authorization):
+    response = client.get("/api/users/me", headers={"Authorization": authorization})
 
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == "Bearer"

@@ -14,7 +14,7 @@ Allow an authenticated user to register for a tournament, retain an inscription 
 ## Rules
 
 - **REG-001:** Users register only themselves through the frontend route `/tournaments/registration`, which submits a POST request to the backend tournament sign-up resource. The backend derives ownership from verified identity rather than trusting a caller-supplied owner identifier. Public/internal tournament access follows the [product rules](../product.md).
-- **REG-002:** The backend validates required fields, required declarations, the registration window, duplicate rules, and the applicable capacity policy.
+- **REG-002:** The backend validates required fields, required declarations including a separate truthful-information choice, the registration window, duplicate rules, and the applicable capacity policy.
 - **REG-003:** Each accepted registration receives a unique, human-friendly `inscription_number` for participant/staff reference, not an access credential. The developer may choose its exact format and sequence semantics. A tournament slug, year, and sequential number, such as `MONO2027001`, is an acceptable example rather than a mandatory format.
 - **REG-004:** Within a tournament, a non-cancelled registration blocks another registration for the same user UUID, normalized email, or normalized identity document. Duplicates return HTTP 409, including concurrent submissions. Cancelled registrations do not block a new registration, including while their refund is awaiting processing. Participation cancellation and refund progress must remain distinguishable so a refund does not reactivate a registration.
 - **REG-005:** Registration is available from the configured opening day through the configured closing day, inclusive, in fixed GMT-3 (UTC-03:00). The window is expressed as calendar days, not configurable times within those days. Creation outside the date range returns HTTP 400, following issue #20.
@@ -43,7 +43,7 @@ The product owner's answers establish the required personal and sporting fields 
 | Additional athlete information | Social name, HEMA Ratings reference, handedness, category/special-case information | Optional |
 | Safety | Emergency contact name and phone, equipment declaration, physical-fitness declaration | Required |
 | Restricted safety information | Safety note relevant to participation | Optional; collected only when needed and restricted to authorized staff |
-| Choices and evidence | Separate versioned declarations/consents, including disclosure of participant-directory and results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
+| Choices and evidence | Separate truthful-information declaration and other versioned declarations/consents, including disclosure of participant-directory and results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
 | System | Tournament reference, Supabase user UUID, inscription number, registration status, refund progress when applicable, creation timestamp | System-managed; ownership is not chosen by the caller |
 
 Store previous tournament participation as the required `prior_tournaments_count`, with `0` representing no prior tournaments. Avoid a second competing field for the same count. Beginner eligibility is confirmed by guild staff using the agreed event criteria, not just an athlete's self-selection.
@@ -72,7 +72,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-004:** A request outside the configured registration window returns 400 and creates no registration.
 - **REG-AC-005:** A non-admin participant can retrieve their own registration but cannot retrieve another user's record by inscription number alone. Guild staff retain their global admin access.
 - **REG-AC-006:** Public responses omit safety notes, identity document numbers, payment proofs, and private contact details.
-- **REG-AC-007:** Missing required personal/sporting information, emergency contact information, or required declarations rejects submission. HEMA experience accepts duration, start year, or both. Blank school/team, instructor, state/province, handedness, and category/special-case fields are accepted.
+- **REG-AC-007:** Missing required personal/sporting information, emergency contact information, or required declarations, including the separate truthful-information choice, rejects submission. HEMA experience accepts duration, start year, or both. Blank school/team, instructor, state/province, handedness, and category/special-case fields are accepted.
 - **REG-AC-008:** A registration email that does not match the normalized account email rejects creation. Changing the account email afterward does not change registration ownership or invalidate the registration.
 - **REG-AC-009:** Email/document values differing only in case, whitespace, dots, or dashes are treated as the same value for the relevant comparison and uniqueness checks.
 - **REG-AC-010:** A repeated create request while the first successful registration remains non-cancelled returns the ordinary duplicate error rather than creating a second record, even if the client lost the original response.
