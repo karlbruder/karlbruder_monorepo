@@ -1,0 +1,138 @@
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { getTournament, monomachiaTournamentId } from "../lib/tournaments";
+import type { Tournament } from "../lib/tournaments";
+import "./TournamentRegistration.css";
+
+type Props = {
+  session: Session | null;
+  authReady: boolean;
+  authError: string | null;
+  onSignOut: () => Promise<void>;
+  signInButton: ReactNode;
+};
+
+const eventDateFormat = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "long",
+  timeZone: "Etc/GMT+3",
+});
+const calendarDateFormat = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+const feeFormat = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+function eventDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "A confirmar" : eventDateFormat.format(date);
+}
+
+function calendarDate(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "A confirmar";
+  const date = new Date(`${value}T12:00:00Z`);
+  return Number.isNaN(date.getTime()) ? "A confirmar" : calendarDateFormat.format(date);
+}
+
+function registrationWindow(tournament: Tournament): string {
+  if (tournament.new_registrations_closed) return "Novas inscrições encerradas pela organização.";
+  if (!tournament.registration_opens_on || !tournament.registration_closes_on) {
+    return "Período de inscrição a confirmar.";
+  }
+  return `De ${calendarDate(tournament.registration_opens_on)} a ${calendarDate(tournament.registration_closes_on)}, inclusive (GMT-3).`;
+}
+
+function fee(value: Tournament["inscription_fee_amount"]): string {
+  if (value === null) return "A confirmar";
+  const amount = Number(value);
+  return Number.isFinite(amount) ? feeFormat.format(amount) : "A confirmar";
+}
+
+export default function TournamentRegistration({
+  session, authReady, authError, onSignOut, signInButton,
+}: Props) {
+  const id = monomachiaTournamentId();
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [loading, setLoading] = useState(id !== null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id === null) return;
+    const controller = new AbortController();
+    getTournament(id, controller.signal).then((result) => {
+      setTournament(result);
+      setLoading(false);
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted) return;
+      const reason = error instanceof Error ? error.message : "";
+      setLoadError(reason === "not-found"
+        ? "Este torneio não está disponível."
+        : reason === "http-401"
+          ? "O acesso aos dados do torneio foi recusado. Entre novamente."
+          : "Não foi possível carregar os dados do torneio. Tente novamente mais tarde.");
+      setLoading(false);
+    });
+    return () => controller.abort();
+  }, [id]);
+
+  return (
+    <div className="registration-page">
+      <header className="registration-header">
+        <a href="/" className="registration-brand">Karlbrüder</a>
+        {authReady && session && (
+          <div className="registration-account">
+            <span>{session.user.email}</span>
+            <button type="button" onClick={onSignOut}>Sair</button>
+          </div>
+        )}
+      </header>
+      <main className="registration-main">
+        <a className="registration-back" href="/">← Início</a>
+        <div className="registration-intro">
+          <p className="registration-eyebrow">Monomachia · Karlbrüder</p>
+          <h1>Inscrição pessoal</h1>
+          <p>Conheça as informações do torneio antes de se inscrever.</p>
+        </div>
+
+        {id === null ? (
+          <p className="registration-notice" role="alert">A inscrição ainda não está configurada. Volte mais tarde.</p>
+        ) : loading ? (
+          <p className="registration-notice" role="status">Carregando informações do torneio...</p>
+        ) : loadError ? (
+          <p className="registration-notice" role="alert">{loadError}</p>
+        ) : tournament && (
+          <div className="registration-layout">
+            <section className="registration-card" aria-labelledby="event-name">
+              <p className="registration-eyebrow">Torneio</p>
+              <h2 id="event-name">{tournament.name}</h2>
+              <dl className="registration-facts">
+                <div><dt>Data</dt><dd>{eventDate(tournament.starts_at)}</dd></div>
+                <div><dt>Modalidade</dt><dd>{tournament.modality === "longsword" ? "Espada longa (longsword)" : tournament.modality || "A confirmar"}</dd></div>
+                <div><dt>Local</dt><dd>{tournament.location || "A confirmar"}</dd></div>
+                <div><dt>Valor</dt><dd>{fee(tournament.inscription_fee_amount)}</dd></div>
+                <div><dt>Inscrições</dt><dd>{registrationWindow(tournament)}</dd></div>
+              </dl>
+            </section>
+
+            <section className="registration-card registration-next" aria-labelledby="registration-next-title">
+              <p className="registration-eyebrow">Próximo passo</p>
+              <h2 id="registration-next-title">Sua inscrição</h2>
+              {!authReady ? (
+                <p role="status">Carregando sua sessão...</p>
+              ) : session ? (
+                <p>Você está conectado como {session.user.email}. Confira os dados do evento antes de continuar.</p>
+              ) : (
+                <>
+                  <p>Entre com sua conta para se inscrever neste torneio.</p>
+                  {signInButton}
+                </>
+              )}
+              {authError && <p className="registration-auth-error" role="alert">{authError}</p>}
+              <p className="registration-seat-note">O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.</p>
+            </section>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

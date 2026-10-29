@@ -1,0 +1,156 @@
+.registration-page {
+  min-height: 100vh;
+  background: #f4f0e9;
+  color: #241f1f;
+}
+
+.registration-header {
+  align-items: center;
+  background: #171719;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 0.9rem max(1.25rem, calc((100vw - 1160px) / 2));
+}
+
+.registration-brand {
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.registration-account {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.registration-account span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registration-account button {
+  background: transparent;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.4rem 0.75rem;
+}
+
+.registration-main {
+  margin: 0 auto;
+  max-width: 1160px;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+.registration-back {
+  color: #642226;
+}
+
+.registration-intro {
+  margin: 2rem 0;
+}
+
+.registration-intro h1 {
+  font-family: Georgia, serif;
+  margin: 0.35rem 0;
+}
+
+.registration-intro p:last-child {
+  color: #605a55;
+}
+
+.registration-eyebrow {
+  color: #8a4d2b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.registration-layout {
+  align-items: start;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+}
+
+.registration-card,
+.registration-notice {
+  background: #fff;
+  border: 1px solid #ddd5cc;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.registration-card h2 {
+  font-family: Georgia, serif;
+  margin-top: 0;
+}
+
+.registration-next {
+  background: #f8e8cb;
+}
+
+.registration-facts {
+  margin: 1.5rem 0 0;
+}
+
+.registration-facts div {
+  border-top: 1px solid #e6ded6;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 110px minmax(0, 1fr);
+  padding: 0.8rem 0;
+}
+
+.registration-facts dt {
+  font-weight: 700;
+}
+
+.registration-facts dd {
+  margin: 0;
+}
+
+.registration-seat-note {
+  border-top: 1px solid #d8c4a4;
+  font-size: 0.92rem;
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+}
+
+.registration-auth-error {
+  color: #8f2525;
+}
+
+.google-btn {
+  background: #642226;
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+}
+
+.google-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+  .registration-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-account span {
+    max-width: 145px;
+  }
+}
