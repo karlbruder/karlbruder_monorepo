@@ -7,12 +7,12 @@ Public React single-page website for `karlbruder.com.br`, built with Create Reac
 | Route | Current content |
 | --- | --- |
 | `/` | Group presentation, training, weapons, gallery, partners, and contact sections |
-| `/monomachia` | Event presentation, Portuguese/English language selection, sponsors, and the official Instagram link |
+| `/monomachia` | Event presentation, Portuguese/English language selection, sponsors, the official Instagram link, and registration handoff to the private application |
 | Other paths | Client-side redirect to `/` |
 
 `src/App.js` defines routes; pages live in `src/pages/`, shared content/components in `src/components/`, and partner data in `src/data/partners.js`. Public assets live in `public/` and source assets alongside the components.
 
-The current Monomachia page links to Instagram. Registration is not implemented in the landing site; future registration links must lead to `app.karlbruder.com/tournaments/registration` under the [website specification](../specs/public-website/presentation-and-navigation.md). Public-site content is maintained separately and does not fetch event facts from the backend.
+The Monomachia registration link opens `https://app.karlbruder.com/tournaments/registration` under the [website specification](../specs/public-website/presentation-and-navigation.md). Registration and sign-in happen in the private application. Public-site content is maintained separately and does not fetch event facts from the backend.
 
 ## Local development
 
@@ -23,7 +23,9 @@ npm ci
 npm start
 ```
 
-The development server normally serves `http://localhost:3000`. This is the public website's default port; the separate application frontend uses 5173. The landing site is not a Compose service and requires no backend, database, or Supabase credentials to display its current pages. No application-specific environment variables are currently required.
+The development server normally serves `http://localhost:3000`. This is the public website's default port; the separate application frontend uses 5173. The landing site is not a Compose service and requires no backend, database, or Supabase credentials to display its current pages.
+
+`REACT_APP_APPLICATION_URL` optionally replaces the registration link's application origin at build time. For a local landing-to-app check, set it to `http://localhost:5173` before starting or building the landing site. A trailing slash is accepted. When unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin; the landing site does not submit registration data.
 
 ## Build and tests
 

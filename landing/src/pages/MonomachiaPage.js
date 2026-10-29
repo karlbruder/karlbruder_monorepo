@@ -6,6 +6,8 @@ import './MonomachiaPage.css';
 const MonomachiaPage = () => {
   const { lang, changeLang, t } = useTranslation();
   const copy = t.monomachia;
+  const applicationBaseUrl = process.env.REACT_APP_APPLICATION_URL?.trim() || 'https://app.karlbruder.com';
+  const registrationUrl = new URL('/tournaments/registration', applicationBaseUrl).href;
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -83,6 +85,9 @@ const MonomachiaPage = () => {
             </div>
 
             <div className="monomachia-actions">
+              <a className="monomachia-register-link" href={registrationUrl}>
+                {copy.register}
+              </a>
               <a
                 className="monomachia-text-link"
                 href="https://www.instagram.com/monomachia.karlbruder"
