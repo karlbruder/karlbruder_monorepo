@@ -78,7 +78,17 @@
   align-items: start;
   display: grid;
   gap: 1.5rem;
-  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 1.9fr) minmax(280px, 1fr);
+}
+
+.registration-flow,
+.registration-summary {
+  min-width: 0;
+}
+
+.registration-signed-in {
+  color: #605a55;
+  margin-top: 0;
 }
 
 .registration-card,
@@ -96,6 +106,8 @@
 
 .registration-next {
   background: #f8e8cb;
+  position: sticky;
+  top: 1.25rem;
 }
 
 .registration-facts {
@@ -145,12 +157,242 @@
   opacity: 0.6;
 }
 
+.signup-form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.signup-fieldset {
+  border: 0;
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.signup-section h2 {
+  align-items: center;
+  display: flex;
+  font-family: Georgia, serif;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+
+.signup-section h2 span {
+  align-items: center;
+  background: #642226;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  font: 700 0.75rem system-ui, sans-serif;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.signup-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.signup-grid-wide {
+  grid-column: 1 / -1;
+}
+
+.signup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.signup-field label,
+.signup-image-choice legend {
+  font-weight: 700;
+}
+
+.signup-field input,
+.signup-field select,
+.signup-field textarea {
+  background: #fff;
+  border: 1px solid #bcb2a8;
+  border-radius: 6px;
+  color: #241f1f;
+  font: inherit;
+  min-height: 44px;
+  padding: 0.65rem;
+  width: 100%;
+}
+
+.signup-field textarea {
+  resize: vertical;
+}
+
+.signup-field input[aria-invalid="true"],
+.signup-field select[aria-invalid="true"] {
+  border-color: #a31c29;
+}
+
+.signup-field-error {
+  color: #9b1c28;
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+.signup-help {
+  color: #615b55;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+
+.signup-draft-notice {
+  background: #fff7e6;
+  border-color: #dcbd7b;
+}
+
+.signup-draft-notice p:last-child {
+  margin-bottom: 0;
+}
+
+.signup-error-summary {
+  background: #fff1f2;
+  border: 1px solid #eab1b5;
+  border-radius: 8px;
+  color: #8a1724;
+  margin: 0;
+  padding: 0.9rem 1rem;
+}
+
+.signup-documents {
+  border-bottom: 1px solid #e6ded6;
+  border-top: 1px solid #e6ded6;
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.3rem 0;
+  padding: 1rem 0;
+}
+
+.signup-policy-missing {
+  color: #765d4c;
+  margin: 0;
+}
+
+.signup-declarations {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.25rem 0;
+}
+
+.signup-choice {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.55rem;
+  line-height: 1.4;
+}
+
+.signup-choice input {
+  accent-color: #642226;
+  flex: none;
+  height: 1.1rem;
+  margin-top: 0.16rem;
+  width: 1.1rem;
+}
+
+.signup-image-choice {
+  border: 1px solid #e6ded6;
+  border-radius: 7px;
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.signup-submit-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.signup-submit-row p {
+  color: #615b55;
+  flex: 1 1 210px;
+  font-size: 0.9rem;
+}
+
+.signup-submit {
+  background: #642226;
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0.75rem 1.2rem;
+}
+
+.signup-submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.signup-success {
+  border-color: #aac8b0;
+}
+
+.signup-number {
+  color: #642226;
+  display: block;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  overflow-wrap: anywhere;
+}
+
+.signup-success-facts div {
+  border-bottom: 1px solid #e6ded6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+}
+
+.signup-success-facts dt {
+  font-weight: 700;
+}
+
+.signup-success-facts dd {
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .registration-layout {
     grid-template-columns: 1fr;
   }
 
+  .registration-summary {
+    order: -1;
+  }
+
+  .registration-next {
+    position: static;
+  }
+
   .registration-account span {
     max-width: 145px;
+  }
+}
+
+@media (max-width: 520px) {
+  .signup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-facts div {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
   }
 }

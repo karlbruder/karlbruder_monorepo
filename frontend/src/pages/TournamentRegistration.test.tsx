@@ -27,11 +27,16 @@ const tournament = {
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   new_registrations_closed: false,
+  regulation: 'https://example.test/rules',
+  regulation_version: 'draft-regulation-v1',
+  terms_version: 'draft-terms-v1',
+  cancellation_policy: 'Policy fixture',
+  equipment_requirements: null,
 }
 
 const signedInSession = {
   access_token: 'test-token',
-  user: { email: 'athlete@example.test', user_metadata: {} },
+  user: { id: 'athlete-uuid', email: 'athlete@example.test', user_metadata: {} },
 } as Session
 
 function mockTournament(response = tournament) {
@@ -90,6 +95,7 @@ describe('Monomachia registration entry', () => {
 
     finish?.({ data: { session: null }, error: null })
     expect(await screen.findByRole('button', { name: 'Entrar com Google' })).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Formulário de inscrição' })).not.toBeInTheDocument()
   })
 
   it('returns Google sign-in to the registration route with its query string', async () => {
@@ -107,6 +113,7 @@ describe('Monomachia registration entry', () => {
     renderApp()
     expect(await screen.findByText(/Você está conectado como athlete@example.test/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Entrar com Google' })).not.toBeInTheDocument()
+    expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
 
   it('does not fetch an arbitrary event when the configured ID is invalid', () => {
@@ -137,6 +144,7 @@ describe('Monomachia registration entry', () => {
       />,
     )
     expect(await screen.findByText('Novas inscrições encerradas pela organização.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Formulário de inscrição' })).not.toBeInTheDocument()
     view.unmount()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
     render(

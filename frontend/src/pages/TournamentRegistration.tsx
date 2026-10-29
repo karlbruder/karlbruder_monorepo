@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getTournament, monomachiaTournamentId } from "../lib/tournaments";
 import type { Tournament } from "../lib/tournaments";
+import SignupForm from "./SignupForm";
 import "./TournamentRegistration.css";
 
 type Props = {
@@ -102,34 +103,47 @@ export default function TournamentRegistration({
           <p className="registration-notice" role="alert">{loadError}</p>
         ) : tournament && (
           <div className="registration-layout">
-            <section className="registration-card" aria-labelledby="event-name">
-              <p className="registration-eyebrow">Torneio</p>
-              <h2 id="event-name">{tournament.name}</h2>
-              <dl className="registration-facts">
-                <div><dt>Data</dt><dd>{eventDate(tournament.starts_at)}</dd></div>
-                <div><dt>Modalidade</dt><dd>{tournament.modality === "longsword" ? "Espada longa (longsword)" : tournament.modality || "A confirmar"}</dd></div>
-                <div><dt>Local</dt><dd>{tournament.location || "A confirmar"}</dd></div>
-                <div><dt>Valor</dt><dd>{fee(tournament.inscription_fee_amount)}</dd></div>
-                <div><dt>Inscrições</dt><dd>{registrationWindow(tournament)}</dd></div>
-              </dl>
-            </section>
-
-            <section className="registration-card registration-next" aria-labelledby="registration-next-title">
-              <p className="registration-eyebrow">Próximo passo</p>
-              <h2 id="registration-next-title">Sua inscrição</h2>
+            <div className="registration-flow">
               {!authReady ? (
-                <p role="status">Carregando sua sessão...</p>
-              ) : session ? (
-                <p>Você está conectado como {session.user.email}. Confira os dados do evento antes de continuar.</p>
-              ) : (
-                <>
+                <section className="registration-card" aria-labelledby="registration-next-title">
+                  <h2 id="registration-next-title">Sua inscrição</h2>
+                  <p role="status">Carregando sua sessão...</p>
+                </section>
+              ) : !session ? (
+                <section className="registration-card" aria-labelledby="registration-next-title">
+                  <h2 id="registration-next-title">Sua inscrição</h2>
                   <p>Entre com sua conta para se inscrever neste torneio.</p>
                   {signInButton}
+                </section>
+              ) : (
+                <>
+                  <p className="registration-signed-in">Você está conectado como {session.user.email}.</p>
+                  {tournament.new_registrations_closed ? (
+                    <p className="registration-notice" role="status">Novas inscrições estão encerradas pela organização.</p>
+                  ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
+                    <p className="registration-notice" role="status">A inscrição aguarda a configuração do período e dos termos do torneio.</p>
+                  ) : (
+                    <SignupForm key={session.user.id} tournament={tournament} session={session} />
+                  )}
                 </>
               )}
               {authError && <p className="registration-auth-error" role="alert">{authError}</p>}
-              <p className="registration-seat-note">O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.</p>
-            </section>
+            </div>
+
+            <aside className="registration-summary">
+              <section className="registration-card registration-next" aria-labelledby="event-name">
+                <p className="registration-eyebrow">Torneio</p>
+                <h2 id="event-name">{tournament.name}</h2>
+                <dl className="registration-facts">
+                  <div><dt>Data</dt><dd>{eventDate(tournament.starts_at)}</dd></div>
+                  <div><dt>Modalidade</dt><dd>{tournament.modality === "longsword" ? "Espada longa (longsword)" : tournament.modality || "A confirmar"}</dd></div>
+                  <div><dt>Local</dt><dd>{tournament.location || "A confirmar"}</dd></div>
+                  <div><dt>Valor</dt><dd>{fee(tournament.inscription_fee_amount)}</dd></div>
+                  <div><dt>Inscrições</dt><dd>{registrationWindow(tournament)}</dd></div>
+                </dl>
+                <p className="registration-seat-note">O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.</p>
+              </section>
+            </aside>
           </div>
         )}
       </main>
