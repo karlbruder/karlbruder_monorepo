@@ -2,8 +2,9 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -16,6 +17,7 @@ from database import get_session
 from models import AnonymousUser, User
 from tournaments.models import Tournament, TournamentSignup
 from tournaments.schemas import (
+    TOURNAMENT_SLUG_PATTERN,
     SignupCreate,
     SignupRead,
     StaffSignupRead,
@@ -31,6 +33,13 @@ def _can_view_internal(user: User | AnonymousUser) -> bool:
     return get_application_role(user) in ("guild_member", "admin")
 
 
+def _is_slug_conflict(error: IntegrityError) -> bool:
+    constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
+    return constraint == "uq_tournaments_slug" or (
+        "UNIQUE constraint failed: tournaments.slug" in str(error.orig)
+    )
+
+
 @router.post("", response_model=TournamentRead, status_code=status.HTTP_201_CREATED)
 def create_tournament(
     payload: TournamentCreate,
@@ -39,7 +48,13 @@ def create_tournament(
 ) -> Tournament:
     tournament = Tournament(**payload.model_dump())
     session.add(tournament)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as error:
+        session.rollback()
+        if _is_slug_conflict(error):
+            raise HTTPException(status_code=409, detail="Tournament slug already exists") from error
+        raise
     session.refresh(tournament)
     return tournament
 
@@ -48,10 +63,13 @@ def create_tournament(
 def list_tournaments(
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    slug: Annotated[str | None, Query(max_length=100, pattern=TOURNAMENT_SLUG_PATTERN)] = None,
 ) -> list[Tournament]:
     query = select(Tournament).order_by(Tournament.starts_at, Tournament.id)
     if not _can_view_internal(user):
         query = query.where(Tournament.is_internal.is_(False))
+    if slug is not None:
+        query = query.where(Tournament.slug == slug)
     return list(session.scalars(query))
 
 

@@ -12,6 +12,17 @@ and admins; other callers receive 404 on direct internal-event reads. A supplied
 invalid token returns 401 even on a guest-readable route. Only admins may
 `POST /api/tournaments`; other signed-in users receive 403.
 
+Public event links may use a stable slug. `GET /api/tournaments?slug=monomachia-2027`
+returns a list with the exact matching event, or an empty list when none is visible.
+The filter follows the same guest/member visibility rules as the unfiltered
+catalog. Slugs are lowercase ASCII words separated by single hyphens, unique
+when present, and independent of editable event names and numeric database IDs.
+An admin may supply `slug` when creating a tournament; old rows and older create
+clients remain valid with a null slug. A duplicate slug returns 409. The frontend
+uses the returned event ID for the existing signup endpoint. Before switching an
+existing event link to a slug, assign it to the verified event as described in
+the [migration notes](../docs/migrations.md#assigning-a-slug-to-an-existing-event).
+
 The backend reads `regular_user`, `guild_member`, or `admin` only from a verified
 Supabase token's Auth-managed `app_metadata.karlbruder_role`. Missing or unknown
 values have regular-user access. User-editable `user_metadata` cannot grant a

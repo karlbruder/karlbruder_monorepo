@@ -110,6 +110,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     first_data, second_data = first.json(), second.json()
     assert first_data["id"] != second_data["id"]
     assert first_data["name"] == "Monomachia Fixture"
+    assert first_data["slug"] is None
     assert first_data["inscription_fee_amount"] is None
     assert second_data["inscription_fee_amount"] == "75.00"
     assert second_data["modality"] == "sabre"
@@ -125,6 +126,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     detail = test_client.get(f"/api/tournaments/{first_data['id']}")
     assert detail.status_code == 200
     assert detail.json()["name"] == first_data["name"]
+    assert detail.json()["slug"] is None
     assert detail.json()["inscription_fee_amount"] is None
 
 
@@ -132,11 +134,11 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
     test_client, key = client
     admin = _headers(key, "admin")
     public_id = test_client.post(
-        "/api/tournaments", json=_event("Public Fixture"), headers=admin
+        "/api/tournaments", json=_event("Public Fixture", slug="public-fixture"), headers=admin
     ).json()["id"]
     internal_id = test_client.post(
         "/api/tournaments",
-        json=_event("Internal Fixture", internal=True),
+        json=_event("Internal Fixture", internal=True, slug="internal-fixture"),
         headers=admin,
     ).json()["id"]
 
@@ -147,6 +149,9 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
         assert test_client.get(
             f"/api/tournaments/{internal_id}", headers=headers
         ).status_code == 404
+        assert test_client.get(
+            "/api/tournaments?slug=internal-fixture", headers=headers
+        ).json() == []
 
     for role in ("guild_member", "admin"):
         headers = _headers(key, role)
@@ -155,6 +160,51 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
         assert test_client.get(
             f"/api/tournaments/{internal_id}", headers=headers
         ).status_code == 200
+        assert [event["id"] for event in test_client.get(
+            "/api/tournaments?slug=internal-fixture", headers=headers
+        ).json()] == [internal_id]
+
+
+def test_slug_filter_is_exact_and_duplicate_create_is_a_conflict(client):
+    test_client, key = client
+    admin = _headers(key, "admin")
+    first = test_client.post(
+        "/api/tournaments",
+        json=_event("Monomachia Fixture", slug="monomachia-2027"),
+        headers=admin,
+    )
+    second = test_client.post(
+        "/api/tournaments",
+        json=_event("Other Fixture", slug="other-2027"),
+        headers=admin,
+    )
+    assert first.status_code == second.status_code == 201
+    assert first.json()["slug"] == "monomachia-2027"
+    assert [item["id"] for item in test_client.get(
+        "/api/tournaments?slug=monomachia-2027"
+    ).json()] == [first.json()["id"]]
+    assert test_client.get("/api/tournaments?slug=monomachia").json() == []
+    assert len(test_client.get("/api/tournaments").json()) == 2
+
+    duplicate = test_client.post(
+        "/api/tournaments",
+        json=_event("Another Fixture", slug="monomachia-2027"),
+        headers=admin,
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "Tournament slug already exists"
+    assert len(test_client.get("/api/tournaments").json()) == 2
+
+
+@pytest.mark.parametrize("slug", ["", "Monomachia-2027", "monomachia_2027", "-mono", "mono-", "mono--2027", "a" * 101])
+def test_invalid_slug_is_rejected_on_create_and_filter(client, slug):
+    test_client, key = client
+    admin = _headers(key, "admin")
+    assert test_client.post(
+        "/api/tournaments", json=_event(slug=slug), headers=admin
+    ).status_code == 422
+    assert test_client.get("/api/tournaments", params={"slug": slug}).status_code == 422
+    assert test_client.get("/api/tournaments").json() == []
 
 
 def test_only_trusted_admin_claim_can_create(client):
@@ -235,3 +285,7 @@ def test_catalog_routes_have_explicit_response_contracts(client):
     assert "/api/tournaments/{tournament_id}" in schema["paths"]
     assert "201" in schema["paths"]["/api/tournaments"]["post"]["responses"]
     assert "200" in schema["paths"]["/api/tournaments"]["get"]["responses"]
+    assert "slug" in {
+        parameter["name"]
+        for parameter in schema["paths"]["/api/tournaments"]["get"]["parameters"]
+    }

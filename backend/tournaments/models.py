@@ -28,6 +28,7 @@ from database import Base
 class Tournament(Base):
     __tablename__ = "tournaments"
     __table_args__ = (
+        UniqueConstraint("slug", name="uq_tournaments_slug"),
         CheckConstraint(
             "max_competitor_capacity IS NULL OR max_competitor_capacity >= 0",
             name="ck_tournaments_capacity_nonnegative",
@@ -54,6 +55,7 @@ class Tournament(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
+    slug: Mapped[str | None] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
     modality: Mapped[str | None] = mapped_column(String(80))
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

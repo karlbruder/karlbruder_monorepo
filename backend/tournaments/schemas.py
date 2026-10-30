@@ -7,11 +7,14 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
+TOURNAMENT_SLUG_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+
 
 class TournamentCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=200)
+    slug: str | None = Field(default=None, max_length=100, pattern=TOURNAMENT_SLUG_PATTERN)
     description: str | None = None
     modality: str | None = Field(default=None, max_length=80)
     starts_at: AwareDatetime
@@ -59,6 +62,7 @@ class TournamentRead(BaseModel):
 
     id: int
     name: str
+    slug: str | None
     description: str | None
     modality: str | None
     starts_at: datetime

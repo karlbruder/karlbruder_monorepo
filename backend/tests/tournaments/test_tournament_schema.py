@@ -91,6 +91,15 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         assert "auth" not in inspector.get_table_names(schema="public")
         assert Tournament.__table__.schema == "public"
         assert TournamentSignup.__table__.schema == "public"
+        tournament_columns = {
+            column["name"]: column
+            for column in inspector.get_columns("tournaments", schema="public")
+        }
+        assert tournament_columns["slug"]["nullable"] is True
+        assert "uq_tournaments_slug" in {
+            constraint["name"]
+            for constraint in inspector.get_unique_constraints("tournaments", schema="public")
+        }
         columns = {
             column["name"]: column
             for column in inspector.get_columns("tournament_signups", schema="public")
@@ -116,10 +125,21 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         tournament_id = connection.execute(
             insert(Tournament)
             .values(
-                name="Fixture Tournament", starts_at=datetime(2027, 1, 17, tzinfo=UTC)
+                name="Fixture Tournament",
+                slug="fixture-tournament",
+                starts_at=datetime(2027, 1, 17, tzinfo=UTC),
             )
             .returning(Tournament.id)
         ).scalar_one()
+        _rejected(
+            connection,
+            Tournament,
+            {
+                "name": "Duplicate slug",
+                "slug": "fixture-tournament",
+                "starts_at": datetime(2027, 1, 17, tzinfo=UTC),
+            },
+        )
         assert (
             connection.execute(
                 select(Tournament.next_inscription_serial).where(
@@ -256,6 +276,10 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         )
         connection.execute(delete(TournamentSignup))
         command.downgrade(config, "20261019_0001")
+        assert "slug" not in {
+            column["name"]
+            for column in inspect(connection).get_columns("tournaments", schema="public")
+        }
         assert "declares_truthful_information" not in {
             column["name"]
             for column in inspect(connection).get_columns(
@@ -263,6 +287,10 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
             )
         }
         command.upgrade(config, "head")
+        assert "slug" in {
+            column["name"]
+            for column in inspect(connection).get_columns("tournaments", schema="public")
+        }
         assert "declares_truthful_information" in {
             column["name"]
             for column in inspect(connection).get_columns(
@@ -274,6 +302,45 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
             inspect(connection).get_table_names(schema="public")
         )
         assert not inspect(connection).get_table_names(schema=schema)
+
+
+@pytest.mark.integration
+def test_slug_migration_preserves_existing_event_and_survives_rename(
+    disposable_postgres_engine,
+):
+    with disposable_postgres_engine.begin() as connection:
+        config = _config(connection)
+        command.upgrade(config, "20261019_0002")
+        old_tournaments = Table(
+            "tournaments", MetaData(), schema="public", autoload_with=connection
+        )
+        tournament_id = connection.execute(
+            insert(old_tournaments)
+            .values(name="Original name", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
+            .returning(old_tournaments.c.id)
+        ).scalar_one()
+
+        command.upgrade(config, "head")
+        assert connection.execute(
+            select(Tournament.name, Tournament.slug).where(Tournament.id == tournament_id)
+        ).one() == ("Original name", None)
+        connection.execute(
+            Tournament.__table__.update()
+            .where(Tournament.id == tournament_id)
+            .values(name="Renamed event", slug="monomachia-2027")
+        )
+        assert connection.execute(
+            select(Tournament.name, Tournament.slug).where(Tournament.id == tournament_id)
+        ).one() == ("Renamed event", "monomachia-2027")
+
+        command.downgrade(config, "20261019_0002")
+        assert "slug" not in {
+            column["name"]
+            for column in inspect(connection).get_columns("tournaments", schema="public")
+        }
+        assert connection.scalar(
+            select(old_tournaments.c.name).where(old_tournaments.c.id == tournament_id)
+        ) == "Renamed event"
 
 
 @pytest.mark.integration
