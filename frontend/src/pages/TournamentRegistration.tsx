@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { getTournament, monomachiaTournamentId } from "../lib/tournaments";
+import { getTournamentBySlug, MONOMACHIA_SLUG } from "../lib/tournaments";
 import type { Tournament } from "../lib/tournaments";
 import SignupForm from "./SignupForm";
 import "./TournamentRegistration.css";
@@ -52,29 +52,33 @@ function fee(value: Tournament["inscription_fee_amount"]): string {
 export default function TournamentRegistration({
   session, authReady, authError, onSignOut, signInButton,
 }: Props) {
-  const id = monomachiaTournamentId();
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [loading, setLoading] = useState(id !== null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadIssue, setLoadIssue] = useState<"missing" | "unauthorized" | "request" | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (id === null) return;
     const controller = new AbortController();
-    getTournament(id, controller.signal).then((result) => {
-      setTournament(result);
+    getTournamentBySlug(MONOMACHIA_SLUG, controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
+      if (result) setTournament(result);
+      else setLoadIssue("missing");
       setLoading(false);
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return;
       const reason = error instanceof Error ? error.message : "";
-      setLoadError(reason === "not-found"
-        ? "Este torneio não está disponível."
-        : reason === "http-401"
-          ? "O acesso aos dados do torneio foi recusado. Entre novamente."
-          : "Não foi possível carregar os dados do torneio. Tente novamente mais tarde.");
+      setLoadIssue(reason === "http-401" ? "unauthorized" : "request");
       setLoading(false);
     });
     return () => controller.abort();
-  }, [id]);
+  }, [retryCount]);
+
+  const retryLoad = () => {
+    setTournament(null);
+    setLoadIssue(null);
+    setLoading(true);
+    setRetryCount((count) => count + 1);
+  };
 
   return (
     <div className="registration-page">
@@ -95,12 +99,21 @@ export default function TournamentRegistration({
           <p>Conheça as informações do torneio antes de se inscrever.</p>
         </div>
 
-        {id === null ? (
-          <p className="registration-notice" role="alert">A inscrição ainda não está configurada. Volte mais tarde.</p>
-        ) : loading ? (
+        {loading ? (
           <p className="registration-notice" role="status">Carregando informações do torneio...</p>
-        ) : loadError ? (
-          <p className="registration-notice" role="alert">{loadError}</p>
+        ) : loadIssue ? (
+          <div>
+            <p className="registration-notice" role="alert">
+              {loadIssue === "missing"
+                ? "Este torneio não está disponível."
+                : loadIssue === "unauthorized"
+                  ? "O acesso aos dados do torneio foi recusado. Entre novamente."
+                  : "Não foi possível carregar os dados do torneio. Tente novamente."}
+            </p>
+            {loadIssue === "request" && (
+              <button type="button" onClick={retryLoad}>Tentar novamente</button>
+            )}
+          </div>
         ) : tournament && (
           <div className="registration-layout">
             <div className="registration-flow">

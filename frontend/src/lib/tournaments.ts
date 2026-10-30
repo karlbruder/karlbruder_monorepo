@@ -1,6 +1,7 @@
 export type Tournament = {
   id: number;
   name: string;
+  slug: string | null;
   modality: string | null;
   starts_at: string;
   location: string | null;
@@ -65,23 +66,50 @@ export class SignupRequestError extends Error {
   }
 }
 
-export function monomachiaTournamentId(): number | null {
-  const raw = import.meta.env.VITE_MONOMACHIA_TOURNAMENT_ID;
-  if (!raw || !/^[1-9]\d*$/.test(raw)) return null;
-  const id = Number(raw);
-  return Number.isSafeInteger(id) ? id : null;
-}
+export const MONOMACHIA_SLUG = "monomachia-2027";
 
 export function apiBaseUrl(): string {
   return (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/+$/, "");
 }
 
-export async function getTournament(id: number, signal: AbortSignal): Promise<Tournament> {
-  const response = await fetch(`${apiBaseUrl()}/tournaments/${id}`, { signal });
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isTournament(value: unknown, slug: string): value is Tournament {
+  if (value === null || typeof value !== "object") return false;
+  const event = value as Record<string, unknown>;
+  return (
+    typeof event.id === "number" && Number.isSafeInteger(event.id) && event.id > 0 &&
+    event.slug === slug &&
+    typeof event.name === "string" && event.name.trim().length > 0 &&
+    typeof event.starts_at === "string" &&
+    typeof event.new_registrations_closed === "boolean" &&
+    isNullableString(event.modality) &&
+    isNullableString(event.location) &&
+    (event.inscription_fee_amount === null || typeof event.inscription_fee_amount === "string" || typeof event.inscription_fee_amount === "number") &&
+    isNullableString(event.registration_opens_on) &&
+    isNullableString(event.registration_closes_on) &&
+    isNullableString(event.regulation) &&
+    isNullableString(event.regulation_version) &&
+    isNullableString(event.terms_version) &&
+    isNullableString(event.cancellation_policy) &&
+    isNullableString(event.equipment_requirements)
+  );
+}
+
+export async function getTournamentBySlug(slug: string, signal: AbortSignal): Promise<Tournament | null> {
+  const response = await fetch(`${apiBaseUrl()}/tournaments?slug=${encodeURIComponent(slug)}`, { signal });
   if (!response.ok) {
-    throw new Error(response.status === 404 ? "not-found" : `http-${response.status}`);
+    throw new Error(`http-${response.status}`);
   }
-  return response.json() as Promise<Tournament>;
+  const body: unknown = await response.json().catch(() => null);
+  if (!Array.isArray(body)) throw new Error("invalid-tournament-list");
+  if (body.length === 0) return null;
+  if (body.length !== 1 || !isTournament(body[0], slug)) {
+    throw new Error("invalid-tournament-list");
+  }
+  return body[0];
 }
 
 export async function createSignup(

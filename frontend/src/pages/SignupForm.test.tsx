@@ -7,6 +7,7 @@ import type { Tournament } from '../lib/tournaments'
 const tournament: Tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
+  slug: 'monomachia-2027',
   modality: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
