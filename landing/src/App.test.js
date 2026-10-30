@@ -38,7 +38,7 @@ test('renders the Monomachia championship page', () => {
   expect(screen.getByText(/historical fencing championship/i)).toBeInTheDocument();
   expect(screen.getByText(/term has echoed through history/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Register for Monomachia' }))
-    .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration');
+    .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=en');
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
 });
 

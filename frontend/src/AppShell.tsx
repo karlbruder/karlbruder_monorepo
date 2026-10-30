@@ -4,11 +4,13 @@ import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import { supabase } from "../supabaseClient";
 import TournamentRegistration from "./pages/TournamentRegistration";
+import { registrationCopy, useRegistrationLanguage } from "./registrationLanguage";
+import type { RegistrationCopyKey, RegistrationLanguage } from "./registrationLanguage";
 
-function GoogleSignInButton({ onSignIn, loading }: { onSignIn: () => Promise<void>; loading: boolean }) {
+function GoogleSignInButton({ onSignIn, loading, language = "pt" }: { onSignIn: () => Promise<void>; loading: boolean; language?: RegistrationLanguage }) {
   return (
     <button className="google-btn" type="button" onClick={onSignIn} disabled={loading}>
-      {loading ? "Entrando..." : "Entrar com Google"}
+      {registrationCopy(language, loading ? "Entrando..." : "Entrar com Google")}
     </button>
   );
 }
@@ -17,7 +19,8 @@ function AppShell() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<RegistrationCopyKey | null>(null);
+  const { language, changeLanguage } = useRegistrationLanguage();
 
   useEffect(() => {
     let active = true;
@@ -75,8 +78,10 @@ function AppShell() {
           session={session}
           authReady={authReady}
           authError={authError}
+          language={language}
+          onLanguageChange={changeLanguage}
           onSignOut={signOut}
-          signInButton={<GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} />}
+          signInButton={<GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} language={language} />}
         />
       } />
       <Route path="*" element={

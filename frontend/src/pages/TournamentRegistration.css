@@ -21,6 +21,28 @@
   font-weight: 700;
 }
 
+.registration-languages {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding: 0 1rem;
+}
+
+.registration-languages button {
+  background: transparent;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  min-height: 40px;
+  min-width: 42px;
+}
+
+.registration-languages button[aria-pressed="true"] {
+  background: #fff;
+  color: #171719;
+}
+
 .registration-account {
   align-items: center;
   display: flex;
@@ -387,6 +409,16 @@
 }
 
 @media (max-width: 520px) {
+  .registration-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .registration-account {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
   .signup-grid {
     grid-template-columns: 1fr;
   }

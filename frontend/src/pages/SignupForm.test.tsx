@@ -57,6 +57,22 @@ function fillRequired({ declarations = true, image = 'no' }: { declarations?: bo
   if (image) fireEvent.click(screen.getByRole('radio', { name: image === 'no' ? /Não autorizo/ : /^Autorizo/ }))
 }
 
+function fillRequiredEnglish() {
+  change(/Full name/, 'Fixture Athlete')
+  change(/Date of birth/, '2000-01-01')
+  change(/^Identity document/, 'passport')
+  change(/Document number/, 'TEST-123')
+  change(/^Phone number/, '000000000')
+  change(/^Country/, 'Brazil')
+  change(/^City/, 'São Paulo')
+  change(/HEMA practice duration/, '2 years')
+  change(/Previous tournaments/, '0')
+  change(/^Emergency contact \*/, 'Fixture Contact')
+  change(/Emergency contact phone/, '000000001')
+  for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
+  fireEvent.click(screen.getByRole('radio', { name: /I do not authorize/ }))
+}
+
 function submit() {
   fireEvent.submit(screen.getByRole('form', { name: 'Formulário de inscrição' }))
 }
@@ -77,6 +93,56 @@ afterEach(() => {
 })
 
 describe('WF-04 self-registration and REG-007 result', () => {
+  it('shows English draft controls and submits the same API values with image refusal', async () => {
+    const request = vi.fn().mockResolvedValue(response(201, created))
+    vi.stubGlobal('fetch', request)
+    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    expect(screen.getByText(/not ready for real registrations/)).toBeInTheDocument()
+    expect(screen.getAllByRole('checkbox')).toHaveLength(7)
+    fillRequiredEnglish()
+    fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+    const payload = JSON.parse(request.mock.calls[0][1].body)
+    expect(payload.image_use_authorized).toBe(false)
+    expect(payload.accepts_regulation).toBe(true)
+    expect(payload.accepts_data_processing).toBe(true)
+    expect(payload.full_name).toBe('Fixture Athlete')
+    expect(payload.document_type).toBe('passport')
+    expect(await screen.findByText('T42-000001-5')).toBeInTheDocument()
+    expect(screen.getByText('Awaiting payment')).toBeInTheDocument()
+    expect(screen.getByText(/not yet confirmed or reserved/)).toBeInTheDocument()
+  })
+
+  it('shows English validation without sending or preaccepting declarations', () => {
+    const request = vi.fn()
+    vi.stubGlobal('fetch', request)
+    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
+    expect(request).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent('Review the highlighted fields')
+    expect(screen.getAllByText('This declaration is required.')).toHaveLength(7)
+    expect(screen.getByText('Choose whether to authorize image use.')).toBeInTheDocument()
+  })
+
+  it.each([
+    [400, 'Registration is closed', 'Registration is closed.'],
+    [400, 'Registration terms are not configured', 'Tournament terms have not been configured'],
+    [400, 'Registration email must match account email', 'The registration email must match'],
+    [400, 'Other reason', 'We could not accept the registration'],
+    [409, 'Registration already exists', 'An active registration already exists'],
+    [409, 'Other conflict', 'We could not create the registration because of a conflict'],
+    [422, null, 'The server rejected'],
+    [401, null, 'Your session expired.'],
+    [503, null, 'We could not submit the registration now.'],
+  ])('shows HTTP %i in English and retains entered fields', async (status, detail, expected) => {
+    const request = vi.fn().mockResolvedValue(response(status, { detail }))
+    vi.stubGlobal('fetch', request)
+    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    fillRequiredEnglish()
+    fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(expected)
+    expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
+  })
   it('posts exactly the #20 participant fields with the Supabase token and independent image refusal', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)

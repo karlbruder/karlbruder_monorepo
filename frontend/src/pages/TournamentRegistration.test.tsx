@@ -55,6 +55,8 @@ function renderApp() {
 }
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/tournaments/registration')
+  window.localStorage.clear()
   vi.stubEnv('VITE_API_BASE_URL', '/api')
   vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: null }, error: null })
   vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
@@ -72,6 +74,87 @@ afterEach(() => {
 })
 
 describe('Monomachia registration entry', () => {
+  it('uses the URL language before the saved preference, localizes facts, and keeps OAuth on that route', async () => {
+    window.localStorage.setItem('registrationLanguage', 'pt')
+    window.history.replaceState({}, '', '/tournaments/registration?source=landing&lang=en')
+    mockTournament([{ ...tournament, inscription_fee_amount: '125.50' }])
+    renderApp()
+
+    expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Personal registration' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'English' }).closest('[lang]')).toHaveAttribute('lang', 'en-US')
+    expect(screen.getByText(/January 17, 2027/)).toBeInTheDocument()
+    expect(screen.getByText(/R\$125\.50/)).toBeInTheDocument()
+    expect(window.localStorage.getItem('registrationLanguage')).toBe('en')
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }))
+    await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/tournaments/registration?source=landing&lang=en` },
+    }))
+  })
+
+  it('falls back from an invalid URL language to the saved preference and preserves other query parameters on switch', async () => {
+    window.localStorage.setItem('registrationLanguage', 'en')
+    window.history.replaceState({}, '', '/tournaments/registration?source=landing&lang=fr')
+    renderApp()
+    expect(await screen.findByRole('heading', { name: 'Personal registration' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Português' }))
+    expect(screen.getByRole('heading', { name: 'Inscrição pessoal' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?source=landing&lang=pt')
+    expect(window.localStorage.getItem('registrationLanguage')).toBe('pt')
+  })
+
+  it('defaults to Portuguese for an invalid language with no saved preference and retains a switch after remount', async () => {
+    window.history.replaceState({}, '', '/tournaments/registration?lang=invalid')
+    const view = renderApp()
+    expect(await screen.findByRole('heading', { name: 'Inscrição pessoal' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+    expect(screen.getByRole('heading', { name: 'Personal registration' })).toBeInTheDocument()
+    view.unmount()
+    renderApp()
+    expect(await screen.findByRole('heading', { name: 'Personal registration' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?lang=en')
+  })
+
+  it('shows a session restoration error in English on the private route', async () => {
+    window.history.replaceState({}, '', '/tournaments/registration?lang=en')
+    vi.mocked(supabase.auth.getSession).mockRejectedValue(new Error('auth unavailable'))
+    renderApp()
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not restore your session.')
+    expect(screen.getByRole('button', { name: 'Sign in with Google' })).toBeInTheDocument()
+  })
+
+  it('formats the fee in Brazilian reais for the default Portuguese route', async () => {
+    mockTournament([{ ...tournament, inscription_fee_amount: '125.50' }])
+    renderApp()
+    expect(await screen.findByText(/17 de janeiro de 2027/)).toBeInTheDocument()
+    expect(screen.getByText(/R\$\s?125,50/)).toBeInTheDocument()
+  })
+
+  it('translates sign-out errors on the English private route', async () => {
+    window.history.replaceState({}, '', '/tournaments/registration?lang=en')
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: { message: 'unavailable' } } as Awaited<ReturnType<typeof supabase.auth.signOut>>)
+    renderApp()
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not sign you out.')
+  })
+
+  it('keeps entered values and unchecked declarations while switching the signed-in form', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
+    renderApp()
+    const name = await screen.findByRole('textbox', { name: /Nome completo/ })
+    fireEvent.change(name, { target: { value: 'Fixture Athlete' } })
+    expect(screen.getAllByRole('checkbox')).toHaveLength(7)
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+    expect(screen.getByRole('form', { name: 'Registration form' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
+    expect(screen.getAllByRole('checkbox')).toHaveLength(7)
+    expect(screen.getAllByRole('checkbox').every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true)
+    expect(screen.getByRole('radio', { name: /I do not authorize/ })).not.toBeChecked()
+    expect(window.location.search).toBe('?lang=en')
+  })
   it('loads the exact slug match through /api and leaves unknown event facts unconfirmed', async () => {
     const request = mockTournament()
     renderApp()

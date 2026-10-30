@@ -7,7 +7,9 @@ const MonomachiaPage = () => {
   const { lang, changeLang, t } = useTranslation();
   const copy = t.monomachia;
   const applicationBaseUrl = process.env.REACT_APP_APPLICATION_URL?.trim() || 'https://app.karlbruder.com';
-  const registrationUrl = new URL('/tournaments/registration', applicationBaseUrl).href;
+  const registrationTarget = new URL('/tournaments/registration', applicationBaseUrl);
+  if (lang === 'en') registrationTarget.searchParams.set('lang', 'en');
+  const registrationUrl = registrationTarget.href;
 
   useEffect(() => {
     const previousTitle = document.title;

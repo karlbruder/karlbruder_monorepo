@@ -5,7 +5,7 @@
 | Status | Draft for product/design review, v0.1 |
 | Application | `app.karlbruder.com` |
 | Scope | Initial registration/payment journey, with separate later-capability concepts |
-| Language | Portuguese interface; language choice is a presentation proposal |
+| Language | Wireframes show Portuguese; issue #21's Monomachia private registration route supports Portuguese and English interface copy |
 | Delivery | Offline HTML/CSS/JS artifact under specs; no frontend application changes |
 
 [Open the interactive wireframes](index.html). Open `index.html` in a browser directly, or serve the repository root with `python3 -m http.server 8766 --bind 127.0.0.1` and visit `http://127.0.0.1:8766/specs/design/app-wireframes/`. The artifact uses existing assets from `landing/`, so keep it inside the repository.
