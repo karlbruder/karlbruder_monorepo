@@ -5,11 +5,11 @@
 
 set -euo pipefail
 
-root_directory="$(cd "$(dirname "$0")/../.." && pwd)"
+root_directory="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root_directory"
 
 usage() {
-  echo "Usage: backend/scripts/local_database.sh drop|seed|reset" >&2
+  echo "Usage: scripts/local_database.sh drop|seed|reset" >&2
   echo "  drop   Recreate the public schema and apply Alembic head." >&2
   echo "  seed   Insert the local Monomachia event when it is missing." >&2
   echo "  reset  Drop, migrate, then seed." >&2

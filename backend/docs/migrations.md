@@ -27,7 +27,7 @@ required unique column. `declares_truthful_information` is a required signup
 column with no server default, created with the table. There is no later
 migration for either column. Drop a local database that was migrated with the
 removed revisions, including `20261019_0002`, before upgrading this chain. From
-the repository root, `backend/scripts/local_database.sh reset` does that for the
+the repository root, `make db-reset` does that for the
 Compose database and then seeds a local Monomachia event. `starts_at` and `ends_at` are the
 event dates. `registration_opens_on` and `registration_closes_on` are the
 registration window. When create omits `slug`, the API builds it from the name,

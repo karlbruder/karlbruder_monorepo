@@ -10,6 +10,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
 | `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
+| `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
 | `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
 | `compose.prod.yml` | Production Nginx, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
@@ -92,8 +93,10 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 Start the local services:
 
 ```sh
-docker compose up --build
+make up
 ```
+
+`make help` lists the other local commands. `make up` runs `docker compose up --build`.
 
 | Service | Address or connection |
 | --- | --- |
@@ -111,18 +114,18 @@ The sample database credentials are local development defaults. `backend/.env` p
 Backend source is bind-mounted, and Uvicorn reloads when those files change. Frontend and landing mount their source trees, so edits there reload as well. `node_modules` and the Python packages stay in the image. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
 
 ```sh
-docker compose up -d --build --force-recreate backend
+make recreate-backend
+make recreate-frontend
+make recreate-landing
 ```
-
-Restart the frontend or landing development server after changing its environment file.
 
 Stop services and remove the local network with:
 
 ```sh
-docker compose down
+make down
 ```
 
-The PostgreSQL volume is retained. Adding `-v` deletes that local database volume.
+The PostgreSQL volume is retained. `make down-volumes` deletes that local database volume.
 
 ## Current local integration notes and gaps
 

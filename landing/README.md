@@ -36,7 +36,7 @@ The public site is not part of `compose.prod.yml`. Production builds the static 
 To run the existing React tests in that same image:
 
 ```sh
-docker compose run --rm --no-deps -e CI=true landing npm test -- --watchAll=false
+make test-landing
 ```
 
 Those tests do not use `compose.test.yml`. They do not need PostgreSQL. Host `npm start` and `npm test` remain available from this directory.

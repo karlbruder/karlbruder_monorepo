@@ -60,10 +60,12 @@ From the repository root, these commands manage only the Compose database `postg
 They stop if the backend `DATABASE_URL` is not that local database.
 
 ```sh
-backend/scripts/local_database.sh reset
-backend/scripts/local_database.sh drop
-backend/scripts/local_database.sh seed
+make db-reset
+make db-drop
+make db-seed
 ```
+
+Those targets run `scripts/local_database.sh`. The same script can be called directly from the repository root.
 
 `reset` drops the `public` schema, applies Alembic head, and inserts Monomachia
 when that slug is missing. The seeded event starts on 17 January 2027. Its
@@ -82,10 +84,11 @@ APIs, access rules, registration behavior, and current release dependencies.
 From the repository root, run the isolated test stack. It publishes no host ports. Pick a project name that is not already in use, then remove it when the run is finished.
 
 ```sh
-docker compose -f compose.test.yml -p kb-test-local run --rm backend pytest -x
-docker compose -f compose.test.yml -p kb-test-local run --rm backend ruff check .
-docker compose -f compose.test.yml -p kb-test-local down
+make test-backend
+make lint-backend
 ```
+
+`make test-backend` runs pytest with `-x`, then removes that Compose project. `make lint-backend` runs Ruff the same way. The default project name is `kb-test-local`. Pass `TEST_PROJECT=kb-test-name` when another run may already be using it. The direct commands are `docker compose -f compose.test.yml -p kb-test-local run --rm backend pytest -x` and the same form with `ruff check .`.
 
 Rebuild that image after a dependency change. A narrower pytest command replaces the service command, so keep `-x` in it. Database diagnostics and interactive authenticated requests require their configured services. Running the test stack does not establish live integration health.
 

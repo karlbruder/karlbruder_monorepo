@@ -28,7 +28,7 @@ The registration page loads Monomachia through `GET /api/tournaments` with the d
 
 Vite reads this directory's environment file. Local Compose loads the same file and sets `API_PROXY_TARGET` to `http://backend:8000` so the container can reach the backend service. Restart the development server after changing the file. Production values must be supplied when building the bundle.
 
-Frontend tests do not need `compose.test.yml`. From the repository root, the local development image can run them with `docker compose run --rm --no-deps frontend npm test`.
+Frontend tests do not need `compose.test.yml`. From the repository root, run `make test-frontend`. That uses the local development image.
 
 ## Development
 
