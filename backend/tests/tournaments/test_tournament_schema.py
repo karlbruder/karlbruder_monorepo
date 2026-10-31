@@ -91,6 +91,15 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         assert "auth" not in inspector.get_table_names(schema="public")
         assert Tournament.__table__.schema == "public"
         assert TournamentSignup.__table__.schema == "public"
+        tournament_columns = {
+            column["name"]: column
+            for column in inspector.get_columns("tournaments", schema="public")
+        }
+        assert tournament_columns["slug"]["nullable"] is False
+        assert "uq_tournaments_slug" in {
+            constraint["name"]
+            for constraint in inspector.get_unique_constraints("tournaments", schema="public")
+        }
         columns = {
             column["name"]: column
             for column in inspector.get_columns("tournament_signups", schema="public")
@@ -116,10 +125,21 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         tournament_id = connection.execute(
             insert(Tournament)
             .values(
-                name="Fixture Tournament", starts_at=datetime(2027, 1, 17, tzinfo=UTC)
+                name="Fixture Tournament",
+                slug="fixture-tournament",
+                starts_at=datetime(2027, 1, 17, tzinfo=UTC),
             )
             .returning(Tournament.id)
         ).scalar_one()
+        _rejected(
+            connection,
+            Tournament,
+            {
+                "name": "Duplicate slug",
+                "slug": "fixture-tournament",
+                "starts_at": datetime(2027, 1, 17, tzinfo=UTC),
+            },
+        )
         assert (
             connection.execute(
                 select(Tournament.next_inscription_serial).where(
@@ -240,7 +260,11 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
 
         second_tournament_id = connection.execute(
             insert(Tournament)
-            .values(name="Second Fixture", starts_at=datetime(2027, 2, 1, tzinfo=UTC))
+            .values(
+                name="Second Fixture",
+                slug="second-fixture",
+                starts_at=datetime(2027, 2, 1, tzinfo=UTC),
+            )
             .returning(Tournament.id)
         ).scalar_one()
         connection.execute(
@@ -256,6 +280,10 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
         )
         connection.execute(delete(TournamentSignup))
         command.downgrade(config, "20261019_0001")
+        assert "slug" in {
+            column["name"]
+            for column in inspect(connection).get_columns("tournaments", schema="public")
+        }
         assert "declares_truthful_information" not in {
             column["name"]
             for column in inspect(connection).get_columns(
@@ -263,6 +291,10 @@ def test_postgres_migration_constraints_and_round_trip(disposable_postgres_engin
             )
         }
         command.upgrade(config, "head")
+        assert "slug" in {
+            column["name"]
+            for column in inspect(connection).get_columns("tournaments", schema="public")
+        }
         assert "declares_truthful_information" in {
             column["name"]
             for column in inspect(connection).get_columns(

@@ -1,9 +1,10 @@
 """Tournament catalog routes with server-side guest/member/admin boundaries."""
 
+from datetime import date, datetime, time, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -20,8 +21,10 @@ from tournaments.schemas import (
     SignupRead,
     StaffSignupRead,
     TournamentCreate,
+    TournamentList,
     TournamentRead,
 )
+from tournaments.services import EVENT_TIMEZONE, resolve_tournament_slug
 from tournaments.signups import create_signup, visible_tournament
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
@@ -37,22 +40,65 @@ def create_tournament(
     _admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
 ) -> Tournament:
-    tournament = Tournament(**payload.model_dump())
+    try:
+        slug = resolve_tournament_slug(
+            payload.name, payload.modality, payload.starts_at, payload.slug
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
+        raise HTTPException(status_code=409, detail="Tournament slug already exists")
+    tournament = Tournament(**{**payload.model_dump(), "slug": slug})
     session.add(tournament)
     session.commit()
     session.refresh(tournament)
     return tournament
 
 
-@router.get("", response_model=list[TournamentRead])
+def _catalog_filters(
+    user: User | AnonymousUser,
+    name: str | None,
+    starts_from: date | None,
+    starts_to: date | None,
+):
+    if starts_from is not None and starts_to is not None and starts_to < starts_from:
+        raise HTTPException(status_code=422, detail="starts_to must not precede starts_from")
+    query = select(Tournament)
+    if not _can_view_internal(user):
+        query = query.where(Tournament.is_internal.is_(False))
+    if name is not None:
+        escaped = name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(Tournament.name.ilike(f"%{escaped}%", escape="\\"))
+    if starts_from is not None:
+        query = query.where(
+            Tournament.starts_at >= datetime.combine(starts_from, time.min, EVENT_TIMEZONE)
+        )
+    if starts_to is not None:
+        query = query.where(
+            Tournament.starts_at
+            < datetime.combine(starts_to + timedelta(days=1), time.min, EVENT_TIMEZONE)
+        )
+    return query
+
+
+@router.get("", response_model=TournamentList)
 def list_tournaments(
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
-) -> list[Tournament]:
-    query = select(Tournament).order_by(Tournament.starts_at, Tournament.id)
-    if not _can_view_internal(user):
-        query = query.where(Tournament.is_internal.is_(False))
-    return list(session.scalars(query))
+    name: Annotated[str | None, Query(min_length=1, max_length=200)] = None,
+    starts_from: date | None = None,
+    starts_to: date | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> TournamentList:
+    filtered = _catalog_filters(user, name, starts_from, starts_to)
+    total = session.scalar(select(func.count()).select_from(filtered.subquery())) or 0
+    items = list(
+        session.scalars(
+            filtered.order_by(Tournament.starts_at, Tournament.id).limit(limit).offset(offset)
+        )
+    )
+    return TournamentList(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/{tournament_id}", response_model=TournamentRead)

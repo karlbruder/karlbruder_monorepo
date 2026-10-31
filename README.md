@@ -13,7 +13,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
 
-Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior; the current application implements Google sign-in/session handling, backend identity verification, and health checks. Tournament registration, payment proofs, results, membership, and inventory are not implemented yet.
+Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior. The current application includes Google sign-in/session handling, backend identity verification, health checks, a Monomachia registration route, and a tournament sign-up API. The registration flow still needs live browser acceptance; payment proofs, results, membership, and inventory are not implemented yet.
 
 ## Agentic development
 
@@ -117,16 +117,16 @@ docker compose down
 
 The PostgreSQL volume is retained. Adding `-v` deletes that local database volume.
 
-## Current local integration gaps
+## Current local integration notes and gaps
 
-These are source-observed limitations, not additional product decisions:
+The Compose frontend health check probes Vite at `127.0.0.1:5173`. Browser requests to `/api` on the frontend origin use Vite's proxy to reach the backend with the `/api` prefix intact. The frontend image's Nginx configuration also preserves that prefix when the image is used; local Compose uses Vite instead of that Nginx image stage.
 
-- The frontend runs Vite on 5173, but its Compose health check targets port 80. It may be reported unhealthy even when Vite responds.
-- Vite has no `/api` proxy, and backend CORS currently allows only `http://localhost:3000`. End-to-end API requests from the default frontend origin are not configured yet.
+These source-observed limitations remain, without changing the working same-origin `/api` path:
+
+- Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
 - `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
-- The frontend image's Nginx config strips `/api/`, which conflicts with the intended prefix-preserving routing contract. Local Compose uses Vite, not that Nginx image stage.
 
-Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A missing optional `AUTH_DATABASE_URL` makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the implementation follow-up.
+Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A missing optional `AUTH_DATABASE_URL` makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
 ## Application development and checks
 

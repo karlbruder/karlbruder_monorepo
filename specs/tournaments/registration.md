@@ -30,6 +30,7 @@ Allow an authenticated user to register for a tournament, retain an inscription 
 - **REG-015:** A minor registers themselves and uploads a scanned signed parental responsibility term through the platform. Participation also requires parental accompaniment during the event, where both the minor and parent present identity documents for staff verification under the [consent and privacy rules](consent-and-privacy.md#rules).
 - **REG-016:** Cancelled registrations can be reopened only by admins manually through the Supabase UI. The application does not offer participant or admin reopening controls. A manual reopening must preserve non-cancelled uniqueness and any applicable seat limit; it must not coexist with a conflicting replacement registration.
 - **REG-017:** Staff may close new registrations independently of the date window. Full capacity alone does not close registrations; warn applicants about the paid waitlist while creation remains open. Unconfigured capacity means unlimited, and the paid waitlist has no size limit.
+- **REG-018:** The Monomachia private registration route supports Portuguese and English interface copy, including validation, request errors, and the registration result. A language choice on the public Monomachia page carries to the application through the registration URL and survives sign-in; switching languages does not discard entered fields or change API values. Official event terms and regulation remain in their configured source language until approved translations exist.
 
 ## Registration information
 
@@ -84,6 +85,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-016:** The registration owner UUID is the already authenticated Supabase user's ID; changing an account email does not require a new owner mapping or user identity.
 - **REG-AC-017:** A participant can correct their permitted signup fields but cannot edit ownership, identifiers, timestamps, or staff-controlled status, or retrieve staff-only safety notes. Edits cannot bypass duplicate constraints.
 - **REG-AC-018:** A staff-selected paid waitlisted registration can become `confirmed` without a second payment approval, subject to eligibility and available capacity. An available seat alone does not change its status.
+- **REG-AC-019:** An English choice on the Monomachia landing page opens the private registration route in English; the same language survives refresh and Google sign-in return. Both languages offer the same fields, independent declarations, explicit image choice, errors, and no-seat success outcome without changing the submitted payload.
 
 
 ## Implementation baseline

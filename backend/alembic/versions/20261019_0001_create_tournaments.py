@@ -18,6 +18,7 @@ def upgrade() -> None:
         "tournaments",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("name", sa.String(length=200), nullable=False),
+        sa.Column("slug", sa.String(length=100), nullable=False),
         sa.Column("description", sa.Text()),
         sa.Column("modality", sa.String(length=80)),
         sa.Column("starts_at", sa.DateTime(timezone=True), nullable=False),
@@ -62,6 +63,7 @@ def upgrade() -> None:
             "next_inscription_serial BETWEEN 1 AND 1000000",
             name="ck_tournaments_next_serial_range",
         ),
+        sa.UniqueConstraint("slug", name="uq_tournaments_slug"),
         schema="public",
     )
     op.create_table(

@@ -12,6 +12,15 @@ and admins; other callers receive 404 on direct internal-event reads. A supplied
 invalid token returns 401 even on a guest-readable route. Only admins may
 `POST /api/tournaments`; other signed-in users receive 403.
 
+`GET /api/tournaments` returns a page with `items`, `total`, `limit`, and `offset`.
+`name` is a case-insensitive match on the display name. `starts_from` and `starts_to`
+are inclusive calendar dates for the event start in UTC−3. `starts_at` and `ends_at`
+are the event dates. The registration window is `registration_opens_on` and
+`registration_closes_on`. Hidden internal events stay out of the page for guests
+and regular users. Each tournament still has a required unique slug. Create may omit
+it. The API then builds it from the name, the modality when present, and the event
+year. A duplicate slug returns 409. The frontend uses the returned event ID for signup.
+
 The backend reads `regular_user`, `guild_member`, or `admin` only from a verified
 Supabase token's Auth-managed `app_metadata.karlbruder_role`. Missing or unknown
 values have regular-user access. User-editable `user_metadata` cannot grant a

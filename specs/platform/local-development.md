@@ -49,18 +49,22 @@ Source inspection on 17 October 2026 found:
 | Public website | `landing/package.json` provides start, build, and test scripts |
 | Auth | Hosted project selected by configuration; frontend has Google SDK sign-in and backend token verification |
 
-Known inconsistencies to resolve in implementation work:
+Changes since the 17 October baseline, confirmed by source inspection on 29 October 2026:
 
-- The frontend development container health check requests port 80, while its command starts Vite on 5173.
-- `frontend/vite.config.ts` has no API proxy, while the Nginx `/api/` proxy is only in the production image. The backend CORS list names localhost:3000.
-- The existing frontend Nginx file strips `/api/`, while the backend identity endpoint already includes `/api`. That configuration must be aligned with the now-defined prefix-preserving contract.
+- The frontend development container health check now probes Vite at `127.0.0.1:5173`.
+- `frontend/vite.config.ts` now proxies same-origin `/api` requests to the backend without removing the prefix. This is the local Compose route for application API calls.
+- `frontend/nginx.conf` now preserves `/api` when forwarding to the backend. Local Compose uses Vite, not the frontend image's Nginx stage.
+
+Remaining inconsistencies and implementation gaps:
+
+- The backend CORS allowlist still names only `http://localhost:3000`. Direct cross-origin browser calls from the Vite origin at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist; the normal same-origin `/api` proxy path does not depend on it.
 - `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app. The Health page also requests `/api/health` paths while backend diagnostics use `/health`; the UI and API paths need reconciliation.
 - The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
 - The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
 
-The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_ANON_KEY` name and default Compose domain data to local PostgreSQL. These documentation fixes do not resolve the remaining application/configuration gaps above.
+The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_ANON_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
 
-No services or application tests were run to establish runtime health during this specification pass.
+The 17 October specification pass did not run services or application tests to establish runtime health. The 29 October update above reflects source inspection, not a new end-to-end runtime check.
 
 ## Acceptance criteria
 
@@ -78,7 +82,7 @@ None about local ports, database placement, hosted authentication, or the `/api`
 ## Implementation decisions
 
 - Keep the current separate landing-development command unless a future development-workflow task intentionally adds it to Compose. This possible tooling change is not an outstanding product requirement.
-- Choose frontend and end-to-end tooling to verify the feature acceptance criteria as part of implementation. Fix the observed forwarding/health-check mismatches using the already selected local settings.
+- Choose frontend and end-to-end tooling to verify feature acceptance criteria as part of implementation. Issue #21 aligned the observed forwarding and health-check mismatches with the selected local settings; live browser acceptance remains a separate verification step.
 
 Local SMTP is a deferred implementation choice, likely SES with real credentials. Existing development ports and `/api` forwarding are implementation settings, not open product questions.
 
