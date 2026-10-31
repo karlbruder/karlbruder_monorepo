@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS base
 
 # Variáveis de ambiente recomendadas
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -31,8 +31,11 @@ RUN poetry install --no-root --only main
 # Copia o código da aplicação
 COPY . .
 
-# Porta do FastAPI
 EXPOSE 8000
 
-# Comando de produção
+FROM base AS test
+RUN poetry install --no-root --with dev
+CMD ["pytest", "-x"]
+
+FROM base AS production
 CMD ["gunicorn", "main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]

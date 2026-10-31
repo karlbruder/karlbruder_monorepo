@@ -79,14 +79,15 @@ APIs, access rules, registration behavior, and current release dependencies.
 
 ## Tests and lint
 
-From `backend/`:
+From the repository root, run the isolated test stack. It publishes no host ports. Pick a project name that is not already in use, then remove it when the run is finished.
 
 ```sh
-poetry run pytest
-poetry run ruff check .
+docker compose -f compose.test.yml -p kb-test-local run --rm backend pytest -x
+docker compose -f compose.test.yml -p kb-test-local run --rm backend ruff check .
+docker compose -f compose.test.yml -p kb-test-local down -v
 ```
 
-Install the development dependency group before running these commands. Database diagnostics and interactive authenticated requests require their configured services; running unit tests does not establish live integration health.
+Rebuild that image after a dependency change. A narrower pytest command replaces the service command, so keep `-x` in it. Database diagnostics and interactive authenticated requests require their configured services. Running the test stack does not establish live integration health.
 
 ## Further reading
 

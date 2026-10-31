@@ -16,8 +16,9 @@
 
 ## Environment boundaries
 
-- Local `compose.yml` runs frontend, backend, and domain PostgreSQL. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
-- Production `compose.prod.yml` runs separate Nginx, frontend, and backend services. Nginx preserves `/api` when forwarding to the backend and sends other application requests to the frontend. Production domain data lives in Supabase PostgreSQL's `public` schema; there is no PostgreSQL container.
+- Local `compose.yml` runs frontend, backend, and domain PostgreSQL. The backend source tree is bind-mounted and Uvicorn reloads on change. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
+- `compose.test.yml` runs backend tests with a private PostgreSQL service and publishes no host ports. Agents use this file for tests. Pass `-p` with a unique project name when another test stack may be running, then remove that project with `down -v`.
+- Production `compose.prod.yml` runs separate Nginx, frontend, and backend services. Nginx terminates TLS with a self-signed certificate, preserves `/api` when forwarding to the backend, and sends other application requests to the frontend. Only Nginx publishes a host port, 443. Production domain data lives in Supabase PostgreSQL's `public` schema; there is no PostgreSQL container.
 - Cloudflare manages DNS and public TLS, proxying the application A record to the EC2 Elastic IP. HTTP redirects to HTTPS at Cloudflare. The self-signed Nginx origin publishes 443 only; frontend/backend ports stay internal. Keep existing local development ports. Local SMTP configuration is deferred, likely real SES with real credentials.
 - Private production files use Amazon S3. Application email uses AWS SES via SMTP. See [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) for intended stacks and implementation gaps.
 

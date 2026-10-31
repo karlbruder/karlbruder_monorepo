@@ -129,7 +129,7 @@ The following observations came from source inspection, not runtime validation:
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.
 - The existing frontend Home/Health pages are not mounted by the application entry point. Health-page requests use `/api/health` paths while backend diagnostics use `/health`; future diagnostic UI integration must reconcile those paths. Production frontend build-time Supabase configuration also remains to be implemented.
 - The existing `frontend/nginx.conf` serves frontend assets and strips `/api/` when proxying. It does not implement the separately defined production reverse-proxy container or the chosen prefix-preserving contract.
-- Landing CI and S3 deployment workflows exist. `compose.prod.yml`, a Ministack service, S3/SMTP application integrations, a backend deployment workflow, and a tournament migration tree are not present in the inspected tracked files. The diagrams above are the target architecture.
+- Landing CI and S3 deployment workflows exist. `compose.prod.yml` defines Nginx, frontend, and backend, with Nginx publishing 443 and a self-signed origin certificate. A Ministack service, S3/SMTP application integrations, a backend deployment workflow, and live EC2 deployment are not established by the presence of that file. The diagrams above remain the target architecture.
 
 ## Acceptance criteria
 
