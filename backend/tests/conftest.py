@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-from database import engine, get_session  # noqa: E402
-from main import karlbruder_app  # noqa: E402
+from app.database import engine, get_session  # noqa: E402
+from app.main import karlbruder_app  # noqa: E402
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
 

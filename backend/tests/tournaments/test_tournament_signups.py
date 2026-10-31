@@ -13,10 +13,10 @@ from sqlalchemy import delete, func, select
 
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-import auth  # noqa: E402
-import tournaments.signups as signup_service  # noqa: E402
-from main import karlbruder_app  # noqa: E402
-from tournaments.models import TournamentSignup  # noqa: E402
+import app.auth as auth  # noqa: E402
+import app.tournaments.signups as signup_service  # noqa: E402
+from app.main import karlbruder_app  # noqa: E402
+from app.tournaments.models import TournamentSignup  # noqa: E402
 
 
 class StaticJwksClient:

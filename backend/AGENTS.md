@@ -10,7 +10,7 @@ New code follows this file. Leave existing code that still breaks these rules in
 
 ## Domain packages
 
-Group the API by application domain. Each domain is one Python package directly under `backend/`.
+Group the API by application domain. Each domain is one Python package directly under `backend/app/`.
 
 A domain package holds the code that belongs to that area.
 
@@ -20,7 +20,7 @@ A domain package holds the code that belongs to that area.
 - `services.py` holds business logic.
 - `exceptions.py` holds errors that belong to that domain.
 
-`tournaments/` is a domain package. `auth/` is a domain package too. The current `auth.py` module is the old placement. New auth code goes in the `auth` package. Membership and inventory, when they are built, get their own packages. They stay out of `tournaments/`.
+`app/tournaments/` is a domain package. `auth/` is a domain package too. The current `app/auth.py` module is the old placement. New auth code goes in the `auth` package. Membership and inventory, when they are built, get their own packages. They stay out of `tournaments/`.
 
 The verified user, the guest identity, token checks, and auth errors belong to `auth`. Other domains import those pieces. They do not grow their own copy.
 
@@ -28,13 +28,13 @@ A domain may split a large flow into another module inside the same package, as 
 
 ## Shared code
 
-The backend root is for infrastructure other domains import. That includes `main.py` and `database.py`. New domain tables go in the domain package. They do not go in a root `models.py`.
+Application code lives in `backend/app`. That includes `main.py` and `database.py`. Settings live in `backend/config`. Alembic, tests, and the Dockerfile stay at the backend root. New domain tables go in the domain package. They do not go in `app/models.py`.
 
-Avoid circular imports between domain packages. If two packages need the same helper, put the shared piece in a root module that does not import those packages back.
+Avoid circular imports between domain packages. If two packages need the same helper, put the shared piece in an `app` module that does not import those packages back.
 
 ## Configuration
 
-Settings come from environment variables. Settings that more than one domain reads live in `settings.py`. Settings that only one domain uses live in that package. Keep secrets out of source. The current auth settings in `settings.py` are the old placement.
+Settings come from environment variables. Settings that more than one domain reads live in `config/settings.py`. Settings that only one domain uses live in that package. Keep secrets out of source. The current auth settings in `config/settings.py` are the old placement.
 
 ## Routers
 
@@ -104,7 +104,7 @@ Outbound S3 and SES calls, when they exist, sit behind a small client. Tests moc
 
 `backend/tests/` follows the same tree as the domain packages, so a test is easy to find from the code it covers.
 
-A test for `backend/tournaments/` lives in `backend/tests/tournaments/`. A test for `backend/auth/` lives in `backend/tests/auth/`. The current `backend/tests/test_auth.py` matches the old `auth.py` module. Shared fixtures for a package live in that package's `conftest.py`.
+A test for `backend/app/tournaments/` lives in `backend/tests/tournaments/`. A test for `backend/app/auth/` lives in `backend/tests/auth/`. The current `backend/tests/test_auth.py` matches the old `app/auth.py` module. Shared fixtures for a package live in that package's `conftest.py`.
 
 Name the test file after the behavior it covers, for example `test_tournament_signups.py`. The test tree mirrors packages. It does not need a twin file for every source file. Tests stay under `backend/tests/`.
 

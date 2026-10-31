@@ -12,12 +12,12 @@ from jwt.exceptions import (
 )
 from pydantic import ValidationError
 
-from exceptions import (
+from app.exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
-from models import AnonymousUser, User
-from settings import (
+from app.models import AnonymousUser, User
+from config.settings import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
     EXPECTED_ROLE,

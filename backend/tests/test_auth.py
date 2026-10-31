@@ -15,9 +15,9 @@ from jwt.exceptions import PyJWKClientConnectionError
 SUPABASE_URL = os.environ.get("SUPABASE_URL") or ("https://test-project.supabase.co")
 os.environ["SUPABASE_URL"] = SUPABASE_URL
 
-import auth  # noqa: E402
-from main import karlbruder_app  # noqa: E402
-from models import AnonymousUser  # noqa: E402
+import app.auth as auth  # noqa: E402
+from app.main import karlbruder_app  # noqa: E402
+from app.models import AnonymousUser  # noqa: E402
 
 ISSUER = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
 

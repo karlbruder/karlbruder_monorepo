@@ -6,8 +6,8 @@ from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
-from database import Base, get_database_url
-from tournaments import models  # noqa: F401 - register domain metadata
+from app.database import Base, get_database_url
+from app.tournaments import models  # noqa: F401 - register domain metadata
 
 config = context.config
 if config.config_file_name is not None:

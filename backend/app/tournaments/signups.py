@@ -8,11 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from auth import get_application_role
-from models import User
-from tournaments.inscriptions import MAX_SERIAL, format_inscription_number
-from tournaments.models import Tournament, TournamentSignup
-from tournaments.schemas import SignupCreate
+from app.auth import get_application_role
+from app.models import User
+from app.tournaments.inscriptions import MAX_SERIAL, format_inscription_number
+from app.tournaments.models import Tournament, TournamentSignup
+from app.tournaments.schemas import SignupCreate
 
 REGISTRATION_TIMEZONE = timezone(timedelta(hours=-3))
 _DUPLICATE_CONSTRAINTS = {

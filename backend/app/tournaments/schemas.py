@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
-from tournaments.services import TOURNAMENT_SLUG_PATTERN
+from app.tournaments.services import TOURNAMENT_SLUG_PATTERN
 
 
 class TournamentCreate(BaseModel):

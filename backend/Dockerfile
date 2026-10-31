@@ -30,7 +30,7 @@ RUN poetry install --no-root --with dev
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:karlbruder_app", "--reload", "--reload-exclude", ".venv", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:karlbruder_app", "--reload", "--reload-exclude", ".venv", "--host", "0.0.0.0", "--port", "8000"]
 
 # ----
 # Test
@@ -57,4 +57,4 @@ COPY . /app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]
+CMD ["gunicorn", "app.main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]

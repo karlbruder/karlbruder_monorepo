@@ -5,7 +5,7 @@
 | Status | Draft |
 | Scope | Shared platform foundation and tournament persistence |
 | Applications | backend and operational services |
-| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20); `backend/database.py`, `backend/settings.py`, and existing configuration documentation |
+| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20); `backend/app/database.py`, `backend/config/settings.py`, and existing configuration documentation |
 
 ## Goal
 

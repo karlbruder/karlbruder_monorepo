@@ -28,7 +28,7 @@ Run these commands from `backend/`, replacing the example values as needed:
 poetry install --no-root --with dev
 export DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
 export SUPABASE_URL='https://PROJECT_REF.supabase.co'
-poetry run uvicorn main:karlbruder_app --reload --host localhost --port 8000
+poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
 ```
 
 The sample database URI matches the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.

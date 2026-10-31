@@ -125,7 +125,7 @@ These concepts do not prescribe one table per concept. Issue #20 provides a star
 
 The following observations came from source inspection, not runtime validation:
 
-- `backend/auth.py` verifies Supabase JWTs. `backend/main.py` provides health endpoints and protected `GET /api/users/me`. It has no tournament routes in this checkout.
+- `backend/app/auth.py` verifies Supabase JWTs. `backend/app/main.py` provides health endpoints, protected `GET /api/users/me`, and the tournament routes.
 - `frontend/src/App.tsx` has Google sign-in, session restoration, and sign-out through Supabase. Separate email/password and recovery pages are not present in the inspected application entry point.
 - `landing/src/App.js` serves the homepage and `/monomachia`. The event page links to Instagram. Existing routes may remain public presentation routes while registration is implemented in the application.
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.

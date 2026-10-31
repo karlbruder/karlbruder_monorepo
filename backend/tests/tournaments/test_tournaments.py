@@ -13,8 +13,8 @@ from jwt.exceptions import PyJWKClientConnectionError
 
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-import auth  # noqa: E402
-from main import karlbruder_app  # noqa: E402
+import app.auth as auth  # noqa: E402
+from app.main import karlbruder_app  # noqa: E402
 
 
 class StaticJwksClient:

@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Karlbruder backend API"
 authors = ["Karlbruder Team"]
 readme = "README.md"
-packages = [{ include = "*" }]
+packages = [
+    { include = "app" },
+    { include = "config" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"

@@ -1,6 +1,6 @@
 import pytest
 
-from tournaments.inscriptions import format_inscription_number, is_valid_inscription_number
+from app.tournaments.inscriptions import format_inscription_number, is_valid_inscription_number
 
 
 def test_format_has_tournament_serial_and_luhn_digit():
