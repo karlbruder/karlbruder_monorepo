@@ -56,6 +56,22 @@ poetry run alembic current
 Local Compose and production deployment details, including a migration that
 needs special care for existing signups, are in the [migration notes](docs/migrations.md).
 
+From the repository root, these commands manage only the Compose database `kb-db`.
+They stop if the backend `DATABASE_URL` is not that local database.
+
+```sh
+backend/scripts/local_database.sh reset
+backend/scripts/local_database.sh drop
+backend/scripts/local_database.sh seed
+```
+
+`reset` drops the `public` schema, applies Alembic head, and inserts Monomachia
+when that slug is missing. The seeded event starts on 17 January 2027. Its
+registration window is already open, and the local terms and regulation version
+is `dev-local`. `drop` leaves the schema empty at head. `seed` inserts the same
+event without deleting existing rows. The Compose `db` and `backend` services
+need to be running.
+
 ## Tournament module
 
 The [tournament guide](tournaments/README.md) explains the catalog and signup

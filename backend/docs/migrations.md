@@ -33,7 +33,9 @@ data plan.
 
 Revision `20261019_0001` creates `slug` as a required unique column. There is no
 later slug migration. Drop a local database that was migrated with the removed
-slug revisions before upgrading this chain. `starts_at` and `ends_at` are the
+slug revisions before upgrading this chain. From the repository root,
+`backend/scripts/local_database.sh reset` does that for the Compose database and
+then seeds a local Monomachia event. `starts_at` and `ends_at` are the
 event dates. `registration_opens_on` and `registration_closes_on` are the
 registration window. When create omits `slug`, the API builds it from the name,
 modality, and the event year of `starts_at` in UTC−3.
