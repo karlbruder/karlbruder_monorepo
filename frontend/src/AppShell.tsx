@@ -21,6 +21,7 @@ function AppShell() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<RegistrationCopyKey | null>(null);
   const { language, changeLanguage } = useRegistrationLanguage();
+  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
 
   useEffect(() => {
     let active = true;
@@ -87,18 +88,18 @@ function AppShell() {
       <Route path="*" element={
         <main className="app-center">
           {!authReady ? (
-            <p role="status">Carregando sua sessão...</p>
+            <p role="status">{t("Carregando sua sessão...")}</p>
           ) : session ? (
             <div className="home-account">
               <h1>Karlbrüder</h1>
               <p>{session.user.user_metadata?.name ?? session.user.email}</p>
-              <a href="/tournaments/registration">Inscrição Monomachia</a>
-              <button type="button" onClick={signOut}>Sair</button>
+              <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
+              <button type="button" onClick={signOut}>{t("Sair")}</button>
             </div>
           ) : (
-            <GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} />
+            <GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} language={language} />
           )}
-          {authError && <p role="alert">{authError}</p>}
+          {authError && <p role="alert">{t(authError)}</p>}
         </main>
       } />
     </Routes>

@@ -52,9 +52,15 @@ def _headers(key, *, user_id=None, email="fixture@example.test", role="regular_u
     return {"Authorization": f"Bearer {token}"}
 
 
+_slug_serial = 0
+
+
 def _event(*, internal=False, **overrides):
+    global _slug_serial
+    _slug_serial += 1
     return {
         "name": "Fixture Tournament",
+        "slug": f"fixture-{_slug_serial}",
         "starts_at": "2027-01-17T12:00:00Z",
         "is_internal": internal,
         "registration_opens_on": "2026-10-01",

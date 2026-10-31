@@ -11,6 +11,7 @@ const english = {
   "Não foi possível sair. Tente novamente.": "We could not sign you out. Please try again.",
   "Sair": "Sign out",
   "Início": "Home",
+  "Inscrição Monomachia": "Monomachia registration",
   "Inscrição pessoal": "Personal registration",
   "Conheça as informações do torneio antes de se inscrever.": "Review the tournament details before registering.",
   "Carregando informações do torneio...": "Loading tournament details...",

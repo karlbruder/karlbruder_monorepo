@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { getTournamentBySlug, MONOMACHIA_SLUG } from "../lib/tournaments";
+import { getMonomachiaTournament } from "../lib/tournaments";
 import type { Tournament } from "../lib/tournaments";
 import SignupForm from "./SignupForm";
 import { registrationCopy } from "../registrationLanguage";
@@ -57,7 +57,7 @@ export default function TournamentRegistration({
 
   useEffect(() => {
     const controller = new AbortController();
-    getTournamentBySlug(MONOMACHIA_SLUG, controller.signal).then((result) => {
+    getMonomachiaTournament(controller.signal).then((result) => {
       if (controller.signal.aborted) return;
       if (result) setTournament(result);
       else setLoadIssue("missing");

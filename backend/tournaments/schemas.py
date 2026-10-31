@@ -1,5 +1,6 @@
 """Explicit tournament API contracts; private signup fields stay in the model."""
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
@@ -7,14 +8,14 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
-TOURNAMENT_SLUG_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+from tournaments.services import TOURNAMENT_SLUG_PATTERN
 
 
 class TournamentCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=200)
-    slug: str | None = Field(default=None, max_length=100, pattern=TOURNAMENT_SLUG_PATTERN)
+    slug: str | None = None
     description: str | None = None
     modality: str | None = Field(default=None, max_length=80)
     starts_at: AwareDatetime
@@ -44,6 +45,18 @@ class TournamentCreate(BaseModel):
             raise ValueError("Tournament name cannot be blank")
         return value
 
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+        if not re.fullmatch(TOURNAMENT_SLUG_PATTERN, value) or len(value) > 100:
+            raise ValueError("Tournament slug must be lowercase words separated by single hyphens")
+        return value
+
     @model_validator(mode="after")
     def validate_date_order(self) -> "TournamentCreate":
         if self.ends_at is not None and self.ends_at < self.starts_at:
@@ -62,7 +75,7 @@ class TournamentRead(BaseModel):
 
     id: int
     name: str
-    slug: str | None
+    slug: str
     description: str | None
     modality: str | None
     starts_at: datetime
@@ -82,6 +95,13 @@ class TournamentRead(BaseModel):
     equipment_requirements: str | None
     cancellation_policy: str | None
     created_at: datetime
+
+
+class TournamentList(BaseModel):
+    items: list[TournamentRead]
+    total: int
+    limit: int
+    offset: int
 
 
 class SignupCreate(BaseModel):

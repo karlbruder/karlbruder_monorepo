@@ -40,8 +40,20 @@ const signedInSession = {
   user: { id: 'athlete-uuid', email: 'athlete@example.test', user_metadata: {} },
 } as Session
 
-function mockTournament(response: unknown = [tournament]) {
-  const request = vi.fn().mockResolvedValue({ ok: true, json: async () => response })
+const monomachiaListUrl = '/api/tournaments?name=Monomachia&starts_from=2027-01-01&starts_to=2027-12-31&limit=2'
+
+function catalogBody(response: unknown) {
+  if (response && typeof response === 'object' && 'items' in response) return response
+  if (response === null) return { items: [], total: 0, limit: 2, offset: 0 }
+  return { items: [response], total: 1, limit: 2, offset: 0 }
+}
+
+function mockTournament(response: unknown = tournament) {
+  const request = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => catalogBody(response),
+  })
   vi.stubGlobal('fetch', request)
   return request
 }
@@ -77,7 +89,7 @@ describe('Monomachia registration entry', () => {
   it('uses the URL language before the saved preference, localizes facts, and keeps OAuth on that route', async () => {
     window.localStorage.setItem('registrationLanguage', 'pt')
     window.history.replaceState({}, '', '/tournaments/registration?source=landing&lang=en')
-    mockTournament([{ ...tournament, inscription_fee_amount: '125.50' }])
+    mockTournament({ ...tournament, inscription_fee_amount: '125.50' })
     renderApp()
 
     expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
@@ -126,7 +138,7 @@ describe('Monomachia registration entry', () => {
   })
 
   it('formats the fee in Brazilian reais for the default Portuguese route', async () => {
-    mockTournament([{ ...tournament, inscription_fee_amount: '125.50' }])
+    mockTournament({ ...tournament, inscription_fee_amount: '125.50' })
     renderApp()
     expect(await screen.findByText(/17 de janeiro de 2027/)).toBeInTheDocument()
     expect(screen.getByText(/R\$\s?125,50/)).toBeInTheDocument()
@@ -160,7 +172,7 @@ describe('Monomachia registration entry', () => {
     renderApp()
 
     expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
-    expect(request).toHaveBeenCalledWith('/api/tournaments?slug=monomachia-2027', expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(request).toHaveBeenCalledWith(monomachiaListUrl, expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(screen.getByText('Espada longa (longsword)')).toBeInTheDocument()
     expect(screen.getByText(/17 de janeiro de 2027/)).toBeInTheDocument()
     expect(screen.getAllByText('A confirmar')).toHaveLength(2)
@@ -199,8 +211,8 @@ describe('Monomachia registration entry', () => {
     expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
 
-  it('shows an unavailable state for an empty filtered list, without choosing another event', async () => {
-    const request = mockTournament([])
+  it('shows an unavailable state when the slug is missing, without choosing another event', async () => {
+    const request = mockTournament(null)
     render(
       <TournamentRegistration
         session={null}
@@ -211,12 +223,12 @@ describe('Monomachia registration entry', () => {
       />,
     )
     expect(await screen.findByRole('alert')).toHaveTextContent('Este torneio não está disponível.')
-    expect(request).toHaveBeenCalledWith('/api/tournaments?slug=monomachia-2027', expect.anything())
+    expect(request).toHaveBeenCalledWith(monomachiaListUrl, expect.anything())
     expect(screen.queryByRole('form', { name: 'Formulário de inscrição' })).not.toBeInTheDocument()
   })
 
   it('shows staff closure and an unavailable event without claiming registration is open', async () => {
-    mockTournament([{ ...tournament, new_registrations_closed: true }])
+    mockTournament({ ...tournament, new_registrations_closed: true })
     const view = render(
       <TournamentRegistration
         session={signedInSession}
@@ -229,7 +241,7 @@ describe('Monomachia registration entry', () => {
     expect(await screen.findByText('Novas inscrições encerradas pela organização.')).toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'Formulário de inscrição' })).not.toBeInTheDocument()
     view.unmount()
-    mockTournament([])
+    mockTournament(null)
     render(
       <TournamentRegistration
         session={null}
@@ -257,11 +269,9 @@ describe('Monomachia registration entry', () => {
   })
 
   it.each([
-    ['a non-list response', { id: 42 }],
-    ['multiple matches', [tournament, { ...tournament, id: 43 }]],
-    ['a mismatched slug', [{ ...tournament, slug: 'another-event' }]],
-    ['an unsafe ID', [{ ...tournament, id: Number.MAX_SAFE_INTEGER + 1 }]],
-    ['missing event fields', [{ id: 42, slug: 'monomachia-2027' }]],
+    ['multiple matches', { items: [tournament, { ...tournament, id: 43 }], total: 2, limit: 2, offset: 0 }],
+    ['an unsafe ID', { ...tournament, id: Number.MAX_SAFE_INTEGER + 1 }],
+    ['missing event fields', { id: 42, slug: 'monomachia-2027' }],
   ])('fails closed on %s', async (_case, body) => {
     mockTournament(body)
     renderApp()
@@ -273,7 +283,7 @@ describe('Monomachia registration entry', () => {
   it('offers retry after a network error and loads the event on retry', async () => {
     const request = vi.fn()
       .mockRejectedValueOnce(new Error('network'))
-      .mockResolvedValueOnce({ ok: true, json: async () => [tournament] })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => catalogBody(tournament) })
     vi.stubGlobal('fetch', request)
     renderApp()
     expect(await screen.findByRole('alert')).toHaveTextContent('Tente novamente.')
@@ -285,7 +295,7 @@ describe('Monomachia registration entry', () => {
   it('posts the signup to the ID returned by the slug lookup', async () => {
     const resolvedTournament = { ...tournament, id: 73 }
     const request = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [resolvedTournament] })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => catalogBody(resolvedTournament) })
       .mockResolvedValueOnce({
         ok: true, status: 201,
         json: async () => ({
@@ -318,7 +328,7 @@ describe('Monomachia registration entry', () => {
     fireEvent.submit(form)
 
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2))
-    expect(request.mock.calls[0][0]).toBe('/api/tournaments?slug=monomachia-2027')
+    expect(request.mock.calls[0][0]).toBe(monomachiaListUrl)
     expect(request.mock.calls[1][0]).toBe('/api/tournaments/73/signups')
     expect(request.mock.calls[1][1].headers.Authorization).toBe('Bearer test-token')
     expect(await screen.findByText('T73-000001-1')).toBeInTheDocument()

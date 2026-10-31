@@ -29,32 +29,11 @@ evidence/data migration. Do not backfill `true` without participant evidence.
 Do not downgrade a database containing real registrations without a reviewed
 data plan.
 
-## Assigning a slug to an existing event
+## Tournament slug
 
-Revision `20261030_0003` adds a nullable, unique tournament slug and does not
-guess which existing row represents Monomachia. After applying the migration to
-the intended domain database, identify the exact event by its ID and other event
-facts. Assign `monomachia-2027` only to that verified row in a controlled
-transaction. For example, replace `<VERIFIED_EVENT_ID>` before running the SQL:
-
-```sql
-BEGIN;
-SELECT id, name, starts_at, slug
-FROM public.tournaments
-WHERE id = <VERIFIED_EVENT_ID>
-FOR UPDATE;
--- Confirm this is the intended Monomachia event and slug is NULL.
-UPDATE public.tournaments
-SET slug = 'monomachia-2027'
-WHERE id = <VERIFIED_EVENT_ID> AND slug IS NULL
-RETURNING id, name, slug;
-```
-
-Confirm exactly one expected row was returned, then issue `COMMIT`; otherwise
-issue `ROLLBACK`. Never run the example as an unattended batch.
-
-The slug is a stable lookup key, so later name edits do not change it. A unique
-constraint rejects an assignment already used by another event. Do not run the
-example against the legacy local `kb-db` whose Alembic revision does not match
-the current migration chain; prepare a fresh local database or review a separate
-data migration first.
+Revision `20261019_0001` creates `slug` as a required unique column. There is no
+later slug migration. Drop a local database that was migrated with the removed
+slug revisions before upgrading this chain. `starts_at` and `ends_at` are the
+event dates. `registration_opens_on` and `registration_closes_on` are the
+registration window. When create omits `slug`, the API builds it from the name,
+modality, and the event year of `starts_at` in UTC−3.

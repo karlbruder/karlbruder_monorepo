@@ -31,7 +31,7 @@ test('renders the Monomachia championship page', () => {
     screen.getByRole('link', { name: /spes historical fencing gear/i })
   ).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
-    .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration');
+    .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=pt');
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /english/i }));
@@ -39,6 +39,10 @@ test('renders the Monomachia championship page', () => {
   expect(screen.getByText(/term has echoed through history/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Register for Monomachia' }))
     .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=en');
+
+  fireEvent.click(screen.getByRole('button', { name: /português/i }));
+  expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
+    .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=pt');
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
 });
 
@@ -48,6 +52,6 @@ test('forwards registration to a locally configured application URL', () => {
   render(<App />);
 
   expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
-    .toHaveAttribute('href', 'http://localhost:5173/tournaments/registration');
+    .toHaveAttribute('href', 'http://localhost:5173/tournaments/registration?lang=pt');
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
 });

@@ -85,9 +85,15 @@ def _headers(signing_key, role=None, *, user_metadata=None):
     return {"Authorization": f"Bearer {token}"}
 
 
+_slug_serial = 0
+
+
 def _event(name="Fixture Tournament", *, internal=False, **overrides):
+    global _slug_serial
+    _slug_serial += 1
     return {
         "name": name,
+        "slug": f"fixture-{_slug_serial}",
         "starts_at": "2027-01-17T12:00:00Z",
         "is_internal": internal,
         "modality": "longsword",
@@ -110,7 +116,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     first_data, second_data = first.json(), second.json()
     assert first_data["id"] != second_data["id"]
     assert first_data["name"] == "Monomachia Fixture"
-    assert first_data["slug"] is None
+    assert first_data["slug"].startswith("fixture-")
     assert first_data["inscription_fee_amount"] is None
     assert second_data["inscription_fee_amount"] == "75.00"
     assert second_data["modality"] == "sabre"
@@ -119,14 +125,14 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
 
     listing = test_client.get("/api/tournaments")
     assert listing.status_code == 200
-    assert {event["id"] for event in listing.json()} == {
+    assert {event["id"] for event in listing.json()["items"]} == {
         first_data["id"],
         second_data["id"],
     }
     detail = test_client.get(f"/api/tournaments/{first_data['id']}")
     assert detail.status_code == 200
     assert detail.json()["name"] == first_data["name"]
-    assert detail.json()["slug"] is None
+    assert detail.json()["slug"] == first_data["slug"]
     assert detail.json()["inscription_fee_amount"] is None
 
 
@@ -145,27 +151,30 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
     for headers in ({}, _headers(key, "regular_user"), _headers(key)):
         listing = test_client.get("/api/tournaments", headers=headers)
         assert listing.status_code == 200
-        assert [item["id"] for item in listing.json()] == [public_id]
+        assert [item["id"] for item in listing.json()["items"]] == [public_id]
         assert test_client.get(
             f"/api/tournaments/{internal_id}", headers=headers
         ).status_code == 404
         assert test_client.get(
-            "/api/tournaments?slug=internal-fixture", headers=headers
-        ).json() == []
+            "/api/tournaments", params={"name": "Internal Fixture"}, headers=headers
+        ).json()["items"] == []
 
     for role in ("guild_member", "admin"):
         headers = _headers(key, role)
         listing = test_client.get("/api/tournaments", headers=headers)
-        assert {item["id"] for item in listing.json()} == {public_id, internal_id}
+        assert {item["id"] for item in listing.json()["items"]} == {public_id, internal_id}
         assert test_client.get(
             f"/api/tournaments/{internal_id}", headers=headers
         ).status_code == 200
-        assert [event["id"] for event in test_client.get(
-            "/api/tournaments?slug=internal-fixture", headers=headers
-        ).json()] == [internal_id]
+        assert [
+            event["id"]
+            for event in test_client.get(
+                "/api/tournaments", params={"name": "Internal Fixture"}, headers=headers
+            ).json()["items"]
+        ] == [internal_id]
 
 
-def test_slug_filter_is_exact_and_duplicate_create_is_a_conflict(client):
+def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(client):
     test_client, key = client
     admin = _headers(key, "admin")
     first = test_client.post(
@@ -175,16 +184,25 @@ def test_slug_filter_is_exact_and_duplicate_create_is_a_conflict(client):
     )
     second = test_client.post(
         "/api/tournaments",
-        json=_event("Other Fixture", slug="other-2027"),
+        json=_event("Other Fixture", slug="other-2028", starts_at="2028-03-02T12:00:00Z"),
         headers=admin,
     )
     assert first.status_code == second.status_code == 201
     assert first.json()["slug"] == "monomachia-2027"
-    assert [item["id"] for item in test_client.get(
-        "/api/tournaments?slug=monomachia-2027"
-    ).json()] == [first.json()["id"]]
-    assert test_client.get("/api/tournaments?slug=monomachia").json() == []
-    assert len(test_client.get("/api/tournaments").json()) == 2
+    by_name = test_client.get("/api/tournaments", params={"name": "monomachia"})
+    assert [item["id"] for item in by_name.json()["items"]] == [first.json()["id"]]
+    assert by_name.json()["total"] == 1
+    by_date = test_client.get(
+        "/api/tournaments",
+        params={"starts_from": "2028-03-01", "starts_to": "2028-03-02"},
+    )
+    assert [item["id"] for item in by_date.json()["items"]] == [second.json()["id"]]
+    page = test_client.get("/api/tournaments", params={"limit": 1, "offset": 0})
+    assert page.json()["total"] == 2
+    assert len(page.json()["items"]) == 1
+    assert test_client.get(
+        "/api/tournaments", params={"starts_from": "2028-02-01", "starts_to": "2028-01-01"}
+    ).status_code == 422
 
     duplicate = test_client.post(
         "/api/tournaments",
@@ -193,18 +211,30 @@ def test_slug_filter_is_exact_and_duplicate_create_is_a_conflict(client):
     )
     assert duplicate.status_code == 409
     assert duplicate.json()["detail"] == "Tournament slug already exists"
-    assert len(test_client.get("/api/tournaments").json()) == 2
+    assert test_client.get("/api/tournaments").json()["total"] == 2
 
 
-@pytest.mark.parametrize("slug", ["", "Monomachia-2027", "monomachia_2027", "-mono", "mono-", "mono--2027", "a" * 101])
-def test_invalid_slug_is_rejected_on_create_and_filter(client, slug):
+@pytest.mark.parametrize("slug", ["Monomachia-2027", "monomachia_2027", "-mono", "mono-", "mono--2027", "a" * 101])
+def test_invalid_slug_is_rejected_on_create(client, slug):
     test_client, key = client
     admin = _headers(key, "admin")
     assert test_client.post(
         "/api/tournaments", json=_event(slug=slug), headers=admin
     ).status_code == 422
-    assert test_client.get("/api/tournaments", params={"slug": slug}).status_code == 422
-    assert test_client.get("/api/tournaments").json() == []
+    assert test_client.get("/api/tournaments").json()["items"] == []
+
+
+def test_missing_or_blank_slug_uses_name_modality_and_event_year(client):
+    test_client, key = client
+    admin = _headers(key, "admin")
+    omitted = _event("Monomachia", modality="longsword")
+    del omitted["slug"]
+    blank = _event("Monomachia", modality=None, slug="  ")
+    created = test_client.post("/api/tournaments", json=omitted, headers=admin)
+    blank_created = test_client.post("/api/tournaments", json=blank, headers=admin)
+    assert created.status_code == blank_created.status_code == 201
+    assert created.json()["slug"] == "monomachia-longsword-2027"
+    assert blank_created.json()["slug"] == "monomachia-2027"
 
 
 def test_only_trusted_admin_claim_can_create(client):
@@ -222,7 +252,7 @@ def test_only_trusted_admin_claim_can_create(client):
         assert test_client.post(
             "/api/tournaments", json=_event(), headers=headers
         ).status_code == expected
-    assert test_client.get("/api/tournaments").json() == []
+    assert test_client.get("/api/tournaments").json()["items"] == []
 
 
 def test_invalid_supplied_bearer_token_fails_even_on_public_read(client):
@@ -267,7 +297,7 @@ def test_admin_create_rejects_invalid_configuration(client, changes):
         "/api/tournaments", json=_event(**changes), headers=_headers(key, "admin")
     )
     assert response.status_code == 422
-    assert test_client.get("/api/tournaments").json() == []
+    assert test_client.get("/api/tournaments").json()["items"] == []
 
 
 def test_unknown_event_returns_404_for_all_viewers(client):
@@ -283,9 +313,10 @@ def test_catalog_routes_have_explicit_response_contracts(client):
     schema = test_client.get("/openapi.json").json()
     assert "/api/tournaments" in schema["paths"]
     assert "/api/tournaments/{tournament_id}" in schema["paths"]
+    assert "/api/tournaments/by-slug/{slug}" not in schema["paths"]
     assert "201" in schema["paths"]["/api/tournaments"]["post"]["responses"]
     assert "200" in schema["paths"]["/api/tournaments"]["get"]["responses"]
-    assert "slug" in {
+    assert {
         parameter["name"]
         for parameter in schema["paths"]["/api/tournaments"]["get"]["parameters"]
-    }
+    } >= {"name", "starts_from", "starts_to", "limit", "offset"}

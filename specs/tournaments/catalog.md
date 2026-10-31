@@ -13,7 +13,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 ## Rules
 
-- **CAT-001:** The catalog supports multiple tournaments with stable identifiers. Selecting an event scopes its information, registration, and results to that event.
+- **CAT-001:** The catalog supports multiple tournaments with stable identifiers. Each tournament has a required unique slug. When staff omit the slug, it is derived from the display name, modality, and the year of `starts_at`. The list is paginated and can be filtered by display name and by the event start date. `starts_at` and `ends_at` are the event dates. The registration window is separate. Selecting an event scopes its information, registration, and results to that event.
 - **CAT-002:** A tournament can describe name, description, modality, start/end date and time, location, schedule, fee, registration window, payment deadline, capacity, rules, equipment requirements, and cancellation policy.
 - **CAT-003:** Event details communicate the registration date range and capacity status. When capacity is full, the registration page warns that approved payment will lead to the waitlist unless a seat becomes available. Being full does not itself prevent submission or proof upload. Staff may explicitly close new registrations; the backend enforces that closure. Submission never guarantees a seat.
 - **CAT-004:** Published information must distinguish confirmed facts from unknown details. Unknown fees, dates, policies, or locations are not presented as final values.

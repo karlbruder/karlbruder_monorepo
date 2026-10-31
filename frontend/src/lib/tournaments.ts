@@ -1,7 +1,7 @@
 export type Tournament = {
   id: number;
   name: string;
-  slug: string | null;
+  slug: string;
   modality: string | null;
   starts_at: string;
   location: string | null;
@@ -66,7 +66,9 @@ export class SignupRequestError extends Error {
   }
 }
 
-export const MONOMACHIA_SLUG = "monomachia-2027";
+export const MONOMACHIA_NAME = "Monomachia";
+export const MONOMACHIA_STARTS_FROM = "2027-01-01";
+export const MONOMACHIA_STARTS_TO = "2027-12-31";
 
 export function apiBaseUrl(): string {
   return (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/+$/, "");
@@ -76,12 +78,12 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
-function isTournament(value: unknown, slug: string): value is Tournament {
+function isTournament(value: unknown): value is Tournament {
   if (value === null || typeof value !== "object") return false;
   const event = value as Record<string, unknown>;
   return (
     typeof event.id === "number" && Number.isSafeInteger(event.id) && event.id > 0 &&
-    event.slug === slug &&
+    typeof event.slug === "string" && event.slug.length > 0 &&
     typeof event.name === "string" && event.name.trim().length > 0 &&
     typeof event.starts_at === "string" &&
     typeof event.new_registrations_closed === "boolean" &&
@@ -98,18 +100,30 @@ function isTournament(value: unknown, slug: string): value is Tournament {
   );
 }
 
-export async function getTournamentBySlug(slug: string, signal: AbortSignal): Promise<Tournament | null> {
-  const response = await fetch(`${apiBaseUrl()}/tournaments?slug=${encodeURIComponent(slug)}`, { signal });
+export function monomachiaListQuery(): string {
+  const params = new URLSearchParams({
+    name: MONOMACHIA_NAME,
+    starts_from: MONOMACHIA_STARTS_FROM,
+    starts_to: MONOMACHIA_STARTS_TO,
+    limit: "2",
+  });
+  return `${apiBaseUrl()}/tournaments?${params}`;
+}
+
+export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tournament | null> {
+  const response = await fetch(monomachiaListQuery(), { signal });
   if (!response.ok) {
     throw new Error(`http-${response.status}`);
   }
   const body: unknown = await response.json().catch(() => null);
-  if (!Array.isArray(body)) throw new Error("invalid-tournament-list");
-  if (body.length === 0) return null;
-  if (body.length !== 1 || !isTournament(body[0], slug)) {
+  if (body === null || typeof body !== "object" || !("items" in body) || !Array.isArray(body.items)) {
     throw new Error("invalid-tournament-list");
   }
-  return body[0];
+  if (body.items.length === 0) return null;
+  if (body.items.length !== 1 || !isTournament(body.items[0])) {
+    throw new Error("invalid-tournament-list");
+  }
+  return body.items[0];
 }
 
 export async function createSignup(
