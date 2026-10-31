@@ -55,6 +55,12 @@ Changes since the 17 October baseline, confirmed by source inspection on 29 Octo
 - `frontend/vite.config.ts` now proxies same-origin `/api` requests to the backend without removing the prefix. This is the local Compose route for application API calls.
 - `frontend/nginx.conf` now preserves `/api` when forwarding to the backend. Local Compose uses Vite, not the frontend image's Nginx stage.
 
+Compose files as of 31 October 2026:
+
+- Local `compose.yml` bind-mounts `backend/` and starts Uvicorn with reload.
+- `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
+- `compose.prod.yml` is the Nginx, frontend, and backend stack. Nginx publishes 443 with a self-signed certificate.
+
 Remaining inconsistencies and implementation gaps:
 
 - The backend CORS allowlist still names only `http://localhost:3000`. Direct cross-origin browser calls from the Vite origin at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist; the normal same-origin `/api` proxy path does not depend on it.

@@ -1,0 +1,49 @@
+# Isolated backend tests. This file publishes no host ports.
+# Use a distinct project name whenever another test stack may already be running:
+#   docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
+#   docker compose -f compose.test.yml -p kb-test-<name> down -v
+
+services:
+  db:
+    image: postgres:17
+    restart: "no"
+
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: kb-db
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d kb-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+
+    restart: "no"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    environment:
+      DATABASE_URL: "sqlite+pysqlite:///:memory:"
+      TEST_DATABASE_URL: "postgresql://user:password@db:5432/kb-db"
+      SUPABASE_URL: "https://test-project.supabase.co"
+      AUTH_DATABASE_URL: ""
+
+    volumes:
+      - ./backend:/app
+
+    command: ["pytest", "-x"]
+
+volumes:
+  postgres_data:

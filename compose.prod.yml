@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+
+    expose:
+      - "8000"
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8000/health/db > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+    volumes:
+      - origin_certs:/etc/nginx/certs
+
+    ports:
+      - "443:443"
+
+volumes:
+  origin_certs:

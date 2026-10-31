@@ -108,7 +108,14 @@ A test for `backend/tournaments/` lives in `backend/tests/tournaments/`. A test 
 
 Name the test file after the behavior it covers, for example `test_tournament_signups.py`. The test tree mirrors packages. It does not need a twin file for every source file. Tests stay under `backend/tests/`.
 
-Run `poetry run pytest` and `poetry run ruff check .` from `backend/`, as the [backend README](README.md) describes. Run the tests that cover the change with stop on first failure (`pytest -x`). Fix that failure before continuing.
+Run tests from the repository root with `compose.test.yml`. That stack publishes no host ports. Give the run its own Compose project name so it does not collide with another agent.
+
+```sh
+docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
+docker compose -f compose.test.yml -p kb-test-<name> down -v
+```
+
+Pass a narrower pytest command when you only need part of the suite. That command replaces the service command, so keep `-x` in it. Rebuild the test image when dependencies change. Run Ruff in the same stack with `ruff check .` in place of the pytest command. Fix the first failure before continuing.
 
 Test each behavior once, in the layer that owns it. Service tests cover the branches of the business rule. Route tests cover status codes, auth, and that the route calls the service. Schema tests cover field shape. Do not repeat the same case in all three.
 

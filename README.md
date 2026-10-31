@@ -9,7 +9,9 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `landing/` | Public React website at `karlbruder.com.br` | [Landing README](landing/README.md) |
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
-| `compose.yml` | Local frontend, backend, and PostgreSQL services | Local setup below |
+| `compose.yml` | Local frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
+| `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
+| `compose.prod.yml` | Production Nginx, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
 
@@ -101,13 +103,13 @@ docker compose up --build
 
 The sample database credentials are local development defaults. With blank or absent `DATABASE_URL`, Compose injects `postgresql://user:password@db:5432/kb-db`. The hostname `db` works inside Compose; host-run tools use `127.0.0.1`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
 
-After changing root backend configuration, recreate the backend:
+Backend source is bind-mounted, and Uvicorn reloads when those files change. Rebuild and recreate the backend after a dependency change in `pyproject.toml` or `poetry.lock`, or after a root environment change:
 
 ```sh
-docker compose up -d --force-recreate backend
+docker compose up -d --build --force-recreate backend
 ```
 
-Restart the frontend development server after changing its environment file. Backend source changes require an image rebuild with the current Compose configuration; the frontend uses a source bind mount for development.
+Restart the frontend development server after changing its environment file.
 
 Stop services and remove the local network with:
 
@@ -138,7 +140,7 @@ Run commands in the relevant application's directory. Use its own lockfile; the 
 
 ## Production direction
 
-The selected production stack is `compose.prod.yml` on EC2 with separate Nginx, frontend, and backend containers. **That file and the complete production application deployment are not implemented in this checkout.**
+Production Compose is `compose.prod.yml`. It runs Nginx, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. Frontend and backend ports stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
 
 Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. Its proxied application A record targets the EC2 Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes an application host port. It preserves `/api` when forwarding to the backend and sends other application requests to the frontend.
 

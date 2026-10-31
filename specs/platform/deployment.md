@@ -38,7 +38,7 @@ The complete application stack is defined by `compose.prod.yml`:
 
 Only the first three components are application Compose services. The public landing site is hosted separately. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 application ingress on 443 only.
 
-`compose.prod.yml` is the selected filename. This spec records the intended stack; that file and the complete reverse-proxy integration are not present in the inspected checkout yet.
+`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps frontend and backend ports on the Compose network. Hosting that file on EC2, Cloudflare routing, and live verification are still separate work.
 
 ## Public website
 
