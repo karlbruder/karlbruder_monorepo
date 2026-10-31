@@ -10,15 +10,10 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientConnectionError
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
 
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
 import auth  # noqa: E402
-from database import Base, get_session  # noqa: E402
 from main import karlbruder_app  # noqa: E402
 
 
@@ -41,27 +36,8 @@ def client(monkeypatch):
     monkeypatch.setattr(
         auth, "get_jwks_client", lambda: StaticJwksClient(signing_key.public_key())
     )
-    engine = create_engine(
-        "sqlite+pysqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    with engine.begin() as connection:
-        connection.execute(text("ATTACH DATABASE ':memory:' AS public"))
-    Base.metadata.create_all(engine)
-
-    def test_session():
-        with Session(engine) as session:
-            yield session
-
-    karlbruder_app.dependency_overrides[get_session] = test_session
-    try:
-        with TestClient(karlbruder_app) as test_client:
-            yield test_client, signing_key
-    finally:
-        karlbruder_app.dependency_overrides.clear()
-        Base.metadata.drop_all(engine)
-        engine.dispose()
+    with TestClient(karlbruder_app) as test_client:
+        yield test_client, signing_key
 
 
 def _headers(signing_key, role=None, *, user_metadata=None):

@@ -20,22 +20,15 @@ in `search_path`, stop and inspect the location of its tables and
 `alembic_version` before upgrading. Moving existing registration data requires
 a separately reviewed migration; the current revisions do not move it.
 
-## Existing signups at revision `20261019_0001`
+## Initial schema
 
-Revision `20261019_0002` adds a required truthful-information declaration with no
-server default. Its upgrade fails if existing signup rows would need an invented
-acceptance value. Stop that deployment and arrange a separately reviewed
-evidence/data migration. Do not backfill `true` without participant evidence.
-Do not downgrade a database containing real registrations without a reviewed
-data plan.
-
-## Tournament slug
-
-Revision `20261019_0001` creates `slug` as a required unique column. There is no
-later slug migration. Drop a local database that was migrated with the removed
-slug revisions before upgrading this chain. From the repository root,
-`backend/scripts/local_database.sh reset` does that for the Compose database and
-then seeds a local Monomachia event. `starts_at` and `ends_at` are the
+Revision `20261019_0001` creates the tournament and signup tables. `slug` is a
+required unique column. `declares_truthful_information` is a required signup
+column with no server default, created with the table. There is no later
+migration for either column. Drop a local database that was migrated with the
+removed revisions, including `20261019_0002`, before upgrading this chain. From
+the repository root, `backend/scripts/local_database.sh reset` does that for the
+Compose database and then seeds a local Monomachia event. `starts_at` and `ends_at` are the
 event dates. `registration_opens_on` and `registration_closes_on` are the
 registration window. When create omits `slug`, the API builds it from the name,
 modality, and the event year of `starts_at` in UTC−3.

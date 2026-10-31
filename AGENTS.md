@@ -48,7 +48,7 @@ Create-issue creates a GitHub issue; plan-issue and implement-issue require one.
 - Consult [the open-question index](specs/open-questions.md) before asking for a product decision. Define each question once in its owning spec, link to it from related specs, and keep current-scope, deferred, and technical implementation topics distinct. Fold answers into every affected spec and update the index. Do not re-ask resolved choices or require all questions to be answered before independent work can proceed.
 - Future scope does not authorize implementing that capability during an unrelated task.
 - Update the relevant specification when the requested change alters behavior. Keep shared delivery requirements and task checklists in GitHub Issues, and detailed implementation plans and checkpoint state in `.local/plan-issue/`, rather than duplicating them in specs.
-- Report what was verified and which criteria remain unverified. Run checks appropriate to the changed application. Documentation-only changes need link and consistency checks, not application test runs.
+- Report what was verified and which criteria remain unverified. Run checks appropriate to the changed application. When `compose.test.yml` exists, run that application's tests with it while developing. Do not replace that run with a host test command. Documentation-only changes need link and consistency checks, not application test runs.
 
 ## Repository conventions
 

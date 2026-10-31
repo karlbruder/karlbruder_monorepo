@@ -12,9 +12,6 @@ from fastapi.testclient import TestClient
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientConnectionError
 
-os.environ["DATABASE_URL"] = os.environ.get("DATABASE_URL") or (
-    "sqlite+pysqlite:///:memory:"
-)
 SUPABASE_URL = os.environ.get("SUPABASE_URL") or ("https://test-project.supabase.co")
 os.environ["SUPABASE_URL"] = SUPABASE_URL
 

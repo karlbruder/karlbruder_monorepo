@@ -108,11 +108,11 @@ A test for `backend/tournaments/` lives in `backend/tests/tournaments/`. A test 
 
 Name the test file after the behavior it covers, for example `test_tournament_signups.py`. The test tree mirrors packages. It does not need a twin file for every source file. Tests stay under `backend/tests/`.
 
-Run tests from the repository root with `compose.test.yml`. That stack publishes no host ports. Give the run its own Compose project name so it does not collide with another agent.
+When `compose.test.yml` exists, run backend tests with that file while developing. Do not switch to host `poetry run pytest` for the same run. The stack publishes no host ports. Give the run its own Compose project name so it does not collide with another agent.
 
 ```sh
 docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
-docker compose -f compose.test.yml -p kb-test-<name> down -v
+docker compose -f compose.test.yml -p kb-test-<name> down
 ```
 
 Pass a narrower pytest command when you only need part of the suite. That command replaces the service command, so keep `-x` in it. Rebuild the test image when dependencies change. Run Ruff in the same stack with `ruff check .` in place of the pytest command. Fix the first failure before continuing.
@@ -121,7 +121,11 @@ Test each behavior once, in the layer that owns it. Service tests cover the bran
 
 New or changed logic needs its branches covered. Authentication and tournament registration are the critical areas. A bug there blocks sign in or accepts a bad signup. Cover the edge cases and the failure cases. Payment proofs and safety notes join that list when they exist.
 
-Tests should create and read rows in the database. Mock calls that leave the process, such as the Supabase key fetch, and later S3 or SES.
+`db_session` already runs for every test. Do not add a database engine, a SQLite database, or another session fixture. Request `db_session` only when that test itself reads or writes rows. Routes already receive it.
+
+Tests use `DATABASE_URL`. In `compose.test.yml` that is the `postgres` database Compose starts, with user `postgres` and password `postgres`. The pytest session migrates that database to head. Each test still gets its own transaction, and that transaction rolls back when the test ends. A session scoped transaction would leave one test's rows visible to the next test. Tests are not split into parallel CI jobs. Do not create another database from the test suite.
+
+`compose.test.yml` keeps the PostgreSQL files in memory. The Postgres image marks its data directory as a volume, so without that mount Docker would keep an anonymous volume after the container stops. Mock calls that leave the process, such as the Supabase key fetch, and later S3 or SES.
 
 When code is removed, update or delete its tests. One test that shows the behavior is gone is enough. If the test diff is several times the code diff, cut it back to the tests that would catch a likely regression.
 
