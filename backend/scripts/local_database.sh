@@ -24,9 +24,9 @@ import sys
 url = make_url(os.environ.get('DATABASE_URL', ''))
 host = (url.host or '').lower()
 database_name = url.database or ''
-if host != 'db' or database_name != 'kb-db':
+if host != 'db' or database_name != 'postgres':
     print(
-        'Refusing to change a database that is not the local Compose database kb-db on host db.',
+        'Refusing to change a database that is not the local Compose database postgres on host db.',
         file=sys.stderr,
     )
     sys.exit(1)
@@ -34,7 +34,7 @@ if host != 'db' or database_name != 'kb-db':
 }
 
 drop_public_schema() {
-  docker compose exec -T db psql -U user -d kb-db -v ON_ERROR_STOP=1 <<'SQL'
+  docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = current_database()
@@ -51,7 +51,7 @@ apply_migrations() {
 }
 
 seed_monomachia() {
-  docker compose exec -T db psql -U user -d kb-db -v ON_ERROR_STOP=1 <<'SQL'
+  docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO public.tournaments (
     name,
     slug,

@@ -16,7 +16,7 @@ The following stacks describe intended architecture, not verified deployments. [
 
 | Responsibility | Local development | Production |
 | --- | --- | --- |
-| Application stack | `compose.yml`: frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend |
+| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend. Landing is a separate S3 static site |
 | Application entry | Existing development ports and frontend `/api` forwarding | Cloudflare HTTPS edge to EC2 Elastic IP, then Nginx on 443 |
 | Identity | Hosted Supabase Auth | Hosted Supabase Auth |
 | Domain database | PostgreSQL container, domain objects in `public` | Hosted Supabase PostgreSQL, domain objects in `public`; no PostgreSQL container |
@@ -27,7 +27,9 @@ The following stacks describe intended architecture, not verified deployments. [
 
 ```mermaid
 flowchart LR
-    Browser["Local browser"] --> Frontend
+    Browser["Local browser"] --> Landing["landing: development server"]
+    Browser --> Frontend
+    Landing -->|Registration link| Frontend
     subgraph Local["Local development - compose.yml"]
         Frontend["frontend: development server"] -->|/api requests| Backend["backend: FastAPI"]
         Backend --> Database["PostgreSQL container: public schema"]

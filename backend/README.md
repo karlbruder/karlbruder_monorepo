@@ -18,7 +18,7 @@ For container-based setup, follow the [root README](../README.md#local-setup-wit
 | `SUPABASE_URL` | Supabase HTTPS project root used for access-token verification. |
 | `AUTH_DATABASE_URL` | Optional PostgreSQL URI used only by `/health/auth`. |
 
-Use [the environment example](../.env.example) as a reference. Host-run processes read exported environment variables; they do not automatically load the root `.env` file. Compose supplies its own local database default when `DATABASE_URL` is blank.
+Copy [the environment example](.env.example) to `backend/.env`. Compose and `compose.prod.yml` load that file into the backend container. A host-run process does not load it automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
 
 ## Development
 
@@ -26,9 +26,9 @@ Run these commands from `backend/`, replacing the example values as needed:
 
 ```sh
 poetry install --no-root --with dev
-export DATABASE_URL='postgresql://user:password@127.0.0.1:5432/kb-db'
+export DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
 export SUPABASE_URL='https://PROJECT_REF.supabase.co'
-poetry run uvicorn main:karlbruder_app --reload --host 127.0.0.1 --port 8000
+poetry run uvicorn main:karlbruder_app --reload --host localhost --port 8000
 ```
 
 The sample database URI matches the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
@@ -56,7 +56,7 @@ poetry run alembic current
 Local Compose and production deployment details, including a migration that
 needs special care for existing signups, are in the [migration notes](docs/migrations.md).
 
-From the repository root, these commands manage only the Compose database `kb-db`.
+From the repository root, these commands manage only the Compose database `postgres`.
 They stop if the backend `DATABASE_URL` is not that local database.
 
 ```sh

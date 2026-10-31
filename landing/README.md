@@ -16,16 +16,30 @@ The Monomachia registration link opens `https://app.karlbruder.com/tournaments/r
 
 ## Local development
 
-Install Node.js and npm compatible with the checked-in lockfile, then run from `landing/`:
+Copy `.env.example` to `.env` in this directory. `REACT_APP_APPLICATION_URL` sets the registration link's application origin. Local development uses `http://localhost:5173`. A trailing slash is accepted. When the variable is unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin. The landing site does not submit registration data and does not need backend, database, or Supabase credentials to display its pages.
+
+Install Node.js and npm compatible with the checked-in lockfile when running on the host. From `landing/`:
 
 ```sh
 npm ci
 npm start
 ```
 
-The development server normally serves `http://localhost:3000`. This is the public website's default port; the separate application frontend uses 5173. The landing site is not a Compose service and requires no backend, database, or Supabase credentials to display its current pages.
+Local Compose runs this development server at `http://localhost:3000`. The application frontend stays on 5173. From the repository root:
 
-`REACT_APP_APPLICATION_URL` optionally replaces the registration link's application origin at build time. For a local landing-to-app check, set it to `http://localhost:5173` before starting or building the landing site. A trailing slash is accepted. When unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin; the landing site does not submit registration data.
+```sh
+docker compose up --build landing
+```
+
+The public site is not part of `compose.prod.yml`. Production builds the static bundle and publishes it to S3.
+
+To run the existing React tests in that same image:
+
+```sh
+docker compose run --rm --no-deps -e CI=true landing npm test -- --watchAll=false
+```
+
+Those tests do not use `compose.test.yml`. They do not need PostgreSQL. Host `npm start` and `npm test` remain available from this directory.
 
 ## Build and tests
 

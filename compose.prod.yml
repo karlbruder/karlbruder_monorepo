@@ -7,16 +7,14 @@ services:
 
     restart: unless-stopped
 
-    environment:
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
-      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-}
-      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+    env_file:
+      - ./backend/.env
 
     expose:
       - "8000"
 
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8000/health/db > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8000/health/db > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

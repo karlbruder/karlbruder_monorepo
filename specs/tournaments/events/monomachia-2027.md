@@ -5,7 +5,7 @@
 | Status | Draft |
 | Scope | First major event using the generic tournament platform |
 | Applications | landing for public presentation; frontend and backend for tournament workflows |
-| Sources | Product-owner overview; [Monomachia source requirements](../../../monomachia-requirements.md); [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20), [#21](https://github.com/karlbruder/karlbruder_monorepo/issues/21), [#24](https://github.com/karlbruder/karlbruder_monorepo/issues/24) |
+| Sources | Product-owner overview; Monomachia source notes folded into this specification; [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20), [#21](https://github.com/karlbruder/karlbruder_monorepo/issues/21), [#24](https://github.com/karlbruder/karlbruder_monorepo/issues/24) |
 
 ## Event facts from the source
 
