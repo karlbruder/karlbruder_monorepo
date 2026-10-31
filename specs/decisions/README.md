@@ -1,5 +1,8 @@
 # Decisions
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-17
+
 Decision records preserve the reason for a significant choice. They are not implementation task lists. Record status, source, consequences, and what direction is superseded. A future proposal should not be labeled accepted before the product owner chooses it.
 
 | Decision | Status | Subject |

@@ -1,5 +1,8 @@
 # Deployment
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-31
+
 | Field | Value |
 | --- | --- |
 | Status | Draft |

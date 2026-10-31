@@ -1,5 +1,8 @@
 # Operational runbooks
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-17
+
 Runbooks describe how to operate an implemented system. Intended hosting and access requirements live in the [platform specs](../../specs/platform/deployment.md).
 
 Local setup and verification commands are documented in the [root README](../../README.md), [backend README](../../backend/README.md), [frontend README](../../frontend/README.md), and [landing README](../../landing/README.md). Known application/configuration gaps are recorded in the [local-development spec](../../specs/platform/local-development.md).

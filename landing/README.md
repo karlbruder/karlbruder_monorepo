@@ -1,5 +1,8 @@
 # Karlbrüder public website
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-29
+
 Public React single-page website for `karlbruder.com.br`, built with Create React App (`react-scripts`). It introduces the group and presents Monomachia. Authenticated tournament workflows belong in [frontend](../frontend/README.md) and [backend](../backend/README.md).
 
 ## Pages and content

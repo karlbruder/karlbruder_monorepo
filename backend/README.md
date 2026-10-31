@@ -1,5 +1,8 @@
 # Karlbrüder backend
 
+**Created**: 2026-01-09
+**Last updated**: 2026-10-31
+
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
 ## Requirements

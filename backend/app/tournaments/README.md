@@ -1,5 +1,8 @@
 # Tournament module
 
+**Created**: 2026-10-26
+**Last updated**: 2026-10-31
+
 This module stores reusable `Tournament` and `TournamentSignup` records in the
 domain database. Monomachia is one event using the same catalog and registration
 APIs as future tournaments. Staff permissions apply across all tournaments.

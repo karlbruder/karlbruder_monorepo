@@ -1,5 +1,8 @@
 # 0003: Local and production stacks
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-17
+
 | Field | Value |
 | --- | --- |
 | Status | Accepted direction |

@@ -1,5 +1,8 @@
 # Application design
 
+**Created**: 2026-10-18
+**Last updated**: 2026-10-18
+
 These artifacts translate the living specifications into proposed screens for `app.karlbruder.com`. They are review material, not frontend implementation or approved changes to product policy.
 
 - [Application wireframes](app-wireframes/README.md): visual direction, screen-to-rule traceability, delivery boundaries, and review scenarios.

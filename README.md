@@ -1,5 +1,8 @@
 # Karlbrüder
 
+**Created**: 2023-03-24
+**Last updated**: 2026-10-31
+
 Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
 
 ## Repository map

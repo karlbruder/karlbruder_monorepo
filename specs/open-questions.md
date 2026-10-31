@@ -1,5 +1,8 @@
 # Open-question index
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-17
+
 There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
 The counts refer to numbered entries, not individual question marks or subchoices. Current scope means relevant to the tournament/public-website product; an entry blocks only work that depends on its answer. Deferred entries apply to later capabilities and do not block the first registration/proof-review release.

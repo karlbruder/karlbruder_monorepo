@@ -1,5 +1,8 @@
 # Domain migration notes
 
+**Created**: 2026-10-26
+**Last updated**: 2026-10-31
+
 Alembic manages Karlbrüder domain tables in the database selected by
 `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The migrations use PostgreSQL's `public` schema and do not create
 or modify Supabase-managed `auth` objects. Tournament table names, their foreign

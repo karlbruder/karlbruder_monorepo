@@ -1,5 +1,8 @@
 # Tournament consent and privacy
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-19
+
 | Field | Value |
 | --- | --- |
 | Status | Draft |
