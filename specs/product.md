@@ -37,6 +37,7 @@ The initial application roles are regular user, guild member, and guild staff (a
 - **PROD-012:** Regular users can register only for public, non-internal tournaments. Internal tournament access and participation are limited to guild members, including guild staff, and remain subject to the event's other eligibility rules.
 - **PROD-013:** Initial tournament payments accept Pix only, in BRL, until an official gateway is implemented. Amount, destination, dates, venue, and event rules are Tournament/payment configuration, not hardcoded product values.
 - **PROD-014:** Terms disclose participant-directory and results visibility to authorized platform users; there is no participant-list opt-out. Shared views use limited display fields and preserve internal-event and private-data restrictions. Participants may edit their own permitted signup fields; staff-only notes and system-managed fields remain protected.
+- **PROD-015:** The public website's [Hall of Heroes](public-website/presentation-and-navigation.md#hall-of-heroes) spotlights Karlbrüder members and lists their tournament achievements, including national and regional tournaments. This public presentation complements the application's tournament results capability without changing internal-event or private-data restrictions.
 
 ## First-release tournament experience
 

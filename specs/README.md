@@ -17,7 +17,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 
 | Area | Specifications | Applications |
 | --- | --- | --- |
-| Public website | [Presentation and navigation](public-website/presentation-and-navigation.md) | landing |
+| Public website | [Presentation and navigation](public-website/presentation-and-navigation.md), including [Hall of Heroes](public-website/presentation-and-navigation.md#hall-of-heroes) member spotlights and tournament achievements | landing |
 | Identity | [Authentication and access](identity/authentication-and-access.md) | frontend, backend |
 | Tournaments | [Catalog](tournaments/catalog.md), [registration](tournaments/registration.md) | frontend, backend |
 | Tournament operations | [Payments and confirmation](tournaments/payments-and-confirmation.md), [capacity and waitlist](tournaments/capacity-and-waitlist.md), [administration](tournaments/administration.md) | frontend, backend |
