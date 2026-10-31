@@ -31,14 +31,17 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Application
     ENV_NAME: str = ENV_NAME
     APP_NAME: str = APP_NAME
     CONTAINER_NAME: str = CONTAINER_NAME
 
+    # Versioning
     VERSION: str = VERSION
     GIT_SHA: str = GIT_SHA
     RELEASED_AT: str = RELEASED_AT
 
+    # Domain database
     DB_ENGINE: str = "postgresql"
     DB_DRIVER: str = "psycopg"
     DB_USER: str
@@ -47,12 +50,14 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str
 
+    # Auth database
     AUTH_DB_USER: str
     AUTH_DB_PASSWORD: str
     AUTH_DB_HOST: str
     AUTH_DB_PORT: int = 5432
     AUTH_DB_NAME: str
 
+    # Supabase
     SUPABASE_URL: AnyHttpUrl
 
     @field_validator("SUPABASE_URL")

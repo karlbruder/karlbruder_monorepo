@@ -118,6 +118,8 @@ A test for `backend/app/tournaments/` lives in `backend/tests/tournaments/`. A t
 
 Name the test file after the behavior it covers, for example `test_tournament_signups.py`. The test tree mirrors packages. It does not need a twin file for every source file. Tests stay under `backend/tests/`.
 
+Name the test for the result it locks in. When that name already says what happens and why it matters, do not add a docstring. When the name is only a list of steps or a spec id, add one short docstring. Say what the test does and what result it is trying to keep.
+
 When `compose.test.yml` exists, run backend tests with that file while developing. Do not switch to host `poetry run pytest` for the same run. The stack publishes no host ports. Give the run its own Compose project name so it does not collide with another agent.
 
 ```sh
@@ -152,6 +154,8 @@ Do not disable a Ruff rule without a short reason next to the exception.
 ## Writing
 
 Write docs, docstrings, comments, and Markdown for a person who is skimming.
+
+Do not add a comment that only restates the next line. A module docstring is fine. A section separator is fine. A short class or function docstring is fine when it adds something the name does not already say. When a class or function is hard to follow, the docstring may explain the reason and give an example. A comment on a line belongs where the reason is not visible in the code. Settings files and env examples follow the same rule.
 
 Use short sentences. Start a new sentence when the next idea begins. Join ideas with a comma, a period, or a new paragraph. Skip semicolons. Skip a dash used to splice two clauses into one sentence.
 

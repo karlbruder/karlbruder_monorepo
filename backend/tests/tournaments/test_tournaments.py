@@ -78,6 +78,10 @@ def _event(name="Fixture Tournament", *, internal=False, **overrides):
 
 
 def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(client):
+    """An admin can create more than one tournament, and the public catalog returns each one with its own fee and modality.
+
+    Signup rows and the next inscription serial stay out of that response.
+    """
     test_client, key = client
     admin = _headers(key, "admin")
     first = test_client.post(
@@ -113,6 +117,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
 
 
 def test_internal_event_is_hidden_from_guest_and_regular_user(client):
+    """Guests and regular users see only public events. Guild members and admins also see internal ones."""
     test_client, key = client
     admin = _headers(key, "admin")
     public_id = test_client.post(
@@ -214,6 +219,7 @@ def test_missing_or_blank_slug_uses_name_modality_and_event_year(client):
 
 
 def test_only_trusted_admin_claim_can_create(client):
+    """Only the admin role in app_metadata can create a tournament. The same role in user_metadata is ignored."""
     test_client, key = client
     forged_profile = _headers(
         key, "regular_user", user_metadata={"karlbruder_role": "admin"}
@@ -285,6 +291,7 @@ def test_unknown_event_returns_404_for_all_viewers(client):
 
 
 def test_catalog_routes_have_explicit_response_contracts(client):
+    """OpenAPI publishes the catalog list and detail routes, including the list filters. It does not publish a by-slug route."""
     test_client, _ = client
     schema = test_client.get("/openapi.json").json()
     assert "/api/tournaments" in schema["paths"]

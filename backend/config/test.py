@@ -19,8 +19,7 @@ class TestSettings(Settings):
     DB_HOST: str = "db"
     DB_NAME: str = "postgres"
 
-    # The test stack has no hosted Supabase database.
-    # The Auth diagnostic uses this same Postgres so settings can be built.
+    # This stack has no hosted Supabase. The auth health check uses the same database.
     AUTH_DB_USER: str = "postgres"
     AUTH_DB_PASSWORD: str = "postgres"
     AUTH_DB_HOST: str = "db"

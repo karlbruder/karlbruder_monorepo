@@ -92,7 +92,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('WF-04 self-registration and REG-007 result', () => {
+describe('Athlete submits their own registration and sees the result', () => {
   it('shows English draft controls and submits the same API values with image refusal', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
@@ -143,7 +143,7 @@ describe('WF-04 self-registration and REG-007 result', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
   })
-  it('posts exactly the #20 participant fields with the Supabase token and independent image refusal', async () => {
+  it('posts only the fields the athlete fills, with the account token, and image refusal stays a separate choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<SignupForm tournament={tournament} session={session} />)

@@ -117,6 +117,10 @@ def test_registration_day_uses_fixed_utc_minus_three_at_midnight():
 
 
 def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
+    """The owner can read their own signup, and staff-only fields stay off that view.
+
+    Another athlete cannot read it. An admin can, including the safety note and the full list.
+    """
     client, key, db_session = setup
     event_id = _create_event(client, key, max_competitor_capacity=0)
     owner_id = uuid4()
@@ -183,6 +187,10 @@ def test_priv_002_truthfulness_requires_explicit_json_true_without_creating_row(
 
 
 def test_authentication_owner_claims_and_required_input(setup):
+    """A signup needs a real bearer token and the account email.
+
+    The client cannot set the owner, status, inscription number, or staff fields. One valid signup is stored.
+    """
     client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
@@ -227,6 +235,10 @@ def test_authentication_owner_claims_and_required_input(setup):
 
 
 def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
+    """Signup is accepted only on the inclusive registration dates.
+
+    Staff closure, missing dates, or missing terms and regulation versions reject it. An unknown tournament is not found.
+    """
     client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
@@ -260,6 +272,10 @@ def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
 
 
 def test_internal_participation_and_tournament_scope(setup):
+    """A regular user cannot see or join an internal event. A guild member can.
+
+    An inscription number from one tournament is not found on another.
+    """
     client, key, _ = setup
     public_id = _create_event(client, key)
     internal_id = _create_event(client, key, internal=True)
@@ -285,6 +301,10 @@ def test_internal_participation_and_tournament_scope(setup):
 
 
 def test_normalized_duplicates_repeated_create_and_cancelled_replacement(setup):
+    """One active signup per person, email, and document, once case and punctuation are ignored.
+
+    Repeating that create conflicts. A cancelled signup can be replaced, and the new number is different.
+    """
     client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"

@@ -56,4 +56,6 @@ Create-issue creates a GitHub issue; plan-issue and implement-issue require one.
 - The backend owns domain rules, authorization, and database access. Frontend visibility checks do not replace backend authorization.
 - Supabase Auth owns application identity. Domain objects belong in PostgreSQL's `public` schema. Do not modify Supabase-managed `auth` objects.
 - Keep credentials, personal registration data, payment proofs, and private safety notes out of source files and public assets.
+- Do not add a comment that only restates the next line. A module docstring is fine. A section separator is fine. A short class or function docstring is fine when it adds something the name does not already say. When a class or function is hard to follow, the docstring may explain the reason and give an example. A comment on a line belongs where the reason is not visible in the code. Settings files and env examples follow the same rule.
+- A test name should say what the check does and what result it locks in. When the name already does that, stop. When it does not, add one short description in plain language. Pytest uses a function docstring. Vitest and Jest put that sentence in the `it` or `test` title, and add a comment only when the title still hides the point.
 

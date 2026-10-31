@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Reset or seed the Compose PostgreSQL database used for local development.
-# This talks to the db service in compose.yml. It refuses to migrate when the
-# backend database settings are not that local database.
+# Refuses to migrate unless the backend is pointed at the Compose db service.
 
 set -euo pipefail
 
