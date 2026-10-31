@@ -34,7 +34,17 @@ Avoid circular imports between domain packages. If two packages need the same he
 
 ## Configuration
 
-Settings come from environment variables. Settings that more than one domain reads live in `config/settings.py`. Settings that only one domain uses live in that package. Keep secrets out of source. The current auth settings in `config/settings.py` are the old placement.
+Settings come from environment variables. Settings that more than one domain reads live in `config/`. Settings that only one domain uses live in that package. Keep secrets out of source. The current auth settings in `config/` are the old placement.
+
+`config/base.py` holds the shared settings class. A setting the process cannot run without has no default there. Pydantic raises while it builds settings, and that build happens at startup. That is the failure we want.
+
+Do not add a validator whose only job is to reject a missing value. A required field already does that.
+
+Do not check again when a service starts or when a route runs. That code uses the value. It does not discover an empty setting while answering a request.
+
+`LocalSettings` may default the Compose domain database. It does not default the Auth database. That connection is hosted Supabase, including during local development. `TestSettings` may point the Auth diagnostic at the test database, because that stack has no hosted Supabase. `AwsSettings` does not invent a host, database name, user, or password. Secrets Manager fills only what that environment left unset.
+
+A fixed technical choice may have a default on the base class. The database driver is one. The PostgreSQL port is another, and it defaults to 5432. A host, database name, user, and password are not.
 
 ## Routers
 
@@ -123,7 +133,7 @@ New or changed logic needs its branches covered. Authentication and tournament r
 
 `db_session` already runs for every test. Do not add a database engine, a SQLite database, or another session fixture. Request `db_session` only when that test itself reads or writes rows. Routes already receive it.
 
-Tests use `DATABASE_URL`. In `compose.test.yml` that is the `postgres` database Compose starts, with user `postgres` and password `postgres`. The pytest session migrates that database to head. Each test still gets its own transaction, and that transaction rolls back when the test ends. A session scoped transaction would leave one test's rows visible to the next test. Tests are not split into parallel CI jobs. Do not create another database from the test suite.
+Tests use `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. In `compose.test.yml` that is the `postgres` database Compose starts, with user `postgres` and password `postgres`. The pytest session migrates that database to head. Each test still gets its own transaction, and that transaction rolls back when the test ends. A session scoped transaction would leave one test's rows visible to the next test. Tests are not split into parallel CI jobs. Do not create another database from the test suite.
 
 `compose.test.yml` keeps the PostgreSQL files in memory. The Postgres image marks its data directory as a volume, so without that mount Docker would keep an anonymous volume after the container stops. Mock calls that leave the process, such as the Supabase key fetch, and later S3 or SES.
 

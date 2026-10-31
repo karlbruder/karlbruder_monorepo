@@ -5,7 +5,7 @@
 | Status | Draft |
 | Scope | Shared platform foundation and tournament persistence |
 | Applications | backend and operational services |
-| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20); `backend/app/database.py`, `backend/config/settings.py`, and existing configuration documentation |
+| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20), `backend/app/database.py`, `backend/config/`, and existing configuration documentation |
 
 ## Goal
 
@@ -13,9 +13,9 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 
 ## Rules
 
-- **DATA-001:** Domain data uses PostgreSQL. Locally, `compose.yml` supplies a Docker PostgreSQL database; in production, the backend uses hosted Supabase PostgreSQL. Both hold domain data in `public`. `DATABASE_URL` selects the environment's destination. Production `compose.prod.yml` has no PostgreSQL service. Supabase Auth remains hosted in both environments.
+- **DATA-001:** Domain data uses PostgreSQL. Locally, `compose.yml` supplies a Docker PostgreSQL database. In production, the backend uses hosted Supabase PostgreSQL. Both hold domain data in `public`. The backend builds that connection from `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Production `compose.prod.yml` has no PostgreSQL service. Supabase Auth remains hosted in both environments.
 - **DATA-002:** Domain tables, indexes, and migrations belong in `public`. Supabase-managed `auth` objects must not be modified by application migrations.
-- **DATA-003:** `AUTH_DATABASE_URL` is a separate connection used by the current Auth database diagnostic. It is not the setting for verifying access tokens. Token verification uses the public project root `SUPABASE_URL` and public signing keys.
+- **DATA-003:** `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, and `AUTH_DB_PASSWORD` are required. They form a separate connection used by the current Auth database diagnostic. They are not the settings for verifying access tokens. Token verification uses the public project root `SUPABASE_URL` and public signing keys.
 - **DATA-004:** Local and deployed domain data are independent. Reusing migration history aligns schema, not data. No automatic local/remote synchronization is assumed.
 - **DATA-005:** Schema changes use versioned migrations. Issue #20 calls for Alembic, which is already a backend dependency but has no migration tree in the inspected checkout. Apply the same domain migration history to supported environments.
 - **DATA-006:** Persist unique inscription numbers and prevent non-cancelled registrations from sharing the same tournament plus user UUID, normalized email, or normalized document. Cancelled participation is excluded from those duplicate checks even while a refund awaits processing. Follow REG-012's comparison normalization and retain the original registration email for display/history. Send notifications to the current account email under COM-008. Coordinate confirmation and capacity assignment transactionally. Admin-only manual Supabase reopening must preserve these invariants.

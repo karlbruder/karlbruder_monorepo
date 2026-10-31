@@ -5,7 +5,7 @@ FastAPI service for the Karlbrüder application, using PostgreSQL for persistenc
 ## Requirements
 
 - Python 3.12 and Poetry for host development.
-- A PostgreSQL database accessible through `DATABASE_URL`.
+- A PostgreSQL database described by `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`.
 - A Supabase project for authenticated API requests.
 
 For container-based setup, follow the [root README](../README.md#local-setup-with-docker-compose).
@@ -14,9 +14,11 @@ For container-based setup, follow the [root README](../README.md#local-setup-wit
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Required SQLAlchemy database URI. |
+| `ENV_NAME` | `local` and `test` use those settings. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Domain PostgreSQL connection. The backend builds the URL from these values. |
 | `SUPABASE_URL` | Supabase HTTPS project root used for access-token verification. |
-| `AUTH_DATABASE_URL` | Optional PostgreSQL URI used only by `/health/auth`. |
+| `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD` | PostgreSQL connection used by `/health/auth`. |
+| `SECRET_NAME`, `AWS_REGION` | Required for AWS environments. Secrets Manager fills settings that are still empty. |
 
 Copy [the environment example](.env.example) to `backend/.env`. Compose and `compose.prod.yml` load that file into the backend container. A host-run process does not load it automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
 
@@ -26,12 +28,17 @@ Run these commands from `backend/`, replacing the example values as needed:
 
 ```sh
 poetry install --no-root --with dev
-export DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres'
+export ENV_NAME=local
+export DB_USER=postgres
+export DB_PASSWORD=postgres
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_NAME=postgres
 export SUPABASE_URL='https://PROJECT_REF.supabase.co'
 poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
 ```
 
-The sample database URI matches the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
+The sample database settings match the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
 
 Open `http://localhost:8000/docs` for API documentation and interactive requests. For protected requests, use **Authorize** with a Supabase access token from the configured project.
 
@@ -45,7 +52,7 @@ Database diagnostics report schema presence separately from connectivity; inspec
 
 ## Domain migrations
 
-Alembic manages the domain tables in the database selected by `DATABASE_URL`.
+Alembic manages the domain tables in the database selected by the `DB_*` settings.
 From `backend/`, apply migrations before starting an API version that uses new tables:
 
 ```sh
@@ -57,7 +64,7 @@ Local Compose and production deployment details, including a migration that
 needs special care for existing signups, are in the [migration notes](docs/migrations.md).
 
 From the repository root, these commands manage only the Compose database `postgres`.
-They stop if the backend `DATABASE_URL` is not that local database.
+They stop if the backend database host is not `db` or the database name is not `postgres`.
 
 ```sh
 make db-reset

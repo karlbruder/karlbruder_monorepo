@@ -18,7 +18,7 @@ ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
 
 @pytest.fixture(scope="session")
 def migrated_database():
-    """Migrate the database named by DATABASE_URL once for this pytest session."""
+    """Migrate the configured domain database once for this pytest session."""
 
     config = Config()
     config.set_main_option("script_location", str(ALEMBIC_DIR))

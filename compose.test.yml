@@ -36,9 +36,13 @@ services:
         condition: service_healthy
 
     environment:
-      DATABASE_URL: "postgresql://postgres:postgres@db:5432/postgres"
+      ENV_NAME: test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: postgres
       SUPABASE_URL: "https://test-project.supabase.co"
-      AUTH_DATABASE_URL: ""
 
     volumes:
       - ./backend:/app

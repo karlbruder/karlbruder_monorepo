@@ -6,7 +6,8 @@ from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
-from app.database import Base, get_database_url
+from app.database import Base
+from config import settings
 from app.tournaments import models  # noqa: F401 - register domain metadata
 
 config = context.config
@@ -26,7 +27,7 @@ def include_name(name, type_, parent_names):
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=get_database_url(),
+        url=settings.get_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -53,7 +54,7 @@ def run_migrations_online() -> None:
             context.run_migrations()
         return
 
-    url = get_database_url()
+    url = settings.get_database_url()
     # Reflect public as an explicit schema during autogenerate. PostgreSQL
     # otherwise reports public as the default (None), unlike our metadata.
     connect_args = (

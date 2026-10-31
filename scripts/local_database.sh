@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Reset or seed the Compose PostgreSQL database used for local development.
 # This talks to the db service in compose.yml. It refuses to migrate when the
-# backend DATABASE_URL is not that local database.
+# backend database settings are not that local database.
 
 set -euo pipefail
 
@@ -17,13 +17,12 @@ usage() {
 
 require_local_backend_database() {
   docker compose exec -T backend python -c "
-from sqlalchemy.engine import make_url
-import os
 import sys
 
-url = make_url(os.environ.get('DATABASE_URL', ''))
-host = (url.host or '').lower()
-database_name = url.database or ''
+from config import settings
+
+host = settings.DB_HOST.lower()
+database_name = settings.DB_NAME
 if host != 'db' or database_name != 'postgres':
     print(
         'Refusing to change a database that is not the local Compose database postgres on host db.',

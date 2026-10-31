@@ -15,7 +15,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 
 - **DEV-001:** The root README maps the applications and points to application-specific setup, environment examples, specs, and operational procedures.
 - **DEV-002:** Local Docker Compose provides the public website, the application frontend, the backend, and domain PostgreSQL. The public website is not part of the production Compose stack. Production publishes its built files to S3.
-- **DEV-003:** Local domain data uses the Compose database unless an explicit `DATABASE_URL` selects another destination. Outside Compose, `DATABASE_URL` is required by the current backend.
+- **DEV-003:** Local domain data uses the Compose database unless `DB_HOST` and `DB_NAME` select another destination. Outside Compose, those database settings are required by the current backend.
 - **DEV-004:** Application authentication uses the configured hosted Supabase project. Local domain PostgreSQL does not imply a locally hosted Supabase Auth system or synchronized remote data.
 - **DEV-005:** Environment examples describe public configuration and required secret names without containing real secrets. Setup documents identify which values are needed for the chosen workflow.
 - **DEV-006:** Retain the existing default development ports rather than introducing a new port-selection decision: current Compose uses landing 3000, frontend 5173, backend 8000, and PostgreSQL 5432. Align forwarding, health checks, and allowed origins with those settings as implementation work. Local servers may publish their development ports; production's Nginx-only exposure is a different stack boundary.

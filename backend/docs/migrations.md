@@ -1,7 +1,7 @@
 # Domain migration notes
 
 Alembic manages Karlbrüder domain tables in the database selected by
-`DATABASE_URL`. The migrations use PostgreSQL's `public` schema and do not create
+`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The migrations use PostgreSQL's `public` schema and do not create
 or modify Supabase-managed `auth` objects. Tournament table names, their foreign
 key, indexes, and Alembic version state are explicitly qualified as `public`,
 even when another schema comes first in the connection's `search_path`. Verify
@@ -12,7 +12,7 @@ the target database before a controlled deployment, then run
 For local Compose, start PostgreSQL with `docker compose up -d db` from the
 repository root. The backend image also contains Alembic, so a built and running
 backend can apply migrations with `docker compose exec -T backend alembic upgrade head`.
-In production, point `DATABASE_URL` at the intended Supabase PostgreSQL database
+In production, point `DB_HOST` and `DB_NAME` at the intended Supabase PostgreSQL database
 and run the upgrade as a controlled deployment step.
 
 If an earlier deployment ran these revisions with a non-`public` schema first

@@ -81,9 +81,10 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 
 | File | Variable | Use |
 | --- | --- | --- |
-| `backend/.env` | `DATABASE_URL` | Local Compose uses `postgresql://postgres:postgres@db:5432/postgres`. A host-run backend uses `localhost` instead of `db`. Production uses the hosted Supabase PostgreSQL URI. |
+| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Local Compose uses host `db`, database `postgres`, user `postgres`, and password `postgres`. A host-run backend uses `localhost` instead of `db`. |
 | `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
-| `backend/.env` | `AUTH_DATABASE_URL` | Optional hosted PostgreSQL URI, used only by `/health/auth`. It is unnecessary for sign-in or token verification. |
+| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
 | `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
@@ -109,7 +110,7 @@ make up
 | Protected identity endpoint | `http://localhost:8000/api/users/me` with a Bearer access token |
 | Local PostgreSQL | `localhost:5432`, database `postgres`, user `postgres`, password `postgres` |
 
-The sample database credentials are local development defaults. `backend/.env` points Compose at `postgresql://postgres:postgres@db:5432/postgres`. The hostname `db` works inside Compose. Host-run tools use `localhost`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
+The sample database credentials are local development defaults. `backend/.env` points Compose at host `db`, database `postgres`, user `postgres`, and password `postgres`. The hostname `db` works inside Compose. Host-run tools use `localhost`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
 
 Backend source is bind-mounted, and Uvicorn reloads when those files change. Frontend and landing mount their source trees, so edits there reload as well. `node_modules` and the Python packages stay in the image. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
 
@@ -136,7 +137,7 @@ These source-observed limitations remain, without changing the working same-orig
 - Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
 - `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
 
-Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A missing optional `AUTH_DATABASE_URL` makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
+Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
 ## Application development and checks
 
