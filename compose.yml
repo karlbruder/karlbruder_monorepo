@@ -41,8 +41,17 @@ services:
         condition: service_healthy
 
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/supabaseClient.tsx:/app/supabaseClient.tsx
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/vitest.config.ts:/app/vitest.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json
+      - ./frontend/eslint.config.js:/app/eslint.config.js
+      - ./frontend/.env:/app/.env
 
     ports:
       - "5173:5173"
@@ -58,6 +67,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
 
     container_name: kb-backend
 
@@ -73,17 +83,6 @@ services:
     volumes:
       - ./backend:/app
 
-    command:
-      - uvicorn
-      - main:karlbruder_app
-      - --reload
-      - --reload-exclude
-      - .venv
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-
     ports:
       - "8000:8000"
 
@@ -98,6 +97,7 @@ services:
     build:
       context: ./landing
       dockerfile: Dockerfile
+      target: development
 
     container_name: kb-landing
     restart: unless-stopped
@@ -106,8 +106,9 @@ services:
       - ./landing/.env
 
     volumes:
-      - ./landing:/app
-      - /app/node_modules
+      - ./landing/src:/app/src
+      - ./landing/public:/app/public
+      - ./landing/.env:/app/.env
 
     ports:
       - "3000:3000"

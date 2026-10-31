@@ -108,7 +108,7 @@ docker compose up --build
 
 The sample database credentials are local development defaults. `backend/.env` points Compose at `postgresql://postgres:postgres@db:5432/postgres`. The hostname `db` works inside Compose. Host-run tools use `localhost`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
 
-Backend source is bind-mounted, and Uvicorn reloads when those files change. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
+Backend source is bind-mounted, and Uvicorn reloads when those files change. Frontend and landing mount their source trees, so edits there reload as well. `node_modules` and the Python packages stay in the image. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
 
 ```sh
 docker compose up -d --build --force-recreate backend

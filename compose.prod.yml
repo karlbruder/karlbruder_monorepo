@@ -24,6 +24,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: production
 
     restart: unless-stopped
 

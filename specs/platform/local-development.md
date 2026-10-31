@@ -58,7 +58,7 @@ Changes since the 17 October baseline, confirmed by source inspection on 29 Octo
 
 Compose files as of 31 October 2026:
 
-- Local `compose.yml` runs landing, frontend, backend, and PostgreSQL. It bind-mounts application source. The backend starts Uvicorn with reload.
+- Local `compose.yml` runs landing, frontend, backend, and PostgreSQL. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
 - `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
 - `compose.prod.yml` is the Nginx, frontend, and backend stack. Nginx publishes 443 with a self-signed certificate.
 

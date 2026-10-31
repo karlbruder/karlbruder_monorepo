@@ -16,7 +16,7 @@
 
 ## Environment boundaries
 
-- Local `compose.yml` runs the public landing site, the application frontend, the backend, and domain PostgreSQL. Landing and frontend source are bind-mounted into their development servers. The backend source tree is bind-mounted and Uvicorn reloads on change. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
+- Local `compose.yml` runs the public landing site, the application frontend, the backend, and domain PostgreSQL. Landing and frontend source trees are bind-mounted into their development servers. Their dependencies stay in the image. The backend source tree is bind-mounted and Uvicorn reloads on change. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
 - The public site is not a production Compose service. Production builds the landing bundle and publishes it to S3. `compose.prod.yml` runs Nginx, frontend, and backend only.
 - `compose.test.yml` runs backend tests with a private PostgreSQL service and publishes no host ports. Agents use this file for tests. Pass `-p` with a unique project name when another test stack may be running, then remove that project with `down -v`.
 - Production `compose.prod.yml` runs separate Nginx, frontend, and backend services. Nginx terminates TLS with a self-signed certificate, preserves `/api` when forwarding to the backend, and sends other application requests to the frontend. Only Nginx publishes a host port, 443. Production domain data lives in Supabase PostgreSQL's `public` schema; there is no PostgreSQL container.

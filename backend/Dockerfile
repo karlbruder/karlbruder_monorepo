@@ -1,13 +1,15 @@
+# ----
+# Base
+# ----
 FROM python:3.12-slim-bookworm AS base
 
-# Variáveis de ambiente recomendadas
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV POETRY_VERSION=1.8.4
+ENV POETRY_VIRTUALENVS_CREATE=false
 
 WORKDIR /app
 
-# Dependências do sistema (psycopg, build tools)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -15,27 +17,44 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 - \
     && ln -s /root/.local/bin/poetry /usr/local/bin/poetry
 
-# Configura Poetry para não criar venv
-RUN poetry config virtualenvs.create false
+# -----------
+# Development
+# -----------
+FROM base AS development
 
-# Copia arquivos de dependência primeiro (cache eficiente)
-COPY pyproject.toml poetry.lock* ./
-
-# Instala dependências
-RUN poetry install --no-root --only main
-
-# Copia o código da aplicação
-COPY . .
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-root --with dev
 
 EXPOSE 8000
 
-FROM base AS test
-RUN poetry install --no-root --with dev
+CMD ["uvicorn", "main:karlbruder_app", "--reload", "--reload-exclude", ".venv", "--host", "0.0.0.0", "--port", "8000"]
+
+# ----
+# Test
+# ----
+FROM development AS test
+
 CMD ["pytest", "-x"]
 
+# -------
+# Builder
+# -------
+FROM base AS builder
+
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-root --only main
+
+# ----------
+# Production
+# ----------
 FROM base AS production
+
+COPY --from=builder /usr/local /usr/local
+COPY . /app
+
+EXPOSE 8000
+
 CMD ["gunicorn", "main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]
