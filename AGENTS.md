@@ -51,6 +51,15 @@ Create-issue creates a GitHub issue; plan-issue and implement-issue require one.
 - Update the relevant specification when the requested change alters behavior. Keep shared delivery requirements and task checklists in GitHub Issues, and detailed implementation plans and checkpoint state in `.local/plan-issue/`, rather than duplicating them in specs.
 - Report what was verified and which criteria remain unverified. Run checks appropriate to the changed application. When `compose.test.yml` exists, run that application's tests with it while developing. Do not replace that run with a host test command. Documentation-only changes need link and consistency checks, not application test runs.
 
+## Docs, specs, and readmes
+
+When you create or edit a file under `docs/`, `specs/`, or a `README.md` file, put these lines directly under the title:
+
+- `**Created**: YYYY-MM-DD`
+- `**Last updated**: YYYY-MM-DD`
+
+Set both dates when the file is created. On later edits, change `**Last updated**` to the edit date and leave `**Created**` as it is. These lines are not an ADR header.
+
 ## Repository conventions
 
 - The backend owns domain rules, authorization, and database access. Frontend visibility checks do not replace backend authorization.
