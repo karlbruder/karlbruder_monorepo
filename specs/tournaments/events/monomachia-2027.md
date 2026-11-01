@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@
 | Instagram | [monomachia.karlbruder](https://www.instagram.com/monomachia.karlbruder) |
 | Public presentation | Existing `/monomachia` page in `landing/` |
 | Registration | Authenticated application flow under the latest product direction |
-| Application entry | `app.karlbruder.com/tournaments/registration` from `karlbruder.com.br` or event links |
+| Application entry | `app.karlbruder.com/tournaments/registration` from `karlbruder.com` or event links |
 | Registration date convention | Opening day through closing day, inclusive, GMT-3 (UTC-03:00) |
 | Seat assignment | Staff confirmation occupies a seat, during payment approval or later selection from the paid waitlist; registration/proof review does not |
 

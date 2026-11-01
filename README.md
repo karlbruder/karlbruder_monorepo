@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
 
@@ -9,7 +9,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 
 | Directory or file | Responsibility | Setup |
 | --- | --- | --- |
-| `landing/` | Public React website at `karlbruder.com.br` | [Landing README](landing/README.md) |
+| `landing/` | Public React website at `karlbruder.com` | [Landing README](landing/README.md) |
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
 | `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
@@ -93,7 +93,7 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
-`compose.prod.yml` reads `/opt/karlbruder/backend.env` on the application host. It does not run the landing site. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+`compose.prod.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
 
 Start the local services:
 
@@ -153,10 +153,10 @@ Run commands in the relevant application's directory. Each application has its o
 
 ## Production direction
 
-Production Compose is `compose.prod.yml`. It runs Nginx, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. Frontend and backend ports stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
+Production Compose is `compose.prod.yml`. It runs Nginx, the landing site, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. The other services stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
 
-Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. Its proxied application A record targets the EC2 Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes an application host port. It preserves `/api` when forwarding to the backend and sends other application requests to the frontend.
+Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing and application names are proxied A records to that environment's Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes a host port. A landing hostname goes to the landing container. An application hostname preserves `/api` when forwarding to the backend and sends other requests to the frontend.
 
 Domain records use hosted Supabase PostgreSQL's `public` schema, with no production PostgreSQL container; Supabase manages `auth`. Private files will use S3, with Ministack locally when storage is implemented. Application email will use AWS SES via SMTP; local SMTP setup remains deferred. Credentials belong in environment/secrets configuration, never frontend bundles.
 
-The public landing site is separate. Its existing workflows build and deploy static assets to S3; their existence does not verify live DNS, account migration, or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).
+The public landing site is its own container in that Compose project. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).

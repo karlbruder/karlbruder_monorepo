@@ -17,10 +17,10 @@ Host the public website and application through clear, verifiable deployment pat
 ## Shared rules
 
 - **DEP-001:** Production infrastructure belongs in the Karlbrüder AWS account. The landing account-migration issue moves hosting away from a personal account.
-- **DEP-002:** The application runs on the production host through `compose.prod.yml`, containing Nginx, frontend, and backend containers. Supabase supplies hosted Auth and PostgreSQL; domain data uses `public`. There is no PostgreSQL container in production.
+- **DEP-002:** The application runs on the production host through `compose.prod.yml`, containing Nginx, landing, frontend, and backend containers. Supabase supplies hosted Auth and PostgreSQL; domain data uses `public`. There is no PostgreSQL container in production.
 - **DEP-003:** Human access, application credentials, and workflow credentials have separate responsibilities. Use authorized secret/configuration mechanisms. Never commit cloud or database credentials.
-- **DEP-004:** The application origin is `app.karlbruder.com`. Nginx forwards `/api` and `/api/...` unchanged to the backend and all other application requests to the frontend container. Frontend deep links and Supabase callbacks must work through this entry point. The separate public site uses `karlbruder.com.br`.
-- **DEP-005:** Cloudflare nameservers serve DNS, and a proxied A record targets the EC2 Elastic IP. Cloudflare manages public TLS and redirects HTTP 80 to HTTPS 443. The origin uses a self-signed certificate on Nginx with HTTPS 443 and Cloudflare Full mode. A test environment is required before live operation.
+- **DEP-004:** Prod answers the landing names `karlbruder.com` and `prod.karlbruder.com`, and the application names `app.karlbruder.com` and `app-prod.karlbruder.com`. Dev answers `dev.karlbruder.com` for the landing site and `app-dev.karlbruder.com` for the application. Nginx sends a landing name to the landing container. It sends `/api` and `/api/...` on an application name to the backend unchanged, and every other application request to the frontend container. Frontend deep links and Supabase callbacks must work through this entry point.
+- **DEP-005:** Cloudflare nameservers serve DNS. Each public name above is a proxied A record to that environment's EC2 Elastic IP. Cloudflare manages public TLS and redirects HTTP 80 to HTTPS 443. The origin uses a self-signed certificate on Nginx with HTTPS 443 and Cloudflare Full mode. A test environment is required before live operation.
 - **DEP-006:** A deploy verification checks the expected application release and relevant API/database behavior. Artifact publication alone does not verify deployment.
 - **DEP-007:** Application file storage uses Amazon S3. Application email uses AWS SES via SMTP. Configure backend access to these services; the local Ministack emulator is not a production service.
 - **DEP-008:** Only Nginx publishes a production application host port: 443. The frontend and backend communicate over the Compose network and do not publish host ports. Port 80 redirection happens at Cloudflare, preserving the HTTPS-only EC2 origin.
@@ -31,23 +31,24 @@ The complete application stack is defined by `compose.prod.yml`:
 
 | Component | Responsibility |
 | --- | --- |
-| Nginx container | HTTPS origin on published port 443 with a self-signed certificate; routes `/api` to backend and remaining requests to frontend |
+| Nginx container | HTTPS origin on published port 443 with a self-signed certificate. Landing hostnames go to the landing container. On an application hostname, `/api` goes to the backend and other requests go to the frontend |
+| Landing container | Serves the built public site, including SPA route fallback, on an internal Compose port |
 | Frontend container | Serves the built application, including SPA route fallback, on an internal Compose port |
 | Backend container | FastAPI domain logic, authorization, persistence, file access, and email on an internal Compose port |
 | Hosted Supabase | Supabase Auth plus PostgreSQL with domain records in `public` and managed identity in `auth` |
 | Amazon S3 | Restricted application files and payment proofs |
 | AWS SES SMTP | Application notification delivery |
-| Cloudflare | Authoritative DNS, proxied application A record to the Elastic IP, edge TLS certificate, and HTTP-to-HTTPS redirect |
+| Cloudflare | Authoritative DNS, proxied A records for the landing and application names to that environment's Elastic IP, edge TLS certificate, and HTTP-to-HTTPS redirect |
 
-Only the first three components are application Compose services. The public landing site is hosted separately. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 application ingress on 443 only.
+Landing, Nginx, frontend, and backend are the Compose services. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 ingress on 443 only.
 
-`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps frontend and backend ports on the Compose network. Cloudflare routing and a live HTTPS check are still separate work.
+`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_SERVER_NAMES` and `APP_SERVER_NAMES` when it starts and writes those names into its config. Prod sets `karlbruder.com prod.karlbruder.com` and `app.karlbruder.com app-prod.karlbruder.com`. Dev sets `dev.karlbruder.com` and `app-dev.karlbruder.com`. Cloudflare routing and a live HTTPS check are still separate work.
 
 ## Public website
 
-The existing workflow builds `landing/` and synchronizes its build output to S3. Source inspection on 17 October 2026 found manual or `master` push deployment, AWS credentials through GitHub secrets, and bucket/region values through repository variables. Landing CI builds relevant PR changes. The workflow's existence does not verify the target account, DNS, or running site.
+The public site is the landing container on the same host. A landing-only change builds that image and replaces that container. The edge Nginx container is started again so it looks up the new container address. Landing CI still builds relevant pull requests. A live DNS check is not claimed by this description.
 
-Issue #11 requires creating the target bucket in the Karlbrüder account, updating deployment configuration, moving Cloudflare routing, and retiring the old bucket after the replacement is working. The CDN/origin, deep-link fallback, and cutover verification need a concrete runbook. Issue #12 has no body, so requirements beyond its title are not reconstructed from it.
+Issue #11 still covers moving Cloudflare routing onto the Karlbrüder account and retiring the old public host. The landing files themselves are no longer a separate bucket. Issue #12 has no body, so requirements beyond its title are not reconstructed from it.
 
 ## Terraform workspaces
 
@@ -67,12 +68,6 @@ Each workload resource carries these tags.
 | `project-slug` | `kb` |
 | `repo` | `karlbruder/karlbruder_monorepo` |
 
-The landing bucket is account-regional and private. The root passes `bucket_name_prefix` as `kb-<env>-landing`. The module appends `-<account-id>-us-east-2-an`. A `prod` bucket starts with `kb-prod-landing`. Static website hosting is off, so the bucket name does not have to match the public DNS name. Block Public Access stays on.
-
-CloudFront reads the bucket with origin access control. The bucket policy allows `s3:GetObject` only for that distribution. The distribution allows GET and HEAD. POST and the other write methods are not allowed. The cache policy is `Managed-CachingDisabled`, and responses send `Cache-Control: no-store`, so a landing deploy does not need a cache invalidation. A missing object returns `index.html` with status 200, which keeps a refresh on a React route on the SPA. The distribution uses the default `*.cloudfront.net` certificate and price class 100. Price class 100 uses North America and Europe edges.
-
-Cloudflare CNAMEs the public landing name to the distribution hostname from `landing_cloudfront_domain_name`. The distribution has no alternate domain name yet. Cloudflare has to send that CloudFront hostname as the Host header and as SNI. If it sends `karlbruder.com.br` instead, CloudFront rejects the request until that name is added with an ACM certificate in `us-east-1`.
-
 Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
 
 ## Application host
@@ -91,7 +86,7 @@ A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a runni
 
 ## Application image deploy
 
-Each workspace has three ECR repositories: `kb-<env>/backend`, `kb-<env>/frontend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.prod.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
+Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.prod.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is `dev` or `prod`, the tag that moves when that service is built. The workflow also pushes the git SHA. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
 
 GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Both workspaces use it.
 
@@ -131,7 +126,7 @@ A job that does not set an environment uses the git ref. A branch is `repo:karlb
 }
 ```
 
-The permissions policy covers both workspaces. It can push to the six application repositories, describe instances, send `AWS-RunShellScript` only to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
+The permissions policy covers both workspaces. It can push to the eight application repositories, describe instances, send `AWS-RunShellScript` only to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
 
 ```json
 {
@@ -158,11 +153,13 @@ The permissions policy covers both workspaces. It can push to the six applicatio
         "ecr:UploadLayerPart"
       ],
       "Resource": [
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/backend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/landing",
         "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/frontend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/backend",
         "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/nginx",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/backend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/landing",
         "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/frontend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/backend",
         "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/nginx"
       ]
     },
@@ -202,7 +199,7 @@ The permissions policy covers both workspaces. It can push to the six applicatio
 }
 ```
 
-A push to `master` that changes the application, `compose.prod.yml`, or the deploy workflow deploys `prod`. `dev` deploys through `workflow_dispatch`. The workflow builds the three Dockerfiles, pushes the git SHA, and tells the host to pull and run `docker compose -f compose.prod.yml up -d --wait`. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
+A push to `master` deploys `prod` for the services whose files changed. A change to `compose.prod.yml` or the deploy workflow builds all four. `dev` deploys through `workflow_dispatch`, for one service or for all of them. The dev landing image is built with `https://app-dev.karlbruder.com`. The prod landing image is built with `https://app.karlbruder.com`. The host pulls those images, replaces those containers, and starts the edge Nginx container again. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
 
 ## Earlier deployment issues and reconciliation
 

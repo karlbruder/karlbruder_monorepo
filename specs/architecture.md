@@ -11,7 +11,7 @@
 
 ## Application boundaries
 
-`landing/` presents Karlbrüder at `karlbruder.com.br` and links to social channels, event information, and the application. `frontend/` and `backend/` form the application at `app.karlbruder.com`. The application's production Compose stack does not host the separate public landing site.
+`landing/` presents Karlbrüder at `karlbruder.com` and links to social channels, event information, and the application. `frontend/` and `backend/` form the application at `app.karlbruder.com`. Prod also answers `prod.karlbruder.com` and `app-prod.karlbruder.com`. Dev answers `dev.karlbruder.com` and `app-dev.karlbruder.com`. All of those names are served by the same Compose project.
 
 The following stacks describe intended architecture, not verified deployments. [Decision 0003](decisions/0003-local-and-production-stacks.md) records the owner's choices.
 
@@ -19,7 +19,7 @@ The following stacks describe intended architecture, not verified deployments. [
 
 | Responsibility | Local development | Production |
 | --- | --- | --- |
-| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend. Landing is a private S3 bucket behind CloudFront |
+| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, landing, frontend, and backend on one EC2 host |
 | Application entry | Existing development ports and frontend `/api` forwarding | Cloudflare HTTPS edge to EC2 Elastic IP, then Nginx on 443 |
 | Identity | Hosted Supabase Auth | Hosted Supabase Auth |
 | Domain database | PostgreSQL container, domain objects in `public` | Hosted Supabase PostgreSQL, domain objects in `public`; no PostgreSQL container |
@@ -67,17 +67,17 @@ flowchart LR
     Backend -->|SMTP| Email["AWS SES"]
 ```
 
-Production runs Nginx, frontend, and backend containers using `compose.prod.yml`. Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services. There is no PostgreSQL or Ministack container in production.
+Production runs Nginx, landing, frontend, and backend containers using `compose.prod.yml`. Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container in production.
 
 ## Production DNS and HTTPS
 
-Cloudflare nameservers provide authoritative DNS. The application has a proxied A record for `app.karlbruder.com` with the EC2 instance's static Elastic IP as its configured origin target. Proxying is required for Cloudflare to handle browser TLS; nameserver delegation alone does not put application requests through the edge.
+Cloudflare nameservers provide authoritative DNS. Prod has proxied A records for `karlbruder.com`, `prod.karlbruder.com`, `app.karlbruder.com`, and `app-prod.karlbruder.com`, all aimed at the prod Elastic IP. Dev has proxied A records for `dev.karlbruder.com` and `app-dev.karlbruder.com`, aimed at the dev Elastic IP. Proxying is required for Cloudflare to handle browser TLS.
 
 There are two TLS connections: the browser connects to Cloudflare using a Cloudflare-managed public certificate, and Cloudflare connects to Nginx on EC2 using HTTPS on 443 with the instance's self-signed certificate. For this self-signed origin design, Cloudflare uses **Full** encryption mode. Browser HTTP on port 80 redirects to HTTPS on 443 at the Cloudflare edge, so EC2 does not need a public HTTP listener.
 
 Only Nginx publishes an application port on the production host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
 
-The public site at `karlbruder.com.br` is not on that EC2 host. Landing files stay in a private S3 bucket. CloudFront reads them with origin access control and does not cache them. Cloudflare CNAMEs the public name to the CloudFront hostname. The application A record stays pointed at the Elastic IP.
+Nginx reads the Host header. A landing name goes to the landing container. An application name sends `/api` to the backend and every other path to the frontend. After a landing, frontend, or backend container is replaced, the deploy starts the edge Nginx container again so it looks up the new address.
 
 ## Guild staff access
 
@@ -136,7 +136,7 @@ The following observations came from source inspection, not runtime validation:
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.
 - The existing frontend Home/Health pages are not mounted by the application entry point. Health-page requests use `/api/health` paths while backend diagnostics use `/health`; future diagnostic UI integration must reconcile those paths. Production frontend build-time Supabase configuration also remains to be implemented.
 - The existing `frontend/nginx.conf` serves frontend assets and strips `/api/` when proxying. It does not implement the separately defined production reverse-proxy container or the chosen prefix-preserving contract.
-- Landing CI and S3 deployment workflows exist. The application workflow builds the Nginx, frontend, and backend images, pushes them to ECR, and restarts `compose.prod.yml` through Session Manager. A Ministack service, S3 and SMTP application integrations, and a live EC2 deploy check are not established by those files. The diagrams above remain the target architecture.
+- Landing CI remains. The deploy workflow builds only the images whose files changed, including landing, and restarts those containers through Session Manager. A Ministack service, S3 and SMTP application integrations, and a live EC2 deploy check are not established by those files. The diagrams above remain the target architecture.
 
 ## Acceptance criteria
 

@@ -1,9 +1,9 @@
 # Karlbrüder public website
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-29
+**Last updated**: 2026-11-01
 
-Public React single-page website for `karlbruder.com.br`, built with Create React App (`react-scripts`). It introduces the group and presents Monomachia. Authenticated tournament workflows belong in [frontend](../frontend/README.md) and [backend](../backend/README.md).
+Public React single-page website for `karlbruder.com`, built with Create React App (`react-scripts`). It introduces the group and presents Monomachia. Authenticated tournament workflows belong in [frontend](../frontend/README.md) and [backend](../backend/README.md).
 
 ## Pages and content
 
@@ -53,27 +53,16 @@ npm run build
 npm test -- --watchAll=false
 ```
 
-The static build is written to `build/`. The existing `src/App.test.js` checks Monomachia content and language switching. There is no separate lint script; use the package's build/test commands. A production static host must serve the SPA entry point for direct visits and refreshes on `/monomachia`; React routing alone does not configure an S3/CDN fallback.
+The static build is written to `build/`. The existing `src/App.test.js` checks Monomachia content and language switching. There is no separate lint script; use the package's build/test commands. The production landing image serves `index.html` for a direct visit or a refresh on `/monomachia`.
 
 ## Continuous integration and deployment
 
 The existing GitHub Actions workflows are:
 
-- [CI](../.github/workflows/ci-landing.yml): installs dependencies and builds on pull requests targeting `master` when landing files or its CI workflow change; it also supports manual runs. It does not currently run the test suite.
-- [Deployment](../.github/workflows/deploy-landing.yml): installs dependencies, builds, and synchronizes `build/` to S3 on pushes to `master` or manual runs. Its push trigger currently has no path filter, so changes outside `landing/` can also trigger deployment.
+- [CI](../.github/workflows/ci-landing.yml): installs dependencies and builds on pull requests targeting `master` when landing files or its CI workflow change. It also supports manual runs. It does not currently run the test suite.
+- [Deploy](../.github/workflows/deploy-application.yml): builds the landing image when landing files change, pushes it to ECR, and replaces the landing container. A prod build embeds `https://app.karlbruder.com`. A dev build embeds `https://app-dev.karlbruder.com`.
 
-Deployment requires these repository settings:
-
-| Setting | Kind | Purpose |
-| --- | --- | --- |
-| `AWS_ACCESS_KEY_ID` | Secret | Deployment AWS credential |
-| `AWS_SECRET_ACCESS_KEY` | Secret | Deployment AWS credential |
-| `AWS_REGION` | Variable | AWS destination region |
-| `LANDING_S3_BUCKET_NAME` | Variable | Target static-site bucket |
-
-The workflow's S3 sync uses `--delete`, removing destination objects absent from the build. These variables describe the current workflow; verify the target account/bucket before a live deployment. The landing CI workflow explicitly sets up Node.js; the deployment workflow currently relies on the runner's available Node/npm runtime.
-
-The workflow files do not verify that the account migration, Cloudflare routing, HTTPS, or SPA deep-link fallback is configured in production. Organizational hosting and cutover requirements live in the [deployment spec](../specs/platform/deployment.md#public-website). The public site remains separate from the planned application `compose.prod.yml` stack.
+The workflow files do not verify that Cloudflare routing or HTTPS is configured. Organizational hosting and cutover requirements live in the [deployment spec](../specs/platform/deployment.md#public-website).
 
 ## Related documentation
 

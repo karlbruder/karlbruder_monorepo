@@ -1,4 +1,12 @@
 services:
+  landing:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/landing:${IMAGE_TAG}
+
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
   backend:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/backend:${IMAGE_TAG}
 
@@ -30,7 +38,13 @@ services:
 
     restart: unless-stopped
 
+    environment:
+      LANDING_SERVER_NAMES: ${LANDING_SERVER_NAMES}
+      APP_SERVER_NAMES: ${APP_SERVER_NAMES}
+
     depends_on:
+      landing:
+        condition: service_started
       backend:
         condition: service_healthy
       frontend:

@@ -32,13 +32,15 @@ RUN npm ci
 
 COPY . .
 
+ARG REACT_APP_APPLICATION_URL
+ENV REACT_APP_APPLICATION_URL=$REACT_APP_APPLICATION_URL
+
 RUN npm run build
 
 # ----------
 # Production
 # ----------
-# Local preview of the static bundle. compose.prod.yml does not run this image.
-# Production publishes the same build output to S3.
+# Serves the static bundle on port 80. The edge Nginx container routes the public host here.
 FROM nginx:1.27-alpine AS production
 
 RUN rm /etc/nginx/conf.d/default.conf

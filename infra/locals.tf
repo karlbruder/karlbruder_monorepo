@@ -17,7 +17,7 @@ locals {
 
   namespace = "${local.project_slug}-${local.env}"
 
-  application_image_names = toset(["backend", "frontend", "nginx"])
+  application_image_names = toset(["backend", "frontend", "landing", "nginx"])
 
   application_instance_type = {
     dev  = "t3a.micro"

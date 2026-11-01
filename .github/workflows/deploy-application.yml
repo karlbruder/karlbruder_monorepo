@@ -7,6 +7,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "landing/**"
       - "nginx/**"
       - "compose.prod.yml"
       - ".github/workflows/deploy-application.yml"
@@ -20,6 +21,17 @@ on:
           - dev
           - prod
         default: dev
+      service:
+        description: Service to build
+        required: true
+        type: choice
+        options:
+          - all
+          - landing
+          - frontend
+          - backend
+          - nginx
+        default: all
 
 permissions:
   contents: read
@@ -33,31 +45,56 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: "976083331699"
   DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+  APPLICATION_ORIGIN: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'prod') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
   GITHUB_ACTIONS_ROLE_NAME: KbGithubActionsRole
   DEPLOY_PATH: /opt/karlbruder
 
 jobs:
+  changes:
+    name: Select changed services
+    runs-on: ubuntu-24.04
+    outputs:
+      services: ${{ github.event_name == 'workflow_dispatch' && (inputs.service == 'all' && '["backend","frontend","landing","nginx"]' || format('["{0}"]', inputs.service)) || steps.filter.outputs.changes }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'push'
+        uses: actions/checkout@v7
+
+      - name: Filter changed paths
+        if: github.event_name == 'push'
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'compose.prod.yml'
+              - '.github/workflows/deploy-application.yml'
+            frontend:
+              - 'frontend/**'
+              - 'compose.prod.yml'
+              - '.github/workflows/deploy-application.yml'
+            landing:
+              - 'landing/**'
+              - 'compose.prod.yml'
+              - '.github/workflows/deploy-application.yml'
+            nginx:
+              - 'nginx/**'
+              - 'compose.prod.yml'
+              - '.github/workflows/deploy-application.yml'
+
   build:
     name: Build and push ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.services != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - service: backend
-            context: backend
-            file: backend/Dockerfile
-            target: production
-          - service: frontend
-            context: frontend
-            file: frontend/Dockerfile
-            target: production
-          - service: nginx
-            context: nginx
-            file: nginx/Dockerfile
-            target: ""
+        service: ${{ fromJson(needs.changes.outputs.services) }}
 
     steps:
       - name: Checkout
@@ -78,10 +115,11 @@ jobs:
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          target: ${{ matrix.target }}
+          context: ${{ matrix.service }}
+          file: ${{ matrix.service }}/Dockerfile
+          target: production
           push: true
+          build-args: ${{ matrix.service == 'landing' && format('REACT_APP_APPLICATION_URL={0}', env.APPLICATION_ORIGIN) || '' }}
           tags: |
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ github.sha }}
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ env.DEPLOY_ENVIRONMENT }}
@@ -90,7 +128,8 @@ jobs:
 
   deploy:
     name: Deploy on the application host
-    needs: build
+    needs: [changes, build]
+    if: needs.build.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
@@ -107,11 +146,22 @@ jobs:
 
       - name: Deploy through Session Manager
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          RELEASE_SHA: ${{ github.sha }}
           NAMESPACE: kb-${{ env.DEPLOY_ENVIRONMENT }}
           HOST_NAME_TAG: kb-${{ env.DEPLOY_ENVIRONMENT }}-application-host
+          SERVICES: ${{ needs.changes.outputs.services }}
         run: |
           set -euo pipefail
+
+          if [ "${DEPLOY_ENVIRONMENT}" = "prod" ]; then
+            export LANDING_SERVER_NAMES="karlbruder.com prod.karlbruder.com"
+            export APP_SERVER_NAMES="app.karlbruder.com app-prod.karlbruder.com"
+          else
+            export LANDING_SERVER_NAMES="dev.karlbruder.com"
+            export APP_SERVER_NAMES="app-dev.karlbruder.com"
+          fi
+
+          export IMAGE_TAG="${DEPLOY_ENVIRONMENT}"
 
           instance_id="$(aws ec2 describe-instances \
             --region "${AWS_REGION}" \
@@ -131,11 +181,19 @@ jobs:
           import json
           import os
 
+          allowed_services = ["backend", "frontend", "landing", "nginx"]
+          services = json.loads(os.environ["SERVICES"])
+          if not services or any(service not in allowed_services for service in services):
+              raise SystemExit(f"Refusing unexpected service list: {services}")
+
           deploy_path = os.environ["DEPLOY_PATH"]
           aws_region = os.environ["AWS_REGION"]
           aws_account_id = os.environ["AWS_ACCOUNT_ID"]
           namespace = os.environ["NAMESPACE"]
           image_tag = os.environ["IMAGE_TAG"]
+          release_sha = os.environ["RELEASE_SHA"]
+          landing_server_names = os.environ["LANDING_SERVER_NAMES"]
+          app_server_names = os.environ["APP_SERVER_NAMES"]
           registry = f"{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com"
           compose_b64 = os.environ["compose_b64"]
 
@@ -153,17 +211,28 @@ jobs:
               f"export AWS_REGION={aws_region}",
               f"export NAMESPACE={namespace}",
               f"export IMAGE_TAG={image_tag}",
+              f"export LANDING_SERVER_NAMES='{landing_server_names}'",
+              f"export APP_SERVER_NAMES='{app_server_names}'",
               f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}",
-              "docker compose -f compose.prod.yml pull",
-              "docker compose -f compose.prod.yml up -d --remove-orphans --wait",
-              "docker image prune -f",
           ]
+
+          application_services = [service for service in services if service != "nginx"]
+          if application_services:
+              joined = " ".join(application_services)
+              commands.append(f"docker compose -f compose.prod.yml pull {joined}")
+              commands.append(f"docker compose -f compose.prod.yml up -d --no-deps --wait {joined}")
+
+          if "nginx" in services:
+              commands.append("docker compose -f compose.prod.yml pull nginx")
+
+          commands.append("docker compose -f compose.prod.yml up -d --no-deps --force-recreate --wait nginx")
+          commands.append("docker image prune -f")
 
           print(json.dumps({
               "DocumentName": "AWS-RunShellScript",
               "InstanceIds": [os.environ["instance_id"]],
               "TimeoutSeconds": 900,
-              "Comment": f"karlbruder deploy {image_tag}",
+              "Comment": f"karlbruder deploy {release_sha}",
               "Parameters": {"commands": commands},
           }))
           PY
