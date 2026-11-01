@@ -137,26 +137,34 @@ class VerificationTests(unittest.TestCase):
             ('["landing"]', 'old', '', False),
         ]:
             arguments = cli_args(dict(source, SERVICES=services), 'APPLICATION_BASE_URL', 'LANDING_BASE_URL', 'SERVICES', 'RELEASED_AT', 'RELEASE_SHA')
-            with self.subTest(services=services, sha=sha, released=released), patch.object(verify, 'request_with_retries', return_value=json.dumps({'git_sha': sha, 'released_at': released})):
+            with self.subTest(services=services, sha=sha, released=released), patch.dict(verify.os.environ, CLOUDFLARE_HEALTH_CHECK_SECRET='test-secret'), patch.object(verify, 'request_with_retries', return_value=json.dumps({'git_sha': sha, 'released_at': released})) as request:
                 if passed:
                     verify.main(arguments)
                 else:
                     with self.assertRaises(SystemExit):
                         verify.main(arguments)
+                self.assertEqual(request.call_args_list, [
+                    unittest.mock.call(url, 'test-secret') for url in [
+                        'https://landing.invalid', 'https://app.invalid',
+                        'https://app.invalid/api/health', 'https://app.invalid/api/metadata',
+                    ]
+                ])
 
     def test_http_failure_retries_then_returns_success(self):
         response = Mock()
         response.__enter__ = Mock(return_value=Mock(read=Mock(return_value=b'ok')))
         response.__exit__ = Mock(return_value=False)
         with patch.object(verify, 'urlopen', side_effect=[URLError('offline'), response]) as request, patch.object(verify.time, 'sleep') as sleep:
-            self.assertEqual(verify.request_with_retries('https://app.invalid'), b'ok')
+            self.assertEqual(verify.request_with_retries('https://app.invalid', 'test-secret'), b'ok')
             self.assertEqual(request.call_count, 2)
+            for attempt in request.call_args_list:
+                self.assertEqual(attempt.args[0].get_header('X-health-check'), 'test-secret')
             sleep.assert_called_once_with(5)
 
     def test_http_failure_stops_after_seven_attempts(self):
         with patch.object(verify, 'urlopen', side_effect=URLError('offline')) as request, patch.object(verify.time, 'sleep'), self.assertRaisesRegex(SystemExit, 'Request failed'):
             try:
-                verify.request_with_retries('https://app.invalid')
+                verify.request_with_retries('https://app.invalid', 'test-secret')
             finally:
                 self.assertEqual(request.call_count, 7)
 
