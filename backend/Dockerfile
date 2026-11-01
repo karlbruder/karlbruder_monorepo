@@ -62,4 +62,6 @@ COPY . /app
 
 EXPOSE 8000
 
+ENTRYPOINT ["sh", "/app/entrypoint.production.sh"]
+
 CMD ["gunicorn", "app.main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]
