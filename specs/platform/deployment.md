@@ -73,7 +73,7 @@ Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-ea
 
 ## Application host
 
-Each workspace has one EC2 instance in the account default VPC, on the first default subnet, with an Elastic IP. The image is the latest Ubuntu 24.04 LTS build for x86_64 from Canonical. `dev` uses `t3a.nano`. `prod` uses `t3a.micro`. The instance name is `kb-<env>-application-host`.
+Each workspace has one EC2 instance in the account default VPC, on the first default subnet, with an Elastic IP. The image is the latest Ubuntu 24.04 LTS build for x86_64 from Canonical. `dev` uses `t3a.micro`. `prod` uses `t3a.small`. The instance name is `kb-<env>-application-host`.
 
 The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume stays if the instance is terminated. AWS Backup is not configured for this host.
 

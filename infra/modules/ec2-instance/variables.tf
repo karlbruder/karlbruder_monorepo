@@ -14,7 +14,7 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type. The root selects t3a.nano for dev and t3a.micro for prod."
+  description = "EC2 instance type (eg. t3a.micro, t3a.small, t3a.medium)"
   type        = string
 }
 

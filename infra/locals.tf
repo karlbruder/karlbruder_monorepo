@@ -18,8 +18,8 @@ locals {
   namespace = "${local.project_slug}-${local.env}"
 
   application_instance_type = {
-    dev  = "t3a.nano"
-    prod = "t3a.micro"
+    dev  = "t3a.micro"
+    prod = "t3a.small"
   }[local.env]
 
   aws_tags = {
