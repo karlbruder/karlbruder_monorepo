@@ -10,6 +10,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 | Document | Purpose |
 | --- | --- |
 | [Product](product.md) | Users, application boundaries, initial scope, and future capabilities |
+| [Taxonomy](taxonomy.md) | Modes, local work, and the `dev` and `prod` cloud environments |
 | [Architecture](architecture.md) | Service responsibilities, data flow, integrations, and observed implementation gaps |
 | [Open-question index](open-questions.md) | Deduplicated current-scope questions, deferred questions, and technical follow-up owners |
 | [Decisions](decisions/README.md) | Significant choices and superseded directions |

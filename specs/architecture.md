@@ -13,17 +13,9 @@
 
 `landing/` presents Karlbrüder at `karlbruder.com` and links to social channels, event information, and the application. `frontend/` and `backend/` form the application at `app.karlbruder.com`. Prod also answers `prod.karlbruder.com` and `app-prod.karlbruder.com`. Dev answers `dev.karlbruder.com` and `app-dev.karlbruder.com`. All of those names are served by the same Compose project.
 
-The following stacks describe intended architecture, not verified deployments. [Decision 0003](decisions/0003-local-and-production-stacks.md) records the owner's choices.
+The following stacks describe intended architecture, not verified deployments. [Decision 0003](decisions/0003-local-and-production-stacks.md) records the owner's choices. Terms for modes and environments are in the [taxonomy](taxonomy.md).
 
-## Modes and cloud environments
-
-Development and production are modes. They describe how something is built and which settings it uses. `dev` and `prod` are cloud environments. They describe which host is running.
-
-Local work uses development mode through `compose.yml`.
-
-The `dev` environment and the `prod` environment both use production mode through `compose.production.yml`. Same file. Two hosts. The hosts differ by name, instance size, image namespace, and the secrets on that host.
-
-## Mode comparison
+## Stack comparison
 
 | Responsibility | Development mode | Production mode |
 | --- | --- | --- |
@@ -54,7 +46,7 @@ Local development still uses hosted Supabase for authentication, while domain Po
 
 Ministack is the chosen local AWS emulator for S3-backed files. It will join the local stack when file storage is implemented. The backend uses the S3 API in both modes, with a mode-specific endpoint and credentials. Ministack does not replace the explicit PostgreSQL container or Supabase Auth.
 
-## Production mode
+## Cloud host
 
 ```mermaid
 flowchart LR
@@ -77,29 +69,15 @@ flowchart LR
     Backend -->|SMTP| Email["AWS SES"]
 ```
 
-Production mode runs Nginx, landing, frontend, and backend with `compose.production.yml`. Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container in production mode. How an image reaches the host is described in the [deployment spec](platform/deployment.md).
+A cloud host runs Nginx, landing, frontend, and backend with `compose.production.yml`. Both `dev` and `prod` are a copy of this diagram. Each copy has its own Elastic IP and its own hostnames, listed in the [taxonomy](taxonomy.md). Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container on a cloud host. How an image reaches the host is described in the [deployment spec](platform/deployment.md).
 
-## Cloud environments
-
-`dev` and `prod` are two copies of the diagram above. Each copy has its own Elastic IP and its own hostnames. This picture does not include builds, ECR, or Session Manager.
-
-```mermaid
-flowchart LR
-    subgraph Dev["Environment dev"]
-        DevNames["dev.karlbruder.com and app-dev.karlbruder.com"] --> DevHost["EC2 host in production mode"]
-    end
-    subgraph Prod["Environment prod"]
-        ProdNames["karlbruder.com, prod.karlbruder.com, app.karlbruder.com, and app-prod.karlbruder.com"] --> ProdHost["EC2 host in production mode"]
-    end
-```
-
-## Production DNS and HTTPS
+## DNS and HTTPS
 
 Cloudflare nameservers provide authoritative DNS. Prod has proxied A records for `karlbruder.com`, `prod.karlbruder.com`, `app.karlbruder.com`, and `app-prod.karlbruder.com`, all aimed at the prod Elastic IP. Dev has proxied A records for `dev.karlbruder.com` and `app-dev.karlbruder.com`, aimed at the dev Elastic IP. Proxying is required for Cloudflare to handle browser TLS.
 
 There are two TLS connections: the browser connects to Cloudflare using a Cloudflare-managed public certificate, and Cloudflare connects to Nginx on EC2 using HTTPS on 443 with the instance's self-signed certificate. For this self-signed origin design, Cloudflare uses **Full** encryption mode. Browser HTTP on port 80 redirects to HTTPS on 443 at the Cloudflare edge, so EC2 does not need a public HTTP listener.
 
-Only Nginx publishes an application port on the production host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
+Only Nginx publishes an application port on a cloud host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
 
 Nginx reads the Host header. A landing name goes to the landing container. An application name sends `/api` to the backend and every other path to the frontend. After a landing, frontend, or backend container is replaced, the deploy starts the edge Nginx container again so it looks up the new address.
 
