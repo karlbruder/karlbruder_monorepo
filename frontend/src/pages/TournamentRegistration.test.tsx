@@ -13,6 +13,10 @@ vi.mock('../../supabaseClient', () => ({
       onAuthStateChange: vi.fn(),
       signInWithOAuth: vi.fn(),
       signOut: vi.fn(),
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      resetPasswordForEmail: vi.fn(),
+      updateUser: vi.fn(),
     },
   },
 }))
@@ -59,8 +63,9 @@ function mockTournament(response: unknown = tournament) {
 }
 
 function renderApp() {
+  const entry = `${window.location.pathname}${window.location.search}` || '/tournaments/registration'
   return render(
-    <MemoryRouter initialEntries={['/tournaments/registration']}>
+    <MemoryRouter initialEntries={[entry]}>
       <App />
     </MemoryRouter>,
   )
