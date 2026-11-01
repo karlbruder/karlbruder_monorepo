@@ -77,6 +77,8 @@ Cloudflare nameservers provide authoritative DNS. Prod has proxied A records for
 
 There are two TLS connections: the browser connects to Cloudflare using a Cloudflare-managed public certificate, and Cloudflare connects to Nginx on EC2 using HTTPS on 443 with the instance's self-signed certificate. For this self-signed origin design, Cloudflare uses **Full** encryption mode. Browser HTTP on port 80 redirects to HTTPS on 443 at the Cloudflare edge, so EC2 does not need a public HTTP listener.
 
+A DNS-only record skips Cloudflare TLS. The browser then sees the self-signed origin certificate and reports the site as not secure. Flexible mode targets origin port 80, which stays closed. Full (strict) requires a certificate Cloudflare can validate, which this self-signed origin certificate is not.
+
 Only Nginx publishes an application port on a cloud host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
 
 Nginx reads the Host header. A landing name goes to the landing container. An application name sends `/api` to the backend and every other path to the frontend. After a landing, frontend, or backend container is replaced, the deploy starts the edge Nginx container again so it looks up the new address.

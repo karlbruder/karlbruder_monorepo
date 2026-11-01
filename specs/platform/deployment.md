@@ -42,11 +42,15 @@ The complete application stack is defined by `compose.production.yml`:
 
 Landing, Nginx, frontend, and backend are the Compose services. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 ingress on 443 only.
 
+Keep each public name **proxied**. DNS only sends the browser straight to the self-signed Nginx certificate, so the browser reports the connection as not secure. Flexible mode makes Cloudflare call the origin on port 80, and that port is closed, so the site looks down. Full (strict) rejects the self-signed origin certificate. Full is the mode that encrypts the origin connection and still accepts that certificate.
+
 `compose.production.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_HOSTNAMES` and `APPLICATION_HOSTNAMES` when it starts and writes those hostnames into its config. Each value is a space-separated list for one Nginx `server_name`. `APPLICATION_BASE_URL` and `LANDING_BASE_URL` are single HTTPS URLs, not lists. The workflow reads all four from repository variables in its top-level `env` block. Cloudflare routing for those names is still separate work. The deploy workflow requests them after the host is up.
 
 ## Public website
 
 The public site is the landing container on the same host. A landing-only change builds that image and replaces that container. The edge Nginx container is started again so it looks up the new container address. Landing CI still builds relevant pull requests. A live DNS check is not claimed by this description.
+
+The Monomachia registration link is fixed when the landing image is built. The workflow passes `APPLICATION_BASE_URL` into the image as `REACT_APP_APPLICATION_URL`. That value is one HTTPS origin, such as `https://app-dev.karlbruder.com` or `https://app.karlbruder.com`, with no path. `http://localhost:5173` is only for local development. An empty value falls back to `https://app.karlbruder.com` inside the page. Changing the GitHub variable does not change a site that is already built. The landing image has to be built and deployed again.
 
 Issue #11 still covers moving Cloudflare routing onto the Karlbrüder account and retiring the old public host. The landing files themselves are no longer a separate bucket. Issue #12 has no body, so requirements beyond its title are not reconstructed from it.
 
@@ -75,7 +79,7 @@ Each workspace has one EC2 instance in the account default VPC, on the first def
 
 The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume stays if the instance is terminated. AWS Backup is not configured for this host.
 
-Inbound traffic is TCP 443 from the Cloudflare IPv4 ranges in `infra/main.ec2.application-host.tf`. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`. Instance metadata requires IMDSv2, and the response hop limit is 1, so a container on the Docker bridge cannot read the instance role.
+Inbound traffic is TCP 443 from the Cloudflare IPv4 ranges in `infra/main.ec2.application-host.tf`. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`. Instance metadata requires IMDSv2 with a response hop limit of 2 so the backend can obtain instance role credentials across the Docker bridge and read Secrets Manager. This also makes the host role available to other containers that can reach metadata. [Decision 0005](../decisions/0005-container-access-to-instance-role.md) records the owner's acceptance of that shared authority in both cloud environments.
 
 Outbound traffic is DNS on UDP and TCP 53, HTTP on TCP 80 for Ubuntu package mirrors, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
 

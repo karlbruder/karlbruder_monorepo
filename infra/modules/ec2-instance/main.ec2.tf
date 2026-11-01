@@ -72,8 +72,8 @@ resource "aws_instance" "this" {
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
-    # Host agents can read instance metadata. Bridge containers cannot.
-    http_put_response_hop_limit = 1
+    # Backend startup needs the instance role to read Secrets Manager. See ADR 0005.
+    http_put_response_hop_limit = 2
   }
 
   root_block_device {
