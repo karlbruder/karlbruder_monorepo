@@ -89,6 +89,8 @@ Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend
 
 GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Build, stamp, and deploy all use it, for both `dev` and `prod`.
 
+[Decision 0004](../decisions/0004-shared-github-actions-role.md) records the owner's acceptance of this combined authority at the current application scale. Separate build and deployment roles are not required by the current direction. The decision also records the safeguards and conditions for reconsideration.
+
 A token carries one `sub` value. The jobs in this workflow set a GitHub environment, so the token subject is `environment:dev` or `environment:prod`. The trust policy allows both.
 
 ```json

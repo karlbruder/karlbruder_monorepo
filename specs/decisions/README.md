@@ -10,5 +10,6 @@ Decision records preserve the reason for a significant choice. They are not impl
 | [0001](0001-public-website-and-application.md) | Accepted direction | Public website and authenticated application boundaries |
 | [0002](0002-application-and-team-identity.md) | Accepted direction | Supabase application identity and separate AWS team identity |
 | [0003](0003-local-and-production-stacks.md) | Accepted direction | Local Docker PostgreSQL. Production Compose on one EC2 host runs Nginx, landing, frontend, and backend, with Supabase PostgreSQL, S3 or Ministack files, and SES SMTP |
+| [0004](0004-shared-github-actions-role.md) | Accepted direction | One GitHub Actions role for build and deployment, with combined authority accepted for the current scale |
 
 Production topology is defined by decision 0003. Earlier deployment transport stages remain planning inputs in the [deployment spec](../platform/deployment.md); they do not override the chosen application stack.
