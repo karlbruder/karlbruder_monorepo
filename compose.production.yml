@@ -1,0 +1,60 @@
+services:
+  landing:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/landing:${IMAGE_TAG}
+
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
+  backend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/backend:${IMAGE_TAG}
+
+    restart: unless-stopped
+
+    env_file:
+      - backend.env
+
+    expose:
+      - "8000"
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8000/api/health/db > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/frontend:${IMAGE_TAG}
+
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
+  nginx:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/nginx:${IMAGE_TAG}
+
+    restart: unless-stopped
+
+    environment:
+      LANDING_SERVER_NAMES: ${LANDING_SERVER_NAMES}
+      APP_SERVER_NAMES: ${APP_SERVER_NAMES}
+
+    depends_on:
+      landing:
+        condition: service_started
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+    volumes:
+      - origin_certs:/etc/nginx/certs
+
+    ports:
+      - "443:443"
+
+volumes:
+  origin_certs:

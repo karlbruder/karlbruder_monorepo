@@ -1,0 +1,235 @@
+name: Deploy - Application
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "landing/**"
+      - "nginx/**"
+      - "compose.production.yml"
+      - ".github/workflows/deploy-application.yml"
+      - "scripts/deploy/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+      service:
+        description: Service to build
+        required: true
+        type: choice
+        options:
+          - all
+          - landing
+          - frontend
+          - backend
+          - nginx
+        default: all
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-application-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  ARN_IAM_ROLE_ARN: ${{ vars.ARN_IAM_ROLE_ARN }}
+  DEPLOY_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+  DEPLOY_PATH: /opt/karlbruder
+  LANDING_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'karlbruder.com prod.karlbruder.com' || 'dev.karlbruder.com' }}
+  APP_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'app.karlbruder.com app-prod.karlbruder.com' || 'app-dev.karlbruder.com' }}
+  APPLICATION_BASE_URL: ${{ inputs.environment == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
+  LANDING_BASE_URL: ${{ inputs.environment == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
+
+jobs:
+  changes:
+    name: Select changed services
+    runs-on: ubuntu-24.04
+    outputs:
+      released_at: ${{ steps.release.outputs.released_at }}
+      services: ${{ github.event_name == 'workflow_dispatch' && (inputs.service == 'all' && '["backend","frontend","landing","nginx"]' || format('["{0}"]', inputs.service)) || steps.filter.outputs.changes }}
+    steps:
+      - name: Set release build time
+        id: release
+        run: echo "released_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout
+        if: github.event_name == 'push'
+        uses: actions/checkout@v7
+
+      - name: Filter changed paths
+        if: github.event_name == 'push'
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'compose.production.yml'
+              - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
+            frontend:
+              - 'frontend/**'
+              - 'compose.production.yml'
+              - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
+            landing:
+              - 'landing/**'
+              - 'compose.production.yml'
+              - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
+            nginx:
+              - 'nginx/**'
+              - 'compose.production.yml'
+              - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
+
+  build:
+    name: Build and push ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ inputs.environment || 'dev' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        service: ${{ fromJson(needs.changes.outputs.services) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare image build arguments
+        id: build-args
+        env:
+          SERVICE: ${{ matrix.service }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          RELEASED_AT: ${{ needs.changes.outputs.released_at }}
+        run: |
+          set -euo pipefail
+          {
+            echo "args<<EOF"
+            if [ "${SERVICE}" != "nginx" ]; then
+              echo "GIT_SHA=${GITHUB_SHA}"
+              echo "RELEASED_AT=${RELEASED_AT}"
+            fi
+            case "${SERVICE}" in
+              frontend)
+                echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
+                ;;
+              landing)
+                echo "REACT_APP_APPLICATION_URL=${APPLICATION_BASE_URL}"
+                ;;
+            esac
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ matrix.service == 'frontend' && secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+        with:
+          context: ${{ matrix.service }}
+          file: ${{ matrix.service }}/Dockerfile
+          target: production
+          push: true
+          build-args: ${{ steps.build-args.outputs.args }}
+          secret-envs: ${{ matrix.service == 'frontend' && 'VITE_SUPABASE_PUBLISHABLE_KEY=VITE_SUPABASE_PUBLISHABLE_KEY' || '' }}
+          no-cache-filters: ${{ matrix.service == 'frontend' && 'builder' || '' }}
+          tags: |
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ env.DEPLOY_ENVIRONMENT }}
+          provenance: false
+          sbom: false
+
+  stamp:
+    name: Stamp unchanged images with the release SHA
+    needs: [changes, build]
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copy the environment tag onto the release SHA
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          SERVICES: ${{ needs.changes.outputs.services }}
+        run: python3 scripts/deploy/tag_unchanged_images.py
+
+  deploy:
+    name: Deploy on the application host
+    needs: [changes, stamp]
+    if: needs.stamp.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy through Session Manager
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          NAMESPACE: kb-${{ env.DEPLOY_ENVIRONMENT }}
+          HOST_NAME_TAG: kb-${{ env.DEPLOY_ENVIRONMENT }}-application-host
+        run: python3 scripts/deploy/deploy_application.py
+
+  verify:
+    name: Check the public hostnames
+    needs: [changes, deploy]
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Request landing, application, and API health
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          SERVICES: ${{ needs.changes.outputs.services }}
+          RELEASED_AT: ${{ needs.changes.outputs.released_at }}
+        run: python3 scripts/deploy/verify_application_release.py

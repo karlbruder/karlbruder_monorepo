@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -17,7 +17,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 ## Rules
 
 - **DEV-001:** The root README maps the applications and points to application-specific setup, environment examples, specs, and operational procedures.
-- **DEV-002:** Local Docker Compose provides the public website, the application frontend, the backend, and domain PostgreSQL. The public website is not part of the production Compose stack. Production publishes its built files to S3.
+- **DEV-002:** Local Docker Compose provides the public website, the application frontend, the backend, and domain PostgreSQL. That is development mode. Production mode runs that public site as the landing container in `compose.production.yml` on both cloud environments.
 - **DEV-003:** Local domain data uses the Compose database unless `DB_HOST` and `DB_NAME` select another destination. Outside Compose, those database settings are required by the current backend.
 - **DEV-004:** Application authentication uses the configured hosted Supabase project. Local domain PostgreSQL does not imply a locally hosted Supabase Auth system or synchronized remote data.
 - **DEV-005:** Environment examples describe public configuration and required secret names without containing real secrets. Setup documents identify which values are needed for the chosen workflow.
@@ -39,7 +39,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 | Hosted Supabase Auth | Application sign-in and verified user identity; still external in local development |
 | Ministack, planned addition | Local S3 storage when file upload/storage is implemented |
 
-Production instead uses `compose.prod.yml` with Nginx/frontend/backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. See the [architecture comparison and diagrams](../architecture.md#environment-comparison).
+Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [mode comparison and diagrams](../architecture.md#mode-comparison).
 
 ## Observed configuration and gaps
 
@@ -48,9 +48,9 @@ Source inspection on 17 October 2026 found:
 | Area | Observed baseline |
 | --- | --- |
 | Domain PostgreSQL | Compose service `db`, container `kb-db`, PostgreSQL 17, published port 5432, persistent volume |
-| Backend | Port 8000, `/health`, `/health/db`, `/health/auth`, `/api/users/me` |
+| Backend | Port 8000, `/api/health`, `/api/metadata`, `/api/health/db`, `/api/health/auth`, `/api/users/me` |
 | Frontend | Compose development target starts Vite on 5173 and publishes 5173 |
-| Public website | Compose development server on port 3000. Production still builds and publishes static files to S3 |
+| Public website | Compose development server on port 3000. Production serves the built site from the landing container |
 | Auth | Hosted project selected by configuration; frontend has Google SDK sign-in and backend token verification |
 
 Changes since the 17 October baseline, confirmed by source inspection on 29 October 2026:
@@ -63,16 +63,16 @@ Compose files as of 31 October 2026:
 
 - Local `compose.yml` runs landing, frontend, backend, and PostgreSQL. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
 - `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
-- `compose.prod.yml` is the Nginx, frontend, and backend stack. Nginx publishes 443 with a self-signed certificate.
+- `compose.production.yml` is production mode. The `dev` and `prod` hosts both use it. It runs Nginx, landing, frontend, and backend. Nginx publishes 443 with a self-signed certificate.
 
 Remaining inconsistencies and implementation gaps:
 
 - The backend CORS allowlist still names only `http://localhost:3000`. Direct cross-origin browser calls from the Vite origin at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist; the normal same-origin `/api` proxy path does not depend on it.
-- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app. The Health page also requests `/api/health` paths while backend diagnostics use `/health`; the UI and API paths need reconciliation.
+- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app.
 - The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
 - The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
 
-The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_ANON_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
+The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_PUBLISHABLE_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
 
 The 17 October specification pass did not run services or application tests to establish runtime health. The 29 October update above reflects source inspection, not a new end-to-end runtime check.
 
@@ -91,7 +91,7 @@ None about local ports, database placement, hosted authentication, or the `/api`
 
 ## Implementation decisions
 
-- Local Compose includes the landing development server. Landing Jest and frontend Vitest do not use `compose.test.yml`, because those suites do not need the private test database. Run them with `docker compose run --rm --no-deps` against the local development services. Production landing deployment stays on the S3 workflow.
+- Local Compose includes the landing development server. Landing Jest and frontend Vitest do not use `compose.test.yml`, because those suites do not need the private test database. Run them with `docker compose run --rm --no-deps` against the local development services. Production landing deploys with the application workflow when landing files change.
 - Choose frontend and end-to-end tooling to verify feature acceptance criteria as part of implementation. Issue #21 aligned the observed forwarding and health-check mismatches with the selected local settings; live browser acceptance remains a separate verification step.
 
 Local SMTP is a deferred implementation choice, likely SES with real credentials. Existing development ports and `/api` forwarding are implementation settings, not open product questions.

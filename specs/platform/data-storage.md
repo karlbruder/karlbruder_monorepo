@@ -1,7 +1,7 @@
 # Data storage
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 
 ## Rules
 
-- **DATA-001:** Domain data uses PostgreSQL. Locally, `compose.yml` supplies a Docker PostgreSQL database. In production, the backend uses hosted Supabase PostgreSQL. Both hold domain data in `public`. The backend builds that connection from `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Production `compose.prod.yml` has no PostgreSQL service. Supabase Auth remains hosted in both environments.
+- **DATA-001:** Domain data uses PostgreSQL. Development mode uses the Docker PostgreSQL service in `compose.yml`. Production mode uses hosted Supabase PostgreSQL. Both modes hold domain data in `public`. The backend builds that connection from `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. `compose.production.yml` has no PostgreSQL service. Supabase Auth remains hosted in both modes.
 - **DATA-002:** Domain tables, indexes, and migrations belong in `public`. Supabase-managed `auth` objects must not be modified by application migrations.
 - **DATA-003:** `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, and `AUTH_DB_PASSWORD` are required. They form a separate connection used by the current Auth database diagnostic. They are not the settings for verifying access tokens. Token verification uses the public project root `SUPABASE_URL` and public signing keys.
 - **DATA-004:** Local and deployed domain data are independent. Reusing migration history aligns schema, not data. No automatic local/remote synchronization is assumed.
@@ -38,7 +38,7 @@ The backend uses the same domain migrations and S3-facing storage logic across e
 
 ## Observed configuration
 
-The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/health/db` queries domain connectivity and `public`; `/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
+The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
 
 The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
 

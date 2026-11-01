@@ -1,7 +1,7 @@
 # 0001: Public website and authenticated application
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -15,7 +15,7 @@ The repository contains a public website in `landing/` and an application formed
 
 ## Decision
 
-The public website introduces Karlbrüder at `karlbruder.com.br` and links visitors to event information, social channels, and the application at `app.karlbruder.com`. Registration enters the application through `/tournaments/registration` and requires authentication. Monomachia is its first major event. Membership and equipment inventory are future application capabilities.
+The public website introduces Karlbrüder at `karlbruder.com` and links visitors to event information, social channels, and the application at `app.karlbruder.com`. Registration enters the application through `/tournaments/registration` and requires authentication. Monomachia is its first major event. Membership and equipment inventory are future application capabilities.
 
 ## Consequences
 

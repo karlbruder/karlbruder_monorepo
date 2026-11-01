@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -17,13 +17,13 @@ For container-based setup, follow the [root README](../README.md#local-setup-wit
 
 | Variable | Purpose |
 | --- | --- |
-| `ENV_NAME` | `local` and `test` use those settings. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `ENV_NAME` | `local` and `test` use those settings. Any other name uses AWS settings and requires `SECRET_NAME` and `AWS_REGION`. |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Domain PostgreSQL connection. The backend builds the URL from these values. |
 | `SUPABASE_URL` | Supabase HTTPS project root used for access-token verification. |
-| `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD` | PostgreSQL connection used by `/health/auth`. |
+| `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD` | PostgreSQL connection used by `/api/health/auth`. |
 | `SECRET_NAME`, `AWS_REGION` | Required for AWS environments. Secrets Manager fills settings that are still empty. |
 
-Copy [the environment example](.env.example) to `backend/.env`. Compose and `compose.prod.yml` load that file into the backend container. A host-run process does not load it automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
+Copy [the environment example](.env.example) to `backend/.env`. Local Compose loads that file into the backend container. Production Compose loads `/opt/karlbruder/backend.env` on the application host. A host-run process does not load either file automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
 
 ## Development
 
@@ -47,9 +47,10 @@ Open `http://localhost:8000/docs` for API documentation and interactive requests
 
 ## Diagnostics
 
-- `/health` checks process liveness.
-- `/health/db` checks database connectivity and reports whether `public` exists.
-- `/health/auth` checks the optional Auth database connection and reports whether `auth` exists.
+- `/api/health` checks process liveness and returns 200 with no body.
+- `/api/metadata` returns `git_sha` and `released_at`.
+- `/api/health/db` checks database connectivity and reports whether `public` exists.
+- `/api/health/auth` checks the optional Auth database connection and reports whether `auth` exists.
 
 Database diagnostics report schema presence separately from connectivity; inspect the response body. They do not verify that application migrations have been applied. Connection failures return 503; details are logged by the backend.
 

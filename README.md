@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
 
@@ -9,13 +9,13 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 
 | Directory or file | Responsibility | Setup |
 | --- | --- | --- |
-| `landing/` | Public React website at `karlbruder.com.br` | [Landing README](landing/README.md) |
+| `landing/` | Public React website at `karlbruder.com` | [Landing README](landing/README.md) |
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
 | `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
 | `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
 | `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
-| `compose.prod.yml` | Production Nginx, frontend, and backend | Production direction below |
+| `compose.production.yml` | Production mode on the `dev` and `prod` hosts: Nginx, landing, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
 | `docs/aws.md` | How the team signs in to the AWS account | [AWS](docs/aws.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
@@ -85,15 +85,15 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 
 | File | Variable | Use |
 | --- | --- | --- |
-| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings from the environment and the env file. |
 | `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Local Compose uses host `db`, database `postgres`, user `postgres`, and password `postgres`. A host-run backend uses `localhost` instead of `db`. |
 | `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
-| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
+| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/api/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
 | `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
-| `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
+| `frontend/.env` | `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's public `sb_publishable_...` key. Never use a secret or service-role key. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
-`compose.prod.yml` reads `backend/.env` on the server. It does not run the landing site. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+`compose.production.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
 
 Start the local services:
 
@@ -108,9 +108,10 @@ make up
 | Public website | `http://localhost:3000` |
 | Frontend development server | `http://localhost:5173` |
 | Backend API and Swagger UI | `http://localhost:8000/docs` |
-| Backend liveness | `http://localhost:8000/health` |
-| Domain database diagnostic | `http://localhost:8000/health/db` |
-| Optional Auth database diagnostic | `http://localhost:8000/health/auth` |
+| Backend liveness | `http://localhost:8000/api/health` |
+| Release metadata | `http://localhost:8000/api/metadata` |
+| Domain database diagnostic | `http://localhost:8000/api/health/db` |
+| Optional Auth database diagnostic | `http://localhost:8000/api/health/auth` |
 | Protected identity endpoint | `http://localhost:8000/api/users/me` with a Bearer access token |
 | Local PostgreSQL | `localhost:5432`, database `postgres`, user `postgres`, password `postgres` |
 
@@ -141,7 +142,7 @@ These source-observed limitations remain, without changing the working same-orig
 - Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
 - `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
 
-Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
+Backend container health checks exercise the domain database via `/api/health/db`. Liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/api/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
 ## Application development and checks
 
@@ -153,10 +154,10 @@ Run commands in the relevant application's directory. Each application has its o
 
 ## Production direction
 
-Production Compose is `compose.prod.yml`. It runs Nginx, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. Frontend and backend ports stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
+Production mode is `compose.production.yml`. The `dev` and `prod` hosts both use it. It runs Nginx, the landing site, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. The other services stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
 
-Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. Its proxied application A record targets the EC2 Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes an application host port. It preserves `/api` when forwarding to the backend and sends other application requests to the frontend.
+Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing and application names are proxied A records to that environment's Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes a host port. A landing hostname goes to the landing container. An application hostname preserves `/api` when forwarding to the backend and sends other requests to the frontend.
 
 Domain records use hosted Supabase PostgreSQL's `public` schema, with no production PostgreSQL container; Supabase manages `auth`. Private files will use S3, with Ministack locally when storage is implemented. Application email will use AWS SES via SMTP; local SMTP setup remains deferred. Credentials belong in environment/secrets configuration, never frontend bundles.
 
-The public landing site is separate. Its existing workflows build and deploy static assets to S3; their existence does not verify live DNS, account migration, or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).
+The public landing site is its own container in that Compose project. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).

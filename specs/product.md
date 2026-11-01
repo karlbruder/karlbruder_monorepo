@@ -1,7 +1,7 @@
 # Karlbrüder product
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -35,7 +35,7 @@ The initial application roles are regular user, guild member, and guild staff (a
 - **PROD-007:** Users register only themselves. An account cannot register another athlete, including a minor.
 - **PROD-008:** A minor registering themselves uploads a scanned parental responsibility term through the platform and may participate only with parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff verification. The uploaded signed term, in-person check, and parental accompaniment are all required.
 - **PROD-009:** The initial application roles are regular user, guild member, and guild staff (admin), with cumulative permissions as described above. Guild staff have full application access across all tournaments, without event-specific grants. Regular users manage only their own participant records and profile information. The backend enforces these boundaries; updating a profile must not allow a user to grant themselves membership or admin privileges.
-- **PROD-010:** The application uses `app.karlbruder.com`. The public website uses `karlbruder.com.br`. Public event registration links open the frontend route `/tournaments/registration`, whose form submits a POST request to the backend tournament sign-up resource. The backend endpoint path and the mechanism for carrying the selected tournament through sign-in belong in the detailed registration and identity specifications.
+- **PROD-010:** The application uses `app.karlbruder.com`. The public website uses `karlbruder.com`. Prod also accepts `app-prod.karlbruder.com` and `prod.karlbruder.com`. Dev uses `app-dev.karlbruder.com` and `dev.karlbruder.com`. Public event registration links open the frontend route `/tournaments/registration`, whose form submits a POST request to the backend tournament sign-up resource. The backend endpoint path and the mechanism for carrying the selected tournament through sign-in belong in the detailed registration and identity specifications.
 - **PROD-011:** The first usable release delivers tournament registration and payment-proof upload/review, with the authentication, access controls, and validation needed to support them. Results and other extensions follow in later releases. A full tournament administration suite, broader automatic messaging, and exports may follow; the initial review flow requires authorized staff decisions, waitlist-entry email when applicable, and rejected-evidence notification with resubmission. Refund confirmation and material event-change notifications are required when their respective workflows are delivered.
 - **PROD-012:** Regular users can register only for public, non-internal tournaments. Internal tournament access and participation are limited to guild members, including guild staff, and remain subject to the event's other eligibility rules.
 - **PROD-013:** Initial tournament payments accept Pix only, in BRL, until an official gateway is implemented. Amount, destination, dates, venue, and event rules are Tournament/payment configuration, not hardcoded product values.

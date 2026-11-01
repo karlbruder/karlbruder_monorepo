@@ -1,7 +1,7 @@
 # Specifications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-18
+**Last updated**: 2026-11-01
 
 These living specifications describe the intended Karlbrüder product and platform. The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the Monomachia source notes, and a read-only inspection of this checkout. Those source notes now live in the Monomachia event specification.
 
@@ -10,6 +10,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 | Document | Purpose |
 | --- | --- |
 | [Product](product.md) | Users, application boundaries, initial scope, and future capabilities |
+| [Taxonomy](taxonomy.md) | Modes, local work, and the `dev` and `prod` cloud environments |
 | [Architecture](architecture.md) | Service responsibilities, data flow, integrations, and observed implementation gaps |
 | [Open-question index](open-questions.md) | Deduplicated current-scope questions, deferred questions, and technical follow-up owners |
 | [Decisions](decisions/README.md) | Significant choices and superseded directions |
@@ -84,6 +85,6 @@ This maps every item returned by the Website project inventory. Issue descriptio
 | [#24: Monomachia visual identity](https://github.com/karlbruder/karlbruder_monorepo/issues/24) | Website, Monomachia event | Preserve event presentation; submission references follow decision 0001 |
 | [#25: EC2 and SCP deployment](https://github.com/karlbruder/karlbruder_monorepo/issues/25) | Deployment | Initial deployment stage, not the permanent target |
 | Project draft: monthly membership payment tracking | Membership | Future scope; fees, exemptions, and discounts unresolved |
-| Project draft: private frontend deployment | Deployment, decision 0003 | Resolved by owner: Nginx/frontend/backend in `compose.prod.yml`, with hosted Supabase PostgreSQL |
+| Project draft: private frontend deployment | Deployment, decision 0003 | Resolved by owner: Nginx, landing, frontend, and backend in `compose.production.yml`, with hosted Supabase PostgreSQL |
 
 The existing Monomachia source document describes broader guild requirements than the current implementation issues. This set preserves them in the relevant tournament documents, including communications, administration, consent, and privacy. Proposed features there are not evidence of delivery.

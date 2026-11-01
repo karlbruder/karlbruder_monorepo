@@ -52,6 +52,11 @@ RUN poetry install --no-root --only main
 # ----------
 FROM base AS production
 
+ARG GIT_SHA=NaN
+ARG RELEASED_AT=unknown
+ENV GIT_SHA=${GIT_SHA}
+ENV RELEASED_AT=${RELEASED_AT}
+
 COPY --from=builder /usr/local /usr/local
 COPY . /app
 
