@@ -1,7 +1,7 @@
 provider "aws" {
-  region = var.aws_region
+  region = local.aws_region
 
   default_tags {
-    tags = local.workload_tags
+    tags = local.aws_tags
   }
 }

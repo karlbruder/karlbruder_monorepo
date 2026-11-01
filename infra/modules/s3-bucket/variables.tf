@@ -1,13 +1,3 @@
-variable "project_short_name" {
-  description = "Short project name used when the bucket name is derived."
-  type        = string
-}
-
-variable "env" {
-  description = "Environment name used when the bucket name is derived. Example: prod."
-  type        = string
-}
-
 variable "tags" {
   description = "Tags applied to the bucket."
   type        = map(string)
@@ -15,7 +5,7 @@ variable "tags" {
 }
 
 variable "bucket_name" {
-  description = "Full bucket name. When null, the name is derived from project_short_name, env, and bucket_name_suffix. An account-regional name must already include the account id, region, and -an suffix."
+  description = "Full bucket name. When null, the name is derived from bucket_name_prefix. An account-regional name must already include the account id, region, and -an suffix."
   type        = string
   default     = null
 
@@ -29,10 +19,18 @@ variable "bucket_name" {
   }
 }
 
-variable "bucket_name_suffix" {
-  description = "Suffix used when bucket_name is null. Example: landing."
+variable "bucket_name_prefix" {
+  description = "Customer-chosen bucket name before the account-regional suffix. Example: kb-prod-landing. Ignored when bucket_name is set."
   type        = string
   default     = null
+
+  validation {
+    condition = (
+      var.bucket_name_prefix == null
+      || can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.bucket_name_prefix))
+    )
+    error_message = "bucket_name_prefix must be a lowercase DNS-style name."
+  }
 }
 
 variable "bucket_namespace_scope" {

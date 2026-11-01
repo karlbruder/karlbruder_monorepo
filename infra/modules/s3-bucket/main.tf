@@ -7,17 +7,11 @@ data "aws_region" "current" {
 }
 
 locals {
-  derived_base_name = (
-    var.bucket_name == null && var.bucket_name_suffix != null
-    ? "${var.project_short_name}-${var.env}-${var.bucket_name_suffix}"
-    : null
-  )
-
   bucket_name = (
     var.bucket_name != null ? var.bucket_name :
-    var.bucket_namespace_scope == "account_regional" && local.derived_base_name != null
-    ? "${local.derived_base_name}-${data.aws_caller_identity.current[0].account_id}-${data.aws_region.current[0].name}-an"
-    : local.derived_base_name
+    var.bucket_namespace_scope == "account_regional" && var.bucket_name_prefix != null
+    ? "${var.bucket_name_prefix}-${data.aws_caller_identity.current[0].account_id}-${data.aws_region.current[0].name}-an"
+    : var.bucket_name_prefix
   )
 
   bucket_namespace = var.bucket_namespace_scope == "account_regional" ? "account-regional" : "global"
@@ -33,7 +27,7 @@ resource "aws_s3_bucket" "this" {
 
     precondition {
       condition     = local.bucket_name != null
-      error_message = "Set bucket_name, or set bucket_name_suffix so the module can derive a name."
+      error_message = "Set bucket_name, or set bucket_name_prefix so the module can derive a name."
     }
 
     precondition {

@@ -51,22 +51,23 @@ Issue #11 requires creating the target bucket in the Karlbrüder account, updati
 
 ## Terraform workspaces
 
-Workload Terraform lives in `infra/`. It accepts the `dev` and `prod` workspaces only. Any other workspace, including `default`, fails the plan.
+Workload Terraform lives in `infra/`. It accepts the `dev` and `prod` workspaces only. Any other workspace, including `default`, fails the plan. The region is `us-east-2`.
 
-The project name and the project slug are inputs. Both default to `karlbruder`. The workspace name is the environment. Workload resource names use `<project-slug>-<env>-<component>`.
+The project name is `karlbruder`. The project slug is `kb`. Both are locals, because they stay the same in every environment. The workspace name is the environment. Workload resource names use `<project-slug>-<env>-<component>`.
 
 Each workload resource carries these tags.
 
 | Tag | Value |
 | --- | --- |
-| `project` | Project name input |
-| `project-slug` | Project slug input |
+| `author` | `Terraform` |
+| `scope` | `regional` |
 | `env` | `dev` or `prod` |
 | `environment` | `development` for `dev`, and `production` for `prod` |
-| `author` | `Terraform` |
+| `project-name` | `karlbruder` |
+| `project-slug` | `kb` |
 | `repo` | `karlbruder/karlbruder_monorepo` |
 
-The landing bucket is account-regional. Its derived name is `<project-slug>-<env>-landing-<account-id>-<region>-an`. The bucket is public. Static website hosting is on. The index document and the error document are both `index.html`, so a refresh on a React route still returns the SPA. The bucket allows HTTP. The S3 website endpoint does not accept HTTPS.
+The landing bucket is account-regional. The root passes `bucket_name_prefix` as `kb-<env>-landing`. The module appends `-<account-id>-us-east-2-an`. A `prod` bucket starts with `kb-prod-landing`. The bucket is public. Static website hosting is on. The index document and the error document are both `index.html`, so a refresh on a React route still returns the SPA. The bucket allows HTTP. The S3 website endpoint does not accept HTTPS.
 
 ## Earlier deployment issues and reconciliation
 

@@ -1,19 +1,29 @@
 locals {
-  supported_workspaces = {
-    dev  = "development"
-    prod = "production"
-  }
+  project_name = "karlbruder"
+  project_slug = "kb"
+  repo         = "karlbruder/karlbruder_monorepo"
+  scope        = "regional"
+  aws_region   = "us-east-2"
 
-  workspace_is_supported = contains(keys(local.supported_workspaces), terraform.workspace)
-  environment_name       = local.workspace_is_supported ? local.supported_workspaces[terraform.workspace] : "unsupported"
-  namespace              = "${var.project_slug}-${terraform.workspace}"
+  env = terraform.workspace
+  environment = lookup(
+    {
+      dev  = "development"
+      prod = "production"
+    },
+    local.env,
+    "unsupported",
+  )
 
-  workload_tags = {
-    project        = var.project_name
-    "project-slug" = var.project_slug
-    env            = terraform.workspace
-    environment    = local.environment_name
-    author         = "Terraform"
-    repo           = "karlbruder/karlbruder_monorepo"
+  namespace = "${local.project_slug}-${local.env}"
+
+  aws_tags = {
+    "author"       = "Terraform"
+    "scope"        = local.scope
+    "env"          = local.env
+    "environment"  = local.environment
+    "project-name" = local.project_name
+    "project-slug" = local.project_slug
+    "repo"         = local.repo
   }
 }
