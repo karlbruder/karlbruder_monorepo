@@ -19,7 +19,7 @@ The Monomachia registration link opens `https://app.karlbruder.com/tournaments/r
 
 ## Local development
 
-Copy `.env.example` to `.env` in this directory. `REACT_APP_APPLICATION_URL` sets the registration link's application origin. Local development uses `http://localhost:5173`. A trailing slash is accepted. When the variable is unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin. The landing site does not submit registration data and does not need backend, database, or Supabase credentials to display its pages.
+Copy `.env.example` to `.env` in this directory. `REACT_APP_APPLICATION_URL` sets the registration link's application origin. Local development uses `http://localhost:5173`. A trailing slash is accepted. When the variable is unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin. Do not put the localhost value in a deployed environment. The landing site does not submit registration data and does not need backend, database, or Supabase credentials to display its pages.
 
 Install Node.js and npm compatible with the checked-in lockfile when running on the host. From `landing/`:
 
@@ -60,7 +60,7 @@ The static build is written to `build/`. The existing `src/App.test.js` checks M
 The existing GitHub Actions workflows are:
 
 - [CI](../.github/workflows/ci-landing.yml): installs dependencies and builds on pull requests targeting `master` when landing files or its CI workflow change. It also supports manual runs. It does not currently run the test suite.
-- [Deploy](../.github/workflows/deploy-application.yml): builds the landing image when landing files change, pushes it to ECR, and replaces the landing container. A prod build embeds `https://app.karlbruder.com`. A dev build embeds `https://app-dev.karlbruder.com`.
+- [Deploy](../.github/workflows/deploy-application.yml): builds the landing image when landing files change, pushes it to ECR, and replaces the landing container. The build embeds `APPLICATION_BASE_URL` from the selected GitHub environment as `REACT_APP_APPLICATION_URL`. That must be the real application origin for that environment, not `http://localhost:5173`. Changing the variable requires a new landing image.
 
 The workflow files do not verify that Cloudflare routing or HTTPS is configured. Organizational hosting and cutover requirements live in the [deployment spec](../specs/platform/deployment.md#public-website).
 

@@ -18,7 +18,7 @@ Help visitors arriving from Facebook, Instagram, Google search, and other channe
 
 - **WEB-001:** The public single-page application presents the group and provides clear navigation to its activities, social channels, and the tournament application when available.
 - **WEB-002:** The Monomachia entry point may present event information and link to the event's Instagram page. Event branding must preserve readable content and navigation on phones and desktops.
-- **WEB-003:** Registration calls to action lead to `app.karlbruder.com/tournaments/registration`. The public website is `karlbruder.com`. Account sessions, registration forms, proof uploads, and personal registration status are owned by `frontend/` and `backend/`; the selected-tournament handoff is an implementation detail.
+- **WEB-003:** Registration calls to action lead to `/tournaments/registration` on that environment's application origin. Prod uses `app.karlbruder.com`. Dev uses `app-dev.karlbruder.com`. The public website is `karlbruder.com` in prod and `dev.karlbruder.com` in dev. Account sessions, registration forms, proof uploads, and personal registration status are owned by `frontend/` and `backend/`. The deployed landing image takes the origin from `APPLICATION_BASE_URL` at build time.
 - **WEB-004:** The public site presents event information and links to the official event page and application registration. Content is maintained in the public site without fetching tournament facts from the backend. It must agree with configured event facts; unknown values must not be invented.
 - **WEB-005:** Public assets and pages must not expose personal registration data, payment proofs, or private safety information.
 
