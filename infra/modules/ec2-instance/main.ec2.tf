@@ -30,11 +30,11 @@ data "aws_ami" "ubuntu_24_04_x86_64" {
 
 resource "aws_security_group" "this" {
   name        = "${var.namespace}-application"
-  description = "Application host. Inbound HTTPS from Cloudflare only. No SSH."
+  description = "Application host. Inbound HTTPS only. No SSH."
   vpc_id      = var.vpc_id
 
   dynamic "ingress" {
-    for_each = local.ingress_rules
+    for_each = var.ingress_rules
     content {
       description = ingress.value.description
       from_port   = ingress.value.from_port
@@ -45,13 +45,13 @@ resource "aws_security_group" "this" {
   }
 
   dynamic "egress" {
-    for_each = local.egress_rules
+    for_each = var.egress_rules
     content {
       description = egress.value.description
       from_port   = egress.value.from_port
       to_port     = egress.value.to_port
       protocol    = egress.value.protocol
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = egress.value.cidr_blocks
     }
   }
 
