@@ -53,7 +53,7 @@ npm run build
 npm test -- --watchAll=false
 ```
 
-The static build is written to `build/`. The existing `src/App.test.js` checks Monomachia content and language switching. There is no separate lint script; use the package's build/test commands. The production landing image serves `index.html` for a direct visit or a refresh on `/monomachia`.
+The static build is written to `build/`. The existing `src/App.test.js` checks Monomachia content and language switching. There is no separate lint script; use the package's build/test commands. The production landing image serves `index.html` for a direct visit or a refresh on `/monomachia`. Nginx must not treat that path as a directory. `public/monomachia/` holds static files such as `logo.svg`, and a directory match returns 403 before the page fallback.
 
 ## Continuous integration and deployment
 
