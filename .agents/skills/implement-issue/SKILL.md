@@ -25,7 +25,7 @@ Create and switch to the branch locally using a non-destructive Git operation. P
 
 ## Move the issue to In Progress
 
-When the developer authorizes starting the first implementation step and the issue branch is ready, move the linked GitHub Project issue item from **To Do** to **In Progress** before product edits, following [Project status updates](references/project-status.md). Invoking implementation authorizes this transition; do not ask for redundant confirmation of the known item and status. Planning, loading a plan, or inspecting progress alone does not trigger it.
+When the developer authorizes starting the first implementation step and the issue branch is ready, move the linked GitHub Project issue item from **To Do** to **In Progress** before product edits, following [Project status updates](references/project-status.md). Ask before that `gh` command, as the root AGENTS file requires. Planning, loading a plan, or inspecting progress alone does not trigger it.
 
 An item already In Progress needs no update. For explicitly authorized fixes after review, move In Review back to In Progress when actual fix work starts. Do not regress status just because a chat resumes or there is no pending work. Record the verified Project update separately from the plan's local checkpoint fields.
 
