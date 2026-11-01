@@ -47,8 +47,8 @@ env:
   ARN_IAM_ROLE_ARN: ${{ vars.ARN_IAM_ROLE_ARN }}
   DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
   DEPLOY_PATH: /opt/karlbruder
-  APPLICATION_ORIGIN: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
-  LANDING_ORIGIN: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
+  APPLICATION_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
+  LANDING_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
 
 jobs:
   changes:
@@ -137,7 +137,7 @@ jobs:
                 echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
                 ;;
               landing)
-                echo "REACT_APP_APPLICATION_URL=${APPLICATION_ORIGIN}"
+                echo "REACT_APP_APPLICATION_URL=${APPLICATION_BASE_URL}"
                 ;;
             esac
             echo "EOF"
@@ -408,10 +408,10 @@ jobs:
             curl --fail --silent --show-error --max-time 20 --retry 6 --retry-delay 5 --retry-all-errors "$1"
           }
 
-          curl_check "${LANDING_ORIGIN}" >/dev/null
-          curl_check "${APPLICATION_ORIGIN}" >/dev/null
-          curl_check "${APPLICATION_ORIGIN}/api/health" >/dev/null
-          metadata="$(curl_check "${APPLICATION_ORIGIN}/api/metadata")"
+          curl_check "${LANDING_BASE_URL}" >/dev/null
+          curl_check "${APPLICATION_BASE_URL}" >/dev/null
+          curl_check "${APPLICATION_BASE_URL}/api/health" >/dev/null
+          metadata="$(curl_check "${APPLICATION_BASE_URL}/api/metadata")"
           METADATA="${metadata}" python3 - <<'PY'
           import json
           import os
