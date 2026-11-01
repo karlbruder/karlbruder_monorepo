@@ -20,6 +20,7 @@ def main(argv=None):
     parser.add_argument("--host-name-tag", required=True)
     parser.add_argument("--landing-hostnames", required=True)
     parser.add_argument("--application-hostnames", required=True)
+    parser.add_argument("--env-name", required=True)
     parser.add_argument("--compose-file", type=Path, default=Path("compose.production.yml"))
     args = parser.parse_args(argv)
     config = {
@@ -30,6 +31,7 @@ def main(argv=None):
         "DEPLOY_PATH": args.deploy_path,
         "LANDING_HOSTNAMES": args.landing_hostnames,
         "APPLICATION_HOSTNAMES": args.application_hostnames,
+        "ENV_NAME": args.env_name,
     }
     host_name = args.host_name_tag
     instance_id = run_aws_json_command(
