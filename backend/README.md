@@ -1,5 +1,8 @@
 # Karlbrüder backend
 
+**Created**: 2026-01-09
+**Last updated**: 2026-10-31
+
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
 ## Requirements
@@ -83,7 +86,7 @@ need to be running.
 
 ## Tournament module
 
-The [tournament guide](tournaments/README.md) explains the catalog and signup
+The [tournament guide](app/tournaments/README.md) explains the catalog and signup
 APIs, access rules, registration behavior, and current release dependencies.
 
 ## Tests and lint

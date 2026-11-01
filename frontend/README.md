@@ -1,5 +1,8 @@
 # Karlbrüder frontend
 
+**Created**: 2026-01-11
+**Last updated**: 2026-10-31
+
 React and TypeScript application built with Vite. This is the user-facing frontend of the Karlbrüder platform.
 
 ## Requirements

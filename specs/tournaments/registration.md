@@ -1,5 +1,8 @@
 # Tournament registration
 
+**Created**: 2026-10-17
+**Last updated**: 2026-10-30
+
 | Field | Value |
 | --- | --- |
 | Status | Draft |

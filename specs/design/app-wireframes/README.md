@@ -1,5 +1,8 @@
 # Karlbrüder application wireframes
 
+**Created**: 2026-10-18
+**Last updated**: 2026-10-30
+
 | Field | Value |
 | --- | --- |
 | Status | Draft for product/design review, v0.1 |

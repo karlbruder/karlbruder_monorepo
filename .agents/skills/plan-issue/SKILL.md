@@ -47,6 +47,6 @@ Each step needs:
 
 Cover every issue acceptance criterion exactly enough to establish completion, including spec/documentation adjustments needed by the agreed change. Do not add nearby features. State unresolved blockers separately from implementation choices.
 
-Present the plan path, a short step summary, and any unresolved decisions. Hand off with `$implement-issue <issue URL or plan path>` when the developer wants execution. Do not execute Step 1 as part of planning. Planning alone does not authorize product edits, staging, commits, pushing, PR creation, or GitHub issue/project mutations. Read-only GitHub retrieval remains allowed subject to existing tool permissions.
+Present the plan path, a short step summary, and any unresolved decisions. Hand off with `$implement-issue <issue URL or plan path>` when the developer wants execution. Do not execute Step 1 as part of planning. Planning alone does not authorize product edits, staging, commits, pushing, PR creation, or GitHub issue/project mutations. A read-only `gh` command still needs the ask required by the root AGENTS file.
 
 Uncertainty about requirements, boundaries, or dependencies must be clarified with the developer before the affected plan can be marked ready. Record blockers explicitly. Do not turn unanswered business questions into implementation choices.

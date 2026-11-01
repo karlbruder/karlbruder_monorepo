@@ -47,7 +47,7 @@ Verify the returned PR's repository, source, target, head SHA, title, and body. 
 
 ## Move the issue to In Review
 
-After PR creation and published head verification succeed, move the supplied or explicitly associated issue's linked GitHub Project item to **In Review**, following [Project status updates](../implement-issue/references/project-status.md). This covers both To Do (a PR opened without the implementation workflow) and In Progress. Invoking open-pr authorizes this status change along with PR publication; preview the intended Project/status with the PR details without requiring another confirmation for the same approved action.
+After PR creation and published head verification succeed, move the supplied or explicitly associated issue's linked GitHub Project item to **In Review**, following [Project status updates](../implement-issue/references/project-status.md). This covers both To Do (a PR opened without the implementation workflow) and In Progress. Ask before that `gh` command, as the root AGENTS file requires.
 
 If the verified existing PR already contains the intended work, synchronize its issue item the same way; an item already In Review needs no update. Do not change status on a failed push, unconfirmed PR creation, or an existing PR with unpublished intended changes. Branch-only work without an associated issue has no issue Project update. Never infer an issue solely from a branch name or update unrelated PR Project items.
 
