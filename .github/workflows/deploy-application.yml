@@ -33,7 +33,7 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: "976083331699"
   DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
-  GITHUB_ACTIONS_ROLE_NAME: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'prod') == 'prod' && 'KbProdGithubActionsRole' || 'KbDevGithubActionsRole' }}
+  GITHUB_ACTIONS_ROLE_NAME: KbGithubActionsRole
   DEPLOY_PATH: /opt/karlbruder
 
 jobs:

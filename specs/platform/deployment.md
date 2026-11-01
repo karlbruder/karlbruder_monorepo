@@ -89,13 +89,15 @@ A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a runni
 
 Each workspace has three ECR repositories: `kb-<env>/backend`, `kb-<env>/frontend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.prod.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
 
-GitHub Actions assumes the workspace role through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create one role per workspace.
+GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Both workspaces use it.
 
-The role name starts from `kb-<env>-github-actions-role`. Terraform turns that into camel case with `replace(title(replace(..., "-", " ")), " ", "")`. `dev` becomes `KbDevGithubActionsRole`. `prod` becomes `KbProdGithubActionsRole`. The workflow assumes those names.
+The role name starts from `kb-github-actions-role`. Terraform turns that into camel case with `replace(title(replace(..., "-", " ")), " ", "")`. The result is `KbGithubActionsRole`.
 
-The deploy jobs set a GitHub environment, so the token subject is `repo:karlbruder/karlbruder_monorepo:environment:<env>`. GitHub puts `ref:refs/heads/<branch>` in `sub` only when the job does not set an environment. AWS trust examples check `sub` and `aud`. They do not check `token.actions.githubusercontent.com:ref`.
+A token carries one `sub` value. GitHub chooses that value from the job. The trust policy lists every subject this repository may present. `StringLike` matches when `sub` equals any one line.
 
-`KbDevGithubActionsRole` may be assumed only for the `dev` environment. `KbProdGithubActionsRole` uses the same policy with `environment:prod`. A push to `master` is what starts the prod workflow. The trust policy does not also match the branch.
+A job that sets `environment` uses `repo:karlbruder/karlbruder_monorepo:environment:<name>`. This workflow sets `dev` or `prod`, so its token uses that line.
+
+A job that does not set an environment uses the git ref. A branch is `repo:karlbruder/karlbruder_monorepo:ref:refs/heads/<branch>`. A tag is `repo:karlbruder/karlbruder_monorepo:ref:refs/tags/<tag>`. The policy allows `master` and any tag.
 
 ```json
 {
@@ -109,8 +111,15 @@ The deploy jobs set a GitHub environment, so the token subject is `repo:karlbrud
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:karlbruder/karlbruder_monorepo:environment:dev"
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": [
+            "repo:karlbruder/karlbruder_monorepo:ref:refs/heads/master",
+            "repo:karlbruder/karlbruder_monorepo:ref:refs/tags/*",
+            "repo:karlbruder/karlbruder_monorepo:environment:dev",
+            "repo:karlbruder/karlbruder_monorepo:environment:prod"
+          ]
         }
       }
     }
@@ -118,7 +127,7 @@ The deploy jobs set a GitHub environment, so the token subject is `repo:karlbrud
 }
 ```
 
-The permissions policy is the same shape for both roles. Replace `<env>` with `dev` or `prod`. It can push only to that workspace's three repositories, describe instances, send `AWS-RunShellScript` only to the instance named `kb-<env>-application-host`, and read that command result.
+The permissions policy covers both workspaces. It can push to the six application repositories, describe instances, send `AWS-RunShellScript` only to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
 
 ```json
 {
@@ -145,9 +154,12 @@ The permissions policy is the same shape for both roles. Replace `<env>` with `d
         "ecr:UploadLayerPart"
       ],
       "Resource": [
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/backend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/frontend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/nginx"
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/backend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/frontend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/nginx",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/backend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/frontend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/nginx"
       ]
     },
     {
@@ -163,7 +175,10 @@ The permissions policy is the same shape for both roles. Replace `<env>` with `d
       "Resource": "arn:aws:ec2:us-east-2:976083331699:instance/*",
       "Condition": {
         "StringEquals": {
-          "ssm:resourceTag/Name": "kb-<env>-application-host"
+          "ssm:resourceTag/Name": [
+            "kb-dev-application-host",
+            "kb-prod-application-host"
+          ]
         }
       }
     },

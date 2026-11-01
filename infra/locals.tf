@@ -19,8 +19,6 @@ locals {
 
   application_image_names = toset(["backend", "frontend", "nginx"])
 
-  github_actions_role_name = replace(title(replace("kb-${local.env}-github-actions-role", "-", " ")), " ", "")
-
   application_instance_type = {
     dev  = "t3a.micro"
     prod = "t3a.small"
