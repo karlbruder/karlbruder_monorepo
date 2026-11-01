@@ -14,8 +14,6 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   dimensions = {
     InstanceId = aws_instance.application.id
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
@@ -34,8 +32,6 @@ resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
   dimensions = {
     InstanceId = aws_instance.application.id
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "memory_high" {
@@ -54,8 +50,6 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   dimensions = {
     InstanceId = aws_instance.application.id
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "memory_critical" {
@@ -74,8 +68,6 @@ resource "aws_cloudwatch_metric_alarm" "memory_critical" {
   dimensions = {
     InstanceId = aws_instance.application.id
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "disk_high" {
@@ -96,8 +88,6 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
     path       = "/"
     fstype     = "ext4"
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "disk_critical" {
@@ -118,8 +108,6 @@ resource "aws_cloudwatch_metric_alarm" "disk_critical" {
     path       = "/"
     fstype     = "ext4"
   }
-
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
@@ -138,6 +126,4 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
   dimensions = {
     InstanceId = aws_instance.application.id
   }
-
-  tags = var.tags
 }

@@ -11,8 +11,6 @@ resource "aws_iam_role" "application" {
       }
     ]
   })
-
-  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "session_manager" {
@@ -28,5 +26,4 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
 resource "aws_iam_instance_profile" "application" {
   name = local.iam_instance_profile_name
   role = aws_iam_role.application.name
-  tags = var.tags
 }

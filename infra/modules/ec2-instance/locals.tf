@@ -3,10 +3,6 @@ locals {
   iam_instance_profile_name = "${var.namespace}-application-profile"
   alarm_period_seconds      = 60
 
-  instance_tags = merge(var.tags, {
-    Name = var.instance_name
-  })
-
   ingress_rules = [
     {
       description = "HTTPS"

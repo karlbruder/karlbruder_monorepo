@@ -1,9 +1,3 @@
-variable "tags" {
-  description = "Tags applied to the bucket."
-  type        = map(string)
-  default     = {}
-}
-
 variable "bucket_name" {
   description = "Full bucket name. When null, the name is derived from bucket_name_prefix. An account-regional name must already include the account id, region, and -an suffix."
   type        = string

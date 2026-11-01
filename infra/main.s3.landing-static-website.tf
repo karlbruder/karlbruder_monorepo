@@ -1,4 +1,4 @@
-module "landing" {
+module "landing_static_website" {
   source = "./modules/s3-bucket"
 
   bucket_name_prefix     = "${local.namespace}-landing"
@@ -11,6 +11,4 @@ module "landing" {
     index_document = "index.html"
     error_document = "index.html"
   }
-
-  tags = local.aws_tags
 }

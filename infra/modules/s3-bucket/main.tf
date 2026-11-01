@@ -20,7 +20,6 @@ locals {
 resource "aws_s3_bucket" "this" {
   bucket           = local.bucket_name
   bucket_namespace = local.bucket_namespace
-  tags             = var.tags
 
   lifecycle {
     prevent_destroy = true

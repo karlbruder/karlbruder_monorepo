@@ -33,8 +33,14 @@ variable "subnet_id" {
   type        = string
 }
 
-variable "tags" {
-  description = "Tags applied to resources this module creates."
-  type        = map(string)
-  default     = {}
+variable "userdata_pre_install" {
+  description = "Shell snippet injected before the base bootstrap. Empty by default."
+  type        = string
+  default     = ""
+}
+
+variable "userdata_post_install" {
+  description = "Shell snippet injected after the base bootstrap. Empty by default."
+  type        = string
+  default     = ""
 }

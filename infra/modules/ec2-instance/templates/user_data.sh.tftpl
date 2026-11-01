@@ -163,6 +163,8 @@ SSM_SUDOERS_EOF
 }
 
 main() {
+  ${userdata_pre_install}
+
   install_base_packages
   install_cloudwatch_agent
   install_aws_cli
@@ -170,6 +172,9 @@ main() {
   configure_users_and_paths
   ensure_session_manager_agent
   ensure_ssm_user_docker_access
+
+  ${userdata_post_install}
+
   log "EC2 user_data bootstrap completed"
 }
 

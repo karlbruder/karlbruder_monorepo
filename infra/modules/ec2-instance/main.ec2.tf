@@ -55,9 +55,9 @@ resource "aws_security_group" "application" {
     }
   }
 
-  tags = merge(var.tags, {
+  tags = {
     Name = "${var.namespace}-application"
-  })
+  }
 }
 
 resource "aws_instance" "application" {
@@ -83,17 +83,21 @@ resource "aws_instance" "application" {
     encrypted             = true
     delete_on_termination = false
 
-    tags = merge(var.tags, {
+    tags = {
       Name = "${var.instance_name}-root"
-    })
+    }
   }
 
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    project_name = var.project_name
-    deploy_path  = var.deploy_path
+    project_name          = var.project_name
+    deploy_path           = var.deploy_path
+    userdata_pre_install  = var.userdata_pre_install
+    userdata_post_install = var.userdata_post_install
   })
 
-  tags = local.instance_tags
+  tags = {
+    Name = var.instance_name
+  }
 
   lifecycle {
     # A newer Canonical AMI, or a bootstrap edit, must not replace a running host.
@@ -104,9 +108,9 @@ resource "aws_instance" "application" {
 resource "aws_eip" "application" {
   domain = "vpc"
 
-  tags = merge(var.tags, {
+  tags = {
     Name = "${var.instance_name}-eip"
-  })
+  }
 }
 
 resource "aws_eip_association" "application" {
