@@ -26,16 +26,17 @@ class AwsSettings(Settings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         if not SECRET_NAME:
             raise ValueError("SECRET_NAME must be set for AWS environments")
-        aws_secrets_manager_settings = AWSSecretsManagerSettingsSource(
-            settings_cls,
-            SECRET_NAME,
-            region_name=AWS_REGION,
-            case_sensitive=False,
-        )
+        if not AWS_REGION:
+            raise ValueError("AWS_REGION must be set for AWS environments")
         return (
             init_settings,
             env_settings,
             dotenv_settings,
             file_secret_settings,
-            aws_secrets_manager_settings,
+            AWSSecretsManagerSettingsSource(
+                settings_cls,
+                SECRET_NAME,
+                region_name=AWS_REGION,
+                case_sensitive=False,
+            ),
         )

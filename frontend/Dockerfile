@@ -32,12 +32,22 @@ RUN npm ci
 
 COPY . .
 
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 RUN npm run build
 
 # ----------
 # Production
 # ----------
 FROM nginx:1.27-alpine AS production
+
+ARG GIT_SHA=NaN
+ARG RELEASED_AT=unknown
+ENV GIT_SHA=${GIT_SHA}
+ENV RELEASED_AT=${RELEASED_AT}
 
 RUN rm /etc/nginx/conf.d/default.conf
 

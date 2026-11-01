@@ -48,7 +48,7 @@ Settings come from environment variables. Keep secrets out of source. Open [loca
 - Do not check again when a service starts or when a route runs. That code uses the value.
 - `LocalSettings` may default the Compose domain database. It does not default the Auth database. That connection is hosted Supabase, including during local development.
 - `TestSettings` may point the Auth diagnostic at the test database, because that stack has no hosted Supabase.
-- `AwsSettings` does not invent a host, database name, user, or password. Secrets Manager fills only what that environment left unset.
+- `AwsSettings` does not invent a host, database name, user, or password. Secrets Manager fills only what that environment left unset. `SECRET_NAME` and `AWS_REGION` are required. Startup fails when either is missing.
 - A fixed technical choice may have a default on the base class. The database driver is one. The PostgreSQL port is another, and it defaults to 5432. A host, database name, user, and password do not get a default.
 
 ## Routers

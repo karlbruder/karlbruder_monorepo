@@ -30,7 +30,7 @@ data "aws_ami" "ubuntu_24_04_x86_64" {
 
 resource "aws_security_group" "this" {
   name        = "${var.namespace}-application"
-  description = "Application host. Inbound HTTPS only. No SSH."
+  description = "Application host. Inbound HTTPS from Cloudflare only. No SSH."
   vpc_id      = var.vpc_id
 
   dynamic "ingress" {
@@ -40,7 +40,7 @@ resource "aws_security_group" "this" {
       from_port   = ingress.value.from_port
       to_port     = ingress.value.to_port
       protocol    = ingress.value.protocol
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = ingress.value.cidr_blocks
     }
   }
 
@@ -70,9 +70,10 @@ resource "aws_instance" "this" {
   associate_public_ip_address = true
 
   metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 2
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+    # Host agents can read instance metadata. Bridge containers cannot.
+    http_put_response_hop_limit = 1
   }
 
   root_block_device {

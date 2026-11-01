@@ -43,6 +43,11 @@ RUN npm run build
 # Serves the static bundle on port 80. The edge Nginx container routes the public host here.
 FROM nginx:1.27-alpine AS production
 
+ARG GIT_SHA=NaN
+ARG RELEASED_AT=unknown
+ENV GIT_SHA=${GIT_SHA}
+ENV RELEASED_AT=${RELEASED_AT}
+
 RUN rm /etc/nginx/conf.d/default.conf
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf

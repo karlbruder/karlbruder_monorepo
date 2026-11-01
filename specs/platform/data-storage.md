@@ -38,7 +38,7 @@ The backend uses the same domain migrations and S3-facing storage logic across e
 
 ## Observed configuration
 
-The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/health/db` queries domain connectivity and `public`; `/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
+The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
 
 The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
 

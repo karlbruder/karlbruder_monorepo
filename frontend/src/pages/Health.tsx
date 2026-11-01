@@ -16,21 +16,23 @@ export default function Health() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getHealth = async (path: string) => {
-      const response = await fetch(`/api${path}`);
+    const loadStatus = async () => {
+      const healthResponse = await fetch("/api/health");
+      const databaseResponse = await fetch("/api/health/db");
 
-      if (!response.ok) {
-        throw new Error(`The API responded with HTTP ${response.status}`);
+      if (!healthResponse.ok) {
+        throw new Error(`The API responded with HTTP ${healthResponse.status}`);
       }
 
-      return response.json() as Promise<HealthResponse>;
+      if (!databaseResponse.ok) {
+        throw new Error(`The API responded with HTTP ${databaseResponse.status}`);
+      }
+
+      setBackend({ status: "ok" });
+      setDb((await databaseResponse.json()) as HealthResponse);
     };
 
-    Promise.all([getHealth("/health"), getHealth("/health/db")])
-      .then(([backendResponse, dbResponse]) => {
-        setBackend(backendResponse);
-        setDb(dbResponse);
-      })
+    loadStatus()
       .catch((requestError: Error) => setError(requestError.message));
   }, []);
 

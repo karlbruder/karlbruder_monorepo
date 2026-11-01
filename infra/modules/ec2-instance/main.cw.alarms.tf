@@ -2,8 +2,8 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = replace(title(replace("${var.namespace}-ec2-cpu-high", "-", " ")), " ", "")
   alarm_description   = "EC2 CPU is at least 70 percent for 10 minutes out of 15."
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
+  metric_name         = "cpu_usage_active"
+  namespace           = "CWAgent"
   statistic           = "Average"
   threshold           = 70
   period              = local.alarm_period_seconds
@@ -20,8 +20,8 @@ resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
   alarm_name          = replace(title(replace("${var.namespace}-ec2-cpu-critical", "-", " ")), " ", "")
   alarm_description   = "EC2 CPU is at least 90 percent for 10 minutes."
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
+  metric_name         = "cpu_usage_active"
+  namespace           = "CWAgent"
   statistic           = "Average"
   threshold           = 90
   period              = local.alarm_period_seconds

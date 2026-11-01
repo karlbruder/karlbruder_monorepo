@@ -48,7 +48,7 @@ Source inspection on 17 October 2026 found:
 | Area | Observed baseline |
 | --- | --- |
 | Domain PostgreSQL | Compose service `db`, container `kb-db`, PostgreSQL 17, published port 5432, persistent volume |
-| Backend | Port 8000, `/health`, `/health/db`, `/health/auth`, `/api/users/me` |
+| Backend | Port 8000, `/api/health`, `/api/metadata`, `/api/health/db`, `/api/health/auth`, `/api/users/me` |
 | Frontend | Compose development target starts Vite on 5173 and publishes 5173 |
 | Public website | Compose development server on port 3000. Production serves the built site from the landing container |
 | Auth | Hosted project selected by configuration; frontend has Google SDK sign-in and backend token verification |
@@ -68,7 +68,7 @@ Compose files as of 31 October 2026:
 Remaining inconsistencies and implementation gaps:
 
 - The backend CORS allowlist still names only `http://localhost:3000`. Direct cross-origin browser calls from the Vite origin at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist; the normal same-origin `/api` proxy path does not depend on it.
-- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app. The Health page also requests `/api/health` paths while backend diagnostics use `/health`; the UI and API paths need reconciliation.
+- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app.
 - The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
 - The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
 

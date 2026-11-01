@@ -85,10 +85,10 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 
 | File | Variable | Use |
 | --- | --- | --- |
-| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings from the environment and the env file. |
 | `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Local Compose uses host `db`, database `postgres`, user `postgres`, and password `postgres`. A host-run backend uses `localhost` instead of `db`. |
 | `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
-| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
+| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/api/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
 | `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
@@ -108,9 +108,10 @@ make up
 | Public website | `http://localhost:3000` |
 | Frontend development server | `http://localhost:5173` |
 | Backend API and Swagger UI | `http://localhost:8000/docs` |
-| Backend liveness | `http://localhost:8000/health` |
-| Domain database diagnostic | `http://localhost:8000/health/db` |
-| Optional Auth database diagnostic | `http://localhost:8000/health/auth` |
+| Backend liveness | `http://localhost:8000/api/health` |
+| Release metadata | `http://localhost:8000/api/metadata` |
+| Domain database diagnostic | `http://localhost:8000/api/health/db` |
+| Optional Auth database diagnostic | `http://localhost:8000/api/health/auth` |
 | Protected identity endpoint | `http://localhost:8000/api/users/me` with a Bearer access token |
 | Local PostgreSQL | `localhost:5432`, database `postgres`, user `postgres`, password `postgres` |
 
@@ -141,7 +142,7 @@ These source-observed limitations remain, without changing the working same-orig
 - Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
 - `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
 
-Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
+Backend container health checks exercise the domain database via `/api/health/db`. Liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/api/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
 ## Application development and checks
 

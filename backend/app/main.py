@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -10,6 +10,7 @@ from app.auth import require_authenticated_user
 from app.database import engine, get_auth_database_engine
 from app.models import User
 from app.tournaments.router import router as tournaments_router
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,21 +29,20 @@ karlbruder_app.add_middleware(
 )
 
 
-@karlbruder_app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@karlbruder_app.get("/api/health")
+def health() -> Response:
+    return Response(status_code=status.HTTP_200_OK)
 
 
-@karlbruder_app.get("/health")
-def health():
+@karlbruder_app.get("/api/metadata")
+def metadata():
     return {
-        "status": "ok",
-        "service": "backend",
-        "message": "Backend is alive",
+        "git_sha": settings.GIT_SHA,
+        "released_at": settings.RELEASED_AT,
     }
 
 
-@karlbruder_app.get("/health/db")
+@karlbruder_app.get("/api/health/db")
 def health_db():
     try:
         with engine.connect() as conn:
@@ -76,7 +76,7 @@ def health_db():
         )
 
 
-@karlbruder_app.get("/health/auth")
+@karlbruder_app.get("/api/health/auth")
 def health_auth():
     try:
         auth_engine = get_auth_database_engine()

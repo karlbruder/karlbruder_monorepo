@@ -23,6 +23,11 @@ output "application_instance_profile_name" {
   value       = module.application_host.instance_profile_name
 }
 
+output "backend_secret_name" {
+  description = "Secrets Manager name for this environment's backend settings. Terraform creates the secret. It does not write the secret value."
+  value       = aws_secretsmanager_secret.backend.name
+}
+
 output "application_ecr_repository_urls" {
   description = "ECR repository URLs for the landing, frontend, backend, and nginx images."
   value       = { for name, repository in aws_ecr_repository.application : name => repository.repository_url }

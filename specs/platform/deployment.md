@@ -42,7 +42,7 @@ The complete application stack is defined by `compose.production.yml`:
 
 Landing, Nginx, frontend, and backend are the Compose services. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 ingress on 443 only.
 
-`compose.production.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_SERVER_NAMES` and `APP_SERVER_NAMES` when it starts and writes those names into its config. Prod sets `karlbruder.com prod.karlbruder.com` and `app.karlbruder.com app-prod.karlbruder.com`. Dev sets `dev.karlbruder.com` and `app-dev.karlbruder.com`. Cloudflare routing and a live HTTPS check are still separate work.
+`compose.production.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_SERVER_NAMES` and `APP_SERVER_NAMES` when it starts and writes those names into its config. Prod sets `karlbruder.com prod.karlbruder.com` and `app.karlbruder.com app-prod.karlbruder.com`. Dev sets `dev.karlbruder.com` and `app-dev.karlbruder.com`. Cloudflare routing for those names is still separate work. The deploy workflow requests them after the host is up.
 
 ## Public website
 
@@ -75,27 +75,21 @@ Each workspace has one EC2 instance in the account default VPC, on the first def
 
 The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume stays if the instance is terminated. AWS Backup is not configured for this host.
 
-Inbound traffic is TCP 443 only. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`.
+Inbound traffic is TCP 443 from the Cloudflare IPv4 ranges in `infra/modules/ec2-instance/locals.tf`. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`. Instance metadata requires IMDSv2, and the response hop limit is 1, so a container on the Docker bridge cannot read the instance role.
 
 Outbound traffic is DNS on UDP and TCP 53, HTTP on TCP 80 for Ubuntu package mirrors, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
 
-First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. Those alarms do not notify an SNS topic yet.
+First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. The agent publishes CPU, memory, and disk every 60 seconds, and those alarms use that interval. The status check also uses a one minute period. Basic EC2 monitoring still publishes hypervisor CPU every five minutes. These alarms do not use that metric. Those alarms do not notify an SNS topic yet. Refresh `cloudflare_ipv4_cidrs` from [Cloudflare's IPv4 list](https://www.cloudflare.com/ips-v4) when Cloudflare publishes a change.
 
 A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a running instance. Replacing the image or the script is a deliberate change.
 
 ## Application image deploy
 
-Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.production.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is `dev` or `prod`, the tag that moves when that service is built. The workflow also pushes the git SHA. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
+Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.production.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is the git SHA of the release. The workflow also moves the `dev` or `prod` tag on each image it builds. That moving tag is only the last build of that service. The host runs the SHA. For a service this run did not build, the workflow copies the moving tag onto the release SHA before the host pulls. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file. That file must set `SECRET_NAME` to `kb-<env>/backend` and `AWS_REGION` to `us-east-2`. Cloud startup reads that secret and fails when either value is missing. Terraform creates the secret and lets the instance role call `secretsmanager:GetSecretValue` on it. Terraform does not write the secret value. Put the backend settings JSON in that secret after apply. The secret uses the AWS managed key, so the role does not need a separate decrypt permission.
 
-GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Both workspaces use it.
+GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Build, stamp, and deploy all use it, for both `dev` and `prod`.
 
-The role name starts from `kb-github-actions-role`. Terraform turns that into camel case with `replace(title(replace(..., "-", " ")), " ", "")`. The result is `KbGithubActionsRole`.
-
-A token carries one `sub` value. GitHub chooses that value from the job. The trust policy lists every subject this repository may present. `StringLike` matches when `sub` equals any one line.
-
-A job that sets `environment` uses `repo:karlbruder/karlbruder_monorepo:environment:<name>`. This workflow sets `dev` or `prod`, so its token uses that line.
-
-A job that does not set an environment uses the git ref. A branch is `repo:karlbruder/karlbruder_monorepo:ref:refs/heads/<branch>`. A tag is `repo:karlbruder/karlbruder_monorepo:ref:refs/tags/<tag>`. The policy allows `master` and any tag.
+A token carries one `sub` value. The jobs in this workflow set a GitHub environment, so the token subject is `environment:dev` or `environment:prod`. The trust policy allows both.
 
 ```json
 {
@@ -113,8 +107,6 @@ A job that does not set an environment uses the git ref. A branch is `repo:karlb
         },
         "StringLike": {
           "token.actions.githubusercontent.com:sub": [
-            "repo:karlbruder/karlbruder_monorepo:ref:refs/heads/master",
-            "repo:karlbruder/karlbruder_monorepo:ref:refs/tags/*",
             "repo:karlbruder/karlbruder_monorepo:environment:dev",
             "repo:karlbruder/karlbruder_monorepo:environment:prod"
           ]
@@ -125,7 +117,7 @@ A job that does not set an environment uses the git ref. A branch is `repo:karlb
 }
 ```
 
-The permissions policy covers both workspaces. It can push to the eight application repositories, describe instances, send `AWS-RunShellScript` only to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
+The same role pushes images and sends the deploy command. It can push to the eight application repositories, describe instances, send `AWS-RunShellScript` to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
 
 ```json
 {
@@ -198,7 +190,7 @@ The permissions policy covers both workspaces. It can push to the eight applicat
 }
 ```
 
-A push to `master` deploys the `dev` environment. It does not deploy `prod`. The workflow uses `dorny/paths-filter` v4 and builds the services whose files changed. A change to `compose.production.yml` or the deploy workflow builds all four. A manual run can deploy `dev` or `prod`, for one service or for all of them. The dev landing image is built with `https://app-dev.karlbruder.com`. The prod landing image is built with `https://app.karlbruder.com`. The host pulls those images, replaces those containers, and starts the edge Nginx container again. Both hosts run production mode from `compose.production.yml`. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
+A push to `master` deploys the `dev` environment. It does not deploy `prod`. The workflow uses `dorny/paths-filter` v4 and builds the services whose files changed. A change to `compose.production.yml` or the deploy workflow builds all four. A manual run can deploy `dev` or `prod`, for one service or for all of them. The dev landing image is built with `https://app-dev.karlbruder.com`. The prod landing image is built with `https://app.karlbruder.com`. The dev frontend image is built with the `dev` GitHub environment secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. The prod frontend image uses the secrets of the same names on the `prod` environment. Vite owns the required frontend variable check for both direct and Docker builds. It fails with the missing variable names when either value is empty or whitespace. `VITE_API_BASE_URL` remains optional and defaults to `/api`. The pipeline generates one UTC `RELEASED_AT` timestamp per run. Backend, frontend, and landing production stages store that timestamp and `GIT_SHA` in the image environment. Reused images retain their original build metadata when retagged for another deployment. A container restart does not change the embedded build timestamp. The host pulls the release SHA for every service, replaces the stack, and starts the edge Nginx container again. Both hosts run production mode from `compose.production.yml`. There is no zip or SCP deploy path. After the host reports success, the workflow requests the landing origin, the application origin, and `/api/health`. That health request must return 200. It also requests `/api/metadata`. When the run built the backend, `git_sha` on that response must equal the commit and `released_at` must equal the pipeline build timestamp. This check follows the public Cloudflare names, so it fails until those names resolve.
 
 ```mermaid
 flowchart LR
@@ -217,7 +209,7 @@ The earlier issues describe deployment transport evolution. Their backend-only t
 | #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | The deploy workflow builds the changed images among landing, frontend, backend, and Nginx, then replaces those containers through Session Manager. A live run is still unverified |
 | Private frontend hosting draft | S3 hosting versus hosting beside the backend | Resolved in favor of the frontend container behind the application Nginx proxy |
 
-Issue #23's image deploy is the workflow in this spec. It replaces the zip and build-on-host path. Migration, failed-release recovery, and a live HTTPS check are still open. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress includes SES SMTP on TCP 587 and Ubuntu package mirrors on TCP 80.
+Issue #23's image deploy is the workflow in this spec. It replaces the zip and build-on-host path. Migration and failed-release recovery are still open. The workflow now requests the public names after deploy, and that request still needs DNS and Cloudflare to be in place. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress includes SES SMTP on TCP 587 and Ubuntu package mirrors on TCP 80.
 
 ## Acceptance criteria
 

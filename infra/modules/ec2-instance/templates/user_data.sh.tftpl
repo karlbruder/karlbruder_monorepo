@@ -43,6 +43,13 @@ install_cloudwatch_agent() {
       "InstanceId": "$${aws:InstanceId}"
     },
     "metrics_collected": {
+      "cpu": {
+        "measurement": [
+          "cpu_usage_active"
+        ],
+        "metrics_collection_interval": 60,
+        "totalcpu": true
+      },
       "mem": {
         "measurement": [
           "mem_used_percent"
