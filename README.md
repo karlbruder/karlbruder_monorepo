@@ -90,7 +90,7 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 | `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
 | `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/api/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
 | `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
-| `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
+| `frontend/.env` | `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's public `sb_publishable_...` key. Never use a secret or service-role key. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
 `compose.production.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.

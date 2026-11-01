@@ -123,7 +123,6 @@ jobs:
         env:
           SERVICE: ${{ matrix.service }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           RELEASED_AT: ${{ needs.changes.outputs.released_at }}
         run: |
           set -euo pipefail
@@ -136,7 +135,6 @@ jobs:
             case "${SERVICE}" in
               frontend)
                 echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
-                echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}"
                 ;;
               landing)
                 echo "REACT_APP_APPLICATION_URL=${APPLICATION_ORIGIN}"
@@ -147,12 +145,16 @@ jobs:
 
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ matrix.service == 'frontend' && secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
         with:
           context: ${{ matrix.service }}
           file: ${{ matrix.service }}/Dockerfile
           target: production
           push: true
           build-args: ${{ steps.build-args.outputs.args }}
+          secret-envs: ${{ matrix.service == 'frontend' && 'VITE_SUPABASE_PUBLISHABLE_KEY=VITE_SUPABASE_PUBLISHABLE_KEY' || '' }}
+          no-cache-filters: ${{ matrix.service == 'frontend' && 'builder' || '' }}
           tags: |
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ github.sha }}
             ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ env.DEPLOY_ENVIRONMENT }}

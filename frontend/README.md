@@ -21,15 +21,29 @@ Fill in the values for your Supabase project:
 
 ```dotenv
 VITE_SUPABASE_URL=https://PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_CLIENT_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
 VITE_API_BASE_URL=/api
 ```
 
-Allow your development origin in the project's authentication redirect settings and configure its Google provider. Use only a public client key; `VITE_*` values are included in the browser bundle.
+Allow your development origin in the project's authentication redirect settings and configure its Google provider. Use only a publishable key beginning with `sb_publishable_`; `VITE_*` values are included in the browser bundle.
 
 The registration page loads Monomachia through `GET /api/tournaments` with the display name and the 2027 event-date range, then uses the returned ID for signup. An empty page shows an unavailable state. No frontend tournament ID is needed. Keep `VITE_API_BASE_URL=/api` for same-origin requests. Local Vite forwards `/api` without removing the prefix: direct Vite uses `API_PROXY_TARGET=http://localhost:8000`, while Compose sets it to `http://backend:8000`. The production application reverse proxy must preserve `/api` as well. Allow `http://localhost:5173/tournaments/registration` and the corresponding production route in Supabase Auth redirect settings so Google sign-in returns to registration.
 
-Vite reads this directory's environment file. Local Compose loads the same file and sets `API_PROXY_TARGET` to `http://backend:8000` so the container can reach the backend service. Restart the development server after changing the file. The required build variables are `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. `VITE_API_BASE_URL` is optional and defaults to `/api`. Vite validates the required values for both `npm run build` and Docker builds, and reports missing names without printing values. The production image build takes `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as build arguments and fails when either one is missing. The deploy workflow reads those names from the GitHub environment for `dev` or `prod`.
+Vite reads this directory's environment file. Local Compose loads the same file and sets `API_PROXY_TARGET` to `http://backend:8000` so the container can reach the backend service. Restart the development server after changing the file. The required build variables are `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. `VITE_API_BASE_URL` is optional and defaults to `/api`. Vite validates the required values for both `npm run build` and Docker builds, and reports missing names without printing values. The production image build takes `VITE_SUPABASE_URL` as a build argument and `VITE_SUPABASE_PUBLISHABLE_KEY` through a BuildKit secret mount. The build rejects missing values, legacy JWT keys, and server-only secret keys. The deploy workflow reads those names from the GitHub environment for `dev` or `prod`.
+
+For existing setups, replace `VITE_SUPABASE_ANON_KEY` in your local `.env` with `VITE_SUPABASE_PUBLISHABLE_KEY` and a new publishable key from Supabase. Set the new secret name in both GitHub environments before deploying. Renaming the old key does not migrate it.
+
+For a production Docker build, export the publishable key in your shell and run:
+
+```sh
+docker build --target production --no-cache-filter builder \
+  --build-arg VITE_SUPABASE_URL=https://PROJECT_REF.supabase.co \
+  --secret id=VITE_SUPABASE_PUBLISHABLE_KEY,env=VITE_SUPABASE_PUBLISHABLE_KEY .
+```
+
+The pipeline rebuilds the frontend builder stage because changes to mounted secrets do not invalidate Docker's cache. The mount avoids passing the key through Docker arguments. Vite still includes this public key in the browser bundle.
+
+Supabase supplies Auth only to the browser. Domain requests go through FastAPI. Disable the hosted Data API in both cloud environments and review existing and default grants on domain tables. A publishable key does not replace database access controls. Keep legacy keys active until any remaining consumers have migrated, then disable them separately.
 
 The production image stores `GIT_SHA` and `RELEASED_AT` as container environment variables. The pipeline supplies the commit and a UTC build timestamp. These describe the image build and do not change when the container restarts. They are not browser runtime configuration.
 

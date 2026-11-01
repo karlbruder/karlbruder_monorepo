@@ -72,7 +72,7 @@ Remaining inconsistencies and implementation gaps:
 - The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
 - The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
 
-The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_ANON_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
+The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_PUBLISHABLE_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
 
 The 17 October specification pass did not run services or application tests to establish runtime health. The 29 October update above reflects source inspection, not a new end-to-end runtime check.
 
