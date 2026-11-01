@@ -10,7 +10,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name ${LANDING_SERVER_NAMES};
+    server_name ${LANDING_HOSTNAMES};
 
     ssl_certificate /etc/nginx/certs/origin.crt;
     ssl_certificate_key /etc/nginx/certs/origin.key;
@@ -27,7 +27,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name ${APP_SERVER_NAMES};
+    server_name ${APPLICATION_HOSTNAMES};
 
     ssl_certificate /etc/nginx/certs/origin.crt;
     ssl_certificate_key /etc/nginx/certs/origin.key;

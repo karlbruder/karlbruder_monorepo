@@ -1,7 +1,6 @@
 import argparse
 import base64
 import json
-import os
 from pathlib import Path
 import shlex
 import time
@@ -13,14 +12,25 @@ from common import run_aws_json_command
 def main(argv=None):
     """Send the application release to a running host through AWS SSM."""
     parser = argparse.ArgumentParser(description=main.__doc__)
-    for name in ("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "HOST_NAME_TAG", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES"):
-        parser.add_argument(f"--{name.lower().replace('_', '-')}", default=os.environ.get(name))
+    parser.add_argument("--aws-region", required=True)
+    parser.add_argument("--aws-account-id", required=True)
+    parser.add_argument("--namespace", required=True)
+    parser.add_argument("--release-sha", required=True)
+    parser.add_argument("--deploy-path", required=True)
+    parser.add_argument("--host-name-tag", required=True)
+    parser.add_argument("--landing-hostnames", required=True)
+    parser.add_argument("--application-hostnames", required=True)
     parser.add_argument("--compose-file", type=Path, default=Path("compose.production.yml"))
     args = parser.parse_args(argv)
-    for name in (("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES", "HOST_NAME_TAG")):
-        if getattr(args, name.lower()) is None:
-            parser.error(f"{name} is required as an argument or environment variable")
-    config = {name: getattr(args, name.lower()) for name in ("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES")}
+    config = {
+        "AWS_REGION": args.aws_region,
+        "AWS_ACCOUNT_ID": args.aws_account_id,
+        "NAMESPACE": args.namespace,
+        "RELEASE_SHA": args.release_sha,
+        "DEPLOY_PATH": args.deploy_path,
+        "LANDING_HOSTNAMES": args.landing_hostnames,
+        "APPLICATION_HOSTNAMES": args.application_hostnames,
+    }
     host_name = args.host_name_tag
     instance_id = run_aws_json_command(
         "ec2", "describe-instances", "--filters",

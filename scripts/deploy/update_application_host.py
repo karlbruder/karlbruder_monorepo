@@ -10,15 +10,25 @@ from common import run_checked_command
 def main(argv=None):
     """Replace the application stack on this host and verify its images."""
     parser = argparse.ArgumentParser(description=main.__doc__)
-    for name in ("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES"):
-        parser.add_argument(f"--{name.lower().replace('_', '-')}", default=os.environ.get(name))
+    parser.add_argument("--aws-region", required=True)
+    parser.add_argument("--aws-account-id", required=True)
+    parser.add_argument("--namespace", required=True)
+    parser.add_argument("--release-sha", required=True)
+    parser.add_argument("--deploy-path", required=True)
+    parser.add_argument("--landing-hostnames", required=True)
+    parser.add_argument("--application-hostnames", required=True)
     parser.add_argument("--compose-file", type=Path, default=Path("compose.production.yml"))
     parser.add_argument("--compose-content-b64")
     args = parser.parse_args(argv)
-    for name in (("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES")):
-        if getattr(args, name.lower()) is None:
-            parser.error(f"{name} is required as an argument or environment variable")
-    config = {name: getattr(args, name.lower()) for name in ("AWS_REGION", "AWS_ACCOUNT_ID", "NAMESPACE", "RELEASE_SHA", "DEPLOY_PATH", "LANDING_SERVER_NAMES", "APP_SERVER_NAMES")}
+    config = {
+        "AWS_REGION": args.aws_region,
+        "AWS_ACCOUNT_ID": args.aws_account_id,
+        "NAMESPACE": args.namespace,
+        "RELEASE_SHA": args.release_sha,
+        "DEPLOY_PATH": args.deploy_path,
+        "LANDING_HOSTNAMES": args.landing_hostnames,
+        "APPLICATION_HOSTNAMES": args.application_hostnames,
+    }
     config["compose"] = base64.b64decode(args.compose_content_b64).decode() if args.compose_content_b64 else args.compose_file.read_text()
     run_checked_command("docker", "--version")
     run_checked_command("docker", "compose", "version")
@@ -34,8 +44,8 @@ def main(argv=None):
     for name in ("AWS_ACCOUNT_ID", "AWS_REGION", "NAMESPACE"):
         env[name] = config[name]
     env["IMAGE_TAG"] = config["RELEASE_SHA"]
-    env["LANDING_SERVER_NAMES"] = config["LANDING_SERVER_NAMES"]
-    env["APP_SERVER_NAMES"] = config["APP_SERVER_NAMES"]
+    env["LANDING_HOSTNAMES"] = config["LANDING_HOSTNAMES"]
+    env["APPLICATION_HOSTNAMES"] = config["APPLICATION_HOSTNAMES"]
 
     region = config["AWS_REGION"]
     registry = f"{config['AWS_ACCOUNT_ID']}.dkr.ecr.{region}.amazonaws.com"

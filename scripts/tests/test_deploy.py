@@ -2,7 +2,6 @@ import contextlib
 import importlib.util
 import io
 import json
-import os
 from pathlib import Path
 import shlex
 import subprocess
@@ -34,15 +33,32 @@ CONFIG = {
     'NAMESPACE': 'kb-dev', 'RELEASE_SHA': 'test-sha',
     'DEPLOY_PATH': '/opt/karlbruder', 'DEPLOY_ENVIRONMENT': 'dev',
     'HOST_NAME_TAG': 'kb-dev-application-host',
-    'LANDING_SERVER_NAMES': 'dev.karlbruder.com',
-    'APP_SERVER_NAMES': 'app-dev.karlbruder.com',
+    'LANDING_HOSTNAMES': 'dev.karlbruder.com',
+    'APPLICATION_HOSTNAMES': 'app-dev.karlbruder.com',
 }
+
+
+def cli_args(source, *names):
+    arguments = []
+    for name in names:
+        arguments.extend((f"--{name.lower().replace('_', '-')}", source[name]))
+    return arguments
+
+
+DEPLOY_ARGUMENT_NAMES = (
+    'AWS_REGION', 'AWS_ACCOUNT_ID', 'NAMESPACE', 'RELEASE_SHA', 'DEPLOY_PATH',
+    'HOST_NAME_TAG', 'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES',
+)
+HOST_ARGUMENT_NAMES = (
+    'AWS_REGION', 'AWS_ACCOUNT_ID', 'NAMESPACE', 'RELEASE_SHA', 'DEPLOY_PATH',
+    'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES',
+)
 
 
 class DeploymentTests(unittest.TestCase):
     def run_deploy(self, responses):
-        with patch.dict(os.environ, CONFIG), patch.object(deploy, 'run_aws_json_command', side_effect=responses) as aws, patch.object(deploy.time, 'sleep'), contextlib.redirect_stdout(io.StringIO()):
-            deploy.main([])
+        with patch.object(deploy, 'run_aws_json_command', side_effect=responses) as aws, patch.object(deploy.time, 'sleep'), contextlib.redirect_stdout(io.StringIO()):
+            deploy.main(cli_args(CONFIG, *DEPLOY_ARGUMENT_NAMES))
         return aws
 
     def test_pending_command_is_polled_until_success(self):
@@ -71,7 +87,7 @@ class DeploymentTests(unittest.TestCase):
 
     def test_aws_errors_fail_except_during_polling(self):
         result = subprocess.CompletedProcess([], 1, '', 'AWS failure')
-        with patch.dict(os.environ, CONFIG), patch.object(common.subprocess, 'run', return_value=result):
+        with patch.object(common.subprocess, 'run', return_value=result):
             with self.assertRaisesRegex(SystemExit, 'AWS failure'):
                 deploy.run_aws_json_command('ssm', 'send-command', region='us-east-2')
             self.assertEqual(deploy.run_aws_json_command('ssm', 'get-command-invocation', region='us-east-2', check=False), {})
@@ -84,9 +100,10 @@ class DeploymentTests(unittest.TestCase):
                 return Mock(stdout=image)
             return Mock(stdout='container-test')
 
-        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, CONFIG), patch.object(host, 'run_checked_command', side_effect=command) as run, patch.object(host.os, 'chown'), patch.object(host.os, 'chdir'), patch.object(host.grp, 'getgrnam', return_value=Mock(gr_gid=1000)):
+        with tempfile.TemporaryDirectory() as folder, patch.object(host, 'run_checked_command', side_effect=command) as run, patch.object(host.os, 'chown'), patch.object(host.os, 'chdir'), patch.object(host.grp, 'getgrnam', return_value=Mock(gr_gid=1000)):
             Path(folder, 'source.yml').write_text('services: {}')
-            host.main(['--deploy-path', folder, '--compose-file', str(Path(folder, 'source.yml')), '--app-server-names', 'app.karlbruder.com app-prod.karlbruder.com' if environment == 'prod' else 'app-dev.karlbruder.com'])
+            source = dict(CONFIG, DEPLOY_PATH=folder, APPLICATION_HOSTNAMES='app.karlbruder.com app-prod.karlbruder.com' if environment == 'prod' else 'app-dev.karlbruder.com')
+            host.main([*cli_args(source, *HOST_ARGUMENT_NAMES), '--compose-file', str(Path(folder, 'source.yml'))])
             self.assertEqual(Path(folder, 'compose.production.yml').read_text(), 'services: {}')
         return run
 
@@ -95,7 +112,7 @@ class DeploymentTests(unittest.TestCase):
             with self.subTest(environment=environment):
                 run = self.run_host(environment, 'registry/service:test-sha')
                 pull = next(call for call in run.call_args_list if call.args[-1] == 'pull')
-                self.assertEqual(pull.kwargs['env']['APP_SERVER_NAMES'], hostname)
+                self.assertEqual(pull.kwargs['env']['APPLICATION_HOSTNAMES'], hostname)
                 self.assertEqual(sum(call.args[:2] == ('docker', 'inspect') for call in run.call_args_list), 4)
                 self.assertEqual(run.call_args.args, ('docker', 'image', 'prune', '-f'))
 
@@ -106,7 +123,7 @@ class DeploymentTests(unittest.TestCase):
 
 class VerificationTests(unittest.TestCase):
     def test_metadata_checks_new_backend_and_accepts_reused_backend(self):
-        env = dict(CONFIG, APPLICATION_BASE_URL='https://app.invalid', LANDING_BASE_URL='https://landing.invalid', RELEASED_AT='build-time')
+        source = dict(CONFIG, APPLICATION_BASE_URL='https://app.invalid', LANDING_BASE_URL='https://landing.invalid', RELEASED_AT='build-time')
         for services, sha, released, passed in [
             ('["backend"]', 'test-sha', 'build-time', True),
             ('["backend"]', 'wrong', 'build-time', False),
@@ -114,12 +131,13 @@ class VerificationTests(unittest.TestCase):
             ('["landing"]', 'old', 'old', True),
             ('["landing"]', 'old', '', False),
         ]:
-            with self.subTest(services=services, sha=sha, released=released), patch.dict(os.environ, dict(env, SERVICES=services)), patch.object(verify, 'request_with_retries', return_value=json.dumps({'git_sha': sha, 'released_at': released})):
+            arguments = cli_args(dict(source, SERVICES=services), 'APPLICATION_BASE_URL', 'LANDING_BASE_URL', 'SERVICES', 'RELEASED_AT', 'RELEASE_SHA')
+            with self.subTest(services=services, sha=sha, released=released), patch.object(verify, 'request_with_retries', return_value=json.dumps({'git_sha': sha, 'released_at': released})):
                 if passed:
-                    verify.main([])
+                    verify.main(arguments)
                 else:
                     with self.assertRaises(SystemExit):
-                        verify.main([])
+                        verify.main(arguments)
 
     def test_http_failure_retries_then_returns_success(self):
         response = Mock()
@@ -139,8 +157,8 @@ class VerificationTests(unittest.TestCase):
 
     def test_stamping_reuses_manifest_for_unbuilt_service(self):
         results = [subprocess.CompletedProcess([], 1, '', ''), subprocess.CompletedProcess([], 0, '{"images":[{"imageManifest":"manifest"}]}', ''), subprocess.CompletedProcess([], 0, '', '')]
-        with patch.dict(os.environ, dict(CONFIG, SERVICES='["backend","frontend","landing"]')), patch.object(common.subprocess, 'run', side_effect=results) as run:
-            stamp.main([])
+        with patch.object(common.subprocess, 'run', side_effect=results) as run:
+            stamp.main(cli_args(dict(CONFIG, SERVICES='["backend","frontend","landing"]'), 'AWS_REGION', 'DEPLOY_ENVIRONMENT', 'RELEASE_SHA', 'SERVICES'))
             self.assertIn('kb-dev/nginx', run.call_args.args[0])
             self.assertIn('manifest', run.call_args.args[0])
 
