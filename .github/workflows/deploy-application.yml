@@ -42,6 +42,8 @@ concurrency:
   group: deploy-application-${{ inputs.environment || 'dev' }}
   cancel-in-progress: false
 
+run-name: Deploy - Application (${{ inputs.environment || 'dev' }} - ${{ inputs.service || 'all' }})
+
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
