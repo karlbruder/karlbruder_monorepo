@@ -86,7 +86,7 @@ need to be running.
 
 ## Tournament module
 
-The [tournament guide](tournaments/README.md) explains the catalog and signup
+The [tournament guide](app/tournaments/README.md) explains the catalog and signup
 APIs, access rules, registration behavior, and current release dependencies.
 
 ## Tests and lint
