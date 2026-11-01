@@ -222,6 +222,7 @@ jobs:
           --host-name-tag "kb-${DEPLOY_ENVIRONMENT}-application-host"
           --landing-hostnames "${LANDING_HOSTNAMES}"
           --application-hostnames "${APPLICATION_HOSTNAMES}"
+          --env-name "${DEPLOY_ENVIRONMENT}"
 
   verify:
     name: Check the public hostnames

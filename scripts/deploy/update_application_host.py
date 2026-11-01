@@ -17,6 +17,7 @@ def main(argv=None):
     parser.add_argument("--deploy-path", required=True)
     parser.add_argument("--landing-hostnames", required=True)
     parser.add_argument("--application-hostnames", required=True)
+    parser.add_argument("--env-name", required=True)
     parser.add_argument("--compose-file", type=Path, default=Path("compose.production.yml"))
     parser.add_argument("--compose-content-b64")
     args = parser.parse_args(argv)
@@ -28,6 +29,7 @@ def main(argv=None):
         "DEPLOY_PATH": args.deploy_path,
         "LANDING_HOSTNAMES": args.landing_hostnames,
         "APPLICATION_HOSTNAMES": args.application_hostnames,
+        "ENV_NAME": args.env_name,
     }
     config["compose"] = base64.b64decode(args.compose_content_b64).decode() if args.compose_content_b64 else args.compose_file.read_text()
     run_checked_command("docker", "--version")
@@ -38,6 +40,16 @@ def main(argv=None):
     compose_file.write_text(config["compose"])
     os.chown(compose_file, 0, grp.getgrnam("docker").gr_gid)
     compose_file.chmod(0o664)
+    backend_env_file = deploy_path / "backend.env"
+    backend_env_file.write_text(
+        "ENV_NAME={env_name}\nSECRET_NAME={secret_name}\nAWS_REGION={region}\n".format(
+            env_name=config["ENV_NAME"],
+            secret_name=f"{config['NAMESPACE']}/backend",
+            region=config["AWS_REGION"],
+        )
+    )
+    os.chown(backend_env_file, 0, grp.getgrnam("docker").gr_gid)
+    backend_env_file.chmod(0o640)
     os.chdir(deploy_path)
 
     env = dict(os.environ)

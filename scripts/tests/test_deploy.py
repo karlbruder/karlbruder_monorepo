@@ -35,6 +35,7 @@ CONFIG = {
     'HOST_NAME_TAG': 'kb-dev-application-host',
     'LANDING_HOSTNAMES': 'dev.karlbruder.com',
     'APPLICATION_HOSTNAMES': 'app-dev.karlbruder.com',
+    'ENV_NAME': 'dev',
 }
 
 
@@ -47,11 +48,11 @@ def cli_args(source, *names):
 
 DEPLOY_ARGUMENT_NAMES = (
     'AWS_REGION', 'AWS_ACCOUNT_ID', 'NAMESPACE', 'RELEASE_SHA', 'DEPLOY_PATH',
-    'HOST_NAME_TAG', 'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES',
+    'HOST_NAME_TAG', 'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES', 'ENV_NAME',
 )
 HOST_ARGUMENT_NAMES = (
     'AWS_REGION', 'AWS_ACCOUNT_ID', 'NAMESPACE', 'RELEASE_SHA', 'DEPLOY_PATH',
-    'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES',
+    'LANDING_HOSTNAMES', 'APPLICATION_HOSTNAMES', 'ENV_NAME',
 )
 
 
@@ -105,6 +106,10 @@ class DeploymentTests(unittest.TestCase):
             source = dict(CONFIG, DEPLOY_PATH=folder, APPLICATION_HOSTNAMES='app.karlbruder.com app-prod.karlbruder.com' if environment == 'prod' else 'app-dev.karlbruder.com')
             host.main([*cli_args(source, *HOST_ARGUMENT_NAMES), '--compose-file', str(Path(folder, 'source.yml'))])
             self.assertEqual(Path(folder, 'compose.production.yml').read_text(), 'services: {}')
+            self.assertEqual(
+                Path(folder, 'backend.env').read_text(),
+                'ENV_NAME=dev\nSECRET_NAME=kb-dev/backend\nAWS_REGION=us-east-2\n',
+            )
         return run
 
     def test_host_sets_routing_and_verifies_all_images_before_pruning(self):
