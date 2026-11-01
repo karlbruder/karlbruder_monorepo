@@ -2,7 +2,7 @@ module "application_host" {
   source = "./modules/ec2-instance"
 
   namespace     = local.namespace
-  instance_name = "${local.namespace}-application"
+  instance_name = "${local.namespace}-application-host"
   project_name  = local.project_name
   instance_type = local.application_instance_type
   deploy_path   = "/opt/karlbruder"

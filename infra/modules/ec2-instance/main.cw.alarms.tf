@@ -12,7 +12,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
   }
 }
 
@@ -48,7 +48,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
   }
 }
 
@@ -66,7 +66,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_critical" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
   }
 }
 
@@ -84,7 +84,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
     path       = "/"
     fstype     = "ext4"
   }
@@ -104,7 +104,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_critical" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
     path       = "/"
     fstype     = "ext4"
   }
@@ -124,6 +124,6 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    InstanceId = aws_instance.application.id
+    InstanceId = aws_instance.this.id
   }
 }

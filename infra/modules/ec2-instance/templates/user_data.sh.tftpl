@@ -26,7 +26,8 @@ install_base_packages() {
 
 install_cloudwatch_agent() {
   log "Installing and configuring CloudWatch agent"
-  curl -fsSL "https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb" -o "/tmp/amazon-cloudwatch-agent.deb"
+  host_architecture="$(dpkg --print-architecture)"
+  curl -fsSL "https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/$${host_architecture}/latest/amazon-cloudwatch-agent.deb" -o "/tmp/amazon-cloudwatch-agent.deb"
   dpkg -i -E /tmp/amazon-cloudwatch-agent.deb
   rm -f /tmp/amazon-cloudwatch-agent.deb
 
@@ -99,7 +100,19 @@ install_aws_cli() {
   fi
 
   log "Installing AWS CLI v2"
-  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+  case "$(dpkg --print-architecture)" in
+    amd64)
+      aws_cli_architecture="x86_64"
+      ;;
+    arm64)
+      aws_cli_architecture="aarch64"
+      ;;
+    *)
+      echo "Unsupported CPU architecture: $(dpkg --print-architecture)" >&2
+      exit 1
+      ;;
+  esac
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$${aws_cli_architecture}.zip" -o "/tmp/awscliv2.zip"
   rm -rf /tmp/aws
   unzip -q /tmp/awscliv2.zip -d /tmp
   /tmp/aws/install --update
@@ -112,18 +125,17 @@ install_docker() {
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
 
-  ubuntu_codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
   cat > /etc/apt/sources.list.d/docker.sources << EOF
 Types: deb
 URIs: https://download.docker.com/linux/ubuntu
-Suites: $ubuntu_codename
+Suites: $(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$VERSION_CODENAME}")
 Components: stable
-Architectures: amd64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 
   apt-get update -y
-  apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   systemctl enable --now docker
 }
 

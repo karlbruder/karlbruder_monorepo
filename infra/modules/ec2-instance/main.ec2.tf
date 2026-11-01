@@ -1,10 +1,10 @@
-data "aws_ami" "ubuntu_lts_x86_64" {
+data "aws_ami" "ubuntu_24_04_x86_64" {
   most_recent = true
   owners      = ["099720109477"]
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {
@@ -28,7 +28,7 @@ data "aws_ami" "ubuntu_lts_x86_64" {
   }
 }
 
-resource "aws_security_group" "application" {
+resource "aws_security_group" "this" {
   name        = "${var.namespace}-application"
   description = "Application host. Inbound HTTPS only. No SSH."
   vpc_id      = var.vpc_id
@@ -60,13 +60,13 @@ resource "aws_security_group" "application" {
   }
 }
 
-resource "aws_instance" "application" {
-  ami           = data.aws_ami.ubuntu_lts_x86_64.id
+resource "aws_instance" "this" {
+  ami           = data.aws_ami.ubuntu_24_04_x86_64.id
   instance_type = var.instance_type
   subnet_id     = var.subnet_id
 
-  vpc_security_group_ids      = [aws_security_group.application.id]
-  iam_instance_profile        = aws_iam_instance_profile.application.name
+  vpc_security_group_ids      = [aws_security_group.this.id]
+  iam_instance_profile        = aws_iam_instance_profile.this.name
   associate_public_ip_address = true
 
   metadata_options {
@@ -105,7 +105,7 @@ resource "aws_instance" "application" {
   }
 }
 
-resource "aws_eip" "application" {
+resource "aws_eip" "this" {
   domain = "vpc"
 
   tags = {
@@ -113,7 +113,7 @@ resource "aws_eip" "application" {
   }
 }
 
-resource "aws_eip_association" "application" {
-  allocation_id = aws_eip.application.id
-  instance_id   = aws_instance.application.id
+resource "aws_eip_association" "this" {
+  allocation_id = aws_eip.this.id
+  instance_id   = aws_instance.this.id
 }
