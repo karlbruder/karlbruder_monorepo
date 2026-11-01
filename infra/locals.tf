@@ -17,6 +17,11 @@ locals {
 
   namespace = "${local.project_slug}-${local.env}"
 
+  application_instance_type = {
+    dev  = "t3a.nano"
+    prod = "t3a.micro"
+  }[local.env]
+
   aws_tags = {
     "author"       = "Terraform"
     "scope"        = local.scope

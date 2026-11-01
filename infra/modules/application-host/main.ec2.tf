@@ -1,0 +1,115 @@
+data "aws_ami" "ubuntu_lts_x86_64" {
+  most_recent = true
+  owners      = ["099720109477"]
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+}
+
+resource "aws_security_group" "application" {
+  name        = "${var.namespace}-application"
+  description = "Application host. Inbound HTTPS only. No SSH."
+  vpc_id      = var.vpc_id
+
+  dynamic "ingress" {
+    for_each = local.ingress_rules
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.from_port
+      to_port     = ingress.value.to_port
+      protocol    = ingress.value.protocol
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  dynamic "egress" {
+    for_each = local.egress_rules
+    content {
+      description = egress.value.description
+      from_port   = egress.value.from_port
+      to_port     = egress.value.to_port
+      protocol    = egress.value.protocol
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.namespace}-application"
+  })
+}
+
+resource "aws_instance" "application" {
+  ami           = data.aws_ami.ubuntu_lts_x86_64.id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+
+  vpc_security_group_ids      = [aws_security_group.application.id]
+  iam_instance_profile        = aws_iam_instance_profile.application.name
+  associate_public_ip_address = true
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  root_block_device {
+    volume_type           = "gp3"
+    volume_size           = 30
+    iops                  = 3000
+    throughput            = 125
+    encrypted             = true
+    delete_on_termination = false
+
+    tags = merge(var.tags, {
+      Name = "${var.instance_name}-root"
+    })
+  }
+
+  user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
+    project_name = var.project_name
+    deploy_path  = var.deploy_path
+  })
+
+  tags = local.instance_tags
+
+  lifecycle {
+    # A newer Canonical AMI, or a bootstrap edit, must not replace a running host.
+    ignore_changes = [ami, user_data]
+  }
+}
+
+resource "aws_eip" "application" {
+  domain = "vpc"
+
+  tags = merge(var.tags, {
+    Name = "${var.instance_name}-eip"
+  })
+}
+
+resource "aws_eip_association" "application" {
+  allocation_id = aws_eip.application.id
+  instance_id   = aws_instance.application.id
+}

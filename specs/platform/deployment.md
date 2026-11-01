@@ -71,6 +71,20 @@ The landing bucket is account-regional. The root passes `bucket_name_prefix` as 
 
 Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
 
+## Application host
+
+Each workspace has one EC2 instance in the account default VPC, on the first default subnet, with an Elastic IP. The image is the latest Ubuntu 26.04 LTS build for x86_64 from Canonical. `dev` uses `t3a.nano`. `prod` uses `t3a.micro`.
+
+The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume stays if the instance is terminated. AWS Backup is not configured for this host.
+
+Inbound traffic is TCP 443 only. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`.
+
+Outbound traffic is DNS on UDP and TCP 53, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
+
+First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. Those alarms do not notify an SNS topic yet.
+
+A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a running instance. Replacing the image or the script is a deliberate change.
+
 ## Earlier deployment issues and reconciliation
 
 The earlier issues describe deployment transport evolution. Their backend-only topology and older Compose filename are historical inputs superseded by decision 0003. These issue bodies have not been changed, and their deployed state has not been verified.
