@@ -15,7 +15,7 @@ afterEach(() => {
   }
 });
 
-test('renders the Monomachia championship page', () => {
+test('shows the championship page and links registration to the app, with no form on this site', () => {
   delete process.env.REACT_APP_APPLICATION_URL;
   window.history.pushState({}, '', '/monomachia');
   render(<App />);

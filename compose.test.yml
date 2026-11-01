@@ -1,0 +1,48 @@
+# Isolated backend tests. This file publishes no host ports.
+# PostgreSQL data is in memory and disappears when the container stops.
+# Use a distinct project name whenever another test stack may already be running:
+#   docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
+#   docker compose -f compose.test.yml -p kb-test-<name> down
+
+services:
+  db:
+    image: postgres:17
+    restart: "no"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+
+    tmpfs:
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=512m,uid=999,gid=999
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+
+    restart: "no"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    environment:
+      ENV_NAME: test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: postgres
+      SUPABASE_URL: "https://test-project.supabase.co"
+
+    volumes:
+      - ./backend:/app

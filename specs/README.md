@@ -1,6 +1,6 @@
 # Specifications
 
-These living specifications describe the intended Karlbrüder product and platform. The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the existing [Monomachia requirements](../monomachia-requirements.md), and a read-only inspection of this checkout.
+These living specifications describe the intended Karlbrüder product and platform. The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the Monomachia source notes, and a read-only inspection of this checkout. Those source notes now live in the Monomachia event specification.
 
 ## Start here
 

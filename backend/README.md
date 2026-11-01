@@ -5,7 +5,7 @@ FastAPI service for the Karlbrüder application, using PostgreSQL for persistenc
 ## Requirements
 
 - Python 3.12 and Poetry for host development.
-- A PostgreSQL database accessible through `DATABASE_URL`.
+- A PostgreSQL database described by `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`.
 - A Supabase project for authenticated API requests.
 
 For container-based setup, follow the [root README](../README.md#local-setup-with-docker-compose).
@@ -14,11 +14,13 @@ For container-based setup, follow the [root README](../README.md#local-setup-wit
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Required SQLAlchemy database URI. |
+| `ENV_NAME` | `local` and `test` use those settings. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Domain PostgreSQL connection. The backend builds the URL from these values. |
 | `SUPABASE_URL` | Supabase HTTPS project root used for access-token verification. |
-| `AUTH_DATABASE_URL` | Optional PostgreSQL URI used only by `/health/auth`. |
+| `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD` | PostgreSQL connection used by `/health/auth`. |
+| `SECRET_NAME`, `AWS_REGION` | Required for AWS environments. Secrets Manager fills settings that are still empty. |
 
-Use [the environment example](../.env.example) as a reference. Host-run processes read exported environment variables; they do not automatically load the root `.env` file. Compose supplies its own local database default when `DATABASE_URL` is blank.
+Copy [the environment example](.env.example) to `backend/.env`. Compose and `compose.prod.yml` load that file into the backend container. A host-run process does not load it automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
 
 ## Development
 
@@ -26,12 +28,17 @@ Run these commands from `backend/`, replacing the example values as needed:
 
 ```sh
 poetry install --no-root --with dev
-export DATABASE_URL='postgresql://user:password@127.0.0.1:5432/kb-db'
+export ENV_NAME=local
+export DB_USER=postgres
+export DB_PASSWORD=postgres
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_NAME=postgres
 export SUPABASE_URL='https://PROJECT_REF.supabase.co'
-poetry run uvicorn main:karlbruder_app --reload --host 127.0.0.1 --port 8000
+poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
 ```
 
-The sample database URI matches the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
+The sample database settings match the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
 
 Open `http://localhost:8000/docs` for API documentation and interactive requests. For protected requests, use **Authorize** with a Supabase access token from the configured project.
 
@@ -45,7 +52,7 @@ Database diagnostics report schema presence separately from connectivity; inspec
 
 ## Domain migrations
 
-Alembic manages the domain tables in the database selected by `DATABASE_URL`.
+Alembic manages the domain tables in the database selected by the `DB_*` settings.
 From `backend/`, apply migrations before starting an API version that uses new tables:
 
 ```sh
@@ -56,14 +63,16 @@ poetry run alembic current
 Local Compose and production deployment details, including a migration that
 needs special care for existing signups, are in the [migration notes](docs/migrations.md).
 
-From the repository root, these commands manage only the Compose database `kb-db`.
-They stop if the backend `DATABASE_URL` is not that local database.
+From the repository root, these commands manage only the Compose database `postgres`.
+They stop if the backend database host is not `db` or the database name is not `postgres`.
 
 ```sh
-backend/scripts/local_database.sh reset
-backend/scripts/local_database.sh drop
-backend/scripts/local_database.sh seed
+make db-reset
+make db-drop
+make db-seed
 ```
+
+Those targets run `scripts/local_database.sh`. The same script can be called directly from the repository root.
 
 `reset` drops the `public` schema, applies Alembic head, and inserts Monomachia
 when that slug is missing. The seeded event starts on 17 January 2027. Its
@@ -79,14 +88,16 @@ APIs, access rules, registration behavior, and current release dependencies.
 
 ## Tests and lint
 
-From `backend/`:
+From the repository root, run the isolated test stack. It publishes no host ports. Pick a project name that is not already in use, then remove it when the run is finished.
 
 ```sh
-poetry run pytest
-poetry run ruff check .
+make test-backend
+make lint-backend
 ```
 
-Install the development dependency group before running these commands. Database diagnostics and interactive authenticated requests require their configured services; running unit tests does not establish live integration health.
+`make test-backend` runs pytest with `-x`, then removes that Compose project. `make lint-backend` runs Ruff the same way. The default project name is `kb-test-local`. Pass `TEST_PROJECT=kb-test-name` when another run may already be using it. The direct commands are `docker compose -f compose.test.yml -p kb-test-local run --rm backend pytest -x` and the same form with `ruff check .`.
+
+Rebuild that image after a dependency change. A narrower pytest command replaces the service command, so keep `-x` in it. Database diagnostics and interactive authenticated requests require their configured services. Running the test stack does not establish live integration health.
 
 ## Further reading
 

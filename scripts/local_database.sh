@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # Reset or seed the Compose PostgreSQL database used for local development.
-# This talks to the db service in compose.yml. It refuses to migrate when the
-# backend DATABASE_URL is not that local database.
+# Refuses to migrate unless the backend is pointed at the Compose db service.
 
 set -euo pipefail
 
-root_directory="$(cd "$(dirname "$0")/../.." && pwd)"
+root_directory="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root_directory"
 
 usage() {
-  echo "Usage: backend/scripts/local_database.sh drop|seed|reset" >&2
+  echo "Usage: scripts/local_database.sh drop|seed|reset" >&2
   echo "  drop   Recreate the public schema and apply Alembic head." >&2
   echo "  seed   Insert the local Monomachia event when it is missing." >&2
   echo "  reset  Drop, migrate, then seed." >&2
@@ -17,16 +16,15 @@ usage() {
 
 require_local_backend_database() {
   docker compose exec -T backend python -c "
-from sqlalchemy.engine import make_url
-import os
 import sys
 
-url = make_url(os.environ.get('DATABASE_URL', ''))
-host = (url.host or '').lower()
-database_name = url.database or ''
-if host != 'db' or database_name != 'kb-db':
+from config import settings
+
+host = settings.DB_HOST.lower()
+database_name = settings.DB_NAME
+if host != 'db' or database_name != 'postgres':
     print(
-        'Refusing to change a database that is not the local Compose database kb-db on host db.',
+        'Refusing to change a database that is not the local Compose database postgres on host db.',
         file=sys.stderr,
     )
     sys.exit(1)
@@ -34,7 +32,7 @@ if host != 'db' or database_name != 'kb-db':
 }
 
 drop_public_schema() {
-  docker compose exec -T db psql -U user -d kb-db -v ON_ERROR_STOP=1 <<'SQL'
+  docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = current_database()
@@ -51,7 +49,7 @@ apply_migrations() {
 }
 
 seed_monomachia() {
-  docker compose exec -T db psql -U user -d kb-db -v ON_ERROR_STOP=1 <<'SQL'
+  docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO public.tournaments (
     name,
     slug,

@@ -16,8 +16,10 @@
 
 ## Environment boundaries
 
-- Local `compose.yml` runs frontend, backend, and domain PostgreSQL. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
-- Production `compose.prod.yml` runs separate Nginx, frontend, and backend services. Nginx preserves `/api` when forwarding to the backend and sends other application requests to the frontend. Production domain data lives in Supabase PostgreSQL's `public` schema; there is no PostgreSQL container.
+- Local `compose.yml` runs the public landing site, the application frontend, the backend, and domain PostgreSQL. Landing and frontend source trees are bind-mounted into their development servers. Their dependencies stay in the image. The backend source tree is bind-mounted and Uvicorn reloads on change. Authentication still uses hosted Supabase. Add Ministack for local S3 emulation when file storage is implemented.
+- The public site is not a production Compose service. Production builds the landing bundle and publishes it to S3. `compose.prod.yml` runs Nginx, frontend, and backend only.
+- `compose.test.yml` runs backend tests with a private PostgreSQL service and publishes no host ports. Agents use this file for tests. Pass `-p` with a unique project name when another test stack may be running, then remove that project with `down -v`.
+- Production `compose.prod.yml` runs separate Nginx, frontend, and backend services. Nginx terminates TLS with a self-signed certificate, preserves `/api` when forwarding to the backend, and sends other application requests to the frontend. Only Nginx publishes a host port, 443. Production domain data lives in Supabase PostgreSQL's `public` schema; there is no PostgreSQL container.
 - Cloudflare manages DNS and public TLS, proxying the application A record to the EC2 Elastic IP. HTTP redirects to HTTPS at Cloudflare. The self-signed Nginx origin publishes 443 only; frontend/backend ports stay internal. Keep existing local development ports. Local SMTP configuration is deferred, likely real SES with real credentials.
 - Private production files use Amazon S3. Application email uses AWS SES via SMTP. See [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) for intended stacks and implementation gaps.
 
@@ -47,11 +49,13 @@ Create-issue creates a GitHub issue; plan-issue and implement-issue require one.
 - Consult [the open-question index](specs/open-questions.md) before asking for a product decision. Define each question once in its owning spec, link to it from related specs, and keep current-scope, deferred, and technical implementation topics distinct. Fold answers into every affected spec and update the index. Do not re-ask resolved choices or require all questions to be answered before independent work can proceed.
 - Future scope does not authorize implementing that capability during an unrelated task.
 - Update the relevant specification when the requested change alters behavior. Keep shared delivery requirements and task checklists in GitHub Issues, and detailed implementation plans and checkpoint state in `.local/plan-issue/`, rather than duplicating them in specs.
-- Report what was verified and which criteria remain unverified. Run checks appropriate to the changed application. Documentation-only changes need link and consistency checks, not application test runs.
+- Report what was verified and which criteria remain unverified. Run checks appropriate to the changed application. When `compose.test.yml` exists, run that application's tests with it while developing. Do not replace that run with a host test command. Documentation-only changes need link and consistency checks, not application test runs.
 
 ## Repository conventions
 
 - The backend owns domain rules, authorization, and database access. Frontend visibility checks do not replace backend authorization.
 - Supabase Auth owns application identity. Domain objects belong in PostgreSQL's `public` schema. Do not modify Supabase-managed `auth` objects.
 - Keep credentials, personal registration data, payment proofs, and private safety notes out of source files and public assets.
+- Do not add a comment that only restates the next line. A module docstring is fine. A section separator is fine. A short class or function docstring is fine when it adds something the name does not already say. When a class or function is hard to follow, the docstring may explain the reason and give an example. A comment on a line belongs where the reason is not visible in the code. Settings files and env examples follow the same rule.
+- A test name should say what the check does and what result it locks in. When the name already does that, stop. When it does not, add one short description in plain language. Pytest uses a function docstring. Vitest and Jest put that sentence in the `it` or `test` title, and add a comment only when the title still hides the point.
 

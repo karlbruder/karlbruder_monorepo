@@ -97,6 +97,7 @@ def upgrade() -> None:
         sa.Column("special_category_note", sa.Text()),
         sa.Column("emergency_contact_name", sa.String(length=200), nullable=False),
         sa.Column("emergency_contact_phone", sa.String(length=40), nullable=False),
+        sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
         sa.Column("declares_required_equipment", sa.Boolean(), nullable=False),
         sa.Column("declares_physically_fit", sa.Boolean(), nullable=False),
         sa.Column("accepts_regulation", sa.Boolean(), nullable=False),
@@ -134,6 +135,10 @@ def upgrade() -> None:
             "AND accepts_regulation AND accepts_data_processing "
             "AND acknowledges_inherent_risks AND accepts_cancellation_policy",
             name="ck_tournament_signups_required_declarations",
+        ),
+        sa.CheckConstraint(
+            "declares_truthful_information",
+            name="ck_tournament_signups_truthfulness",
         ),
         sa.UniqueConstraint("inscription_number", name="uq_tournament_signups_inscription_number"),
         schema="public",

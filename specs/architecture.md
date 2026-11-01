@@ -16,7 +16,7 @@ The following stacks describe intended architecture, not verified deployments. [
 
 | Responsibility | Local development | Production |
 | --- | --- | --- |
-| Application stack | `compose.yml`: frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend |
+| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend. Landing is a separate S3 static site |
 | Application entry | Existing development ports and frontend `/api` forwarding | Cloudflare HTTPS edge to EC2 Elastic IP, then Nginx on 443 |
 | Identity | Hosted Supabase Auth | Hosted Supabase Auth |
 | Domain database | PostgreSQL container, domain objects in `public` | Hosted Supabase PostgreSQL, domain objects in `public`; no PostgreSQL container |
@@ -27,7 +27,9 @@ The following stacks describe intended architecture, not verified deployments. [
 
 ```mermaid
 flowchart LR
-    Browser["Local browser"] --> Frontend
+    Browser["Local browser"] --> Landing["landing: development server"]
+    Browser --> Frontend
+    Landing -->|Registration link| Frontend
     subgraph Local["Local development - compose.yml"]
         Frontend["frontend: development server"] -->|/api requests| Backend["backend: FastAPI"]
         Backend --> Database["PostgreSQL container: public schema"]
@@ -123,13 +125,13 @@ These concepts do not prescribe one table per concept. Issue #20 provides a star
 
 The following observations came from source inspection, not runtime validation:
 
-- `backend/auth.py` verifies Supabase JWTs. `backend/main.py` provides health endpoints and protected `GET /api/users/me`. It has no tournament routes in this checkout.
+- `backend/app/auth.py` verifies Supabase JWTs. `backend/app/main.py` provides health endpoints, protected `GET /api/users/me`, and the tournament routes.
 - `frontend/src/App.tsx` has Google sign-in, session restoration, and sign-out through Supabase. Separate email/password and recovery pages are not present in the inspected application entry point.
 - `landing/src/App.js` serves the homepage and `/monomachia`. The event page links to Instagram. Existing routes may remain public presentation routes while registration is implemented in the application.
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.
 - The existing frontend Home/Health pages are not mounted by the application entry point. Health-page requests use `/api/health` paths while backend diagnostics use `/health`; future diagnostic UI integration must reconcile those paths. Production frontend build-time Supabase configuration also remains to be implemented.
 - The existing `frontend/nginx.conf` serves frontend assets and strips `/api/` when proxying. It does not implement the separately defined production reverse-proxy container or the chosen prefix-preserving contract.
-- Landing CI and S3 deployment workflows exist. `compose.prod.yml`, a Ministack service, S3/SMTP application integrations, a backend deployment workflow, and a tournament migration tree are not present in the inspected tracked files. The diagrams above are the target architecture.
+- Landing CI and S3 deployment workflows exist. `compose.prod.yml` defines Nginx, frontend, and backend, with Nginx publishing 443 and a self-signed origin certificate. A Ministack service, S3/SMTP application integrations, a backend deployment workflow, and live EC2 deployment are not established by the presence of that file. The diagrams above remain the target architecture.
 
 ## Acceptance criteria
 

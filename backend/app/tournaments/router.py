@@ -7,16 +7,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from auth import (
+from app.auth import (
     get_application_role,
     get_current_user,
     require_admin,
     require_authenticated_user,
 )
-from database import get_session
-from models import AnonymousUser, User
-from tournaments.models import Tournament, TournamentSignup
-from tournaments.schemas import (
+from app.database import get_session
+from app.models import AnonymousUser, User
+from app.tournaments.models import Tournament, TournamentSignup
+from app.tournaments.schemas import (
     SignupCreate,
     SignupRead,
     StaffSignupRead,
@@ -24,8 +24,8 @@ from tournaments.schemas import (
     TournamentList,
     TournamentRead,
 )
-from tournaments.services import EVENT_TIMEZONE, resolve_tournament_slug
-from tournaments.signups import create_signup, visible_tournament
+from app.tournaments.services import EVENT_TIMEZONE, resolve_tournament_slug
+from app.tournaments.signups import create_signup, visible_tournament
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 

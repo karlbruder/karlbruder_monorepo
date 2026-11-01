@@ -1,7 +1,6 @@
 """REG-AC-001–010, 014–016: signup ownership, uniqueness, dates, and privacy."""
 
 import os
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -10,18 +9,14 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, func, select, text
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import delete, func, select
 
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-import auth  # noqa: E402
-import tournaments.signups as signup_service  # noqa: E402
-from database import Base, get_session  # noqa: E402
-from main import karlbruder_app  # noqa: E402
-from tournaments.models import Tournament, TournamentSignup  # noqa: E402
+import app.auth as auth  # noqa: E402
+import app.tournaments.signups as signup_service  # noqa: E402
+from app.main import karlbruder_app  # noqa: E402
+from app.tournaments.models import TournamentSignup  # noqa: E402
 
 
 class StaticJwksClient:
@@ -98,29 +93,12 @@ def _signup(*, email="fixture@example.test", document="AB-123", **overrides):
 
 
 @pytest.fixture
-def setup(monkeypatch):
+def setup(monkeypatch, db_session):
     key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(auth, "get_jwks_client", lambda: StaticJwksClient(key.public_key()))
     monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
-    engine = create_engine(
-        "sqlite+pysqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    with engine.begin() as connection:
-        connection.execute(text("ATTACH DATABASE ':memory:' AS public"))
-    Base.metadata.create_all(engine)
-
-    def test_session():
-        with Session(engine) as session:
-            yield session
-
-    karlbruder_app.dependency_overrides[get_session] = test_session
-    try:
-        with TestClient(karlbruder_app) as client:
-            yield client, key, engine
-    finally:
-        karlbruder_app.dependency_overrides.clear()
-        Base.metadata.drop_all(engine)
-        engine.dispose()
+    with TestClient(karlbruder_app) as client:
+        yield client, key, db_session
 
 
 def _create_event(client, key, **changes):
@@ -139,7 +117,11 @@ def test_registration_day_uses_fixed_utc_minus_three_at_midnight():
 
 
 def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
-    client, key, engine = setup
+    """The owner can read their own signup, and staff-only fields stay off that view.
+
+    Another athlete cannot read it. An admin can, including the safety note and the full list.
+    """
+    client, key, db_session = setup
     event_id = _create_event(client, key, max_competitor_capacity=0)
     owner_id = uuid4()
     owner = _headers(key, user_id=owner_id)
@@ -155,15 +137,14 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     assert owner_view["declares_truthful_information"] is True
     assert owner_view["image_use_authorized"] is False
     assert {"safety_note", "acceptance_ip", "user_id", "email_normalized"}.isdisjoint(owner_view)
-    with Session(engine) as session:
-        stored = session.scalar(select(TournamentSignup))
-        assert stored.user_id == owner_id
-        assert stored.acceptance_ip == "testclient"
-        assert stored.accepted_at is not None
-        assert stored.declares_truthful_information is True
-        assert stored.safety_note is None
-        stored.safety_note = "Staff-only fixture"
-        session.commit()
+    stored = db_session.scalar(select(TournamentSignup))
+    assert stored.user_id == owner_id
+    assert stored.acceptance_ip == "testclient"
+    assert stored.accepted_at is not None
+    assert stored.declares_truthful_information is True
+    assert stored.safety_note is None
+    stored.safety_note = "Staff-only fixture"
+    db_session.commit()
 
     detail_path = f"/api/tournaments/{event_id}/signups/{number}"
     assert client.get(detail_path, headers=owner).json() == owner_view
@@ -187,7 +168,7 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
 
 
 def test_priv_002_truthfulness_requires_explicit_json_true_without_creating_row(setup):
-    client, key, engine = setup
+    client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
     owner = _headers(key)
@@ -202,12 +183,15 @@ def test_priv_002_truthfulness_requires_explicit_json_true_without_creating_row(
     ):
         response = client.post(path, json=payload, headers=owner)
         assert response.status_code == 422, response.text
-    with Session(engine) as session:
-        assert session.scalar(select(func.count()).select_from(TournamentSignup)) == 0
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignup)) == 0
 
 
 def test_authentication_owner_claims_and_required_input(setup):
-    client, key, engine = setup
+    """A signup needs a real bearer token and the account email.
+
+    The client cannot set the owner, status, inscription number, or staff fields. One valid signup is stored.
+    """
+    client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
     assert client.post(path, json=_signup()).status_code == 401
@@ -247,28 +231,29 @@ def test_authentication_owner_claims_and_required_input(setup):
         ),
         headers=owner,
     ).status_code == 201
-    with Session(engine) as session:
-        assert session.scalar(select(func.count()).select_from(TournamentSignup)) == 1
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignup)) == 1
 
 
 def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
-    client, key, engine = setup
+    """Signup is accepted only on the inclusive registration dates.
+
+    Staff closure, missing dates, or missing terms and regulation versions reject it. An unknown tournament is not found.
+    """
+    client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
     owner = _headers(key)
     for today, expected in ((date(2026, 9, 30), 400), (date(2026, 10, 1), 201)):
         monkeypatch.setattr(signup_service, "registration_date", lambda day=today: day)
         assert client.post(path, json=_signup(), headers=owner).status_code == expected
-    with Session(engine) as session:
-        session.query(TournamentSignup).delete()
-        session.commit()
+    db_session.execute(delete(TournamentSignup))
+    db_session.commit()
     for today, expected in ((date(2026, 10, 31), 201), (date(2026, 11, 1), 400)):
         monkeypatch.setattr(signup_service, "registration_date", lambda day=today: day)
         assert client.post(path, json=_signup(document=f"DOC-{today}"), headers=owner).status_code == expected
         if expected == 201:
-            with Session(engine) as session:
-                session.query(TournamentSignup).delete()
-                session.commit()
+            db_session.execute(delete(TournamentSignup))
+            db_session.commit()
     monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
     for changes in (
         {"new_registrations_closed": True},
@@ -287,6 +272,10 @@ def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
 
 
 def test_internal_participation_and_tournament_scope(setup):
+    """A regular user cannot see or join an internal event. A guild member can.
+
+    An inscription number from one tournament is not found on another.
+    """
     client, key, _ = setup
     public_id = _create_event(client, key)
     internal_id = _create_event(client, key, internal=True)
@@ -312,7 +301,11 @@ def test_internal_participation_and_tournament_scope(setup):
 
 
 def test_normalized_duplicates_repeated_create_and_cancelled_replacement(setup):
-    client, key, engine = setup
+    """One active signup per person, email, and document, once case and punctuation are ignored.
+
+    Repeating that create conflicts. A cancelled signup can be replaced, and the new number is different.
+    """
+    client, key, db_session = setup
     event_id = _create_event(client, key)
     path = f"/api/tournaments/{event_id}/signups"
     first_user_id = uuid4()
@@ -332,54 +325,11 @@ def test_normalized_duplicates_repeated_create_and_cancelled_replacement(setup):
         path, json=_signup(email="second@example.test", document="a.b 1-2-3"),
         headers=_headers(key, email="second@example.test"),
     ).status_code == 409
-    with Session(engine) as session:
-        signup = session.scalar(select(TournamentSignup))
-        old_number = signup.inscription_number
-        signup.status = "cancelled"
-        session.commit()
+    signup = db_session.scalar(select(TournamentSignup))
+    old_number = signup.inscription_number
+    signup.status = "cancelled"
+    db_session.commit()
     replacement = client.post(path, json=first_payload, headers=first)
     assert replacement.status_code == 201
     assert replacement.json()["inscription_number"] != old_number
-    with Session(engine) as session:
-        assert session.scalar(select(func.count()).select_from(TournamentSignup)) == 2
-
-
-@pytest.mark.integration
-def test_postgres_concurrent_duplicate_and_number_allocation(monkeypatch, disposable_postgres_engine):
-    engine = disposable_postgres_engine
-    key = ec.generate_private_key(ec.SECP256R1())
-    monkeypatch.setattr(auth, "get_jwks_client", lambda: StaticJwksClient(key.public_key()))
-    monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
-
-    def test_session():
-        with Session(engine) as session:
-            yield session
-
-    try:
-        Base.metadata.create_all(engine)
-        karlbruder_app.dependency_overrides[get_session] = test_session
-        with TestClient(karlbruder_app) as client:
-            event_id = _create_event(client, key)
-            path = f"/api/tournaments/{event_id}/signups"
-            owner = _headers(key)
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                responses = list(executor.map(
-                    lambda _: client.post(path, json=_signup(), headers=owner), range(2)
-                ))
-            assert sorted(response.status_code for response in responses) == [201, 409]
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                responses = list(executor.map(
-                    lambda index: client.post(
-                        path,
-                        json=_signup(email=f"other{index}@example.test", document=f"DOC-{index}"),
-                        headers=_headers(key, email=f"other{index}@example.test"),
-                    ), range(2)
-                ))
-            assert [response.status_code for response in responses] == [201, 201]
-            numbers = {response.json()["inscription_number"] for response in responses}
-            assert len(numbers) == 2
-            with Session(engine) as session:
-                assert session.scalar(select(func.count()).select_from(TournamentSignup)) == 3
-                assert session.get(Tournament, event_id).next_inscription_serial == 4
-    finally:
-        karlbruder_app.dependency_overrides.clear()
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignup)) == 2

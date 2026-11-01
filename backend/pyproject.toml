@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Karlbruder backend API"
 authors = ["Karlbruder Team"]
 readme = "README.md"
-packages = [{ include = "*" }]
+packages = [
+    { include = "app" },
+    { include = "config" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -21,6 +24,7 @@ alembic = "^1.13"
 # Config
 python-dotenv = "^1.0"
 pydantic-settings = "^2.2"
+boto3 = "^1.35"
 pandas = "^3.0.0"
 psycopg2-binary = "^2.9.11"
 pyjwt = { extras = ["crypto"], version = "^2.13.0" }

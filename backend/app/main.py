@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from auth import require_authenticated_user
-from database import engine, get_auth_database_engine
-from models import User
-from tournaments.router import router as tournaments_router
+from app.auth import require_authenticated_user
+from app.database import engine, get_auth_database_engine
+from app.models import User
+from app.tournaments.router import router as tournaments_router
 
 logger = logging.getLogger(__name__)
 

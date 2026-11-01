@@ -12,18 +12,18 @@ from jwt.exceptions import (
 )
 from pydantic import ValidationError
 
-from exceptions import (
+from app.exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
-from models import AnonymousUser, User
-from settings import (
+from app.models import AnonymousUser, User
+from config import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
     EXPECTED_ROLE,
     JWKS_CACHE_LIFESPAN_SECONDS,
     JWKS_REQUEST_TIMEOUT_SECONDS,
-    get_auth_settings,
+    settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,6 @@ bearer_scheme = HTTPBearer(
 
 
 def get_jwks_client() -> PyJWKClient:
-    settings = get_auth_settings()
     return PyJWKClient(
         settings.jwks_url,
         cache_jwk_set=True,
@@ -51,7 +50,6 @@ def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
     if credentials.scheme.lower() != "bearer":
         raise InvalidCredentialsException()
     try:
-        settings = get_auth_settings()
         signing_key = get_jwks_client().get_signing_key_from_jwt(
             credentials.credentials
         )

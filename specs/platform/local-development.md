@@ -14,11 +14,11 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 ## Rules
 
 - **DEV-001:** The root README maps the applications and points to application-specific setup, environment examples, specs, and operational procedures.
-- **DEV-002:** Docker Compose provides the local domain PostgreSQL, backend, and application frontend. The public website can run separately through its own package scripts; it is not currently a Compose service.
-- **DEV-003:** Local domain data uses the Compose database unless an explicit `DATABASE_URL` selects another destination. Outside Compose, `DATABASE_URL` is required by the current backend.
+- **DEV-002:** Local Docker Compose provides the public website, the application frontend, the backend, and domain PostgreSQL. The public website is not part of the production Compose stack. Production publishes its built files to S3.
+- **DEV-003:** Local domain data uses the Compose database unless `DB_HOST` and `DB_NAME` select another destination. Outside Compose, those database settings are required by the current backend.
 - **DEV-004:** Application authentication uses the configured hosted Supabase project. Local domain PostgreSQL does not imply a locally hosted Supabase Auth system or synchronized remote data.
 - **DEV-005:** Environment examples describe public configuration and required secret names without containing real secrets. Setup documents identify which values are needed for the chosen workflow.
-- **DEV-006:** Retain the existing default development ports rather than introducing a new port-selection decision: current Compose uses frontend 5173, backend 8000, and PostgreSQL 5432. Align forwarding, health checks, and allowed origins with those settings as implementation work. Local servers may publish their development ports; production's Nginx-only exposure is a different stack boundary.
+- **DEV-006:** Retain the existing default development ports rather than introducing a new port-selection decision: current Compose uses landing 3000, frontend 5173, backend 8000, and PostgreSQL 5432. Align forwarding, health checks, and allowed origins with those settings as implementation work. Local servers may publish their development ports; production's Nginx-only exposure is a different stack boundary.
 - **DEV-007:** Contributors can distinguish application liveness, domain database connectivity, and optional Auth database diagnostics. A missing Auth database diagnostic connection must not be described as a domain database failure.
 - **DEV-008:** Verification commands correspond to the relevant application's actual scripts and dependencies. Report skipped external integration checks rather than describing them as passed.
 - **DEV-009:** When file storage is implemented, the local Compose stack includes Ministack for S3 emulation. Configure the backend's S3 endpoint for Ministack, using local buckets and credentials. Production uses AWS S3 instead. Ministack does not replace the ordinary local PostgreSQL container.
@@ -29,6 +29,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 
 | Component | Local responsibility |
 | --- | --- |
+| Landing container | Public website development server |
 | Frontend container | Development server and frontend application |
 | Backend container | API/domain behavior, using the same application rules as production |
 | PostgreSQL container | Local domain tables in `public` |
@@ -43,17 +44,23 @@ Source inspection on 17 October 2026 found:
 
 | Area | Observed baseline |
 | --- | --- |
-| Domain PostgreSQL | Compose service `db`, PostgreSQL 17, host binding `127.0.0.1:5432`, persistent volume |
+| Domain PostgreSQL | Compose service `db`, container `kb-db`, PostgreSQL 17, published port 5432, persistent volume |
 | Backend | Port 8000, `/health`, `/health/db`, `/health/auth`, `/api/users/me` |
 | Frontend | Compose development target starts Vite on 5173 and publishes 5173 |
-| Public website | `landing/package.json` provides start, build, and test scripts |
+| Public website | Compose development server on port 3000. Production still builds and publishes static files to S3 |
 | Auth | Hosted project selected by configuration; frontend has Google SDK sign-in and backend token verification |
 
 Changes since the 17 October baseline, confirmed by source inspection on 29 October 2026:
 
-- The frontend development container health check now probes Vite at `127.0.0.1:5173`.
+- The frontend development container health check now probes Vite at `localhost:5173`.
 - `frontend/vite.config.ts` now proxies same-origin `/api` requests to the backend without removing the prefix. This is the local Compose route for application API calls.
 - `frontend/nginx.conf` now preserves `/api` when forwarding to the backend. Local Compose uses Vite, not the frontend image's Nginx stage.
+
+Compose files as of 31 October 2026:
+
+- Local `compose.yml` runs landing, frontend, backend, and PostgreSQL. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
+- `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
+- `compose.prod.yml` is the Nginx, frontend, and backend stack. Nginx publishes 443 with a self-signed certificate.
 
 Remaining inconsistencies and implementation gaps:
 
@@ -81,7 +88,7 @@ None about local ports, database placement, hosted authentication, or the `/api`
 
 ## Implementation decisions
 
-- Keep the current separate landing-development command unless a future development-workflow task intentionally adds it to Compose. This possible tooling change is not an outstanding product requirement.
+- Local Compose includes the landing development server. Landing Jest and frontend Vitest do not use `compose.test.yml`, because those suites do not need the private test database. Run them with `docker compose run --rm --no-deps` against the local development services. Production landing deployment stays on the S3 workflow.
 - Choose frontend and end-to-end tooling to verify feature acceptance criteria as part of implementation. Issue #21 aligned the observed forwarding and health-check mismatches with the selected local settings; live browser acceptance remains a separate verification step.
 
 Local SMTP is a deferred implementation choice, likely SES with real credentials. Existing development ports and `/api` forwarding are implementation settings, not open product questions.

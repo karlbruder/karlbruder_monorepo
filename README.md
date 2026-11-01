@@ -9,7 +9,10 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `landing/` | Public React website at `karlbruder.com.br` | [Landing README](landing/README.md) |
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
-| `compose.yml` | Local frontend, backend, and PostgreSQL services | Local setup below |
+| `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
+| `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
+| `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
+| `compose.prod.yml` | Production Nginx, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
 
@@ -62,75 +65,83 @@ Plans, checkpoint state, reviews, and probes are saved under Git-ignored `.local
 
 ## Local setup with Docker Compose
 
-Install Git and Docker with Docker Compose. Host Python, Poetry, Node.js, and PostgreSQL are unnecessary for these three containerized services. Running the landing site separately requires Node.js and npm.
+Install Git and Docker with Docker Compose. Host Python, Poetry, Node.js, and PostgreSQL are unnecessary for the containerized services.
 
-From the repository root, create your local configuration files:
+Each application has its own environment file. Compose reads that file for the matching service. There is no application environment file at the repository root.
+
+From the repository root, create the local files:
 
 ```sh
-cp .env.example .env
+cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+cp landing/.env.example landing/.env
 ```
 
 On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 
 | File | Variable | Use |
 | --- | --- | --- |
-| `.env` | `DATABASE_URL` | Leave blank for Compose's local PostgreSQL default. Set an explicit URI only when intentionally using another domain database. |
-| `.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
-| `.env` | `AUTH_DATABASE_URL` | Optional hosted PostgreSQL URI, used only by `/health/auth`. It is unnecessary for sign-in or token verification. |
+| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings and requires `SECRET_NAME`. |
+| `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Local Compose uses host `db`, database `postgres`, user `postgres`, and password `postgres`. A host-run backend uses `localhost` instead of `db`. |
+| `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
+| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
 | `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
+| `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
-Root `.env` values are supplied to backend containers by Compose. Vite reads the separate `frontend/.env`; the root file does not configure browser code. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+`compose.prod.yml` reads `backend/.env` on the server. It does not run the landing site. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
 
 Start the local services:
 
 ```sh
-docker compose up --build
+make up
 ```
+
+`make help` lists the other local commands. `make up` runs `docker compose up --build`.
 
 | Service | Address or connection |
 | --- | --- |
+| Public website | `http://localhost:3000` |
 | Frontend development server | `http://localhost:5173` |
 | Backend API and Swagger UI | `http://localhost:8000/docs` |
 | Backend liveness | `http://localhost:8000/health` |
 | Domain database diagnostic | `http://localhost:8000/health/db` |
 | Optional Auth database diagnostic | `http://localhost:8000/health/auth` |
 | Protected identity endpoint | `http://localhost:8000/api/users/me` with a Bearer access token |
-| Local PostgreSQL | `127.0.0.1:5432`, database `kb-db`, user `user`, password `password` |
+| Local PostgreSQL | `localhost:5432`, database `postgres`, user `postgres`, password `postgres` |
 
-The sample database credentials are local development defaults. With blank or absent `DATABASE_URL`, Compose injects `postgresql://user:password@db:5432/kb-db`. The hostname `db` works inside Compose; host-run tools use `127.0.0.1`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
+The sample database credentials are local development defaults. `backend/.env` points Compose at host `db`, database `postgres`, user `postgres`, and password `postgres`. The hostname `db` works inside Compose. Host-run tools use `localhost`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
 
-After changing root backend configuration, recreate the backend:
+Backend source is bind-mounted, and Uvicorn reloads when those files change. Frontend and landing mount their source trees, so edits there reload as well. `node_modules` and the Python packages stay in the image. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
 
 ```sh
-docker compose up -d --force-recreate backend
+make recreate-backend
+make recreate-frontend
+make recreate-landing
 ```
-
-Restart the frontend development server after changing its environment file. Backend source changes require an image rebuild with the current Compose configuration; the frontend uses a source bind mount for development.
 
 Stop services and remove the local network with:
 
 ```sh
-docker compose down
+make down
 ```
 
-The PostgreSQL volume is retained. Adding `-v` deletes that local database volume.
+The PostgreSQL volume is retained. `make down-volumes` deletes that local database volume.
 
 ## Current local integration notes and gaps
 
-The Compose frontend health check probes Vite at `127.0.0.1:5173`. Browser requests to `/api` on the frontend origin use Vite's proxy to reach the backend with the `/api` prefix intact. The frontend image's Nginx configuration also preserves that prefix when the image is used; local Compose uses Vite instead of that Nginx image stage.
+The Compose frontend health check probes Vite at `localhost:5173`. Browser requests to `/api` on the frontend origin use Vite's proxy to reach the backend with the `/api` prefix intact. The frontend image's Nginx configuration also preserves that prefix when the image is used; local Compose uses Vite instead of that Nginx image stage.
 
 These source-observed limitations remain, without changing the working same-origin `/api` path:
 
 - Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
 - `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
 
-Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A missing optional `AUTH_DATABASE_URL` makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
+Backend container health checks exercise the domain database via `/health/db`; liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
 ## Application development and checks
 
-Run commands in the relevant application's directory. Use its own lockfile; the root lockfile is not an npm workspace setup.
+Run commands in the relevant application's directory. Each application has its own lockfile. This repository is not an npm workspace.
 
 - [Backend](backend/README.md): host configuration, authentication smoke test, pytest, and Ruff.
 - [Frontend](frontend/README.md): Supabase settings, Vite, build, and ESLint scripts.
@@ -138,7 +149,7 @@ Run commands in the relevant application's directory. Use its own lockfile; the 
 
 ## Production direction
 
-The selected production stack is `compose.prod.yml` on EC2 with separate Nginx, frontend, and backend containers. **That file and the complete production application deployment are not implemented in this checkout.**
+Production Compose is `compose.prod.yml`. It runs Nginx, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. Frontend and backend ports stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
 
 Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. Its proxied application A record targets the EC2 Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes an application host port. It preserves `/api` when forwarding to the backend and sends other application requests to the frontend.
 
