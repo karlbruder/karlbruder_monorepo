@@ -81,7 +81,7 @@ resource "aws_s3_bucket_website_configuration" "this" {
 }
 
 data "aws_iam_policy_document" "this" {
-  count = var.enforce_ssl_only || var.public_read ? 1 : 0
+  count = var.manage_bucket_policy && (var.enforce_ssl_only || var.public_read) ? 1 : 0
 
   dynamic "statement" {
     for_each = var.enforce_ssl_only ? [1] : []
@@ -123,7 +123,7 @@ data "aws_iam_policy_document" "this" {
 }
 
 resource "aws_s3_bucket_policy" "this" {
-  count = var.enforce_ssl_only || var.public_read ? 1 : 0
+  count = var.manage_bucket_policy && (var.enforce_ssl_only || var.public_read) ? 1 : 0
 
   bucket = aws_s3_bucket.this.id
   policy = data.aws_iam_policy_document.this[0].json

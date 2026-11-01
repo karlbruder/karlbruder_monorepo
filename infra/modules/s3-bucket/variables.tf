@@ -56,6 +56,12 @@ variable "enforce_ssl_only" {
   default     = true
 }
 
+variable "manage_bucket_policy" {
+  description = "When true, this module attaches the bucket policy for SSL and public read. Set false when the caller attaches one policy, including a CloudFront read grant."
+  type        = bool
+  default     = true
+}
+
 variable "website" {
   description = "Static website hosting. index_document is the key suffix for directory requests. error_document is the object key returned for missing keys. Set both to index.html for a React SPA. Null leaves website hosting off."
   type = object({

@@ -19,7 +19,7 @@ The following stacks describe intended architecture, not verified deployments. [
 
 | Responsibility | Local development | Production |
 | --- | --- | --- |
-| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend. Landing is a separate S3 static site |
+| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, frontend, backend. Landing is a private S3 bucket behind CloudFront |
 | Application entry | Existing development ports and frontend `/api` forwarding | Cloudflare HTTPS edge to EC2 Elastic IP, then Nginx on 443 |
 | Identity | Hosted Supabase Auth | Hosted Supabase Auth |
 | Domain database | PostgreSQL container, domain objects in `public` | Hosted Supabase PostgreSQL, domain objects in `public`; no PostgreSQL container |
@@ -76,6 +76,8 @@ Cloudflare nameservers provide authoritative DNS. The application has a proxied 
 There are two TLS connections: the browser connects to Cloudflare using a Cloudflare-managed public certificate, and Cloudflare connects to Nginx on EC2 using HTTPS on 443 with the instance's self-signed certificate. For this self-signed origin design, Cloudflare uses **Full** encryption mode. Browser HTTP on port 80 redirects to HTTPS on 443 at the Cloudflare edge, so EC2 does not need a public HTTP listener.
 
 Only Nginx publishes an application port on the production host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
+
+The public site at `karlbruder.com.br` is not on that EC2 host. Landing files stay in a private S3 bucket. CloudFront reads them with origin access control and does not cache them. Cloudflare CNAMEs the public name to the CloudFront hostname. The application A record stays pointed at the Elastic IP.
 
 ## Guild staff access
 

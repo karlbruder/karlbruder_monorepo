@@ -18,6 +18,16 @@ output "landing_bucket_arn" {
   value       = module.landing_static_website.bucket_arn
 }
 
+output "landing_cloudfront_domain_name" {
+  description = "CloudFront hostname for the landing site. Point the Cloudflare CNAME at this name."
+  value       = aws_cloudfront_distribution.landing.domain_name
+}
+
+output "landing_cloudfront_distribution_id" {
+  description = "CloudFront distribution ID for the landing site."
+  value       = aws_cloudfront_distribution.landing.id
+}
+
 output "application_instance_id" {
   description = "ID of the application EC2 instance."
   value       = module.application_host.instance_id

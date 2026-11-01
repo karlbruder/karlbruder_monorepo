@@ -67,7 +67,11 @@ Each workload resource carries these tags.
 | `project-slug` | `kb` |
 | `repo` | `karlbruder/karlbruder_monorepo` |
 
-The landing bucket is account-regional. The root passes `bucket_name_prefix` as `kb-<env>-landing`. The module appends `-<account-id>-us-east-2-an`. A `prod` bucket starts with `kb-prod-landing`. The bucket is public. Static website hosting is on. The index document and the error document are both `index.html`, so a refresh on a React route still returns the SPA. The bucket allows HTTP. The S3 website endpoint does not accept HTTPS.
+The landing bucket is account-regional and private. The root passes `bucket_name_prefix` as `kb-<env>-landing`. The module appends `-<account-id>-us-east-2-an`. A `prod` bucket starts with `kb-prod-landing`. Static website hosting is off, so the bucket name does not have to match the public DNS name. Block Public Access stays on.
+
+CloudFront reads the bucket with origin access control. The bucket policy allows `s3:GetObject` only for that distribution. The distribution allows GET and HEAD. POST and the other write methods are not allowed. The cache policy is `Managed-CachingDisabled`, and responses send `Cache-Control: no-store`, so a landing deploy does not need a cache invalidation. A missing object returns `index.html` with status 200, which keeps a refresh on a React route on the SPA. The distribution uses the default `*.cloudfront.net` certificate and price class 100. Price class 100 uses North America and Europe edges.
+
+Cloudflare CNAMEs the public landing name to the distribution hostname from `landing_cloudfront_domain_name`. The distribution has no alternate domain name yet. Cloudflare has to send that CloudFront hostname as the Host header and as SNI. If it sends `karlbruder.com.br` instead, CloudFront rejects the request until that name is added with an ACM certificate in `us-east-1`.
 
 Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
 
