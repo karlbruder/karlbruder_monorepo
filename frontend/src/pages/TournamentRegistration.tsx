@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { accountRoutes } from "../accountRoutes";
 import { getMonomachiaTournament } from "../lib/tournaments";
 import type { Tournament } from "../lib/tournaments";
 import SignupForm from "./SignupForm";
@@ -89,6 +90,7 @@ export default function TournamentRegistration({
         {authReady && session && (
           <div className="registration-account">
             <span>{session.user.email}</span>
+            <a href={accountRoutes.password}>{t("Alterar senha")}</a>
             <button type="button" onClick={onSignOut}>{t("Sair")}</button>
           </div>
         )}

@@ -45,6 +45,8 @@ const english = {
   "Monomachia Karlbrüder 2027": "Monomachia Karlbrüder 2027",
   "Criar conta na Karlbrüder": "Create a Karlbrüder account",
   "Entrar na Karlbrüder": "Sign in to Karlbrüder",
+  "Alterar senha": "Change password",
+  "Você já está autenticada.": "You are already signed in.",
   "Não foi possível recuperar sua sessão.": "We could not restore your session.",
   "Não foi possível entrar com Google. Tente novamente.": "We could not sign you in with Google. Please try again.",
   "Não foi possível sair. Tente novamente.": "We could not sign you out. Please try again.",

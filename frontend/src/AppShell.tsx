@@ -3,6 +3,7 @@ import "./App.css";
 import { accountRoutes } from "./accountRoutes";
 import { useAppAuth } from "./appAuth";
 import TournamentRegistration from "./pages/TournamentRegistration";
+import AccountChangePasswordPage from "./pages/account/AccountChangePasswordPage";
 import AccountCheckEmailPage from "./pages/account/AccountCheckEmailPage";
 import AccountNewPasswordPage from "./pages/account/AccountNewPasswordPage";
 import AccountRecoverPage from "./pages/account/AccountRecoverPage";
@@ -79,6 +80,9 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
       <Route path={accountRoutes.newPassword} element={
         <AccountNewPasswordPage language={language} authReady={authReady} hasSession={Boolean(session)} />
       } />
+      <Route path={accountRoutes.password} element={
+        <AccountChangePasswordPage language={language} authReady={authReady} hasSession={Boolean(session)} />
+      } />
       <Route path="*" element={
         <main className="app-center">
           {!authReady ? (
@@ -87,6 +91,7 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
             <div className="home-account">
               <h1>Karlbrüder</h1>
               <p>{session.user.user_metadata?.name ?? session.user.email}</p>
+              <Link to={accountRoutes.password}>{t("Alterar senha")}</Link>
               <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
               <button type="button" onClick={signOut}>{t("Sair")}</button>
             </div>

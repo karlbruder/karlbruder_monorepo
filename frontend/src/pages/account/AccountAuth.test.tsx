@@ -148,3 +148,63 @@ describe('Account email auth flows', () => {
     expect(supabase.auth.updateUser).not.toHaveBeenCalled()
   })
 })
+
+describe('Account password updates', () => {
+  beforeEach(() => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
+    vi.mocked(supabase.auth.updateUser).mockResolvedValue({ data: { user: signedInSession.user }, error: null })
+  })
+
+  it('calls updateUser from the signed-in change-password screen and keeps the session on success', async () => {
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.password]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'next-secret' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'next-secret' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
+
+    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'next-secret' }))
+    expect(await screen.findByText('athlete@example.test')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
+    expect(supabase.auth.signOut).not.toHaveBeenCalled()
+  })
+
+  it('calls updateUser from the recovery new-password screen when a session exists', async () => {
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.newPassword]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'recovered-secret' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'recovered-secret' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
+
+    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'recovered-secret' }))
+    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+  })
+
+  it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
+    vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+      data: { user: signedInSession.user },
+      error: { message: 'Password policy rejected', name: 'AuthError', status: 422 },
+    } as Awaited<ReturnType<typeof supabase.auth.updateUser>>)
+
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.password]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'weak' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'weak' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Password policy rejected')
+    expect(screen.getByText('Você já está autenticada.')).toBeInTheDocument()
+    expect(supabase.auth.signOut).not.toHaveBeenCalled()
+  })
+})
