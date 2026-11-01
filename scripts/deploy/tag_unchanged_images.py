@@ -1,18 +1,17 @@
 import argparse
 import json
-import os
+
 from common import run_captured_command
 
 
 def main(argv=None):
     """Tag unchanged ECR images with the current release SHA."""
     parser = argparse.ArgumentParser(description=main.__doc__)
-    for name in ("AWS_REGION", "DEPLOY_ENVIRONMENT", "RELEASE_SHA", "SERVICES"):
-        parser.add_argument(f"--{name.lower().replace(chr(95), chr(45))}", default=os.environ.get(name))
+    parser.add_argument("--aws-region", required=True)
+    parser.add_argument("--deploy-environment", required=True)
+    parser.add_argument("--release-sha", required=True)
+    parser.add_argument("--services", required=True)
     args = parser.parse_args(argv)
-    for name in (("AWS_REGION", "DEPLOY_ENVIRONMENT", "RELEASE_SHA", "SERVICES")):
-        if getattr(args, name.lower()) is None:
-            parser.error(f"{name} is required as an argument or environment variable")
     region = args.aws_region
     namespace = f"kb-{args.deploy_environment}"
     release_sha = args.release_sha

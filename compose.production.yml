@@ -39,8 +39,8 @@ services:
     restart: unless-stopped
 
     environment:
-      LANDING_SERVER_NAMES: ${LANDING_SERVER_NAMES}
-      APP_SERVER_NAMES: ${APP_SERVER_NAMES}
+      LANDING_HOSTNAMES: ${LANDING_HOSTNAMES}
+      APPLICATION_HOSTNAMES: ${APPLICATION_HOSTNAMES}
 
     depends_on:
       landing:

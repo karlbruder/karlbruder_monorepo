@@ -45,13 +45,13 @@ concurrency:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-  ARN_IAM_ROLE_ARN: ${{ vars.ARN_IAM_ROLE_ARN }}
+  AWS_IAM_ROLE_ARN: ${{ vars.AWS_IAM_ROLE_ARN }}
   DEPLOY_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
   DEPLOY_PATH: /opt/karlbruder
-  LANDING_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'karlbruder.com prod.karlbruder.com' || 'dev.karlbruder.com' }}
-  APP_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'app.karlbruder.com app-prod.karlbruder.com' || 'app-dev.karlbruder.com' }}
-  APPLICATION_BASE_URL: ${{ inputs.environment == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
-  LANDING_BASE_URL: ${{ inputs.environment == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
+  LANDING_HOSTNAMES: ${{ vars.LANDING_HOSTNAMES }}
+  APPLICATION_HOSTNAMES: ${{ vars.APPLICATION_HOSTNAMES }}
+  APPLICATION_BASE_URL: ${{ vars.APPLICATION_BASE_URL }}
+  LANDING_BASE_URL: ${{ vars.LANDING_BASE_URL }}
 
 jobs:
   changes:
@@ -116,7 +116,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
@@ -182,14 +182,16 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Copy the environment tag onto the release SHA
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-          SERVICES: ${{ needs.changes.outputs.services }}
-        run: python3 scripts/deploy/tag_unchanged_images.py
+        run: >-
+          python3 scripts/deploy/tag_unchanged_images.py
+          --aws-region "${AWS_REGION}"
+          --deploy-environment "${DEPLOY_ENVIRONMENT}"
+          --release-sha "${{ github.sha }}"
+          --services '${{ needs.changes.outputs.services }}'
 
   deploy:
     name: Deploy on the application host
@@ -206,15 +208,20 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy through Session Manager
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-          NAMESPACE: kb-${{ env.DEPLOY_ENVIRONMENT }}
-          HOST_NAME_TAG: kb-${{ env.DEPLOY_ENVIRONMENT }}-application-host
-        run: python3 scripts/deploy/deploy_application.py
+        run: >-
+          python3 scripts/deploy/deploy_application.py
+          --aws-region "${AWS_REGION}"
+          --aws-account-id "${AWS_ACCOUNT_ID}"
+          --namespace "kb-${DEPLOY_ENVIRONMENT}"
+          --release-sha "${{ github.sha }}"
+          --deploy-path "${DEPLOY_PATH}"
+          --host-name-tag "kb-${DEPLOY_ENVIRONMENT}-application-host"
+          --landing-hostnames "${LANDING_HOSTNAMES}"
+          --application-hostnames "${APPLICATION_HOSTNAMES}"
 
   verify:
     name: Check the public hostnames
@@ -228,8 +235,10 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Request landing, application, and API health
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-          SERVICES: ${{ needs.changes.outputs.services }}
-          RELEASED_AT: ${{ needs.changes.outputs.released_at }}
-        run: python3 scripts/deploy/verify_application_release.py
+        run: >-
+          python3 scripts/deploy/verify_application_release.py
+          --application-base-url "${APPLICATION_BASE_URL}"
+          --landing-base-url "${LANDING_BASE_URL}"
+          --services '${{ needs.changes.outputs.services }}'
+          --released-at "${{ needs.changes.outputs.released_at }}"
+          --release-sha "${{ github.sha }}"

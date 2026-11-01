@@ -1,7 +1,6 @@
 import argparse
 import http.client
 import json
-import os
 import time
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -22,12 +21,12 @@ def request_with_retries(url):
 def main(argv=None):
     """Check public endpoints and expected backend release metadata."""
     parser = argparse.ArgumentParser(description=main.__doc__)
-    for name in ("APPLICATION_BASE_URL", "LANDING_BASE_URL", "SERVICES", "RELEASED_AT", "RELEASE_SHA"):
-        parser.add_argument(f"--{name.lower().replace(chr(95), chr(45))}", default=os.environ.get(name))
+    parser.add_argument("--application-base-url", required=True)
+    parser.add_argument("--landing-base-url", required=True)
+    parser.add_argument("--services", required=True)
+    parser.add_argument("--released-at", required=True)
+    parser.add_argument("--release-sha", required=True)
     args = parser.parse_args(argv)
-    for name in (("APPLICATION_BASE_URL", "LANDING_BASE_URL", "SERVICES", "RELEASED_AT", "RELEASE_SHA")):
-        if getattr(args, name.lower()) is None:
-            parser.error(f"{name} is required as an argument or environment variable")
     application_url = args.application_base_url
     request_with_retries(args.landing_base_url)
     request_with_retries(application_url)
@@ -40,7 +39,7 @@ def main(argv=None):
             raise SystemExit("backend released_at does not match the pipeline build time")
         if data.get("git_sha") != args.release_sha:
             raise SystemExit(
-                f"backend git_sha {data.get('git_sha')} does not match {os.environ['RELEASE_SHA']}"
+                f"backend git_sha {data.get('git_sha')} does not match {args.release_sha}"
             )
 
 

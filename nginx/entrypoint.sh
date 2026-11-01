@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-if [ -z "${LANDING_SERVER_NAMES:-}" ] || [ -z "${APP_SERVER_NAMES:-}" ]; then
-  echo "LANDING_SERVER_NAMES and APP_SERVER_NAMES are required." >&2
+if [ -z "${LANDING_HOSTNAMES:-}" ] || [ -z "${APPLICATION_HOSTNAMES:-}" ]; then
+  echo "LANDING_HOSTNAMES and APPLICATION_HOSTNAMES are required." >&2
   exit 1
 fi
 
@@ -15,7 +15,7 @@ if [ ! -f /etc/nginx/certs/origin.crt ] || [ ! -f /etc/nginx/certs/origin.key ];
     -subj "/CN=origin"
 fi
 
-envsubst '${LANDING_SERVER_NAMES} ${APP_SERVER_NAMES}' \
+envsubst '${LANDING_HOSTNAMES} ${APPLICATION_HOSTNAMES}' \
   < /etc/nginx/nginx.conf.template \
   > /etc/nginx/conf.d/default.conf
 
