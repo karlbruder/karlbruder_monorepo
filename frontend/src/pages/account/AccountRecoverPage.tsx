@@ -9,9 +9,10 @@ import { AccountAuthLayout, AuthServiceNotice } from "./AccountAuthLayout";
 
 type Props = {
   language: RegistrationLanguage;
+  onLanguageChange: (language: RegistrationLanguage) => void;
 };
 
-export default function AccountRecoverPage({ language }: Props) {
+export default function AccountRecoverPage({ language, onLanguageChange }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? accountRoutes.signIn;
@@ -43,7 +44,13 @@ export default function AccountRecoverPage({ language }: Props) {
   };
 
   return (
-    <AccountAuthLayout language={language} title={t("Recuperar acesso")} subtitle={t("Recuperar acesso")} showRegistrationContext={false}>
+    <AccountAuthLayout
+      language={language}
+      onLanguageChange={onLanguageChange}
+      title={t("Recuperar acesso")}
+      subtitle={t("Recuperar acesso")}
+      showRegistrationContext={false}
+    >
       {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
       {sent ? (
         <div className="account-auth-notice success" role="status">

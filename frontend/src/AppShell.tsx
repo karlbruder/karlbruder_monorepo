@@ -1,5 +1,6 @@
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
+import AppLanguageToggle from "./AppLanguageToggle";
 import { accountRoutes } from "./accountRoutes";
 import { useAppAuth } from "./appAuth";
 import TournamentRegistration from "./pages/TournamentRegistration";
@@ -49,6 +50,7 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
     language,
     authLoading,
     onGoogleSignIn: signInWithGoogle,
+    onLanguageChange,
   };
 
   const registrationOAuthRedirect = `${window.location.origin}${registrationReturnTo}`;
@@ -75,25 +77,28 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
       } />
       <Route path={accountRoutes.signIn} element={<AccountSignInPage {...accountPageProps} />} />
       <Route path={accountRoutes.signUp} element={<AccountSignUpPage {...accountPageProps} />} />
-      <Route path={accountRoutes.checkEmail} element={<AccountCheckEmailPage language={language} />} />
-      <Route path={accountRoutes.recover} element={<AccountRecoverPage language={language} />} />
+      <Route path={accountRoutes.checkEmail} element={<AccountCheckEmailPage language={language} onLanguageChange={onLanguageChange} />} />
+      <Route path={accountRoutes.recover} element={<AccountRecoverPage language={language} onLanguageChange={onLanguageChange} />} />
       <Route path={accountRoutes.newPassword} element={
-        <AccountNewPasswordPage language={language} authReady={authReady} hasSession={Boolean(session)} />
+        <AccountNewPasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
       } />
       <Route path={accountRoutes.password} element={
-        <AccountChangePasswordPage language={language} authReady={authReady} hasSession={Boolean(session)} />
+        <AccountChangePasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
       } />
       <Route path="*" element={
         <main className="app-center">
           {!authReady ? (
             <p role="status">{t("Carregando sua sessão...")}</p>
           ) : session ? (
-            <div className="home-account">
-              <h1>Karlbrüder</h1>
-              <p>{session.user.user_metadata?.name ?? session.user.email}</p>
-              <Link to={accountRoutes.password}>{t("Alterar senha")}</Link>
-              <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
-              <button type="button" onClick={signOut}>{t("Sair")}</button>
+            <div className="home-signed-in-shell">
+              <AppLanguageToggle language={language} onLanguageChange={onLanguageChange} />
+              <div className="home-account">
+                <h1>Karlbrüder</h1>
+                <p>{session.user.user_metadata?.name ?? session.user.email}</p>
+                <Link to={accountRoutes.password}>{t("Alterar senha")}</Link>
+                <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
+                <button type="button" onClick={signOut}>{t("Sair")}</button>
+              </div>
             </div>
           ) : (
             <div className="home-account home-account-links">

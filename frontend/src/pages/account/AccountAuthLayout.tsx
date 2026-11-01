@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import AppLanguageToggle from "../../AppLanguageToggle";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
 import "./AccountAuth.css";
 
 type Props = {
   language: RegistrationLanguage;
+  onLanguageChange: (language: RegistrationLanguage) => void;
   title: string;
   subtitle: string;
   showRegistrationContext?: boolean;
@@ -14,6 +16,7 @@ type Props = {
 
 export function AccountAuthLayout({
   language,
+  onLanguageChange,
   title,
   subtitle,
   showRegistrationContext = true,
@@ -25,6 +28,7 @@ export function AccountAuthLayout({
     <div className="account-auth-page" lang={language === "pt" ? "pt-BR" : "en-US"}>
       <header className="account-auth-header">
         <Link className="account-auth-brand" to="/">Karlbrüder</Link>
+        <AppLanguageToggle language={language} onLanguageChange={onLanguageChange} />
       </header>
       <main className="account-auth-main">
         <div className="account-auth-layout">

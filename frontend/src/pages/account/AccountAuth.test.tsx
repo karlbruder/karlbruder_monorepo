@@ -74,6 +74,21 @@ afterEach(() => {
 })
 
 describe('Account email auth flows', () => {
+  it('shows PT and EN on sign-in while signed out and switches visible copy to English', async () => {
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.signIn]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('group', { name: 'Language / Idioma' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(await screen.findByRole('heading', { name: 'Welcome back.' })).toBeInTheDocument()
+  })
+
   it('calls signUp from sign-up and shows the check-your-email screen', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.signUp]}>

@@ -11,9 +11,10 @@ type Props = {
   language: RegistrationLanguage;
   authLoading: boolean;
   onGoogleSignIn: (redirectTo: string) => Promise<void>;
+  onLanguageChange: (language: RegistrationLanguage) => void;
 };
 
-export default function AccountSignUpPage({ language, authLoading, onGoogleSignIn }: Props) {
+export default function AccountSignUpPage({ language, authLoading, onGoogleSignIn, onLanguageChange }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -50,7 +51,12 @@ export default function AccountSignUpPage({ language, authLoading, onGoogleSignI
   const googleRedirectTo = `${window.location.origin}${returnTo}`;
 
   return (
-    <AccountAuthLayout language={language} title={t("Criar conta na Karlbrüder")} subtitle={t("Faça parte.")}>
+    <AccountAuthLayout
+      language={language}
+      onLanguageChange={onLanguageChange}
+      title={t("Criar conta na Karlbrüder")}
+      subtitle={t("Faça parte.")}
+    >
       {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
       <GoogleSignInButton language={language} loading={authLoading} onSignIn={() => onGoogleSignIn(googleRedirectTo)} />
       <p className="account-auth-or">{t("ou use seu e-mail")}</p>

@@ -7,17 +7,25 @@ import { AccountMatchingPasswordForm } from "./AccountMatchingPasswordForm";
 
 type Props = {
   language: RegistrationLanguage;
+  onLanguageChange: (language: RegistrationLanguage) => void;
   authReady: boolean;
   hasSession: boolean;
 };
 
-export default function AccountChangePasswordPage({ language, authReady, hasSession }: Props) {
+export default function AccountChangePasswordPage({ language, onLanguageChange, authReady, hasSession }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const navigate = useNavigate();
+  const layoutProps = {
+    language,
+    onLanguageChange,
+    title: t("Alterar senha"),
+    subtitle: t("Alterar senha"),
+    showRegistrationContext: false as const,
+  };
 
   if (!authReady) {
     return (
-      <AccountAuthLayout language={language} title={t("Alterar senha")} subtitle={t("Alterar senha")} showRegistrationContext={false}>
+      <AccountAuthLayout {...layoutProps}>
         <p role="status">{t("Carregando sua sessão...")}</p>
       </AccountAuthLayout>
     );
@@ -25,7 +33,7 @@ export default function AccountChangePasswordPage({ language, authReady, hasSess
 
   if (!hasSession) {
     return (
-      <AccountAuthLayout language={language} title={t("Alterar senha")} subtitle={t("Alterar senha")} showRegistrationContext={false}>
+      <AccountAuthLayout {...layoutProps}>
         <AuthServiceNotice language={language} kind="expired" />
         <Link className="account-auth-submit" to={accountRoutes.signIn} style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}>
           {t("Voltar para entrar")}
@@ -35,7 +43,7 @@ export default function AccountChangePasswordPage({ language, authReady, hasSess
   }
 
   return (
-    <AccountAuthLayout language={language} title={t("Alterar senha")} subtitle={t("Alterar senha")} showRegistrationContext={false}>
+    <AccountAuthLayout {...layoutProps}>
       <p className="account-auth-muted">{t("Você já está autenticada.")}</p>
       <AccountMatchingPasswordForm language={language} onSuccess={() => navigate("/", { replace: true })} />
     </AccountAuthLayout>

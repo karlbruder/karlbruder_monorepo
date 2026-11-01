@@ -6,16 +6,22 @@ import { AccountAuthLayout } from "./AccountAuthLayout";
 
 type Props = {
   language: RegistrationLanguage;
+  onLanguageChange: (language: RegistrationLanguage) => void;
 };
 
-export default function AccountCheckEmailPage({ language }: Props) {
+export default function AccountCheckEmailPage({ language, onLanguageChange }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
   const email = searchParams.get("email");
 
   return (
-    <AccountAuthLayout language={language} title={t("Confira seu e-mail")} subtitle={t("Confira seu e-mail")}>
+    <AccountAuthLayout
+      language={language}
+      onLanguageChange={onLanguageChange}
+      title={t("Confira seu e-mail")}
+      subtitle={t("Confira seu e-mail")}
+    >
       <div className="account-auth-notice success" role="status">
         <strong>{t("Enviamos as instruções de verificação")}</strong>
         <p className="account-auth-muted">{t("Consulte sua caixa de entrada e siga o link para ativar o acesso.")}</p>
