@@ -23,7 +23,7 @@ For container-based setup, follow the [root README](../README.md#local-setup-wit
 | `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD` | PostgreSQL connection used by `/health/auth`. |
 | `SECRET_NAME`, `AWS_REGION` | Required for AWS environments. Secrets Manager fills settings that are still empty. |
 
-Copy [the environment example](.env.example) to `backend/.env`. Compose and `compose.prod.yml` load that file into the backend container. A host-run process does not load it automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
+Copy [the environment example](.env.example) to `backend/.env`. Local Compose loads that file into the backend container. Production Compose loads `/opt/karlbruder/backend.env` on the application host. A host-run process does not load either file automatically, so export the same variables before starting Uvicorn. Use `localhost` as the database host in that case.
 
 ## Development
 

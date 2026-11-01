@@ -41,7 +41,7 @@ The complete application stack is defined by `compose.prod.yml`:
 
 Only the first three components are application Compose services. The public landing site is hosted separately. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 application ingress on 443 only.
 
-`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps frontend and backend ports on the Compose network. Hosting that file on EC2, Cloudflare routing, and live verification are still separate work.
+`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps frontend and backend ports on the Compose network. Cloudflare routing and a live HTTPS check are still separate work.
 
 ## Public website
 
@@ -85,6 +85,106 @@ First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin.
 
 A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a running instance. Replacing the image or the script is a deliberate change.
 
+## Application image deploy
+
+Each workspace has three ECR repositories: `kb-<env>/backend`, `kb-<env>/frontend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.prod.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
+
+GitHub Actions assumes the workspace role through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create one role per workspace.
+
+The role name starts from `kb-<env>-github-actions-role`. Terraform turns that into camel case with `replace(title(replace(..., "-", " ")), " ", "")`. `dev` becomes `KbDevGithubActionsRole`. `prod` becomes `KbProdGithubActionsRole`. The workflow assumes those names.
+
+The deploy jobs set a GitHub environment, so the token subject is `repo:karlbruder/karlbruder_monorepo:environment:<env>`. GitHub puts `ref:refs/heads/<branch>` in `sub` only when the job does not set an environment. AWS trust examples check `sub` and `aud`. They do not check `token.actions.githubusercontent.com:ref`.
+
+`KbDevGithubActionsRole` may be assumed only for the `dev` environment. `KbProdGithubActionsRole` uses the same policy with `environment:prod`. A push to `master` is what starts the prod workflow. The trust policy does not also match the branch.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::976083331699:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:karlbruder/karlbruder_monorepo:environment:dev"
+        }
+      }
+    }
+  ]
+}
+```
+
+The permissions policy is the same shape for both roles. Replace `<env>` with `dev` or `prod`. It can push only to that workspace's three repositories, describe instances, send `AWS-RunShellScript` only to the instance named `kb-<env>-application-host`, and read that command result.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcrGetAuthorizationToken",
+      "Effect": "Allow",
+      "Action": ["ecr:GetAuthorizationToken"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EcrPush",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": [
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/backend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/frontend",
+        "arn:aws:ecr:us-east-2:976083331699:repository/kb-<env>/nginx"
+      ]
+    },
+    {
+      "Sid": "DescribeApplicationHost",
+      "Effect": "Allow",
+      "Action": ["ec2:DescribeInstances"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SendCommandToApplicationHost",
+      "Effect": "Allow",
+      "Action": ["ssm:SendCommand"],
+      "Resource": "arn:aws:ec2:us-east-2:976083331699:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ssm:resourceTag/Name": "kb-<env>-application-host"
+        }
+      }
+    },
+    {
+      "Sid": "UseRunShellScriptDocument",
+      "Effect": "Allow",
+      "Action": ["ssm:SendCommand"],
+      "Resource": "arn:aws:ssm:us-east-2::document/AWS-RunShellScript"
+    },
+    {
+      "Sid": "ReadCommandResult",
+      "Effect": "Allow",
+      "Action": ["ssm:GetCommandInvocation"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+A push to `master` that changes the application, `compose.prod.yml`, or the deploy workflow deploys `prod`. `dev` deploys through `workflow_dispatch`. The workflow builds the three Dockerfiles, pushes the git SHA, and tells the host to pull and run `docker compose -f compose.prod.yml up -d --wait`. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
+
 ## Earlier deployment issues and reconciliation
 
 The earlier issues describe deployment transport evolution. Their backend-only topology and older Compose filename are historical inputs superseded by decision 0003. These issue bodies have not been changed, and their deployed state has not been verified.
@@ -93,10 +193,10 @@ The earlier issues describe deployment transport evolution. Their backend-only t
 | --- | --- | --- |
 | #25 | Initial EC2 host with zip/SCP, interactive access, and build/start on host | Deploy the selected Nginx/frontend/backend stack rather than a backend-only service; use `compose.prod.yml` |
 | #13, depends on #25 | Session Manager replaces day-to-day inbound SSH; zip/build-on-host remains | Verify managed file transfer and remote execution for the combined stack |
-| #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | Define frontend and Nginx artifact/configuration delivery alongside the backend; use the combined stack |
+| #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | The deploy workflow builds backend, frontend, and Nginx, then restarts `compose.prod.yml` through Session Manager. A live run is still unverified |
 | Private frontend hosting draft | S3 hosting versus hosting beside the backend | Resolved in favor of the frontend container behind the application Nginx proxy |
 
-Issue #23's intended image-deployment stage removes the zip/build-on-host path after replacement. Deployment transport, workflow identity, triggers, and migration/recovery procedures still need a concrete implementation plan. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress must also accommodate the chosen SES SMTP endpoint rather than blindly retaining the earlier backend-only port list.
+Issue #23's image deploy is the workflow in this spec. It replaces the zip and build-on-host path. Migration, failed-release recovery, and a live HTTPS check are still open. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress includes SES SMTP on TCP 587 and Ubuntu package mirrors on TCP 80.
 
 ## Acceptance criteria
 

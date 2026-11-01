@@ -93,7 +93,7 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
-`compose.prod.yml` reads `backend/.env` on the server. It does not run the landing site. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+`compose.prod.yml` reads `/opt/karlbruder/backend.env` on the application host. It does not run the landing site. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
 
 Start the local services:
 

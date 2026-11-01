@@ -1,0 +1,213 @@
+name: Deploy - Application
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "nginx/**"
+      - "compose.prod.yml"
+      - ".github/workflows/deploy-application.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-application-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ACCOUNT_ID: "976083331699"
+  DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+  GITHUB_ACTIONS_ROLE_NAME: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'prod') == 'prod' && 'KbProdGithubActionsRole' || 'KbDevGithubActionsRole' }}
+  DEPLOY_PATH: /opt/karlbruder
+
+jobs:
+  build:
+    name: Build and push ${{ matrix.service }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            file: backend/Dockerfile
+            target: production
+          - service: frontend
+            context: frontend
+            file: frontend/Dockerfile
+            target: production
+          - service: nginx
+            context: nginx
+            file: nginx/Dockerfile
+            target: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.GITHUB_ACTIONS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: |
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/kb-${{ env.DEPLOY_ENVIRONMENT }}/${{ matrix.service }}:${{ env.DEPLOY_ENVIRONMENT }}
+          provenance: false
+          sbom: false
+
+  deploy:
+    name: Deploy on the application host
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.GITHUB_ACTIONS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy through Session Manager
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          NAMESPACE: kb-${{ env.DEPLOY_ENVIRONMENT }}
+          HOST_NAME_TAG: kb-${{ env.DEPLOY_ENVIRONMENT }}-application-host
+        run: |
+          set -euo pipefail
+
+          instance_id="$(aws ec2 describe-instances \
+            --region "${AWS_REGION}" \
+            --filters "Name=tag:Name,Values=${HOST_NAME_TAG}" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' \
+            --output text)"
+
+          if [ -z "${instance_id}" ] || [ "${instance_id}" = "None" ]; then
+            echo "::error::No running instance with Name ${HOST_NAME_TAG}."
+            exit 1
+          fi
+
+          compose_b64="$(base64 -w 0 compose.prod.yml)"
+          export instance_id compose_b64
+
+          python3 - <<'PY' > /tmp/ssm-send-command.json
+          import json
+          import os
+
+          deploy_path = os.environ["DEPLOY_PATH"]
+          aws_region = os.environ["AWS_REGION"]
+          aws_account_id = os.environ["AWS_ACCOUNT_ID"]
+          namespace = os.environ["NAMESPACE"]
+          image_tag = os.environ["IMAGE_TAG"]
+          registry = f"{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com"
+          compose_b64 = os.environ["compose_b64"]
+
+          commands = [
+              "set -eu",
+              "command -v docker >/dev/null 2>&1",
+              "docker --version",
+              "docker compose version",
+              f"mkdir -p {deploy_path}",
+              f"echo '{compose_b64}' | base64 -d > {deploy_path}/compose.prod.yml",
+              f"chown root:docker {deploy_path}/compose.prod.yml",
+              f"chmod 664 {deploy_path}/compose.prod.yml",
+              f"cd {deploy_path}",
+              f"export AWS_ACCOUNT_ID={aws_account_id}",
+              f"export AWS_REGION={aws_region}",
+              f"export NAMESPACE={namespace}",
+              f"export IMAGE_TAG={image_tag}",
+              f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}",
+              "docker compose -f compose.prod.yml pull",
+              "docker compose -f compose.prod.yml up -d --remove-orphans --wait",
+              "docker image prune -f",
+          ]
+
+          print(json.dumps({
+              "DocumentName": "AWS-RunShellScript",
+              "InstanceIds": [os.environ["instance_id"]],
+              "TimeoutSeconds": 900,
+              "Comment": f"karlbruder deploy {image_tag}",
+              "Parameters": {"commands": commands},
+          }))
+          PY
+
+          command_id="$(aws ssm send-command \
+            --region "${AWS_REGION}" \
+            --cli-input-json file:///tmp/ssm-send-command.json \
+            --query 'Command.CommandId' \
+            --output text)"
+
+          echo "Session Manager command ${command_id} on ${instance_id}"
+
+          for _ in $(seq 1 90); do
+            status="$(aws ssm get-command-invocation \
+              --region "${AWS_REGION}" \
+              --command-id "${command_id}" \
+              --instance-id "${instance_id}" \
+              --query 'Status' \
+              --output text 2>/dev/null || true)"
+
+            case "${status}" in
+              Success)
+                aws ssm get-command-invocation \
+                  --region "${AWS_REGION}" \
+                  --command-id "${command_id}" \
+                  --instance-id "${instance_id}" \
+                  --query 'StandardOutputContent' \
+                  --output text
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut|Cancelling)
+                echo "::error::Session Manager command ${status}."
+                aws ssm get-command-invocation \
+                  --region "${AWS_REGION}" \
+                  --command-id "${command_id}" \
+                  --instance-id "${instance_id}" \
+                  --query 'StandardErrorContent' \
+                  --output text
+                exit 1
+                ;;
+            esac
+
+            sleep 10
+          done
+
+          echo "::error::Session Manager command ${command_id} did not finish."
+          exit 1

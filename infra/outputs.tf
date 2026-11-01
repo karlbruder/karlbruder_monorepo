@@ -32,3 +32,13 @@ output "application_instance_profile_name" {
   description = "Instance profile attached to the application host."
   value       = module.application_host.instance_profile_name
 }
+
+output "github_actions_role_name" {
+  description = "Camel-case name of the GitHub Actions role for this workspace. Create this role outside Terraform."
+  value       = local.github_actions_role_name
+}
+
+output "application_ecr_repository_urls" {
+  description = "ECR repository URLs for the backend, frontend, and nginx images."
+  value       = { for name, repository in aws_ecr_repository.application : name => repository.repository_url }
+}

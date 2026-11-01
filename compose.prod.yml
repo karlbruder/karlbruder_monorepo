@@ -1,14 +1,11 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: production
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/backend:${IMAGE_TAG}
 
     restart: unless-stopped
 
     env_file:
-      - ./backend/.env
+      - backend.env
 
     expose:
       - "8000"
@@ -21,10 +18,7 @@ services:
       start_period: 10s
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/frontend:${IMAGE_TAG}
 
     restart: unless-stopped
 
@@ -32,9 +26,7 @@ services:
       - "80"
 
   nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/nginx:${IMAGE_TAG}
 
     restart: unless-stopped
 
