@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "${var.namespace}-ec2-cpu-high"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-cpu-high", "-", " ")), " ", "")
   alarm_description   = "EC2 CPU is at least 70 percent for 10 minutes out of 15."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "CPUUtilization"
@@ -17,7 +17,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
-  alarm_name          = "${var.namespace}-ec2-cpu-critical"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-cpu-critical", "-", " ")), " ", "")
   alarm_description   = "EC2 CPU is at least 90 percent for 10 minutes."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "CPUUtilization"
@@ -35,7 +35,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_critical" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "memory_high" {
-  alarm_name          = "${var.namespace}-ec2-memory-high"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-memory-high", "-", " ")), " ", "")
   alarm_description   = "EC2 memory usage is at least 80 percent for 10 minutes out of 15."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "mem_used_percent"
@@ -53,7 +53,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "memory_critical" {
-  alarm_name          = "${var.namespace}-ec2-memory-critical"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-memory-critical", "-", " ")), " ", "")
   alarm_description   = "EC2 memory usage is at least 90 percent for 10 minutes."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "mem_used_percent"
@@ -71,7 +71,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_critical" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "disk_high" {
-  alarm_name          = "${var.namespace}-ec2-disk-high"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-disk-high", "-", " ")), " ", "")
   alarm_description   = "EC2 root filesystem usage is at least 80 percent for 10 minutes out of 15."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "disk_used_percent"
@@ -91,7 +91,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "disk_critical" {
-  alarm_name          = "${var.namespace}-ec2-disk-critical"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-disk-critical", "-", " ")), " ", "")
   alarm_description   = "EC2 root filesystem usage is at least 90 percent for 10 minutes."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "disk_used_percent"
@@ -111,7 +111,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_critical" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
-  alarm_name          = "${var.namespace}-ec2-status-check-failed"
+  alarm_name          = replace(title(replace("${var.namespace}-ec2-status-check-failed", "-", " ")), " ", "")
   alarm_description   = "EC2 instance or system status check failed for 2 consecutive minutes."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   metric_name         = "StatusCheckFailed"

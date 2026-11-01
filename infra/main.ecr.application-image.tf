@@ -14,7 +14,7 @@ resource "aws_ecr_repository" "application" {
 }
 
 resource "aws_iam_role_policy" "application_host_ecr_pull" {
-  name = "${local.namespace}-application-ecr-pull"
+  name = replace(title(replace("${local.namespace}-application-ecr-pull", "-", " ")), " ", "")
   role = module.application_host.iam_role_name
 
   policy = jsonencode({
