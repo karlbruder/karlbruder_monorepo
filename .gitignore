@@ -13,3 +13,15 @@
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Terraform local state and provider cache. .terraform.lock.hcl stays tracked.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

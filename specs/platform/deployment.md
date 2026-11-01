@@ -8,7 +8,7 @@
 | Status | Draft |
 | Scope | Chosen production application stack, separate landing hosting, and deployment evolution |
 | Applications | landing, frontend, backend, AWS, Supabase |
-| Sources | Product-owner stack clarification; [decision 0003](../decisions/0003-local-and-production-stacks.md); [#11](https://github.com/karlbruder/karlbruder_monorepo/issues/11), [#12](https://github.com/karlbruder/karlbruder_monorepo/issues/12), [#25](https://github.com/karlbruder/karlbruder_monorepo/issues/25), [#13](https://github.com/karlbruder/karlbruder_monorepo/issues/13), [#23](https://github.com/karlbruder/karlbruder_monorepo/issues/23); private frontend deployment draft |
+| Sources | Product-owner stack clarification; [decision 0003](../decisions/0003-local-and-production-stacks.md); [#11](https://github.com/karlbruder/karlbruder_monorepo/issues/11), [#12](https://github.com/karlbruder/karlbruder_monorepo/issues/12), [#25](https://github.com/karlbruder/karlbruder_monorepo/issues/25), [#13](https://github.com/karlbruder/karlbruder_monorepo/issues/13), [#23](https://github.com/karlbruder/karlbruder_monorepo/issues/23), [#42](https://github.com/karlbruder/karlbruder_monorepo/issues/42); private frontend deployment draft |
 
 ## Goal
 
@@ -48,6 +48,25 @@ Only the first three components are application Compose services. The public lan
 The existing workflow builds `landing/` and synchronizes its build output to S3. Source inspection on 17 October 2026 found manual or `master` push deployment, AWS credentials through GitHub secrets, and bucket/region values through repository variables. Landing CI builds relevant PR changes. The workflow's existence does not verify the target account, DNS, or running site.
 
 Issue #11 requires creating the target bucket in the Karlbrüder account, updating deployment configuration, moving Cloudflare routing, and retiring the old bucket after the replacement is working. The CDN/origin, deep-link fallback, and cutover verification need a concrete runbook. Issue #12 has no body, so requirements beyond its title are not reconstructed from it.
+
+## Terraform workspaces
+
+Workload Terraform lives in `infra/`. It accepts the `dev` and `prod` workspaces only. Any other workspace, including `default`, fails the plan.
+
+The project name and the project slug are inputs. Both default to `karlbruder`. The workspace name is the environment. Workload resource names use `<project-slug>-<env>-<component>`.
+
+Each workload resource carries these tags.
+
+| Tag | Value |
+| --- | --- |
+| `project` | Project name input |
+| `project-slug` | Project slug input |
+| `env` | `dev` or `prod` |
+| `environment` | `development` for `dev`, and `production` for `prod` |
+| `author` | `Terraform` |
+| `repo` | `karlbruder/karlbruder_monorepo` |
+
+The landing bucket is account-regional. Its derived name is `<project-slug>-<env>-landing-<account-id>-<region>-an`. The bucket is public. Static website hosting is on. The index document and the error document are both `index.html`, so a refresh on a React route still returns the SPA. The bucket allows HTTP. The S3 website endpoint does not accept HTTPS.
 
 ## Earlier deployment issues and reconciliation
 

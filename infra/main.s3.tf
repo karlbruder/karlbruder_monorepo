@@ -1,8 +1,8 @@
 module "landing" {
   source = "./modules/s3-bucket"
 
-  project_short_name = "karlbruder"
-  env                = "prod"
+  project_short_name = var.project_slug
+  env                = terraform.workspace
   bucket_name_suffix = "landing"
 
   bucket_namespace_scope = "account_regional"
@@ -15,8 +15,5 @@ module "landing" {
     error_document = "index.html"
   }
 
-  tags = {
-    application = "landing"
-    purpose     = "public-website"
-  }
+  tags = local.workload_tags
 }
