@@ -85,6 +85,8 @@ A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a runni
 
 ## Application image deploy
 
+The backend production image includes the Secrets Manager dependencies required by `pydantic-settings`. On every production container startup, its entrypoint runs `alembic upgrade head` against the configured domain database before starting Gunicorn. A failed migration exits the container without starting the API. A successful migration replaces the entrypoint process with Gunicorn so it receives container shutdown signals. Migrations run once per container startup, before workers start, and manage domain objects in `public` only. Development and test image startup commands do not run this entrypoint.
+
 Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.production.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is the git SHA of the release. The workflow also moves the `dev` or `prod` tag on each image it builds. That moving tag is only the last build of that service. The host runs the SHA. For a service this run did not build, the workflow copies the moving tag onto the release SHA before the host pulls. The host script writes `/opt/karlbruder/backend.env` on each deploy. That file sets `ENV_NAME` to the selected environment, `SECRET_NAME` to `kb-<env>/backend`, and `AWS_REGION` to the workflow region. Cloud startup reads that secret and fails when `SECRET_NAME` or `AWS_REGION` is missing. The secret holds the database and Supabase settings. It does not replace those three values. Terraform creates the secret and lets the instance role call `secretsmanager:GetSecretValue` on it. Terraform does not write the secret value. Put the backend settings JSON in that secret after apply. The secret uses the AWS managed key, so the role does not need a separate decrypt permission.
 
 GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Build, stamp, and deploy all use it, for both `dev` and `prod`.
@@ -240,7 +242,7 @@ None about the selected stack, domains, application routing, DNS, or TLS. The re
 
 - Verify which rollout stage is actually deployed. Source inspection and historical issue status are not evidence of the live AWS configuration.
 - Define workflow credentials, triggers, environment separation, artifact delivery, and production configuration in the deployment plan, following the [team-access credential policy](team-access.md#implementation-and-operations-decisions).
-- Define migration execution, release verification, failed-release recovery, and database/object backup-and-restore procedures. Apply PRIV-011's interim indefinite-retention policy rather than defining another period here.
+- Production backend startup applies domain migrations before serving requests. Define release verification, failed-release recovery, and database/object backup-and-restore procedures. Apply PRIV-011's interim indefinite-retention policy rather than defining another period here.
 - Verify the concrete Session Manager file-transfer, remote-execution, and networking setup for the selected combined stack.
 - Define and verify the landing account/DNS cutover and rollback procedure before retiring the old hosting.
 

@@ -1,7 +1,7 @@
 # Domain migration notes
 
 **Created**: 2026-10-26
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 Alembic manages Karlbrüder domain tables in the database selected by
 `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The migrations use PostgreSQL's `public` schema and do not create
@@ -15,8 +15,11 @@ the target database before a controlled deployment, then run
 For local Compose, start PostgreSQL with `docker compose up -d db` from the
 repository root. The backend image also contains Alembic, so a built and running
 backend can apply migrations with `docker compose exec -T backend alembic upgrade head`.
-In production, point `DB_HOST` and `DB_NAME` at the intended Supabase PostgreSQL database
-and run the upgrade as a controlled deployment step.
+In production, point `DB_HOST` and `DB_NAME` at the intended Supabase PostgreSQL database.
+The production container entrypoint runs `alembic upgrade head` before starting Gunicorn
+on every startup. If the upgrade fails, the container exits without starting the API.
+Verify the database target before deploying. Development and test images keep their
+existing startup commands.
 
 If an earlier deployment ran these revisions with a non-`public` schema first
 in `search_path`, stop and inspect the location of its tables and
