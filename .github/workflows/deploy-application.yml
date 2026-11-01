@@ -11,6 +11,7 @@ on:
       - "nginx/**"
       - "compose.production.yml"
       - ".github/workflows/deploy-application.yml"
+      - "scripts/deploy/**"
   workflow_dispatch:
     inputs:
       environment:
@@ -38,17 +39,19 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-application-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+  group: deploy-application-${{ inputs.environment || 'dev' }}
   cancel-in-progress: false
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   ARN_IAM_ROLE_ARN: ${{ vars.ARN_IAM_ROLE_ARN }}
-  DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+  DEPLOY_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
   DEPLOY_PATH: /opt/karlbruder
-  APPLICATION_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
-  LANDING_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
+  LANDING_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'karlbruder.com prod.karlbruder.com' || 'dev.karlbruder.com' }}
+  APP_SERVER_NAMES: ${{ inputs.environment == 'prod' && 'app.karlbruder.com app-prod.karlbruder.com' || 'app-dev.karlbruder.com' }}
+  APPLICATION_BASE_URL: ${{ inputs.environment == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
+  LANDING_BASE_URL: ${{ inputs.environment == 'prod' && 'https://karlbruder.com' || 'https://dev.karlbruder.com' }}
 
 jobs:
   changes:
@@ -64,12 +67,12 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'push'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@v7
 
       - name: Filter changed paths
         if: github.event_name == 'push'
         id: filter
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        uses: dorny/paths-filter@v4
         with:
           base: ${{ github.ref }}
           filters: |
@@ -77,18 +80,22 @@ jobs:
               - 'backend/**'
               - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
             frontend:
               - 'frontend/**'
               - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
             landing:
               - 'landing/**'
               - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
             nginx:
               - 'nginx/**'
               - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
+              - 'scripts/deploy/**'
 
   build:
     name: Build and push ${{ matrix.service }}
@@ -96,7 +103,7 @@ jobs:
     if: needs.changes.outputs.services != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+    environment: ${{ inputs.environment || 'dev' }}
     strategy:
       fail-fast: true
       matrix:
@@ -104,19 +111,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Prepare image build arguments
         id: build-args
@@ -144,7 +151,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Build and push ${{ matrix.service }}
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@v6
         env:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ matrix.service == 'frontend' && secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
         with:
@@ -167,10 +174,13 @@ jobs:
     if: needs.build.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+    environment: ${{ inputs.environment || 'dev' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -179,62 +189,7 @@ jobs:
         env:
           RELEASE_SHA: ${{ github.sha }}
           SERVICES: ${{ needs.changes.outputs.services }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          import os
-          import subprocess
-
-          region = os.environ["AWS_REGION"]
-          namespace = f"kb-{os.environ['DEPLOY_ENVIRONMENT']}"
-          release_sha = os.environ["RELEASE_SHA"]
-          environment_tag = os.environ["DEPLOY_ENVIRONMENT"]
-          built = set(json.loads(os.environ["SERVICES"]))
-          services = ["backend", "frontend", "landing", "nginx"]
-
-          def run(*args):
-              return subprocess.run(args, check=False, capture_output=True, text=True)
-
-          for service in services:
-              if service in built:
-                  continue
-              repository = f"{namespace}/{service}"
-              existing = run(
-                  "aws", "ecr", "describe-images",
-                  "--region", region,
-                  "--repository-name", repository,
-                  "--image-ids", f"imageTag={release_sha}",
-              )
-              if existing.returncode == 0:
-                  continue
-              image = run(
-                  "aws", "ecr", "batch-get-image",
-                  "--region", region,
-                  "--repository-name", repository,
-                  "--image-ids", f"imageTag={environment_tag}",
-                  "--output", "json",
-              )
-              if image.returncode != 0:
-                  raise SystemExit(image.stderr or image.stdout)
-              payload = json.loads(image.stdout)
-              images = payload.get("images") or []
-              manifest = images[0].get("imageManifest") if images else ""
-              if not manifest:
-                  raise SystemExit(
-                      f"{repository}:{environment_tag} does not exist. "
-                      f"Build {service} once before deploying it by release SHA."
-                  )
-              copied = run(
-                  "aws", "ecr", "put-image",
-                  "--region", region,
-                  "--repository-name", repository,
-                  "--image-tag", release_sha,
-                  "--image-manifest", manifest,
-              )
-              if copied.returncode != 0 and "ImageAlreadyExistsException" not in copied.stderr:
-                  raise SystemExit(copied.stderr or copied.stdout)
-          PY
+        run: python3 scripts/deploy/tag_unchanged_images.py
 
   deploy:
     name: Deploy on the application host
@@ -242,14 +197,14 @@ jobs:
     if: needs.stamp.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+    environment: ${{ inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.ARN_IAM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -259,135 +214,7 @@ jobs:
           RELEASE_SHA: ${{ github.sha }}
           NAMESPACE: kb-${{ env.DEPLOY_ENVIRONMENT }}
           HOST_NAME_TAG: kb-${{ env.DEPLOY_ENVIRONMENT }}-application-host
-        run: |
-          set -euo pipefail
-
-          if [ "${DEPLOY_ENVIRONMENT}" = "prod" ]; then
-            export LANDING_SERVER_NAMES="karlbruder.com prod.karlbruder.com"
-            export APP_SERVER_NAMES="app.karlbruder.com app-prod.karlbruder.com"
-          else
-            export LANDING_SERVER_NAMES="dev.karlbruder.com"
-            export APP_SERVER_NAMES="app-dev.karlbruder.com"
-          fi
-
-          export IMAGE_TAG="${RELEASE_SHA}"
-
-          instance_id="$(aws ec2 describe-instances \
-            --region "${AWS_REGION}" \
-            --filters "Name=tag:Name,Values=${HOST_NAME_TAG}" "Name=instance-state-name,Values=running" \
-            --query 'Reservations[0].Instances[0].InstanceId' \
-            --output text)"
-
-          if [ -z "${instance_id}" ] || [ "${instance_id}" = "None" ]; then
-            echo "::error::No running instance with Name ${HOST_NAME_TAG}."
-            exit 1
-          fi
-
-          compose_b64="$(base64 -w 0 compose.production.yml)"
-          export instance_id compose_b64
-
-          python3 - <<'PY' > /tmp/ssm-send-command.json
-          import json
-          import os
-
-          allowed_services = ["backend", "frontend", "landing", "nginx"]
-          deploy_path = os.environ["DEPLOY_PATH"]
-          aws_region = os.environ["AWS_REGION"]
-          aws_account_id = os.environ["AWS_ACCOUNT_ID"]
-          namespace = os.environ["NAMESPACE"]
-          image_tag = os.environ["IMAGE_TAG"]
-          release_sha = os.environ["RELEASE_SHA"]
-          landing_server_names = os.environ["LANDING_SERVER_NAMES"]
-          app_server_names = os.environ["APP_SERVER_NAMES"]
-          registry = f"{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com"
-          compose_b64 = os.environ["compose_b64"]
-
-          commands = [
-              "set -eu",
-              "command -v docker >/dev/null 2>&1",
-              "docker --version",
-              "docker compose version",
-              f"mkdir -p {deploy_path}",
-              f"echo '{compose_b64}' | base64 -d > {deploy_path}/compose.production.yml",
-              f"chown root:docker {deploy_path}/compose.production.yml",
-              f"chmod 664 {deploy_path}/compose.production.yml",
-              f"cd {deploy_path}",
-              f"export AWS_ACCOUNT_ID={aws_account_id}",
-              f"export AWS_REGION={aws_region}",
-              f"export NAMESPACE={namespace}",
-              f"export IMAGE_TAG={image_tag}",
-              f"export LANDING_SERVER_NAMES='{landing_server_names}'",
-              f"export APP_SERVER_NAMES='{app_server_names}'",
-              f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}",
-              "docker compose -f compose.production.yml pull",
-              "docker compose -f compose.production.yml up -d --wait",
-              "docker compose -f compose.production.yml up -d --no-deps --force-recreate --wait nginx",
-          ]
-
-          for service in allowed_services:
-              commands.append(
-                  "image=$(docker inspect --format '{{.Config.Image}}' "
-                  f"\"$(docker compose -f compose.production.yml ps -q {service})\")"
-              )
-              commands.append(
-                  f"case \"$image\" in *:{image_tag}) ;; "
-                  f"*) echo \"unexpected {service} image $image\"; exit 1 ;; esac"
-              )
-
-          commands.append("docker image prune -f")
-
-          print(json.dumps({
-              "DocumentName": "AWS-RunShellScript",
-              "InstanceIds": [os.environ["instance_id"]],
-              "TimeoutSeconds": 900,
-              "Comment": f"karlbruder deploy {release_sha}",
-              "Parameters": {"commands": commands},
-          }))
-          PY
-
-          command_id="$(aws ssm send-command \
-            --region "${AWS_REGION}" \
-            --cli-input-json file:///tmp/ssm-send-command.json \
-            --query 'Command.CommandId' \
-            --output text)"
-
-          echo "Session Manager command ${command_id} on ${instance_id}"
-
-          for _ in $(seq 1 90); do
-            status="$(aws ssm get-command-invocation \
-              --region "${AWS_REGION}" \
-              --command-id "${command_id}" \
-              --instance-id "${instance_id}" \
-              --query 'Status' \
-              --output text 2>/dev/null || true)"
-
-            case "${status}" in
-              Success)
-                aws ssm get-command-invocation \
-                  --region "${AWS_REGION}" \
-                  --command-id "${command_id}" \
-                  --instance-id "${instance_id}" \
-                  --query 'StandardOutputContent' \
-                  --output text
-                exit 0
-                ;;
-              Failed|Cancelled|TimedOut|Cancelling)
-                echo "::error::Session Manager command ${status}."
-                aws ssm get-command-invocation \
-                  --region "${AWS_REGION}" \
-                  --command-id "${command_id}" \
-                  --instance-id "${instance_id}" \
-                  --query 'StandardErrorContent' \
-                  --output text
-                exit 1
-                ;;
-            esac
-
-            sleep 10
-          done
-
-          echo "::error::Session Manager command ${command_id} did not finish."
-          exit 1
+        run: python3 scripts/deploy/deploy_application.py
 
   verify:
     name: Check the public hostnames
@@ -395,35 +222,14 @@ jobs:
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+    environment: ${{ inputs.environment || 'dev' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Request landing, application, and API health
         env:
           RELEASE_SHA: ${{ github.sha }}
           SERVICES: ${{ needs.changes.outputs.services }}
           RELEASED_AT: ${{ needs.changes.outputs.released_at }}
-        run: |
-          set -euo pipefail
-          curl_check() {
-            curl --fail --silent --show-error --max-time 20 --retry 6 --retry-delay 5 --retry-all-errors "$1"
-          }
-
-          curl_check "${LANDING_BASE_URL}" >/dev/null
-          curl_check "${APPLICATION_BASE_URL}" >/dev/null
-          curl_check "${APPLICATION_BASE_URL}/api/health" >/dev/null
-          metadata="$(curl_check "${APPLICATION_BASE_URL}/api/metadata")"
-          METADATA="${metadata}" python3 - <<'PY'
-          import json
-          import os
-
-          data = json.loads(os.environ["METADATA"])
-          if not data.get("released_at"):
-              raise SystemExit(f"metadata is missing released_at: {data}")
-          services = json.loads(os.environ["SERVICES"])
-          if "backend" in services and data.get("released_at") != os.environ["RELEASED_AT"]:
-              raise SystemExit("backend released_at does not match the pipeline build time")
-          if "backend" in services and data.get("git_sha") != os.environ["RELEASE_SHA"]:
-              raise SystemExit(
-                  f"backend git_sha {data.get('git_sha')} does not match {os.environ['RELEASE_SHA']}"
-              )
-          PY
+        run: python3 scripts/deploy/verify_application_release.py
