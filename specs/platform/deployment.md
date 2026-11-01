@@ -69,6 +69,8 @@ Each workload resource carries these tags.
 
 The landing bucket is account-regional. The root passes `bucket_name_prefix` as `kb-<env>-landing`. The module appends `-<account-id>-us-east-2-an`. A `prod` bucket starts with `kb-prod-landing`. The bucket is public. Static website hosting is on. The index document and the error document are both `index.html`, so a refresh on a React route still returns the SPA. The bucket allows HTTP. The S3 website endpoint does not accept HTTPS.
 
+Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
+
 ## Earlier deployment issues and reconciliation
 
 The earlier issues describe deployment transport evolution. Their backend-only topology and older Compose filename are historical inputs superseded by decision 0003. These issue bodies have not been changed, and their deployed state has not been verified.
