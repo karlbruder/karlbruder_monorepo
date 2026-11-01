@@ -223,3 +223,63 @@ describe('Account password updates', () => {
     expect(supabase.auth.signOut).not.toHaveBeenCalled()
   })
 })
+
+describe('Session route guard', () => {
+  it('shows session loading on home and does not redirect before auth restoration finishes', () => {
+    vi.mocked(supabase.auth.getSession).mockImplementation(() => new Promise(() => {}))
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Carregando sua sessão...')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Boas-vindas de volta.' })).not.toBeInTheDocument()
+  })
+
+  it('sends a guest from home to sign-in after session restoration finishes', async () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Entrar' })).not.toBeInTheDocument()
+  })
+
+  it('sends a guest from the change-password route to sign-in after session restoration finishes', async () => {
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.password]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
+  })
+
+  it('shows the signed-in home at slash when a session exists', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
+    expect(screen.getByText('athlete@example.test')).toBeInTheDocument()
+  })
+
+  it('still renders sign-in without a session when opened directly', async () => {
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.signIn]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+  })
+})

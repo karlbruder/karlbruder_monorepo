@@ -1,8 +1,9 @@
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
-import AppLanguageToggle from "./AppLanguageToggle";
 import { accountRoutes } from "./accountRoutes";
 import { useAppAuth } from "./appAuth";
+import { RequireSessionRoute } from "./RequireSessionRoute";
+import SignedInHomePage from "./SignedInHomePage";
 import TournamentRegistration from "./pages/TournamentRegistration";
 import AccountChangePasswordPage from "./pages/account/AccountChangePasswordPage";
 import AccountCheckEmailPage from "./pages/account/AccountCheckEmailPage";
@@ -37,6 +38,7 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
   const location = useLocation();
   const registrationReturnTo = `${location.pathname}${location.search}`;
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+  const sessionLoadingMessage = t("Carregando sua sessão...");
   const {
     session,
     authReady,
@@ -83,33 +85,22 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
         <AccountNewPasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
       } />
       <Route path={accountRoutes.password} element={
-        <AccountChangePasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
+        <RequireSessionRoute authReady={authReady} session={session} loadingMessage={sessionLoadingMessage}>
+          <AccountChangePasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
+        </RequireSessionRoute>
       } />
-      <Route path="*" element={
-        <main className="app-center">
-          {!authReady ? (
-            <p role="status">{t("Carregando sua sessão...")}</p>
-          ) : session ? (
-            <div className="home-signed-in-shell">
-              <AppLanguageToggle language={language} onLanguageChange={onLanguageChange} />
-              <div className="home-account">
-                <h1>Karlbrüder</h1>
-                <p>{session.user.user_metadata?.name ?? session.user.email}</p>
-                <Link to={accountRoutes.password}>{t("Alterar senha")}</Link>
-                <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
-                <button type="button" onClick={signOut}>{t("Sair")}</button>
-              </div>
-            </div>
-          ) : (
-            <div className="home-account home-account-links">
-              <h1>Karlbrüder</h1>
-              <Link className="primary" to={accountRoutes.signIn}>{t("Entrar")}</Link>
-              <Link className="secondary" to={accountRoutes.signUp}>{t("Criar conta")}</Link>
-            </div>
-          )}
-          {authError && <p role="alert">{t(authError)}</p>}
-        </main>
+      <Route path="/" element={
+        <RequireSessionRoute authReady={authReady} session={session} loadingMessage={sessionLoadingMessage}>
+          <SignedInHomePage
+            session={session!}
+            language={language}
+            onLanguageChange={onLanguageChange}
+            onSignOut={signOut}
+            authError={authError}
+          />
+        </RequireSessionRoute>
       } />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
