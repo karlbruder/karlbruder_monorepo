@@ -34,7 +34,7 @@ Local Compose runs this development server at `http://localhost:3000`. The appli
 docker compose up --build landing
 ```
 
-The public site is not part of `compose.prod.yml`. Production builds the static bundle and publishes it to S3.
+Production runs this site as the landing container in `compose.production.yml`. Nginx sends the landing hostnames to that container.
 
 To run the existing React tests in that same image:
 

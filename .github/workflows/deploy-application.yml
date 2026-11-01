@@ -9,7 +9,7 @@ on:
       - "frontend/**"
       - "landing/**"
       - "nginx/**"
-      - "compose.prod.yml"
+      - "compose.production.yml"
       - ".github/workflows/deploy-application.yml"
   workflow_dispatch:
     inputs:
@@ -38,14 +38,14 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-application-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+  group: deploy-application-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
   cancel-in-progress: false
 
 env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: "976083331699"
-  DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
-  APPLICATION_ORIGIN: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'prod') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
+  DEPLOY_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+  APPLICATION_ORIGIN: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment || 'dev') == 'prod' && 'https://app.karlbruder.com' || 'https://app-dev.karlbruder.com' }}
   GITHUB_ACTIONS_ROLE_NAME: KbGithubActionsRole
   DEPLOY_PATH: /opt/karlbruder
 
@@ -63,25 +63,25 @@ jobs:
       - name: Filter changed paths
         if: github.event_name == 'push'
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           base: ${{ github.ref }}
           filters: |
             backend:
               - 'backend/**'
-              - 'compose.prod.yml'
+              - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
             frontend:
               - 'frontend/**'
-              - 'compose.prod.yml'
+              - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
             landing:
               - 'landing/**'
-              - 'compose.prod.yml'
+              - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
             nginx:
               - 'nginx/**'
-              - 'compose.prod.yml'
+              - 'compose.production.yml'
               - '.github/workflows/deploy-application.yml'
 
   build:
@@ -90,7 +90,7 @@ jobs:
     if: needs.changes.outputs.services != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
     strategy:
       fail-fast: true
       matrix:
@@ -132,7 +132,7 @@ jobs:
     if: needs.build.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout
@@ -174,7 +174,7 @@ jobs:
             exit 1
           fi
 
-          compose_b64="$(base64 -w 0 compose.prod.yml)"
+          compose_b64="$(base64 -w 0 compose.production.yml)"
           export instance_id compose_b64
 
           python3 - <<'PY' > /tmp/ssm-send-command.json
@@ -203,9 +203,9 @@ jobs:
               "docker --version",
               "docker compose version",
               f"mkdir -p {deploy_path}",
-              f"echo '{compose_b64}' | base64 -d > {deploy_path}/compose.prod.yml",
-              f"chown root:docker {deploy_path}/compose.prod.yml",
-              f"chmod 664 {deploy_path}/compose.prod.yml",
+              f"echo '{compose_b64}' | base64 -d > {deploy_path}/compose.production.yml",
+              f"chown root:docker {deploy_path}/compose.production.yml",
+              f"chmod 664 {deploy_path}/compose.production.yml",
               f"cd {deploy_path}",
               f"export AWS_ACCOUNT_ID={aws_account_id}",
               f"export AWS_REGION={aws_region}",
@@ -219,13 +219,13 @@ jobs:
           application_services = [service for service in services if service != "nginx"]
           if application_services:
               joined = " ".join(application_services)
-              commands.append(f"docker compose -f compose.prod.yml pull {joined}")
-              commands.append(f"docker compose -f compose.prod.yml up -d --no-deps --wait {joined}")
+              commands.append(f"docker compose -f compose.production.yml pull {joined}")
+              commands.append(f"docker compose -f compose.production.yml up -d --no-deps --wait {joined}")
 
           if "nginx" in services:
-              commands.append("docker compose -f compose.prod.yml pull nginx")
+              commands.append("docker compose -f compose.production.yml pull nginx")
 
-          commands.append("docker compose -f compose.prod.yml up -d --no-deps --force-recreate --wait nginx")
+          commands.append("docker compose -f compose.production.yml up -d --no-deps --force-recreate --wait nginx")
           commands.append("docker image prune -f")
 
           print(json.dumps({

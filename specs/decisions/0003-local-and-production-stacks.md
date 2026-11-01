@@ -14,8 +14,10 @@ Earlier issues proposed backend-only EC2 deployment and left private frontend ho
 
 ## Decision
 
-- Local development uses hosted Supabase Auth and a Docker PostgreSQL domain database with application tables in `public`.
-- Production uses `compose.prod.yml` with Nginx, landing, frontend, and backend containers on one host. Hosted Supabase provides Auth and PostgreSQL. The backend reads/writes its domain data in `public`; there is no production PostgreSQL container.
+- Development and production are modes. `dev` and `prod` are cloud environments.
+- Local development mode uses `compose.yml`, hosted Supabase Auth, and a Docker PostgreSQL domain database with application tables in `public`.
+- Both cloud environments use production mode through `compose.production.yml`. That file runs Nginx, landing, frontend, and backend on one host. Hosted Supabase provides Auth and PostgreSQL. The backend reads and writes domain data in `public`. There is no PostgreSQL container in production mode.
+- A push to `master` deploys the `dev` environment. The `prod` environment deploys only from a manual workflow run.
 - Nginx routes a landing hostname to the landing container. On an application hostname it routes `/api` and `/api/...` to the backend and other requests to the frontend. The backend receives the `/api` prefix unchanged.
 - Cloudflare nameservers provide DNS. The landing and application names for an environment are proxied A records targeting that environment's EC2 Elastic IP. Cloudflare manages public certificates, terminates browser TLS, and redirects HTTP 80 to HTTPS 443 at the edge. It connects to the Nginx origin over HTTPS 443 using the instance's self-signed certificate and Full encryption mode.
 - Only Nginx publishes a production application host port, 443. Frontend/backend ports remain internal to Compose. The edge redirect keeps EC2 application ingress HTTPS-only.
@@ -25,11 +27,11 @@ Earlier issues proposed backend-only EC2 deployment and left private frontend ho
 
 ## Consequences
 
-The private frontend hosting draft is resolved. Backend-only topology and the `compose.prod.yaml` filename in earlier issues are superseded by the chosen combined stack and `compose.prod.yml` filename. GitHub issues have not been edited by this decision record.
+The private frontend hosting draft is resolved. Backend-only topology and the `compose.prod.yaml` filename in earlier issues are superseded by `compose.production.yml`. GitHub issues have not been edited by this decision record.
 
 The earlier SCP, Session Manager, and ECR issues can still inform deployment transport and artifact delivery. They must be reconciled with this topology before implementation rather than treated as instructions to omit the frontend or Nginx.
 
-The current checkout does not yet implement the complete production stack or storage/email integrations. Cloudflare/EC2 DNS and TLS are now decided architecture. Deployment mechanics and certificate provisioning still need implementation, and local SMTP configuration remains deliberately deferred.
+The repository defines `compose.production.yml` and the deploy workflow. A push to `master` deploys `dev`. A manual run can deploy `dev` or `prod`. The workflow builds the images whose paths changed, pushes them to ECR, and replaces those containers through Session Manager. Nginx writes its hostnames when it starts, and it creates a self-signed origin certificate on first start. A live Cloudflare, EC2, and HTTPS check is still separate work. S3 file storage and SES email are still separate application work. Local SMTP remains deferred.
 
 ## References
 

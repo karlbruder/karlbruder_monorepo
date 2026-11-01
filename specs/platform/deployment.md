@@ -6,7 +6,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Draft |
-| Scope | Chosen production application stack, separate landing hosting, and deployment evolution |
+| Scope | Production Compose stack on one EC2 host, and how that stack is deployed |
 | Applications | landing, frontend, backend, AWS, Supabase |
 | Sources | Product-owner stack clarification; [decision 0003](../decisions/0003-local-and-production-stacks.md); [#11](https://github.com/karlbruder/karlbruder_monorepo/issues/11), [#12](https://github.com/karlbruder/karlbruder_monorepo/issues/12), [#25](https://github.com/karlbruder/karlbruder_monorepo/issues/25), [#13](https://github.com/karlbruder/karlbruder_monorepo/issues/13), [#23](https://github.com/karlbruder/karlbruder_monorepo/issues/23), [#42](https://github.com/karlbruder/karlbruder_monorepo/issues/42); private frontend deployment draft |
 
@@ -17,7 +17,7 @@ Host the public website and application through clear, verifiable deployment pat
 ## Shared rules
 
 - **DEP-001:** Production infrastructure belongs in the Karlbrüder AWS account. The landing account-migration issue moves hosting away from a personal account.
-- **DEP-002:** The application runs on the production host through `compose.prod.yml`, containing Nginx, landing, frontend, and backend containers. Supabase supplies hosted Auth and PostgreSQL; domain data uses `public`. There is no PostgreSQL container in production.
+- **DEP-002:** Both cloud environments run production mode through `compose.production.yml`, containing Nginx, landing, frontend, and backend containers. Supabase supplies hosted Auth and PostgreSQL. Domain data uses `public`. There is no PostgreSQL container in production mode.
 - **DEP-003:** Human access, application credentials, and workflow credentials have separate responsibilities. Use authorized secret/configuration mechanisms. Never commit cloud or database credentials.
 - **DEP-004:** Prod answers the landing names `karlbruder.com` and `prod.karlbruder.com`, and the application names `app.karlbruder.com` and `app-prod.karlbruder.com`. Dev answers `dev.karlbruder.com` for the landing site and `app-dev.karlbruder.com` for the application. Nginx sends a landing name to the landing container. It sends `/api` and `/api/...` on an application name to the backend unchanged, and every other application request to the frontend container. Frontend deep links and Supabase callbacks must work through this entry point.
 - **DEP-005:** Cloudflare nameservers serve DNS. Each public name above is a proxied A record to that environment's EC2 Elastic IP. Cloudflare manages public TLS and redirects HTTP 80 to HTTPS 443. The origin uses a self-signed certificate on Nginx with HTTPS 443 and Cloudflare Full mode. A test environment is required before live operation.
@@ -27,7 +27,7 @@ Host the public website and application through clear, verifiable deployment pat
 
 ## Production Compose topology
 
-The complete application stack is defined by `compose.prod.yml`:
+The complete application stack is defined by `compose.production.yml`:
 
 | Component | Responsibility |
 | --- | --- |
@@ -42,7 +42,7 @@ The complete application stack is defined by `compose.prod.yml`:
 
 Landing, Nginx, frontend, and backend are the Compose services. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 ingress on 443 only.
 
-`compose.prod.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_SERVER_NAMES` and `APP_SERVER_NAMES` when it starts and writes those names into its config. Prod sets `karlbruder.com prod.karlbruder.com` and `app.karlbruder.com app-prod.karlbruder.com`. Dev sets `dev.karlbruder.com` and `app-dev.karlbruder.com`. Cloudflare routing and a live HTTPS check are still separate work.
+`compose.production.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_SERVER_NAMES` and `APP_SERVER_NAMES` when it starts and writes those names into its config. Prod sets `karlbruder.com prod.karlbruder.com` and `app.karlbruder.com app-prod.karlbruder.com`. Dev sets `dev.karlbruder.com` and `app-dev.karlbruder.com`. Cloudflare routing and a live HTTPS check are still separate work.
 
 ## Public website
 
@@ -56,14 +56,13 @@ Workload Terraform lives in `infra/`. It accepts the `dev` and `prod` workspaces
 
 The project name is `karlbruder`. The project slug is `kb`. Both are locals, because they stay the same in every environment. The workspace name is the environment. Workload resource names use `<project-slug>-<env>-<component>`.
 
-Each workload resource carries these tags.
+Each workload resource carries these tags. There is no `environment` tag. `env` already says `dev` or `prod`. A second tag named `environment` would read as the development or production mode and mix the two words.
 
 | Tag | Value |
 | --- | --- |
 | `author` | `Terraform` |
 | `scope` | `regional` |
 | `env` | `dev` or `prod` |
-| `environment` | `development` for `dev`, and `production` for `prod` |
 | `project-name` | `karlbruder` |
 | `project-slug` | `kb` |
 | `repo` | `karlbruder/karlbruder_monorepo` |
@@ -86,7 +85,7 @@ A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a runni
 
 ## Application image deploy
 
-Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.prod.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is `dev` or `prod`, the tag that moves when that service is built. The workflow also pushes the git SHA. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
+Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.production.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is `dev` or `prod`, the tag that moves when that service is built. The workflow also pushes the git SHA. The backend reads `/opt/karlbruder/backend.env` when Compose runs from `/opt/karlbruder`. The workflow does not create or upload that file.
 
 GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Both workspaces use it.
 
@@ -199,7 +198,13 @@ The permissions policy covers both workspaces. It can push to the eight applicat
 }
 ```
 
-A push to `master` deploys `prod` for the services whose files changed. A change to `compose.prod.yml` or the deploy workflow builds all four. `dev` deploys through `workflow_dispatch`, for one service or for all of them. The dev landing image is built with `https://app-dev.karlbruder.com`. The prod landing image is built with `https://app.karlbruder.com`. The host pulls those images, replaces those containers, and starts the edge Nginx container again. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
+A push to `master` deploys the `dev` environment. It does not deploy `prod`. The workflow uses `dorny/paths-filter` v4 and builds the services whose files changed. A change to `compose.production.yml` or the deploy workflow builds all four. A manual run can deploy `dev` or `prod`, for one service or for all of them. The dev landing image is built with `https://app-dev.karlbruder.com`. The prod landing image is built with `https://app.karlbruder.com`. The host pulls those images, replaces those containers, and starts the edge Nginx container again. Both hosts run production mode from `compose.production.yml`. There is no zip or SCP deploy path. A live push, pull, and HTTPS check is not claimed by this description.
+
+```mermaid
+flowchart LR
+    Master["Push to master"] --> DevDeploy["Build changed images and deploy to dev"]
+    Manual["Manual workflow run"] --> Chosen["Build the selected services and deploy to dev or prod"]
+```
 
 ## Earlier deployment issues and reconciliation
 
@@ -207,9 +212,9 @@ The earlier issues describe deployment transport evolution. Their backend-only t
 
 | Source | Earlier delivery plan | Reconciliation needed |
 | --- | --- | --- |
-| #25 | Initial EC2 host with zip/SCP, interactive access, and build/start on host | Deploy the selected Nginx/frontend/backend stack rather than a backend-only service; use `compose.prod.yml` |
+| #25 | Initial EC2 host with zip/SCP, interactive access, and build/start on host | Deploy the Nginx, landing, frontend, and backend stack in `compose.production.yml` rather than a backend-only service |
 | #13, depends on #25 | Session Manager replaces day-to-day inbound SSH; zip/build-on-host remains | Verify managed file transfer and remote execution for the combined stack |
-| #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | The deploy workflow builds backend, frontend, and Nginx, then restarts `compose.prod.yml` through Session Manager. A live run is still unverified |
+| #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | The deploy workflow builds the changed images among landing, frontend, backend, and Nginx, then replaces those containers through Session Manager. A live run is still unverified |
 | Private frontend hosting draft | S3 hosting versus hosting beside the backend | Resolved in favor of the frontend container behind the application Nginx proxy |
 
 Issue #23's image deploy is the workflow in this spec. It replaces the zip and build-on-host path. Migration, failed-release recovery, and a live HTTPS check are still open. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress includes SES SMTP on TCP 587 and Ubuntu package mirrors on TCP 80.
@@ -217,7 +222,7 @@ Issue #23's image deploy is the workflow in this spec. It replaces the zip and b
 ## Acceptance criteria
 
 - **DEP-AC-001:** After landing migration, deployment publishes to the intended organizational target and public routing serves that target correctly before the old hosting is retired.
-- **DEP-AC-002:** The implemented `compose.prod.yml` runs Nginx, frontend, and backend without PostgreSQL or Ministack containers. The backend uses Supabase PostgreSQL's `public` schema.
+- **DEP-AC-002:** The implemented `compose.production.yml` runs Nginx, landing, frontend, and backend without PostgreSQL or Ministack containers. The backend uses Supabase PostgreSQL's `public` schema.
 - **DEP-AC-003:** When the ECR deployment from issue #23 is delivered, a workflow publishes the application image, the host runs it through the managed deployment path, the combined application stack responds, and the superseded zip/build path is removed.
 - **DEP-AC-004:** In a released frontend environment, a refreshed deep link and an authentication callback return to the expected application and API paths.
 - **DEP-AC-005:** Before live participant-data collection, HTTPS, restricted proof access, and the agreed pre-production verification are in place.

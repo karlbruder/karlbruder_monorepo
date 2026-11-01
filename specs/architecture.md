@@ -15,11 +15,19 @@
 
 The following stacks describe intended architecture, not verified deployments. [Decision 0003](decisions/0003-local-and-production-stacks.md) records the owner's choices.
 
-## Environment comparison
+## Modes and cloud environments
 
-| Responsibility | Local development | Production |
+Development and production are modes. They describe how something is built and which settings it uses. `dev` and `prod` are cloud environments. They describe which host is running.
+
+Local work uses development mode through `compose.yml`.
+
+The `dev` environment and the `prod` environment both use production mode through `compose.production.yml`. Same file. Two hosts. The hosts differ by name, instance size, image namespace, and the secrets on that host.
+
+## Mode comparison
+
+| Responsibility | Development mode | Production mode |
 | --- | --- | --- |
-| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL; Ministack added when file storage is implemented | `compose.prod.yml`: Nginx, landing, frontend, and backend on one EC2 host |
+| Application stack | `compose.yml`: landing, frontend, backend, PostgreSQL. Ministack is added when file storage is implemented | `compose.production.yml`: Nginx, landing, frontend, and backend on one EC2 host. Both the `dev` and `prod` environments use this file |
 | Application entry | Existing development ports and frontend `/api` forwarding | Cloudflare HTTPS edge to EC2 Elastic IP, then Nginx on 443 |
 | Identity | Hosted Supabase Auth | Hosted Supabase Auth |
 | Domain database | PostgreSQL container, domain objects in `public` | Hosted Supabase PostgreSQL, domain objects in `public`; no PostgreSQL container |
@@ -44,30 +52,46 @@ flowchart LR
 
 Local development still uses hosted Supabase for authentication, while domain PostgreSQL runs locally in Docker. The backend writes domain data to the local `public` schema and uses the same verified Supabase user UUIDs as its ownership references. A local domain database does not require a local copy of Supabase's `auth` schema.
 
-Ministack is the chosen local AWS emulator for S3-backed files. It will join the local stack when file storage is implemented. The backend uses the S3 API in both environments, with an environment-specific endpoint and credentials. Ministack does not replace the explicit PostgreSQL container or Supabase Auth.
+Ministack is the chosen local AWS emulator for S3-backed files. It will join the local stack when file storage is implemented. The backend uses the S3 API in both modes, with a mode-specific endpoint and credentials. Ministack does not replace the explicit PostgreSQL container or Supabase Auth.
 
-## Production stack
+## Production mode
 
 ```mermaid
 flowchart LR
-    Browser["Browser: app.karlbruder.com"] -->|HTTPS 443| Cloudflare["Cloudflare: DNS, edge certificate, TLS termination"]
-    Cloudflare -->|HTTPS to EC2 Elastic IP on 443| Nginx
-    subgraph Production["EC2 - compose.prod.yml"]
-        Nginx["Nginx: self-signed origin certificate"] -->|/api and /api/...| Backend["backend: FastAPI, internal port"]
-        Nginx -->|Other application requests| Frontend["frontend: built application"]
+    Browser["Browser"] -->|HTTPS 443| Cloudflare["Cloudflare: DNS, public certificate, HTTP to HTTPS"]
+    Cloudflare -->|HTTPS 443 to that environment Elastic IP| Nginx
+    subgraph Host["EC2 host - compose.production.yml"]
+        Nginx["Nginx: self-signed origin certificate"]
+        Nginx -->|Landing hostname| Landing["landing: built public site"]
+        Nginx -->|Application hostname, /api| Backend["backend: FastAPI"]
+        Nginx -->|Application hostname, other paths| Frontend["frontend: built application"]
     end
-    subgraph Supabase["Hosted Supabase project"]
-        Auth["Supabase Auth: managed auth schema"]
-        Database["PostgreSQL: domain public schema"]
+    subgraph Supabase["Hosted Supabase"]
+        Auth["Supabase Auth"]
+        Database["PostgreSQL: public schema"]
     end
     Browser -->|Supabase SDK sign-in| Auth
-    Backend -->|Verify tokens with public signing keys| Auth
+    Backend -->|Verify tokens| Auth
     Backend -->|Domain reads and writes| Database
     Backend --> Storage["Amazon S3: private files"]
     Backend -->|SMTP| Email["AWS SES"]
 ```
 
-Production runs Nginx, landing, frontend, and backend containers using `compose.prod.yml`. Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container in production.
+Production mode runs Nginx, landing, frontend, and backend with `compose.production.yml`. Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container in production mode. How an image reaches the host is described in the [deployment spec](platform/deployment.md).
+
+## Cloud environments
+
+`dev` and `prod` are two copies of the diagram above. Each copy has its own Elastic IP and its own hostnames. This picture does not include builds, ECR, or Session Manager.
+
+```mermaid
+flowchart LR
+    subgraph Dev["Environment dev"]
+        DevNames["dev.karlbruder.com and app-dev.karlbruder.com"] --> DevHost["EC2 host in production mode"]
+    end
+    subgraph Prod["Environment prod"]
+        ProdNames["karlbruder.com, prod.karlbruder.com, app.karlbruder.com, and app-prod.karlbruder.com"] --> ProdHost["EC2 host in production mode"]
+    end
+```
 
 ## Production DNS and HTTPS
 
@@ -103,13 +127,13 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 - **ARCH-006:** Tournament rules and data are event-scoped. Monomachia branding and configuration do not define the behavior of every tournament.
 - **ARCH-007:** Local and deployed configurations use the same domain logic. Environment settings choose database and integration destinations.
 - **ARCH-008:** AWS team access uses a separate identity flow from application users. AWS SSO does not grant tournament administration privileges.
-- **ARCH-009:** Both environments use hosted Supabase Auth. Local domain persistence uses Docker PostgreSQL; production persistence uses Supabase PostgreSQL. Both store application domain objects in `public` and leave managed `auth` objects unchanged.
-- **ARCH-010:** `compose.prod.yml` contains Nginx, frontend, and backend services. Only Nginx publishes the origin application port, 443; frontend/backend service ports remain internal. Production does not include a PostgreSQL container.
+- **ARCH-009:** Both modes use hosted Supabase Auth. Development mode stores domain data in Docker PostgreSQL. Production mode stores domain data in Supabase PostgreSQL. Both store application domain objects in `public` and leave managed `auth` objects unchanged.
+- **ARCH-010:** `compose.production.yml` contains Nginx, landing, frontend, and backend. Only Nginx publishes a host port, 443. Landing, frontend, and backend stay on the Compose network. Production mode does not include a PostgreSQL container. The `dev` and `prod` environments both use this file.
 - **ARCH-011:** Nginx sends `/api` and `/api/...` to the backend without removing the prefix; other application requests go to the frontend. Internal service ports do not define separate browser-facing application URLs.
 - **ARCH-012:** The backend sends application email using AWS SES through SMTP. Credentials and SMTP settings belong in backend configuration, not browser code. The local setup is deferred; the owner's likely direction is to use real SES with real AWS/SES credentials locally as well.
 - **ARCH-013:** Ministack is a future local stack addition for file storage. Its selection does not mean it is already installed, running, or a production dependency.
 - **ARCH-014:** Guild staff (admins) have full application access globally. No event-specific admin assignment is required. Regular users and guild members retain their existing role boundaries.
-- **ARCH-015:** Production uses Cloudflare nameservers and a proxied application A record targeting the EC2 Elastic IP. Cloudflare manages browser-facing TLS and the HTTP-to-HTTPS redirect. It connects to Nginx over HTTPS 443 using the origin's self-signed certificate and Full encryption mode.
+- **ARCH-015:** Production uses Cloudflare nameservers and proxied A records for the landing and application names, each aimed at that environment's EC2 Elastic IP. Cloudflare manages browser-facing TLS and the HTTP-to-HTTPS redirect. It connects to Nginx over HTTPS 443 using the origin's self-signed certificate and Full encryption mode.
 
 ## Conceptual domain
 
@@ -136,7 +160,7 @@ The following observations came from source inspection, not runtime validation:
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.
 - The existing frontend Home/Health pages are not mounted by the application entry point. Health-page requests use `/api/health` paths while backend diagnostics use `/health`; future diagnostic UI integration must reconcile those paths. Production frontend build-time Supabase configuration also remains to be implemented.
 - The existing `frontend/nginx.conf` serves frontend assets and strips `/api/` when proxying. It does not implement the separately defined production reverse-proxy container or the chosen prefix-preserving contract.
-- Landing CI remains. The deploy workflow builds only the images whose files changed, including landing, and restarts those containers through Session Manager. A Ministack service, S3 and SMTP application integrations, and a live EC2 deploy check are not established by those files. The diagrams above remain the target architecture.
+- Landing CI remains. The deploy workflow builds only the images whose files changed, including landing, and restarts those containers through Session Manager. A push to `master` targets the `dev` environment. A Ministack service, S3 and SMTP application integrations, and a live EC2 deploy check are not established by those files. The diagrams above remain the target architecture.
 
 ## Acceptance criteria
 
@@ -145,7 +169,7 @@ The following observations came from source inspection, not runtime validation:
 - **ARCH-AC-003:** Switching supported domain database destinations changes configuration rather than business-rule implementations.
 - **ARCH-AC-004:** Public website assets and responses contain no private registration records or payment proofs.
 - **ARCH-AC-005:** Local authentication uses hosted Supabase while domain reads/writes target Docker PostgreSQL's `public` schema. Production authentication and domain persistence use the configured hosted Supabase project.
-- **ARCH-AC-006:** The implemented production Compose stack has Nginx, frontend, and backend services and no PostgreSQL service. `/api/users/me` reaches the backend unchanged, and frontend deep links reach the frontend.
+- **ARCH-AC-006:** The implemented production Compose stack has Nginx, landing, frontend, and backend, and no PostgreSQL service. A landing hostname reaches the public site. `/api/users/me` reaches the backend unchanged, and frontend deep links reach the frontend.
 - **ARCH-AC-007:** Once file storage is delivered, the same application storage logic writes to Ministack locally and Amazon S3 in production through environment configuration.
 - **ARCH-AC-008:** The production application sends required email through the configured AWS SES SMTP endpoint without exposing SMTP credentials to the browser.
 - **ARCH-AC-009:** An authenticated guild admin can administer any tournament without an event-specific grant; regular users and non-admin members cannot perform administrative actions.

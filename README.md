@@ -15,7 +15,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
 | `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
 | `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
-| `compose.prod.yml` | Production Nginx, frontend, and backend | Production direction below |
+| `compose.production.yml` | Production mode on the `dev` and `prod` hosts: Nginx, landing, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
 | `docs/aws.md` | How the team signs in to the AWS account | [AWS](docs/aws.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
@@ -93,7 +93,7 @@ On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
 | `frontend/.env` | `VITE_SUPABASE_ANON_KEY` | The project's public client/anon key, as read by the current frontend. |
 | `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
 
-`compose.prod.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+`compose.production.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
 
 Start the local services:
 
@@ -153,7 +153,7 @@ Run commands in the relevant application's directory. Each application has its o
 
 ## Production direction
 
-Production Compose is `compose.prod.yml`. It runs Nginx, the landing site, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. The other services stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
+Production mode is `compose.production.yml`. The `dev` and `prod` hosts both use it. It runs Nginx, the landing site, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. The other services stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
 
 Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing and application names are proxied A records to that environment's Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. Only Nginx publishes a host port. A landing hostname goes to the landing container. An application hostname preserves `/api` when forwarding to the backend and sends other requests to the frontend.
 
