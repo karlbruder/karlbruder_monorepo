@@ -129,7 +129,7 @@ jobs:
         id: build-args
         env:
           SERVICE: ${{ matrix.service }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           RELEASED_AT: ${{ needs.changes.outputs.released_at }}
         run: |
           set -euo pipefail
