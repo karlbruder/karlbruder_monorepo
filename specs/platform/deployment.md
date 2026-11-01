@@ -1,7 +1,7 @@
 # Deployment
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -79,7 +79,7 @@ The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume s
 
 Inbound traffic is TCP 443 only. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`.
 
-Outbound traffic is DNS on UDP and TCP 53, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
+Outbound traffic is DNS on UDP and TCP 53, HTTP on TCP 80 for Ubuntu package mirrors, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
 
 First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. Those alarms do not notify an SNS topic yet.
 

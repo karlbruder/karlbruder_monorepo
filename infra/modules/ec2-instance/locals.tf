@@ -26,6 +26,12 @@ locals {
       protocol    = "tcp"
     },
     {
+      description = "HTTP for Ubuntu package mirrors"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+    },
+    {
       description = "HTTPS"
       from_port   = 443
       to_port     = 443
