@@ -1,7 +1,7 @@
 # Karlbrüder public website
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
 Public React single-page website for `karlbruder.com`, built with Create React App (`react-scripts`). It introduces the group and presents Monomachia. Authenticated tournament workflows belong in [frontend](../frontend/README.md) and [backend](../backend/README.md).
 
@@ -59,7 +59,8 @@ The static build is written to `build/`. The existing `src/App.test.js` checks M
 
 The existing GitHub Actions workflows are:
 
-- [CI](../.github/workflows/ci-landing.yml): installs dependencies and builds on pull requests targeting `master` when landing files or its CI workflow change. It also supports manual runs. It does not currently run the test suite.
+- [Landing CI](../.github/workflows/ci-landing.yml): on pull requests to `master` that change landing files or this workflow, and on manual runs. It runs the tests and the production image build inside Docker. The production build is the lint check, because Create React App has no separate lint script. The image build uses `https://app.example.test` as `REACT_APP_APPLICATION_URL`. That image is not deployed.
+- [Frontend CI](../.github/workflows/ci-frontend.yml) and [backend CI](../.github/workflows/ci-backend.yml) follow the same Docker requirement. Backend pytest and Ruff use `compose.test.yml`. None of these checks read a developer `.env` file, a production secret, or a live Supabase project. New application CI should run in Docker the same way.
 - [Deploy](../.github/workflows/deploy-application.yml): builds the landing image when landing files change, pushes it to ECR, and replaces the landing container. The build embeds `APPLICATION_BASE_URL` from the selected GitHub environment as `REACT_APP_APPLICATION_URL`. That must be the real application origin for that environment, not `http://localhost:5173`. Changing the variable requires a new landing image.
 
 The workflow files do not verify that Cloudflare routing or HTTPS is configured. Organizational hosting and cutover requirements live in the [deployment spec](../specs/platform/deployment.md#public-website).

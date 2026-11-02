@@ -1,0 +1,32 @@
+name: CI - Backend
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'compose.test.yml'
+      - '.github/workflows/ci-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -f backend/Dockerfile --target production backend
+
+      - name: Run pytest
+        run: docker compose -f compose.test.yml -p kb-test-ci run --rm backend pytest -x
+
+      - name: Run Ruff
+        run: docker compose -f compose.test.yml -p kb-test-ci run --rm backend ruff check .
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f compose.test.yml -p kb-test-ci down -v

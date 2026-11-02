@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { registrationCopy } from "./registrationLanguage";
 import type { RegistrationLanguage } from "./registrationLanguage";
 import {
@@ -11,15 +11,9 @@ export function useSupabaseAuthRedirectError(
   language: RegistrationLanguage,
   context: SupabaseAuthErrorContext,
 ): string | null {
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const errorCode = consumeSupabaseAuthRedirectErrorCode();
-    if (!errorCode) {
-      return;
-    }
-    setMessage(registrationCopy(language, supabaseAuthRedirectErrorCopyKey(errorCode, context)));
-  }, [language, context]);
-
-  return message;
+  const [errorCode] = useState(consumeSupabaseAuthRedirectErrorCode);
+  if (!errorCode) {
+    return null;
+  }
+  return registrationCopy(language, supabaseAuthRedirectErrorCopyKey(errorCode, context));
 }
