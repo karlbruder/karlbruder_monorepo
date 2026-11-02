@@ -1,12 +1,12 @@
-import type { RegistrationLanguage } from "@/utils/registration-language";
+import type { AppLanguage } from "@/utils/app-copy";
 
 type Props = {
   className?: string;
-  language: RegistrationLanguage;
-  onLanguageChange?: (language: RegistrationLanguage) => void;
+  language: AppLanguage;
+  onLanguageChange?: (language: AppLanguage) => void;
 };
 
-export default function AppLanguageToggle({ language, onLanguageChange, className = "app-language-toggle" }: Props) {
+export default function LanguageToggle({ language, onLanguageChange, className = "app-language-toggle" }: Props) {
   return (
     <div className={className} role="group" aria-label="Language / Idioma">
       <button

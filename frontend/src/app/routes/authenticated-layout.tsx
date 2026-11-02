@@ -1,11 +1,13 @@
+import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAppContext } from "@/app/app-context";
-import { registrationCopy } from "@/utils/registration-language";
+import { useLanguage } from "@/hooks/use-language";
+import { appCopy } from "@/utils/app-copy";
 import { signInPathWithReturnTo } from "@/features/auth/utils/account-navigation";
 
-export function RequireSessionRoute() {
-  const { auth: { authReady, session, sessionLapsed }, language } = useAppContext();
-  const loadingMessage = registrationCopy(language, "Carregando sua sessão...");
+export function AuthenticatedLayout() {
+  const { authReady, session, sessionLapsed } = useAuthSession();
+  const { language } = useLanguage();
+  const loadingMessage = appCopy(language, "Carregando sua sessão...");
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
 

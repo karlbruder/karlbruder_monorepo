@@ -1,18 +1,16 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "@/lib/query-client";
-import type { ReactNode } from "react";
-import { AppContext } from "@/app/app-context";
-import { useAppAuth } from "@/features/auth/hooks/use-app-auth";
-import { useRegistrationLanguage } from "@/hooks/use-registration-language";
+import { AuthSessionProvider } from "@/features/auth/components/auth-session-provider";
+import { LanguageProvider } from "@/components/language-provider";
 
 export default function AppProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
-  const auth = useAppAuth();
-  const language = useRegistrationLanguage();
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContext value={{ auth, ...language }}>{children}</AppContext>
+      <AuthSessionProvider>
+        <LanguageProvider>{children}</LanguageProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>
   );
 }

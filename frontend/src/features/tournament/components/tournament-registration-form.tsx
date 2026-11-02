@@ -3,16 +3,16 @@ import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { createSignup, SignupRequestError } from "@/features/tournament/api/tournaments";
 import type { SignupCreate, SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 
 type Props = {
   tournament: Tournament;
   session: Session;
-  language?: RegistrationLanguage;
+  language?: AppLanguage;
 };
 
-type Errors = Record<string, RegistrationCopyKey>;
+type Errors = Record<string, AppCopyKey>;
 
 const requiredDeclarations = [
   ["accepts_regulation", "Li e aceito o regulamento do torneio."],
@@ -102,7 +102,7 @@ function readSignup(form: HTMLFormElement, accountEmail: string | undefined): { 
   };
 }
 
-function messageForRequest(error: unknown): RegistrationCopyKey {
+function messageForRequest(error: unknown): AppCopyKey {
   if (error instanceof SignupRequestError) {
     if (error.status === 401) return "Sua sessão expirou. Saia e entre novamente antes de enviar.";
     if (error.status === 400) {
@@ -125,7 +125,7 @@ function Field({ name, label, errors, language, type = "text", required = false,
   name: string;
   label: string;
   errors: Errors;
-  language: RegistrationLanguage;
+  language: AppLanguage;
   type?: string;
   required?: boolean;
   placeholder?: string;
@@ -139,13 +139,13 @@ function Field({ name, label, errors, language, type = "text", required = false,
         id={name} name={name} type={type} required={required} placeholder={placeholder} min={min}
         aria-invalid={Boolean(error)} aria-describedby={error ? `${name}-error` : undefined}
       />
-      {error && <span id={`${name}-error`} className="signup-field-error">{registrationCopy(language, error)}</span>}
+      {error && <span id={`${name}-error`} className="signup-field-error">{appCopy(language, error)}</span>}
     </div>
   );
 }
 
-function PolicyContent({ label, value, language }: { label: string; value: string | null; language: RegistrationLanguage }) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+function PolicyContent({ label, value, language }: { label: string; value: string | null; language: AppLanguage }) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   if (!value) return <p className="signup-policy-missing">{label}: {t("conteúdo ainda não configurado.")}</p>;
   if (/^https?:\/\//i.test(value)) {
     return <a href={value} target="_blank" rel="noopener noreferrer">{t("Consultar")} {label.toLowerCase()}</a>;
@@ -153,8 +153,8 @@ function PolicyContent({ label, value, language }: { label: string; value: strin
   return <details><summary>{t("Consultar")} {label.toLowerCase()}</summary><p>{value}</p></details>;
 }
 
-function Success({ result, tournament, language }: { result: SignupCreated; tournament: Tournament; language: RegistrationLanguage }) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+function Success({ result, tournament, language }: { result: SignupCreated; tournament: Tournament; language: AppLanguage }) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const statusText = result.status === "awaiting_payment" ? t("Aguardando pagamento") : result.status;
   return (
     <section className="registration-card signup-success" aria-labelledby="signup-success-title" role="status">
@@ -174,10 +174,10 @@ function Success({ result, tournament, language }: { result: SignupCreated; tour
   );
 }
 
-export default function SignupForm({ tournament, session, language = "pt" }: Props) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+export default function TournamentRegistrationForm({ tournament, session, language = "pt" }: Props) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const [errors, setErrors] = useState<Errors>({});
-  const [requestError, setRequestError] = useState<RegistrationCopyKey | null>(null);
+  const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SignupCreated | null>(null);
   const requestPending = useRef(false);

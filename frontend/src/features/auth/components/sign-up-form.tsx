@@ -4,23 +4,23 @@ import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 import { emailConfirmationRedirectUrl } from "@/features/auth/utils/account-navigation";
 import { signUp } from "@/features/auth/api/auth";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "@/features/auth/utils/supabase-auth-errors";
-import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "@/features/auth/components/account-auth-layout";
+import { AuthStatusNotice } from "@/features/auth/components/auth-status-notice";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 
 type Props = {
   returnTo: string;
   onSuccess: (email: string) => void;
-  language: RegistrationLanguage;
+  language: AppLanguage;
   authLoading: boolean;
-  authError: RegistrationCopyKey | null;
-  onGoogleSignIn: (redirectTo: string) => Promise<void>;
-  onLanguageChange: (language: RegistrationLanguage) => void;
+  authError: AppCopyKey | null;
+  onGoogleSignIn: () => Promise<void>;
 };
 
-export default function AccountSignUpPage({ returnTo, onSuccess, language, authLoading, authError, onGoogleSignIn, onLanguageChange }: Props) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+export default function SignUpForm({ returnTo, onSuccess, language, authLoading, authError, onGoogleSignIn }: Props) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -54,18 +54,11 @@ export default function AccountSignUpPage({ returnTo, onSuccess, language, authL
     }
   };
 
-  const googleRedirectTo = `${window.location.origin}${returnTo}`;
-
   return (
-    <AccountAuthLayout
-      language={language}
-      onLanguageChange={onLanguageChange}
-      title={t("Criar conta na Karlbrüder")}
-      subtitle={t("Faça parte.")}
-    >
-      {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
+    <>
+      {serviceUnavailable && <AuthStatusNotice language={language} kind="unavailable" />}
       {authError && <p className="account-auth-error" role="alert">{t(authError)}</p>}
-      <GoogleSignInButton language={language} loading={authLoading} onSignIn={() => onGoogleSignIn(googleRedirectTo)} />
+      <GoogleSignInButton language={language} loading={authLoading} onSignIn={onGoogleSignIn} />
       <p className="account-auth-or">{t("ou use seu e-mail")}</p>
       <form onSubmit={submit}>
         <div className="account-auth-field">
@@ -100,6 +93,6 @@ export default function AccountSignUpPage({ returnTo, onSuccess, language, authL
         <Link to={`${accountRoutes.signIn}?returnTo=${encodeURIComponent(returnTo)}`}>{t("Entrar")}</Link>
       </p>
       {formError && <p className="account-auth-error" role="alert">{formError}</p>}
-    </AccountAuthLayout>
+    </>
   );
 }

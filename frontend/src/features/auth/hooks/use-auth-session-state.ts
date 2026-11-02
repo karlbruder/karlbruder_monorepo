@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSession, onAuthStateChange, signInWithOAuth, signOut as requestSignOut } from "@/features/auth/api/auth";
-import type { RegistrationCopyKey } from "@/utils/registration-language";
+import type { AppCopyKey } from "@/utils/app-copy";
 
-export function useAppAuth() {
+export function useAuthSessionState() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<RegistrationCopyKey | null>(null);
+  const [authError, setAuthError] = useState<AppCopyKey | null>(null);
   const [sessionLapsed, setSessionLapsed] = useState(false);
   const userInitiatedSignOutRef = useRef(false);
 

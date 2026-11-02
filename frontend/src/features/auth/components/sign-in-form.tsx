@@ -3,25 +3,26 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 import { signInWithPassword } from "@/features/auth/api/auth";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "@/features/auth/utils/supabase-auth-errors";
-import { useSupabaseAuthRedirectError } from "@/features/auth/hooks/use-supabase-auth-redirect-error";
-import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "@/features/auth/components/account-auth-layout";
+import { AuthStatusNotice } from "@/features/auth/components/auth-status-notice";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 
 type Props = {
+  redirectError: string | null;
   returnTo: string;
   sessionExpiredNotice: boolean;
   onSuccess: () => void;
-  language: RegistrationLanguage;
+  language: AppLanguage;
   authLoading: boolean;
-  authError: RegistrationCopyKey | null;
-  onGoogleSignIn: (redirectTo: string) => Promise<void>;
-  onLanguageChange: (language: RegistrationLanguage) => void;
+  authError: AppCopyKey | null;
+  onGoogleSignIn: () => Promise<void>;
   onClearSessionLapsedNotice: () => void;
 };
 
-export default function AccountSignInPage({
+export default function SignInForm({
+  redirectError,
   returnTo,
   sessionExpiredNotice,
   onSuccess,
@@ -29,16 +30,14 @@ export default function AccountSignInPage({
   authLoading,
   authError,
   onGoogleSignIn,
-  onLanguageChange,
   onClearSessionLapsedNotice,
 }: Props) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
-  const redirectError = useSupabaseAuthRedirectError(language, "sign_in");
 
   useEffect(() => {
     onClearSessionLapsedNotice();
@@ -67,19 +66,12 @@ export default function AccountSignInPage({
     }
   };
 
-  const googleRedirectTo = `${window.location.origin}${returnTo}`;
-
   return (
-    <AccountAuthLayout
-      language={language}
-      onLanguageChange={onLanguageChange}
-      title={t("Entrar na Karlbrüder")}
-      subtitle={t("Boas-vindas de volta.")}
-    >
-      {sessionExpiredNotice && <AuthServiceNotice language={language} kind="expired" />}
-      {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
+    <>
+      {sessionExpiredNotice && <AuthStatusNotice language={language} kind="expired" />}
+      {serviceUnavailable && <AuthStatusNotice language={language} kind="unavailable" />}
       {authError && <p className="account-auth-error" role="alert">{t(authError)}</p>}
-      <GoogleSignInButton language={language} loading={authLoading} onSignIn={() => onGoogleSignIn(googleRedirectTo)} />
+      <GoogleSignInButton language={language} loading={authLoading} onSignIn={onGoogleSignIn} />
       <p className="account-auth-or">{t("ou use seu e-mail")}</p>
       <form onSubmit={submit}>
         <div className="account-auth-field">
@@ -120,6 +112,6 @@ export default function AccountSignInPage({
       </p>
       {formError && <p className="account-auth-error" role="alert">{formError}</p>}
       {!formError && redirectError && <p className="account-auth-error" role="alert">{redirectError}</p>}
-    </AccountAuthLayout>
+    </>
   );
 }

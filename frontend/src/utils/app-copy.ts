@@ -1,5 +1,5 @@
 
-export type RegistrationLanguage = "pt" | "en";
+export type AppLanguage = "pt" | "en";
 
 // Draft interface copy. Official event terms and regulation remain server supplied.
 const english = {
@@ -183,8 +183,8 @@ const english = {
   "Ao enviar, você ainda não terá uma vaga confirmada ou reservada.": "Submitting does not confirm or reserve a place.",
 } as const;
 
-export type RegistrationCopyKey = keyof typeof english;
-export function registrationCopy(language: RegistrationLanguage, key: RegistrationCopyKey): string {
+export type AppCopyKey = keyof typeof english;
+export function appCopy(language: AppLanguage, key: AppCopyKey): string {
   return language === "en" ? english[key] : key;
 }
 

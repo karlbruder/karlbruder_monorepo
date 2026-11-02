@@ -4,19 +4,18 @@ import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 import { passwordRecoveryRedirectUrl } from "@/features/auth/utils/account-navigation";
 import { resetPasswordForEmail } from "@/features/auth/api/auth";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "@/features/auth/utils/supabase-auth-errors";
-import { AccountAuthLayout, AuthServiceNotice } from "@/features/auth/components/account-auth-layout";
+import { AuthStatusNotice } from "@/features/auth/components/auth-status-notice";
 
 type Props = {
   returnTo: string;
-  language: RegistrationLanguage;
-  onLanguageChange: (language: RegistrationLanguage) => void;
+  language: AppLanguage;
 };
 
-export default function AccountRecoverPage({ returnTo, language, onLanguageChange }: Props) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+export default function PasswordRecoveryForm({ returnTo, language }: Props) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -49,14 +48,8 @@ export default function AccountRecoverPage({ returnTo, language, onLanguageChang
   };
 
   return (
-    <AccountAuthLayout
-      language={language}
-      onLanguageChange={onLanguageChange}
-      title={t("Recuperar acesso")}
-      subtitle={t("Recuperar acesso")}
-      showRegistrationContext={false}
-    >
-      {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
+    <>
+      {serviceUnavailable && <AuthStatusNotice language={language} kind="unavailable" />}
       {sent ? (
         <div className="account-auth-notice success" role="status">
           <strong>{t("Enviamos as instruções de verificação")}</strong>
@@ -86,6 +79,6 @@ export default function AccountRecoverPage({ returnTo, language, onLanguageChang
         <Link to={`${accountRoutes.signIn}?returnTo=${encodeURIComponent(returnTo)}`}>{t("Entrar")}</Link>
       </p>
       {formError && <p className="account-auth-error" role="alert">{formError}</p>}
-    </AccountAuthLayout>
+    </>
   );
 }

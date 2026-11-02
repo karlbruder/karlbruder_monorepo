@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 import { signInPathWithReturnTo } from "@/features/auth/utils/account-navigation";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationLanguage } from "@/utils/registration-language";
-import { GoogleSignInButton } from "@/features/auth/components/account-auth-layout";
+import { appCopy } from "@/utils/app-copy";
+import type { AppLanguage } from "@/utils/app-copy";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import "@/features/auth/components/account-auth.css";
 
 type Props = {
-  language: RegistrationLanguage;
+  language: AppLanguage;
   returnTo: string;
   googleLoading: boolean;
   onGoogleSignIn: () => Promise<void>;
@@ -19,7 +19,7 @@ export default function RegistrationSignInPrompt({
   googleLoading,
   onGoogleSignIn,
 }: Props) {
-  const t = (key: Parameters<typeof registrationCopy>[1]) => registrationCopy(language, key);
+  const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
 
   return (
     <div className="registration-sign-in-actions">

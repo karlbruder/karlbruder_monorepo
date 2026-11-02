@@ -1,19 +1,19 @@
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { updateUser } from "@/features/auth/api/auth";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "@/features/auth/utils/supabase-auth-errors";
-import { AuthServiceNotice } from "@/features/auth/components/account-auth-layout";
+import { AuthStatusNotice } from "@/features/auth/components/auth-status-notice";
 
 type Props = {
-  language: RegistrationLanguage;
+  language: AppLanguage;
   onSuccess: () => void;
   children?: ReactNode;
 };
 
-export function AccountMatchingPasswordForm({ language, onSuccess, children }: Props) {
-  const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+export function PasswordUpdateForm({ language, onSuccess, children }: Props) {
+  const t = (key: AppCopyKey) => appCopy(language, key);
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
   const [pending, setPending] = useState(false);
@@ -50,7 +50,7 @@ export function AccountMatchingPasswordForm({ language, onSuccess, children }: P
   return (
     <>
       {children}
-      {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
+      {serviceUnavailable && <AuthStatusNotice language={language} kind="unavailable" />}
       <form onSubmit={submit}>
         <div className="account-auth-field">
           <label htmlFor="matching-password">{t("Nova senha")}</label>

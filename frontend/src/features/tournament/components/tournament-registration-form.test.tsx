@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
-import SignupForm from '@/features/tournament/components/signup-form'
+import TournamentRegistrationForm from '@/features/tournament/components/tournament-registration-form'
 import type { Tournament } from '@/features/tournament/api/tournaments'
 
 const tournament: Tournament = {
@@ -96,7 +96,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('shows English draft controls and submits the same API values with image refusal', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
     expect(screen.getByText(/not ready for real registrations/)).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     fillRequiredEnglish()
@@ -116,7 +116,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('shows English validation without sending or preaccepting declarations', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('Review the highlighted fields')
@@ -137,7 +137,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   ])('shows HTTP %i in English and retains entered fields', async (status, detail, expected) => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
     fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
@@ -146,7 +146,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('posts only the fields the athlete fills, with the account token, and image refusal stays a separate choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired()
     change(/Nome social/, ' Ana ')
     change(/Estado \/ província/, 'SP')
@@ -184,7 +184,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('requires every declaration and an explicit image choice before sending', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired({ declarations: false, image: null })
     submit()
     expect(request).not.toHaveBeenCalled()
@@ -197,7 +197,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('accepts start year instead of duration, while requiring a nonnegative tournament count', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired({ image: 'yes' })
     change(/Tempo de prática em HEMA/, '')
     change(/Torneios anteriores/, '-1')
@@ -220,7 +220,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     let finish: ((value: ReturnType<typeof response>) => void) | undefined
     const request = vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve }))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired()
     submit()
     submit()
@@ -239,7 +239,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   ])('shows HTTP %i clearly and keeps the entered fields', async (status, detail, expected) => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
@@ -249,7 +249,7 @@ describe('Athlete submits their own registration and sees the result', () => {
 
   it('handles a network failure without claiming success', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection failed')))
-    render(<SignupForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar a inscrição agora.')

@@ -1,10 +1,10 @@
 import { isAuthRetryableFetchError, isAuthWeakPasswordError, type AuthError } from "@supabase/supabase-js";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 
 export type SupabaseAuthErrorContext = "sign_in" | "sign_up" | "recover" | "update_password";
 
-const AUTH_ERROR_COPY: Partial<Record<string, RegistrationCopyKey>> = {
+const AUTH_ERROR_COPY: Partial<Record<string, AppCopyKey>> = {
   bad_code_verifier: "Não foi possível concluir o acesso. Tente novamente.",
   captcha_failed: "Não foi possível concluir o acesso. Tente novamente.",
   email_address_invalid: "Informe um endereço de e-mail válido.",
@@ -32,18 +32,18 @@ const AUTH_ERROR_COPY: Partial<Record<string, RegistrationCopyKey>> = {
   weak_password: "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.",
 };
 
-const WEAK_PASSWORD_LENGTH_COPY_KEY: RegistrationCopyKey = "Use pelo menos 8 caracteres na senha.";
-const WEAK_PASSWORD_PWNED_COPY_KEY: RegistrationCopyKey =
+const WEAK_PASSWORD_LENGTH_COPY_KEY: AppCopyKey = "Use pelo menos 8 caracteres na senha.";
+const WEAK_PASSWORD_PWNED_COPY_KEY: AppCopyKey =
   "Esta senha apareceu em vazamentos conhecidos. Escolha outra.";
 
-const CONTEXT_FALLBACK: Record<SupabaseAuthErrorContext, RegistrationCopyKey> = {
+const CONTEXT_FALLBACK: Record<SupabaseAuthErrorContext, AppCopyKey> = {
   sign_in: "Não foi possível entrar. Tente novamente.",
   sign_up: "Não foi possível criar a conta. Tente novamente.",
   recover: "Não foi possível enviar o link de recuperação. Tente novamente.",
   update_password: "Não foi possível atualizar a senha. Tente novamente.",
 };
 
-export const ACCOUNT_PASSWORD_POLICY_COPY_KEY: RegistrationCopyKey =
+export const ACCOUNT_PASSWORD_POLICY_COPY_KEY: AppCopyKey =
   "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.";
 
 function readAuthErrorCode(error: AuthError): string | undefined {
@@ -53,7 +53,7 @@ function readAuthErrorCode(error: AuthError): string | undefined {
   return undefined;
 }
 
-function weakPasswordCopyKey(error: AuthError): RegistrationCopyKey {
+function weakPasswordCopyKey(error: AuthError): AppCopyKey {
   if (isAuthWeakPasswordError(error)) {
     if (error.reasons.includes("pwned")) {
       return WEAK_PASSWORD_PWNED_COPY_KEY;
@@ -76,7 +76,7 @@ export function isSupabaseAuthServiceUnavailable(error: unknown): boolean {
 export function supabaseAuthErrorCopyKey(
   error: unknown,
   context: SupabaseAuthErrorContext,
-): RegistrationCopyKey {
+): AppCopyKey {
   if (!isSupabaseAuthError(error)) {
     return CONTEXT_FALLBACK[context];
   }
@@ -92,16 +92,16 @@ export function supabaseAuthErrorCopyKey(
 
 export function supabaseAuthErrorMessage(
   error: unknown,
-  language: RegistrationLanguage,
+  language: AppLanguage,
   context: SupabaseAuthErrorContext,
 ): string {
-  return registrationCopy(language, supabaseAuthErrorCopyKey(error, context));
+  return appCopy(language, supabaseAuthErrorCopyKey(error, context));
 }
 
 export function supabaseAuthRedirectErrorCopyKey(
   errorCode: string | null,
   context: SupabaseAuthErrorContext,
-): RegistrationCopyKey {
+): AppCopyKey {
   if (errorCode && AUTH_ERROR_COPY[errorCode]) {
     return AUTH_ERROR_COPY[errorCode]!;
   }

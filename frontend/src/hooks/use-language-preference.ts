@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import type { RegistrationLanguage } from "@/utils/registration-language";
+import type { AppLanguage } from "@/utils/app-copy";
 
 const storageKey = "registrationLanguage";
-function validLanguage(value: string | null): value is RegistrationLanguage {
+function validLanguage(value: string | null): value is AppLanguage {
   return value === "pt" || value === "en";
 }
 
-export function useRegistrationLanguage() {
-  const [language, setLanguage] = useState<RegistrationLanguage>(() => {
+export function useLanguagePreference() {
+  const [language, setLanguage] = useState<AppLanguage>(() => {
     const query = new URLSearchParams(window.location.search).get("lang");
     if (validLanguage(query)) return query;
     const saved = window.localStorage.getItem(storageKey);
@@ -18,7 +18,7 @@ export function useRegistrationLanguage() {
     window.localStorage.setItem(storageKey, language);
   }, [language]);
 
-  const changeLanguage = (next: RegistrationLanguage) => {
+  const changeLanguage = (next: AppLanguage) => {
     const url = new URL(window.location.href);
     url.searchParams.set("lang", next);
     window.history.replaceState(window.history.state, "", url);

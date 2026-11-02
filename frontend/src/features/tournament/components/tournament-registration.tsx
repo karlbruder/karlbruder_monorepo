@@ -1,40 +1,40 @@
-import AppLanguageToggle from "@/components/app-language-toggle";
+import LanguageToggle from "@/components/language-toggle";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { accountRoutes } from "@/config/account-routes";
 
 import { useMonomachiaTournament } from "@/features/tournament/api/use-monomachia-tournament";
 import type { Tournament } from "@/features/tournament/api/tournaments";
-import SignupForm from "@/features/tournament/components/signup-form";
-import { registrationCopy } from "@/utils/registration-language";
-import type { RegistrationCopyKey, RegistrationLanguage } from "@/utils/registration-language";
+import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
+import { appCopy } from "@/utils/app-copy";
+import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import "@/features/tournament/components/tournament-registration.css";
 
 type Props = {
   session: Session | null;
   authReady: boolean;
-  authError: RegistrationCopyKey | null;
+  authError: AppCopyKey | null;
   onSignOut: () => Promise<void>;
   signInButton: ReactNode;
-  language?: RegistrationLanguage;
-  onLanguageChange?: (language: RegistrationLanguage) => void;
+  language?: AppLanguage;
+  onLanguageChange?: (language: AppLanguage) => void;
 };
 
-const locale = (language: RegistrationLanguage) => language === "pt" ? "pt-BR" : "en-US";
+const locale = (language: AppLanguage) => language === "pt" ? "pt-BR" : "en-US";
 
-function eventDate(value: string, language: RegistrationLanguage): string {
+function eventDate(value: string, language: AppLanguage): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? registrationCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "long", timeZone: "Etc/GMT+3" }).format(date);
+  return Number.isNaN(date.getTime()) ? appCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "long", timeZone: "Etc/GMT+3" }).format(date);
 }
 
-function calendarDate(value: string, language: RegistrationLanguage): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return registrationCopy(language, "A confirmar");
+function calendarDate(value: string, language: AppLanguage): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return appCopy(language, "A confirmar");
   const date = new Date(`${value}T12:00:00Z`);
-  return Number.isNaN(date.getTime()) ? registrationCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "medium", timeZone: "UTC" }).format(date);
+  return Number.isNaN(date.getTime()) ? appCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "medium", timeZone: "UTC" }).format(date);
 }
 
-function registrationWindow(tournament: Tournament, language: RegistrationLanguage): string {
-  const t = (key: Parameters<typeof registrationCopy>[1]) => registrationCopy(language, key);
+function registrationWindow(tournament: Tournament, language: AppLanguage): string {
+  const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   if (tournament.new_registrations_closed) return t("Novas inscrições encerradas pela organização.");
   if (!tournament.registration_opens_on || !tournament.registration_closes_on) {
     return t("Período de inscrição a confirmar.");
@@ -42,16 +42,16 @@ function registrationWindow(tournament: Tournament, language: RegistrationLangua
   return `${t("De")} ${calendarDate(tournament.registration_opens_on, language)} ${t("a")} ${calendarDate(tournament.registration_closes_on, language)}, ${t("inclusive (GMT-3).")}`;
 }
 
-function fee(value: Tournament["inscription_fee_amount"], language: RegistrationLanguage): string {
-  if (value === null) return registrationCopy(language, "A confirmar");
+function fee(value: Tournament["inscription_fee_amount"], language: AppLanguage): string {
+  if (value === null) return appCopy(language, "A confirmar");
   const amount = Number(value);
-  return Number.isFinite(amount) ? new Intl.NumberFormat(locale(language), { style: "currency", currency: "BRL" }).format(amount) : registrationCopy(language, "A confirmar");
+  return Number.isFinite(amount) ? new Intl.NumberFormat(locale(language), { style: "currency", currency: "BRL" }).format(amount) : appCopy(language, "A confirmar");
 }
 
 export default function TournamentRegistration({
   session, authReady, authError, onSignOut, signInButton, language = "pt", onLanguageChange,
 }: Props) {
-  const t = (key: Parameters<typeof registrationCopy>[1]) => registrationCopy(language, key);
+  const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   const { data: tournament, error, isFetching: loading, refetch } = useMonomachiaTournament();
   const loadIssue = error
     ? error.message === "http-401" ? "unauthorized" : "request"
@@ -61,7 +61,7 @@ export default function TournamentRegistration({
     <div className="registration-page" lang={locale(language)}>
       <header className="registration-header">
         <a href="/" className="registration-brand">Karlbrüder</a>
-        <AppLanguageToggle className="registration-languages" language={language} onLanguageChange={onLanguageChange} />
+        <LanguageToggle className="registration-languages" language={language} onLanguageChange={onLanguageChange} />
         {authReady && session && (
           <div className="registration-account">
             <span>{session.user.email}</span>
@@ -115,7 +115,7 @@ export default function TournamentRegistration({
                   ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
                     <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
                   ) : (
-                    <SignupForm key={session.user.id} tournament={tournament} session={session} language={language} />
+                    <TournamentRegistrationForm key={session.user.id} tournament={tournament} session={session} language={language} />
                   )}
                 </>
               )}
