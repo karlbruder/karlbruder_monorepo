@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { Session } from '@supabase/supabase-js'
-import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
+import { AuthRetryableFetchError, AuthWeakPasswordError } from '@supabase/supabase-js'
 import App from '../../App'
 import { supabase } from '../../../supabaseClient'
 import { accountRoutes } from '../../accountRoutes'
@@ -45,7 +45,7 @@ const tournament = {
   equipment_requirements: null,
 }
 
-let authStateListener: ((event: string, session: Session | null) => void) | undefined
+let authStateListener: ((event: AuthChangeEvent, session: Session | null) => void) | undefined
 
 beforeEach(() => {
   window.history.replaceState({}, '', '/')
@@ -59,7 +59,10 @@ beforeEach(() => {
       data: { subscription: { unsubscribe: vi.fn() } },
     } as unknown as ReturnType<typeof supabase.auth.onAuthStateChange>
   })
-  vi.mocked(supabase.auth.signUp).mockResolvedValue({ data: { user: { id: 'new-user' }, session: null }, error: null })
+  vi.mocked(supabase.auth.signUp).mockResolvedValue({
+    data: { user: { id: 'new-user' } as Session['user'], session: null },
+    error: null,
+  })
   vi.mocked(supabase.auth.signInWithPassword).mockImplementation(async () => {
     authStateListener?.('SIGNED_IN', signedInSession)
     return { data: { session: signedInSession, user: signedInSession.user }, error: null }
@@ -281,7 +284,7 @@ describe('Account password updates', () => {
 
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
     vi.mocked(supabase.auth.updateUser).mockResolvedValue({
-      data: { user: signedInSession.user },
+      data: { user: null },
       error: new AuthWeakPasswordError('Password should contain at least one character of each', 422, ['characters']),
     } as Awaited<ReturnType<typeof supabase.auth.updateUser>>)
 
