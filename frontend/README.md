@@ -27,7 +27,45 @@ VITE_API_BASE_URL=/api
 
 Allow your development origin in the project's authentication redirect settings and configure its Google provider. Use only a publishable key beginning with `sb_publishable_`; `VITE_*` values are included in the browser bundle.
 
-The registration page loads Monomachia through `GET /api/tournaments` with the display name and the 2027 event-date range, then uses the returned ID for signup. An empty page shows an unavailable state. No frontend tournament ID is needed. Keep `VITE_API_BASE_URL=/api` for same-origin requests. Local Vite forwards `/api` without removing the prefix: direct Vite uses `API_PROXY_TARGET=http://localhost:8000`, while Compose sets it to `http://backend:8000`. The production application reverse proxy must preserve `/api` as well. Allow `http://localhost:5173/tournaments/registration` and the corresponding production route in Supabase Auth redirect settings so Google sign-in returns to registration.
+### Account routes and Supabase redirect URLs
+
+Email sign-up, sign-in, confirmation, recovery, and signed-in password change use these application paths:
+
+| Path | Use |
+| --- | --- |
+| `/account/sign-in` | Email sign-in and return target after email confirmation |
+| `/account/sign-up` | Email sign-up |
+| `/account/check-email` | Check your email after sign-up |
+| `/account/recover` | Request a password recovery link |
+| `/account/new-password` | Set a new password from a recovery link |
+| `/account/password` | Change password while already signed in |
+
+In each Supabase project that matches your local `VITE_SUPABASE_URL` and the `dev` and `prod` deployment variables, allow these redirect URLs:
+
+- `http://localhost:5173/account/sign-in`
+- `http://localhost:5173/account/new-password`
+- `http://localhost:5173/tournaments/registration`
+- `https://app-dev.karlbruder.com/account/sign-in`
+- `https://app-dev.karlbruder.com/account/new-password`
+- `https://app-dev.karlbruder.com/tournaments/registration`
+- `https://app.karlbruder.com/account/sign-in`
+- `https://app.karlbruder.com/account/new-password`
+- `https://app.karlbruder.com/tournaments/registration`
+- `https://app-prod.karlbruder.com/account/sign-in`
+- `https://app-prod.karlbruder.com/account/new-password`
+- `https://app-prod.karlbruder.com/tournaments/registration`
+
+Keep the existing Google redirect for `/tournaments/registration` on each origin above. Email sign-up uses confirmation with `emailRedirectTo` pointing at `/account/sign-in`. Recovery uses `redirectTo` pointing at `/account/new-password`, optionally with a validated `returnTo` query parameter when recovery started from a deep link. If a hosted project is shared between environments, configure the allow-list once.
+
+Turn on the email provider and email confirmation in the Supabase dashboard for each project you use. Customize Supabase Auth email templates in Portuguese for each message type the project sends (sign-up confirmation, password recovery, and other Auth-managed types). See AUTH-011 in [authentication and access](../specs/identity/authentication-and-access.md). The application UI may stay bilingual. Auth email stays Portuguese until a later issue adds multi-language templates.
+
+### Auth email through SES (Supabase custom SMTP)
+
+Point Supabase **custom SMTP** at AWS SES for each hosted project. Use a **From** address that SES has verified and will send for. SMTP usernames, passwords, and other mail credentials belong only in the Supabase dashboard or your secret store. Do not put them in frontend code, `VITE_*` variables, this README, or `.env.example`. The browser uses the publishable key only. Supabase sends confirmation and recovery mail through SES using those Portuguese templates.
+
+For DNS in Cloudflare, SES sandbox exit, Terraform outputs, and the Supabase SMTP form, follow [Supabase auth email through SES](../docs/runbooks/supabase-auth-email-ses.md).
+
+The registration page loads Monomachia through `GET /api/tournaments` with the display name and the 2027 event-date range, then uses the returned ID for signup. An empty page shows an unavailable state. No frontend tournament ID is needed. Keep `VITE_API_BASE_URL=/api` for same-origin requests. Local Vite forwards `/api` without removing the prefix: direct Vite uses `API_PROXY_TARGET=http://localhost:8000`, while Compose sets it to `http://backend:8000`. The production application reverse proxy must preserve `/api` as well.
 
 Vite reads this directory's environment file. Local Compose loads the same file and sets `API_PROXY_TARGET` to `http://backend:8000` so the container can reach the backend service. Restart the development server after changing the file. The required build variables are `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. `VITE_API_BASE_URL` is optional and defaults to `/api`. Vite validates the required values for both `npm run build` and Docker builds, and reports missing names without printing values. The production image build takes `VITE_SUPABASE_URL` as a build argument and `VITE_SUPABASE_PUBLISHABLE_KEY` through a BuildKit secret mount. The build rejects missing values, legacy JWT keys, and server-only secret keys. The deploy workflow reads `VITE_SUPABASE_URL` from the GitHub variable of that name and `VITE_SUPABASE_PUBLISHABLE_KEY` from the secret of that name, for the selected `dev` or `prod` environment.
 

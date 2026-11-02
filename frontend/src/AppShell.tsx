@@ -1,76 +1,65 @@
-import { useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
-import { supabase } from "../supabaseClient";
+import { accountRoutes } from "./accountRoutes";
+import { useAppAuth } from "./appAuth";
+import { RequireSessionRoute } from "./RequireSessionRoute";
+import SignedInHomePage from "./SignedInHomePage";
 import TournamentRegistration from "./pages/TournamentRegistration";
+import AccountChangePasswordPage from "./pages/account/AccountChangePasswordPage";
+import AccountCheckEmailPage from "./pages/account/AccountCheckEmailPage";
+import AccountNewPasswordPage from "./pages/account/AccountNewPasswordPage";
+import AccountRecoverPage from "./pages/account/AccountRecoverPage";
+import AccountSignInPage from "./pages/account/AccountSignInPage";
+import AccountSignUpPage from "./pages/account/AccountSignUpPage";
+import RegistrationSignInPrompt from "./pages/account/RegistrationSignInPrompt";
 import { registrationCopy, useRegistrationLanguage } from "./registrationLanguage";
-import type { RegistrationCopyKey, RegistrationLanguage } from "./registrationLanguage";
+import type { RegistrationCopyKey } from "./registrationLanguage";
 
-function GoogleSignInButton({ onSignIn, loading, language = "pt" }: { onSignIn: () => Promise<void>; loading: boolean; language?: RegistrationLanguage }) {
+function AppShell() {
+  const auth = useAppAuth();
+  const { language, changeLanguage } = useRegistrationLanguage();
+
   return (
-    <button className="google-btn" type="button" onClick={onSignIn} disabled={loading}>
-      {registrationCopy(language, loading ? "Entrando..." : "Entrar com Google")}
-    </button>
+    <AppRoutes
+      auth={auth}
+      language={language}
+      onLanguageChange={changeLanguage}
+    />
   );
 }
 
-function AppShell() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<RegistrationCopyKey | null>(null);
-  const { language, changeLanguage } = useRegistrationLanguage();
+type AppRoutesProps = {
+  auth: ReturnType<typeof useAppAuth>;
+  language: ReturnType<typeof useRegistrationLanguage>["language"];
+  onLanguageChange: ReturnType<typeof useRegistrationLanguage>["changeLanguage"];
+};
+
+function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
+  const location = useLocation();
+  const registrationReturnTo = `${location.pathname}${location.search}`;
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
+  const sessionLoadingMessage = t("Carregando sua sessão...");
+  const {
+    session,
+    authReady,
+    authLoading,
+    authError,
+    sessionLapsed,
+    signInWithGoogle,
+    signOut,
+    clearSessionLapsedNotice,
+  } = auth;
 
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      setSession(data.session);
-      setAuthError(error ? "Não foi possível recuperar sua sessão." : null);
-      setAuthReady(true);
-    }).catch(() => {
-      if (active) {
-        setAuthError("Não foi possível recuperar sua sessão.");
-        setAuthReady(true);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (active) {
-        setSession(nextSession);
-        setAuthReady(true);
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signInWithGoogle = async () => {
-    try {
-      setAuthLoading(true);
-      setAuthError(null);
-      const redirectTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo },
-      });
-      if (error) throw error;
-    } catch {
-      setAuthError("Não foi possível entrar com Google. Tente novamente.");
-    } finally {
-      setAuthLoading(false);
-    }
+  const accountPageProps = {
+    language,
+    authLoading,
+    authError,
+    onGoogleSignIn: signInWithGoogle,
+    onLanguageChange,
+    onClearSessionLapsedNotice: clearSessionLapsedNotice,
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) setAuthError("Não foi possível sair. Tente novamente.");
-  };
+  const registrationOAuthRedirect = `${window.location.origin}${registrationReturnTo}`;
 
   return (
     <Routes>
@@ -80,28 +69,42 @@ function AppShell() {
           authReady={authReady}
           authError={authError}
           language={language}
-          onLanguageChange={changeLanguage}
+          onLanguageChange={onLanguageChange}
           onSignOut={signOut}
-          signInButton={<GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} language={language} />}
+          signInButton={
+            <RegistrationSignInPrompt
+              language={language}
+              returnTo={registrationReturnTo}
+              googleLoading={authLoading}
+              onGoogleSignIn={() => signInWithGoogle(registrationOAuthRedirect)}
+            />
+          }
         />
       } />
-      <Route path="*" element={
-        <main className="app-center">
-          {!authReady ? (
-            <p role="status">{t("Carregando sua sessão...")}</p>
-          ) : session ? (
-            <div className="home-account">
-              <h1>Karlbrüder</h1>
-              <p>{session.user.user_metadata?.name ?? session.user.email}</p>
-              <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
-              <button type="button" onClick={signOut}>{t("Sair")}</button>
-            </div>
-          ) : (
-            <GoogleSignInButton onSignIn={signInWithGoogle} loading={authLoading} language={language} />
-          )}
-          {authError && <p role="alert">{t(authError)}</p>}
-        </main>
+      <Route path={accountRoutes.signIn} element={<AccountSignInPage {...accountPageProps} />} />
+      <Route path={accountRoutes.signUp} element={<AccountSignUpPage {...accountPageProps} />} />
+      <Route path={accountRoutes.checkEmail} element={<AccountCheckEmailPage language={language} onLanguageChange={onLanguageChange} />} />
+      <Route path={accountRoutes.recover} element={<AccountRecoverPage language={language} onLanguageChange={onLanguageChange} />} />
+      <Route path={accountRoutes.newPassword} element={
+        <AccountNewPasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
       } />
+      <Route path={accountRoutes.password} element={
+        <RequireSessionRoute authReady={authReady} session={session} sessionLapsed={sessionLapsed} loadingMessage={sessionLoadingMessage}>
+          <AccountChangePasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
+        </RequireSessionRoute>
+      } />
+      <Route path="/" element={
+        <RequireSessionRoute authReady={authReady} session={session} sessionLapsed={sessionLapsed} loadingMessage={sessionLoadingMessage}>
+          <SignedInHomePage
+            session={session!}
+            language={language}
+            onLanguageChange={onLanguageChange}
+            onSignOut={signOut}
+            authError={authError}
+          />
+        </RequireSessionRoute>
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

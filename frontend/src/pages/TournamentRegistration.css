@@ -65,6 +65,13 @@
   padding: 0.4rem 0.75rem;
 }
 
+.registration-account a {
+  color: #fff;
+  font-size: 0.92rem;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 .registration-main {
   margin: 0 auto;
   max-width: 1160px;

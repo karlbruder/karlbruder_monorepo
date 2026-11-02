@@ -32,3 +32,14 @@ output "application_ecr_repository_urls" {
   description = "ECR repository URLs for the landing, frontend, backend, and nginx images."
   value       = { for name, repository in aws_ecr_repository.application : name => repository.repository_url }
 }
+
+output "ses_auth_mail" {
+  description = "Supabase auth mail: Cloudflare DNS rows and SMTP settings. Null outside the prod workspace."
+  value       = local.env == "prod" ? module.ses_auth_mail[0].handoff : null
+}
+
+output "ses_auth_mail_smtp_password" {
+  description = "SMTP password for Supabase custom SMTP. Null outside the prod workspace."
+  value       = local.env == "prod" ? module.ses_auth_mail[0].smtp_password : null
+  sensitive   = true
+}

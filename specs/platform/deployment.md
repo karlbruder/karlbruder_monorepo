@@ -73,6 +73,12 @@ Each workload resource carries these tags. There is no `environment` tag. `env` 
 
 Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
 
+## Supabase auth email identity
+
+Supabase Auth sends sign-up confirmation and password recovery for the private application. That mail path uses one account-level SES domain identity for `karlbruder.com`, not one identity per Terraform workspace. Terraform creates the domain identity, Easy DKIM, and a dedicated IAM SMTP user only in the `prod` workspace. A `dev` workspace apply does not create a second copy. Region is `us-east-2`. The intended From address is `noreply@karlbruder.com` after verification.
+
+Cloudflare DNS for verification and DKIM is outside this Terraform root. Operators follow [Supabase auth email through SES](../../docs/runbooks/supabase-auth-email-ses.md) for DNS records, SES sandbox exit, and Supabase custom SMTP. Auth template subjects and bodies in the Supabase dashboard use Portuguese copy under [AUTH-011](../identity/authentication-and-access.md#authentication-rules). DEP-007 still covers backend application mail through SES. That path is separate from this Supabase custom SMTP identity.
+
 ## Application host
 
 Each workspace has one EC2 instance in the account default VPC, on the first default subnet, with an Elastic IP. The image is the latest Ubuntu 24.04 LTS build for x86_64 from Canonical. `dev` uses `t3a.micro`. `prod` uses `t3a.small`. The instance name is `kb-<env>-application-host`.

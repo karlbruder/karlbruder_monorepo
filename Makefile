@@ -24,13 +24,13 @@ help:
 	@echo "Override the backend test project with TEST_PROJECT=kb-test-name."
 
 up:
-	docker compose up --build
+	docker compose up --build -d
 
 down:
-	docker compose down
+	docker compose down --remove-orphans
 
 down-volumes:
-	docker compose down -v
+	docker compose down --remove-orphans --volumes
 
 recreate-backend:
 	docker compose up -d --build --force-recreate backend

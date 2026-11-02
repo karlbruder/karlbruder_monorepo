@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-10-30
+**Last updated**: 2026-11-01
 
 | Field | Value |
 | --- | --- |
@@ -36,7 +36,7 @@ The shared shell is guild-branded. Monomachia remains one event in a reusable ca
 | --- | --- | --- |
 | [WF-01 · Catalog](index.html#WF-01/public) | Visitor/member · first release | [CAT-001, 004, 005](../../tournaments/catalog.md): public, member-only additions, empty and load failure. CAT-AC-001/005. |
 | [WF-02 · Event details](index.html#WF-02/open) | Visitor · first release | [CAT-002–004](../../tournaments/catalog.md), [CAP-008](../../tournaments/capacity-and-waitlist.md): open, full-but-open, closed, unknown configuration. CAT-AC-004/008. |
-| [WF-03 · Account access](index.html#WF-03/login) | Visitor · first release | [AUTH-001–003/006](../../identity/authentication-and-access.md): sign-in, sign-up, verification, recovery, new password, expired session, unavailable service. AUTH-AC-002/003. |
+| [WF-03 · Account access](index.html#WF-03/login) | Visitor · first release | [AUTH-001–003/006](../../identity/authentication-and-access.md): sign-in, sign-up, verification, recovery, new password, signed-in password change (`changepassword`), expired session, unavailable service. Routes `/account/sign-in` through `/account/password`. AUTH-AC-002/003. |
 | [WF-04 · Self-registration](index.html#WF-04/adult) | Participant · first release | [REG-001–005/010/011/015](../../tournaments/registration.md), [PRIV-001/002/010](../../tournaments/consent-and-privacy.md): adult, minor, full event, validation error, duplicate, closure during entry. REG-AC-001/003/007/010/015. |
 | [WF-05 · Pix and proof](index.html#WF-05/initial) | Participant · first release | [PAY-001/003/004/006/010/011](../../tournaments/payments-and-confirmation.md): first upload, replacement, rejection/resubmission, invalid file, late payment. PAY-AC-001/003/006/010/012. |
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |

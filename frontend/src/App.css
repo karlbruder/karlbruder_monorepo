@@ -19,6 +19,50 @@
   gap: 0.75rem;
 }
 
+.app-language-toggle {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.app-language-toggle button {
+  background: transparent;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  min-height: 40px;
+  min-width: 42px;
+}
+
+.app-language-toggle button[aria-pressed="true"] {
+  background: #642226;
+  border-color: #642226;
+  color: #fff;
+}
+
+.account-auth-header .app-language-toggle button {
+  border-color: #aaa;
+  color: #fff;
+}
+
+.account-auth-header .app-language-toggle button[aria-pressed="true"] {
+  background: #fff;
+  border-color: #fff;
+  color: #171719;
+}
+
+.home-signed-in-shell {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.home-signed-in-shell .app-language-toggle {
+  justify-content: center;
+}
+
 .page {
   align-items: center;
   display: flex;
