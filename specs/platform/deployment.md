@@ -77,7 +77,7 @@ Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-ea
 
 Supabase Auth sends sign-up confirmation and password recovery for the private application. That mail path uses one account-level SES domain identity for `karlbruder.com`, not one identity per Terraform workspace. Terraform creates the domain identity, Easy DKIM, and a dedicated IAM SMTP user only in the `prod` workspace. A `dev` workspace apply does not create a second copy. Region is `us-east-2`. The intended From address is `noreply@karlbruder.com` after verification.
 
-Cloudflare DNS for verification and DKIM is outside this Terraform root. Operators follow [Supabase auth email through SES](../../docs/runbooks/supabase-auth-email-ses.md) for DNS records, SES sandbox exit, and Supabase custom SMTP. Template bodies stay on Supabase defaults unless product changes them. DEP-007 still covers backend application mail through SES. That path is separate from this Supabase custom SMTP identity.
+Cloudflare DNS for verification and DKIM is outside this Terraform root. Operators follow [Supabase auth email through SES](../../docs/runbooks/supabase-auth-email-ses.md) for DNS records, SES sandbox exit, and Supabase custom SMTP. Auth template subjects and bodies in the Supabase dashboard use Portuguese copy under [AUTH-011](../identity/authentication-and-access.md#authentication-rules). DEP-007 still covers backend application mail through SES. That path is separate from this Supabase custom SMTP identity.
 
 ## Application host
 
