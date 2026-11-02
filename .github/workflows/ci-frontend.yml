@@ -1,0 +1,36 @@
+name: CI - Frontend
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/ci-frontend.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build development image
+        run: docker build -f frontend/Dockerfile --target development -t kb-frontend-ci frontend
+
+      - name: Run tests
+        run: docker run --rm kb-frontend-ci npm test
+
+      - name: Run ESLint
+        run: docker run --rm kb-frontend-ci npm run lint
+
+      - name: Build production image
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_not_a_real_key
+        run: >
+          docker build -f frontend/Dockerfile --target production
+          --build-arg VITE_SUPABASE_URL=https://ci.example.supabase.co
+          --secret id=VITE_SUPABASE_PUBLISHABLE_KEY,env=VITE_SUPABASE_PUBLISHABLE_KEY
+          frontend
