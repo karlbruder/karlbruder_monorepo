@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AuthApiError, AuthWeakPasswordError } from "@supabase/supabase-js";
+import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from "@supabase/supabase-js";
 import {
   consumeSupabaseAuthRedirectErrorCode,
+  isSupabaseAuthServiceUnavailable,
   supabaseAuthErrorCopyKey,
   supabaseAuthErrorMessage,
   supabaseAuthRedirectErrorCopyKey,
@@ -10,6 +11,18 @@ import {
 function authApiError(code: string, message: string): AuthApiError {
   return new AuthApiError(message, 422, code);
 }
+
+describe("isSupabaseAuthServiceUnavailable", () => {
+  it("returns true for AuthRetryableFetchError from the Supabase client", () => {
+    expect(isSupabaseAuthServiceUnavailable(new AuthRetryableFetchError("Failed to fetch", 0))).toBe(true);
+  });
+
+  it("returns false for mapped API errors such as invalid_credentials", () => {
+    expect(isSupabaseAuthServiceUnavailable(authApiError("invalid_credentials", "Invalid login credentials"))).toBe(
+      false,
+    );
+  });
+});
 
 describe("supabaseAuthErrorCopyKey", () => {
   it("maps weak_password to the app password policy message", () => {

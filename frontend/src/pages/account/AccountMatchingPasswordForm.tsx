@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from "react";
 import { supabase } from "../../../supabaseClient";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
-import { supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
+import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
 import { AuthServiceNotice } from "./AccountAuthLayout";
 
 type Props = {
@@ -32,7 +32,11 @@ export function AccountMatchingPasswordForm({ language, onSuccess, children }: P
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        setFormError(supabaseAuthErrorMessage(error, language, "update_password"));
+        if (isSupabaseAuthServiceUnavailable(error)) {
+          setServiceUnavailable(true);
+        } else {
+          setFormError(supabaseAuthErrorMessage(error, language, "update_password"));
+        }
         return;
       }
       onSuccess();

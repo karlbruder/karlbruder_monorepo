@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { AuthApiError, AuthWeakPasswordError } from '@supabase/supabase-js'
+import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from '@supabase/supabase-js'
 import App from '../../App'
 import { supabase } from '../../../supabaseClient'
 import { accountRoutes } from '../../accountRoutes'
@@ -137,6 +137,44 @@ describe('Account email auth flows', () => {
     expect(screen.getByRole('heading', { name: 'Inscrição pessoal' })).toBeInTheDocument()
   })
 
+  it('shows WF-03 unavailable when sign-in receives a retryable network error from Supabase', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      data: { user: null, session: null },
+      error: new AuthRetryableFetchError('Failed to fetch', 0),
+    } as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>)
+
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.signIn]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'athlete@example.test' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'ValidPass1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByText('Serviço temporariamente indisponível')).toBeInTheDocument()
+  })
+
+  it('shows the mapped expired-link message when recovery opens with otp_expired and no session', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      `${accountRoutes.newPassword}#error=access_denied&error_code=otp_expired`,
+    )
+
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.newPassword]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Este link expirou ou já foi usado. Solicite um novo link.',
+    )
+    expect(screen.getByRole('link', { name: 'Esqueci minha senha' })).toHaveAttribute('href', accountRoutes.recover)
+  })
+
   it('calls resetPasswordForEmail from the recovery screen', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.recover]}>
@@ -250,10 +288,10 @@ describe('Session route guard', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Entrar' })).not.toBeInTheDocument()
+    expect(await screen.findByText('Sua sessão expirou')).toBeInTheDocument()
   })
 
-  it('sends a guest from the change-password route to sign-in after session restoration finishes', async () => {
+  it('sends a guest from the change-password route to sign-in with the expired-session notice', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.password]}>
         <App />
@@ -261,7 +299,7 @@ describe('Session route guard', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
-    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
+    expect(await screen.findByText('Sua sessão expirou')).toBeInTheDocument()
   })
 
   it('shows the signed-in home at slash when a session exists', async () => {

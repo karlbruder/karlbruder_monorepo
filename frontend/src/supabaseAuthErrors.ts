@@ -1,4 +1,4 @@
-import { isAuthWeakPasswordError, type AuthError } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError, isAuthWeakPasswordError, type AuthError } from "@supabase/supabase-js";
 import { registrationCopy } from "./registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "./registrationLanguage";
 
@@ -67,6 +67,10 @@ function weakPasswordCopyKey(error: AuthError): RegistrationCopyKey {
 
 function isSupabaseAuthError(error: unknown): error is AuthError {
   return typeof error === "object" && error !== null && "__isAuthError" in error;
+}
+
+export function isSupabaseAuthServiceUnavailable(error: unknown): boolean {
+  return isAuthRetryableFetchError(error);
 }
 
 export function supabaseAuthErrorCopyKey(

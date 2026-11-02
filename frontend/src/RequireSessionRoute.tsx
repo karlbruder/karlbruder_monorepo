@@ -23,7 +23,7 @@ export function RequireSessionRoute({ authReady, session, loadingMessage, childr
   }
 
   if (!session) {
-    return <Navigate to={signInPathWithReturnTo(returnTo)} replace />;
+    return <Navigate to={signInPathWithReturnTo(returnTo, { sessionExpired: true })} replace />;
   }
 
   return children;

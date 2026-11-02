@@ -21,6 +21,16 @@ export function readReturnTo(searchParams: URLSearchParams): string | null {
   return value;
 }
 
-export function signInPathWithReturnTo(returnTo: string): string {
-  return `${accountRoutes.signIn}?returnTo=${encodeURIComponent(returnTo)}`;
+export const SESSION_EXPIRED_QUERY_PARAM = "sessionExpired";
+
+export function signInPathWithReturnTo(returnTo: string, options?: { sessionExpired?: boolean }): string {
+  const params = new URLSearchParams({ returnTo });
+  if (options?.sessionExpired) {
+    params.set(SESSION_EXPIRED_QUERY_PARAM, "1");
+  }
+  return `${accountRoutes.signIn}?${params.toString()}`;
+}
+
+export function readSessionExpiredFromSignIn(searchParams: URLSearchParams): boolean {
+  return searchParams.get(SESSION_EXPIRED_QUERY_PARAM) === "1";
 }

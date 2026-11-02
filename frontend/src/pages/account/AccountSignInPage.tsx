@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { accountRoutes, readReturnTo } from "../../accountRoutes";
+import { accountRoutes, readReturnTo, readSessionExpiredFromSignIn } from "../../accountRoutes";
 import { supabase } from "../../../supabaseClient";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
-import { supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
+import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
 import { useSupabaseAuthRedirectError } from "../../useSupabaseAuthRedirectError";
 import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "./AccountAuthLayout";
 
@@ -21,6 +21,7 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
+  const sessionExpiredNotice = readSessionExpiredFromSignIn(searchParams);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -36,7 +37,11 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setFormError(supabaseAuthErrorMessage(error, language, "sign_in"));
+        if (isSupabaseAuthServiceUnavailable(error)) {
+          setServiceUnavailable(true);
+        } else {
+          setFormError(supabaseAuthErrorMessage(error, language, "sign_in"));
+        }
         return;
       }
       navigate(returnTo, { replace: true });
@@ -56,6 +61,7 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
       title={t("Entrar na Karlbrüder")}
       subtitle={t("Boas-vindas de volta.")}
     >
+      {sessionExpiredNotice && <AuthServiceNotice language={language} kind="expired" />}
       {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
       <GoogleSignInButton language={language} loading={authLoading} onSignIn={() => onGoogleSignIn(googleRedirectTo)} />
       <p className="account-auth-or">{t("ou use seu e-mail")}</p>

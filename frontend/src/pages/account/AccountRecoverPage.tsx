@@ -5,7 +5,7 @@ import { accountRoutes, passwordRecoveryRedirectUrl, readReturnTo } from "../../
 import { supabase } from "../../../supabaseClient";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
-import { supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
+import { isSupabaseAuthServiceUnavailable, supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
 import { AccountAuthLayout, AuthServiceNotice } from "./AccountAuthLayout";
 
 type Props = {
@@ -33,7 +33,11 @@ export default function AccountRecoverPage({ language, onLanguageChange }: Props
         redirectTo: passwordRecoveryRedirectUrl(),
       });
       if (error) {
-        setFormError(supabaseAuthErrorMessage(error, language, "recover"));
+        if (isSupabaseAuthServiceUnavailable(error)) {
+          setServiceUnavailable(true);
+        } else {
+          setFormError(supabaseAuthErrorMessage(error, language, "recover"));
+        }
         return;
       }
       setSent(true);

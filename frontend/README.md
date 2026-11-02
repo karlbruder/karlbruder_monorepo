@@ -57,11 +57,11 @@ In each Supabase project that matches your local `VITE_SUPABASE_URL` and the `de
 
 Keep the existing Google redirect for `/tournaments/registration` on each origin above. Email sign-up uses confirmation with `emailRedirectTo` pointing at `/account/sign-in`. Recovery uses `redirectTo` pointing at `/account/new-password`. If a hosted project is shared between environments, configure the allow-list once.
 
-Turn on the email provider and email confirmation in the Supabase dashboard for each project you use. Leave the default auth email template bodies in place unless product asks for a change.
+Turn on the email provider and email confirmation in the Supabase dashboard for each project you use. Customize Supabase Auth email templates in Portuguese for each message type the project sends (sign-up confirmation, password recovery, and other Auth-managed types). See AUTH-011 in [authentication and access](../specs/identity/authentication-and-access.md). The application UI may stay bilingual. Auth email stays Portuguese until a later issue adds multi-language templates.
 
 ### Auth email through SES (Supabase custom SMTP)
 
-Point Supabase **custom SMTP** at AWS SES for each hosted project. Use a **From** address that SES has verified and will send for. SMTP usernames, passwords, and other mail credentials belong only in the Supabase dashboard or your secret store. Do not put them in frontend code, `VITE_*` variables, this README, or `.env.example`. The browser uses the publishable key only. Supabase sends confirmation and recovery mail through SES while the app keeps using the default template wording.
+Point Supabase **custom SMTP** at AWS SES for each hosted project. Use a **From** address that SES has verified and will send for. SMTP usernames, passwords, and other mail credentials belong only in the Supabase dashboard or your secret store. Do not put them in frontend code, `VITE_*` variables, this README, or `.env.example`. The browser uses the publishable key only. Supabase sends confirmation and recovery mail through SES using those Portuguese templates.
 
 For DNS in Cloudflare, SES sandbox exit, Terraform outputs, and the Supabase SMTP form, follow [Supabase auth email through SES](../docs/runbooks/supabase-auth-email-ses.md).
 

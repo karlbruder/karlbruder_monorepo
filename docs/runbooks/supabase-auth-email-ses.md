@@ -1,9 +1,9 @@
 # Supabase auth email through SES
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
-This runbook covers Supabase Auth mail for the private application. Confirmation and recovery messages use Supabase default template bodies. The app does not send this mail from the frontend or backend containers.
+This runbook covers Supabase Auth mail for the private application. Confirmation and recovery messages use Portuguese Supabase Auth email templates under AUTH-011. The app does not send this mail from the frontend or backend containers.
 
 Backend tournament and payment email is separate. It is not part of this identity.
 
@@ -72,7 +72,7 @@ For each hosted Supabase project the application uses (`dev` and `prod` deployme
 1. Turn on the email provider and email confirmation in **Authentication → Providers → Email**.
 2. Open **Project Settings → Auth → SMTP Settings** and enable custom SMTP.
 3. Map fields from `ses_auth_mail.smtp` and `ses_auth_mail_smtp_password` (host, port, username, password, sender from `from_address`). Use STARTTLS on port 587.
-4. Keep the default Supabase auth email templates unless product asks for a rewrite.
+4. Replace each Supabase auth email template body with Portuguese copy suitable for sign-up confirmation and password recovery. Keep redirect links in templates aligned with the allow-list in [frontend/README.md](../../frontend/README.md). See AUTH-011 in [authentication and access](../../specs/identity/authentication-and-access.md).
 5. Allow the redirect URLs listed in [frontend/README.md](../../frontend/README.md) for each project.
 
 - SES domain and DKIM show verified in AWS.

@@ -36,10 +36,29 @@ export default function AccountNewPasswordPage({ language, onLanguageChange, aut
   if (!hasSession) {
     return (
       <AccountAuthLayout {...layoutProps}>
-        <AuthServiceNotice language={language} kind="expired" />
-        <Link className="account-auth-submit" to={accountRoutes.signIn} style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}>
-          {t("Voltar para entrar")}
-        </Link>
+        {redirectError ? (
+          <>
+            <p className="account-auth-error" role="alert">{redirectError}</p>
+            <Link
+              className="account-auth-submit"
+              to={accountRoutes.recover}
+              style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+            >
+              {t("Esqueci minha senha")}
+            </Link>
+          </>
+        ) : (
+          <>
+            <AuthServiceNotice language={language} kind="expired" />
+            <Link
+              className="account-auth-submit"
+              to={accountRoutes.signIn}
+              style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+            >
+              {t("Voltar para entrar")}
+            </Link>
+          </>
+        )}
       </AccountAuthLayout>
     );
   }
