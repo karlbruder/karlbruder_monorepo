@@ -39,6 +39,9 @@ const english = {
   "Confirme seu e-mail antes de entrar.": "Confirm your email before signing in.",
   "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.":
     "Use a password with at least 8 characters, including uppercase and lowercase letters, numbers, and symbols.",
+  "Use pelo menos 8 caracteres na senha.": "Use at least 8 characters in your password.",
+  "Esta senha apareceu em vazamentos conhecidos. Escolha outra.":
+    "This password appeared in known data breaches. Choose another one.",
   "A nova senha precisa ser diferente da senha atual.": "Your new password must be different from your current password.",
   "Este e-mail já está em uso.": "This email is already in use.",
   "Informe um endereço de e-mail válido.": "Enter a valid email address.",

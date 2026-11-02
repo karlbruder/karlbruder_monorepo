@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
-import { AuthApiError } from '@supabase/supabase-js'
+import { AuthApiError, AuthWeakPasswordError } from '@supabase/supabase-js'
 import App from '../../App'
 import { supabase } from '../../../supabaseClient'
 import { accountRoutes } from '../../accountRoutes'
@@ -206,7 +206,7 @@ describe('Account password updates', () => {
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
     vi.mocked(supabase.auth.updateUser).mockResolvedValue({
       data: { user: signedInSession.user },
-      error: new AuthApiError('Password should contain at least one character of each', 422, 'weak_password'),
+      error: new AuthWeakPasswordError('Password should contain at least one character of each', 422, ['characters']),
     } as Awaited<ReturnType<typeof supabase.auth.updateUser>>)
 
     render(

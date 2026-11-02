@@ -1,4 +1,4 @@
-import { isAuthApiError, type AuthError } from "@supabase/supabase-js";
+import { isAuthWeakPasswordError, type AuthError } from "@supabase/supabase-js";
 import { registrationCopy } from "./registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "./registrationLanguage";
 
@@ -32,6 +32,10 @@ const AUTH_ERROR_COPY: Partial<Record<string, RegistrationCopyKey>> = {
   weak_password: "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.",
 };
 
+const WEAK_PASSWORD_LENGTH_COPY_KEY: RegistrationCopyKey = "Use pelo menos 8 caracteres na senha.";
+const WEAK_PASSWORD_PWNED_COPY_KEY: RegistrationCopyKey =
+  "Esta senha apareceu em vazamentos conhecidos. Escolha outra.";
+
 const CONTEXT_FALLBACK: Record<SupabaseAuthErrorContext, RegistrationCopyKey> = {
   sign_in: "Não foi possível entrar. Tente novamente.",
   sign_up: "Não foi possível criar a conta. Tente novamente.",
@@ -43,21 +47,41 @@ export const ACCOUNT_PASSWORD_POLICY_COPY_KEY: RegistrationCopyKey =
   "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.";
 
 function readAuthErrorCode(error: AuthError): string | undefined {
-  if (isAuthApiError(error) && typeof error.code === "string" && error.code.length > 0) {
+  if (typeof error.code === "string" && error.code.length > 0) {
     return error.code;
   }
   return undefined;
+}
+
+function weakPasswordCopyKey(error: AuthError): RegistrationCopyKey {
+  if (isAuthWeakPasswordError(error)) {
+    if (error.reasons.includes("pwned")) {
+      return WEAK_PASSWORD_PWNED_COPY_KEY;
+    }
+    if (error.reasons.includes("length") && !error.reasons.includes("characters")) {
+      return WEAK_PASSWORD_LENGTH_COPY_KEY;
+    }
+  }
+  return AUTH_ERROR_COPY.weak_password!;
+}
+
+function isSupabaseAuthError(error: unknown): error is AuthError {
+  return typeof error === "object" && error !== null && "__isAuthError" in error;
 }
 
 export function supabaseAuthErrorCopyKey(
   error: unknown,
   context: SupabaseAuthErrorContext,
 ): RegistrationCopyKey {
-  if (error && typeof error === "object" && "message" in error) {
-    const code = readAuthErrorCode(error as AuthError);
-    if (code && AUTH_ERROR_COPY[code]) {
-      return AUTH_ERROR_COPY[code]!;
-    }
+  if (!isSupabaseAuthError(error)) {
+    return CONTEXT_FALLBACK[context];
+  }
+  const code = readAuthErrorCode(error);
+  if (code === "weak_password") {
+    return weakPasswordCopyKey(error);
+  }
+  if (code && AUTH_ERROR_COPY[code]) {
+    return AUTH_ERROR_COPY[code]!;
   }
   return CONTEXT_FALLBACK[context];
 }

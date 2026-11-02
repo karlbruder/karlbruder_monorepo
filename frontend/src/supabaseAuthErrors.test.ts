@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AuthApiError } from "@supabase/supabase-js";
+import { AuthApiError, AuthWeakPasswordError } from "@supabase/supabase-js";
 import {
   consumeSupabaseAuthRedirectErrorCode,
   supabaseAuthErrorCopyKey,
@@ -14,6 +14,13 @@ function authApiError(code: string, message: string): AuthApiError {
 describe("supabaseAuthErrorCopyKey", () => {
   it("maps weak_password to the app password policy message", () => {
     expect(supabaseAuthErrorCopyKey(authApiError("weak_password", "Password should contain..."), "update_password")).toBe(
+      "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.",
+    );
+  });
+
+  it("maps AuthWeakPasswordError from updateUser to friendly copy", () => {
+    const error = new AuthWeakPasswordError("Password should contain at least one character of each", 422, ["characters"]);
+    expect(supabaseAuthErrorCopyKey(error, "update_password")).toBe(
       "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.",
     );
   });
