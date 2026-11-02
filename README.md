@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
 Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
 
@@ -160,4 +160,4 @@ Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing
 
 Domain records use hosted Supabase PostgreSQL's `public` schema, with no production PostgreSQL container; Supabase manages `auth`. Private files will use S3, with Ministack locally when storage is implemented. Application email will use AWS SES via SMTP; local SMTP setup remains deferred. Credentials belong in environment/secrets configuration, never frontend bundles.
 
-The public landing site is its own container in that Compose project. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).
+The public landing site is its own container in that Compose project. Application CI runs in Docker, and future application CI should do the same. The workflows are [backend](.github/workflows/ci-backend.yml), [frontend](.github/workflows/ci-frontend.yml), and [landing](.github/workflows/ci-landing.yml). They do not read developer env files, production secrets, or a live Supabase project. Backend pytest and Ruff use `compose.test.yml`. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).

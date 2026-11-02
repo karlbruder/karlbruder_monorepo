@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
 | Field | Value |
 | --- | --- |
@@ -140,7 +140,7 @@ The following observations came from source inspection, not runtime validation:
 - Local Compose defines PostgreSQL, backend, and a frontend development target. Its frontend port is 5173, while its health check targets port 80. The Vite configuration has no API proxy, and backend CORS still allows localhost:3000. The Nginx configuration belongs to the production image. Updated READMEs describe these gaps; end-to-end connectivity remains unverified.
 - The existing frontend Home/Health pages are not mounted by the application entry point. `GET /api/health` returns 200 with no body. `GET /api/metadata` returns `git_sha` and `released_at`. Database diagnostics are `GET /api/health/db` and `GET /api/health/auth`. The production frontend image requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` at build time.
 - The existing `frontend/nginx.conf` serves frontend assets and strips `/api/` when proxying. It does not implement the separately defined production reverse-proxy container or the chosen prefix-preserving contract.
-- Landing CI remains. The deploy workflow builds the images whose files changed, stamps the release SHA onto the other images, and replaces the stack through Session Manager. A push to `master` targets the `dev` environment. Build and deploy both assume `KbGithubActionsRole`. A Ministack service and the S3 and SMTP application integrations are not established by those files. The diagrams above remain the target architecture.
+- Application CI for landing, frontend, and backend runs in Docker. Pull requests to `master` run the workflow whose files changed, and each workflow can also be started manually. Landing tests and the production image build run in `.github/workflows/ci-landing.yml`. Frontend tests, ESLint, and the production image build run in `ci-frontend.yml`. Backend pytest and Ruff run through `compose.test.yml` in `ci-backend.yml`, and that workflow also builds the production image. These checks do not read developer env files, production secrets, or a live Supabase project. The frontend production build uses placeholder Supabase values. Deploy stays in `deploy-application.yml`. It builds the images whose files changed, stamps the release SHA onto the other images, and replaces the stack through Session Manager. A push to `master` targets the `dev` environment. Build and deploy both assume `KbGithubActionsRole`. A Ministack service and the S3 and SMTP application integrations are not established by those files. The diagrams above remain the target architecture.
 
 ## Acceptance criteria
 
