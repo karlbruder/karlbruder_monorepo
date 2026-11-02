@@ -6,11 +6,12 @@ import { signInPathWithReturnTo } from "./accountRoutes";
 type Props = {
   authReady: boolean;
   session: Session | null;
+  sessionLapsed: boolean;
   loadingMessage: string;
   children: ReactNode;
 };
 
-export function RequireSessionRoute({ authReady, session, loadingMessage, children }: Props) {
+export function RequireSessionRoute({ authReady, session, sessionLapsed, loadingMessage, children }: Props) {
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
 
@@ -23,7 +24,7 @@ export function RequireSessionRoute({ authReady, session, loadingMessage, childr
   }
 
   if (!session) {
-    return <Navigate to={signInPathWithReturnTo(returnTo, { sessionExpired: true })} replace />;
+    return <Navigate to={signInPathWithReturnTo(returnTo, { sessionExpired: sessionLapsed })} replace />;
   }
 
   return children;

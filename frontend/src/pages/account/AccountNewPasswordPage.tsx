@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
-import { accountRoutes } from "../../accountRoutes";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { accountRoutes, readReturnTo } from "../../accountRoutes";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
 import { useSupabaseAuthRedirectError } from "../../useSupabaseAuthRedirectError";
@@ -16,6 +16,8 @@ type Props = {
 export default function AccountNewPasswordPage({ language, onLanguageChange, authReady, hasSession }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = readReturnTo(searchParams) ?? "/";
   const redirectError = useSupabaseAuthRedirectError(language, "update_password");
   const layoutProps = {
     language,
@@ -66,7 +68,7 @@ export default function AccountNewPasswordPage({ language, onLanguageChange, aut
   return (
     <AccountAuthLayout {...layoutProps}>
       {redirectError && <p className="account-auth-error" role="alert">{redirectError}</p>}
-      <AccountMatchingPasswordForm language={language} onSuccess={() => navigate(accountRoutes.signIn, { replace: true })} />
+      <AccountMatchingPasswordForm language={language} onSuccess={() => navigate(returnTo, { replace: true })} />
     </AccountAuthLayout>
   );
 }

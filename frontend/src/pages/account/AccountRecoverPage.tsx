@@ -30,7 +30,7 @@ export default function AccountRecoverPage({ language, onLanguageChange }: Props
     setServiceUnavailable(false);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: passwordRecoveryRedirectUrl(),
+        redirectTo: passwordRecoveryRedirectUrl(returnTo),
       });
       if (error) {
         if (isSupabaseAuthServiceUnavailable(error)) {

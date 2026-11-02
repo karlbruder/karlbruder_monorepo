@@ -11,8 +11,12 @@ export function emailConfirmationRedirectUrl(): string {
   return `${window.location.origin}${accountRoutes.signIn}`;
 }
 
-export function passwordRecoveryRedirectUrl(): string {
-  return `${window.location.origin}${accountRoutes.newPassword}`;
+export function passwordRecoveryRedirectUrl(returnTo?: string | null): string {
+  const url = new URL(`${window.location.origin}${accountRoutes.newPassword}`);
+  if (returnTo) {
+    url.searchParams.set("returnTo", returnTo);
+  }
+  return url.toString();
 }
 
 export function readReturnTo(searchParams: URLSearchParams): string | null {

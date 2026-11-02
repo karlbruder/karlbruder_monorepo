@@ -55,7 +55,7 @@ In each Supabase project that matches your local `VITE_SUPABASE_URL` and the `de
 - `https://app-prod.karlbruder.com/account/new-password`
 - `https://app-prod.karlbruder.com/tournaments/registration`
 
-Keep the existing Google redirect for `/tournaments/registration` on each origin above. Email sign-up uses confirmation with `emailRedirectTo` pointing at `/account/sign-in`. Recovery uses `redirectTo` pointing at `/account/new-password`. If a hosted project is shared between environments, configure the allow-list once.
+Keep the existing Google redirect for `/tournaments/registration` on each origin above. Email sign-up uses confirmation with `emailRedirectTo` pointing at `/account/sign-in`. Recovery uses `redirectTo` pointing at `/account/new-password`, optionally with a validated `returnTo` query parameter when recovery started from a deep link. If a hosted project is shared between environments, configure the allow-list once.
 
 Turn on the email provider and email confirmation in the Supabase dashboard for each project you use. Customize Supabase Auth email templates in Portuguese for each message type the project sends (sign-up confirmation, password recovery, and other Auth-managed types). See AUTH-011 in [authentication and access](../specs/identity/authentication-and-access.md). The application UI may stay bilingual. Auth email stays Portuguese until a later issue adds multi-language templates.
 

@@ -11,11 +11,12 @@ import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "./Acco
 type Props = {
   language: RegistrationLanguage;
   authLoading: boolean;
+  authError: RegistrationCopyKey | null;
   onGoogleSignIn: (redirectTo: string) => Promise<void>;
   onLanguageChange: (language: RegistrationLanguage) => void;
 };
 
-export default function AccountSignUpPage({ language, authLoading, onGoogleSignIn, onLanguageChange }: Props) {
+export default function AccountSignUpPage({ language, authLoading, authError, onGoogleSignIn, onLanguageChange }: Props) {
   const t = (key: RegistrationCopyKey) => registrationCopy(language, key);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -63,6 +64,7 @@ export default function AccountSignUpPage({ language, authLoading, onGoogleSignI
       subtitle={t("Faça parte.")}
     >
       {serviceUnavailable && <AuthServiceNotice language={language} kind="unavailable" />}
+      {authError && <p className="account-auth-error" role="alert">{t(authError)}</p>}
       <GoogleSignInButton language={language} loading={authLoading} onSignIn={() => onGoogleSignIn(googleRedirectTo)} />
       <p className="account-auth-or">{t("ou use seu e-mail")}</p>
       <form onSubmit={submit}>

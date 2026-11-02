@@ -44,15 +44,19 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
     authReady,
     authLoading,
     authError,
+    sessionLapsed,
     signInWithGoogle,
     signOut,
+    clearSessionLapsedNotice,
   } = auth;
 
   const accountPageProps = {
     language,
     authLoading,
+    authError,
     onGoogleSignIn: signInWithGoogle,
     onLanguageChange,
+    onClearSessionLapsedNotice: clearSessionLapsedNotice,
   };
 
   const registrationOAuthRedirect = `${window.location.origin}${registrationReturnTo}`;
@@ -85,12 +89,12 @@ function AppRoutes({ auth, language, onLanguageChange }: AppRoutesProps) {
         <AccountNewPasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
       } />
       <Route path={accountRoutes.password} element={
-        <RequireSessionRoute authReady={authReady} session={session} loadingMessage={sessionLoadingMessage}>
+        <RequireSessionRoute authReady={authReady} session={session} sessionLapsed={sessionLapsed} loadingMessage={sessionLoadingMessage}>
           <AccountChangePasswordPage language={language} onLanguageChange={onLanguageChange} authReady={authReady} hasSession={Boolean(session)} />
         </RequireSessionRoute>
       } />
       <Route path="/" element={
-        <RequireSessionRoute authReady={authReady} session={session} loadingMessage={sessionLoadingMessage}>
+        <RequireSessionRoute authReady={authReady} session={session} sessionLapsed={sessionLapsed} loadingMessage={sessionLoadingMessage}>
           <SignedInHomePage
             session={session!}
             language={language}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../supabaseClient";
 import type { RegistrationCopyKey } from "./registrationLanguage";
@@ -8,6 +8,8 @@ export function useAppAuth() {
   const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<RegistrationCopyKey | null>(null);
+  const [sessionLapsed, setSessionLapsed] = useState(false);
+  const userInitiatedSignOutRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -24,10 +26,14 @@ export function useAppAuth() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (active) {
-        setSession(nextSession);
-        setAuthReady(true);
-      }
+      if (!active) return;
+      setSession((previousSession) => {
+        if (previousSession && !nextSession && !userInitiatedSignOutRef.current) {
+          setSessionLapsed(true);
+        }
+        return nextSession;
+      });
+      setAuthReady(true);
     });
 
     return () => {
@@ -53,20 +59,22 @@ export function useAppAuth() {
   };
 
   const signOut = async () => {
+    userInitiatedSignOutRef.current = true;
+    setSessionLapsed(false);
     const { error } = await supabase.auth.signOut();
     if (error) setAuthError("Não foi possível sair. Tente novamente.");
   };
 
-  const clearAuthError = () => setAuthError(null);
+  const clearSessionLapsedNotice = () => setSessionLapsed(false);
 
   return {
     session,
     authReady,
     authLoading,
     authError,
+    sessionLapsed,
     signInWithGoogle,
     signOut,
-    clearAuthError,
-    setAuthError,
+    clearSessionLapsedNotice,
   };
 }

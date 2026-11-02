@@ -175,6 +175,44 @@ describe('Account email auth flows', () => {
     expect(screen.getByRole('link', { name: 'Esqueci minha senha' })).toHaveAttribute('href', accountRoutes.recover)
   })
 
+  it('shows Google initiation errors on the account sign-in screen', async () => {
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({
+      data: { provider: 'google', url: null },
+      error: new Error('offline'),
+    } as Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>)
+
+    render(
+      <MemoryRouter initialEntries={[accountRoutes.signIn]}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar com Google' }))
+
+    await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalled())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível entrar com Google')
+  })
+
+  it('carries returnTo in the recovery email redirect when recover opened with a destination', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          `${accountRoutes.recover}?returnTo=${encodeURIComponent('/tournaments/registration?source=landing')}`,
+        ]}
+      >
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'athlete@example.test' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar link de recuperação' }))
+
+    await waitFor(() => expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalled())
+    const redirectTo = vi.mocked(supabase.auth.resetPasswordForEmail).mock.calls[0][1]?.redirectTo ?? ''
+    expect(redirectTo).toContain('returnTo=')
+    expect(redirectTo).toContain(encodeURIComponent('/tournaments/registration?source=landing'))
+  })
+
   it('calls resetPasswordForEmail from the recovery screen', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.recover]}>
@@ -186,7 +224,7 @@ describe('Account email auth flows', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar link de recuperação' }))
 
     await waitFor(() => expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith('athlete@example.test', {
-      redirectTo: `${window.location.origin}${accountRoutes.newPassword}`,
+      redirectTo: `${window.location.origin}${accountRoutes.newPassword}?returnTo=${encodeURIComponent(accountRoutes.signIn)}`,
     }))
     expect(await screen.findByText('Enviamos as instruções de verificação')).toBeInTheDocument()
   })
@@ -238,7 +276,7 @@ describe('Account password updates', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
     await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'ValidPass1!' }))
-    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
   })
 
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
@@ -288,10 +326,20 @@ describe('Session route guard', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
+  })
+
+  it('shows the expired-session notice when sign-in opens with sessionExpired=1', async () => {
+    render(
+      <MemoryRouter initialEntries={[`${accountRoutes.signIn}?returnTo=%2F&sessionExpired=1`]}>
+        <App />
+      </MemoryRouter>,
+    )
+
     expect(await screen.findByText('Sua sessão expirou')).toBeInTheDocument()
   })
 
-  it('sends a guest from the change-password route to sign-in with the expired-session notice', async () => {
+  it('sends a guest from the change-password route to sign-in without the expired-session notice', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.password]}>
         <App />
@@ -299,7 +347,7 @@ describe('Session route guard', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
-    expect(await screen.findByText('Sua sessão expirou')).toBeInTheDocument()
+    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
   })
 
   it('shows the signed-in home at slash when a session exists', async () => {
