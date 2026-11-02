@@ -13,23 +13,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: landing
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          cache: npm
-          cache-dependency-path: landing/package-lock.json
+      - name: Build development image
+        run: docker build -f landing/Dockerfile --target development -t kb-landing-ci landing
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Run tests
+        run: docker run --rm -e CI=true kb-landing-ci npm test -- --watchAll=false
 
-      - name: Build project
-        run: npm run build
-
+      - name: Build production image
+        run: >
+          docker build -f landing/Dockerfile --target production
+          --build-arg REACT_APP_APPLICATION_URL=https://app.example.test
+          landing
