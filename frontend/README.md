@@ -114,4 +114,4 @@ The build runs TypeScript checks and generates static assets in `dist/`. Preview
 
 ## Further reading
 
-[Repository setup](../README.md) · [Specifications](../specs/README.md)
+[Repository setup](../README.md) · [Specifications](../specs/README.md) · [Frontend structure](../specs/decisions/0006-frontend-application-structure.md)

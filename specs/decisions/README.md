@@ -12,5 +12,6 @@ Decision records preserve the reason for a significant choice. They are not impl
 | [0003](0003-local-and-production-stacks.md) | Accepted direction | Local Docker PostgreSQL. Production Compose on one EC2 host runs Nginx, landing, frontend, and backend, with Supabase PostgreSQL, S3 or Ministack files, and SES SMTP |
 | [0004](0004-shared-github-actions-role.md) | Accepted direction | One GitHub Actions role for build and deployment, with combined authority accepted for the current scale |
 | [0005](0005-container-access-to-instance-role.md) | Accepted direction | Docker containers may obtain the EC2 host role through IMDSv2 so backend startup can read Secrets Manager |
+| [0006](0006-frontend-application-structure.md) | Accepted direction | Feature layout for the Vite frontend, with React Router kept and helper libraries added only when a screen needs them |
 
 Production topology is defined by decision 0003. Earlier deployment transport stages remain planning inputs in the [deployment spec](../platform/deployment.md); they do not override the chosen application stack.

@@ -159,6 +159,8 @@ The following observations came from source inspection, not runtime validation:
 
 The questions from this architecture round are resolved: admins have global access, Cloudflare manages public TLS/DNS, Nginx serves the HTTPS origin, and local development retains its existing default ports. Role storage and forwarding configuration are implementation details rather than additional product questions.
 
+How `frontend/src` is organized is [decision 0006](decisions/0006-frontend-application-structure.md). That decision does not change the service boundaries in this document.
+
 Local SMTP setup is explicitly deferred, with real SES as the likely choice. See [identity](identity/authentication-and-access.md), [data storage](platform/data-storage.md), and [deployment](platform/deployment.md) for the related rules.
 
 ## Service reference
