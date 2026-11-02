@@ -5,6 +5,7 @@ import { accountRoutes, emailConfirmationRedirectUrl, readReturnTo } from "../..
 import { supabase } from "../../../supabaseClient";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
+import { supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
 import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "./AccountAuthLayout";
 
 type Props = {
@@ -27,9 +28,9 @@ export default function AccountSignUpPage({ language, authLoading, onGoogleSignI
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setPending(true);
     setFormError(null);
     setServiceUnavailable(false);
+    setPending(true);
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -37,7 +38,7 @@ export default function AccountSignUpPage({ language, authLoading, onGoogleSignI
         options: { emailRedirectTo: emailConfirmationRedirectUrl() },
       });
       if (error) {
-        setFormError(error.message);
+        setFormError(supabaseAuthErrorMessage(error, language, "sign_up"));
         return;
       }
       navigate(`${accountRoutes.checkEmail}?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`, { replace: true });

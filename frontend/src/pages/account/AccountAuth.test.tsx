@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
+import { AuthApiError } from '@supabase/supabase-js'
 import App from '../../App'
 import { supabase } from '../../../supabaseClient'
 import { accountRoutes } from '../../accountRoutes'
@@ -97,12 +98,12 @@ describe('Account email auth flows', () => {
     )
 
     fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'new@example.test' } })
-    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'secret-pass' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'ValidPass1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Criar minha conta' }))
 
     await waitFor(() => expect(supabase.auth.signUp).toHaveBeenCalledWith({
       email: 'new@example.test',
-      password: 'secret-pass',
+      password: 'ValidPass1!',
       options: { emailRedirectTo: `${window.location.origin}${accountRoutes.signIn}` },
     }))
     expect(await screen.findByText('Enviamos as instruções de verificação')).toBeInTheDocument()
@@ -125,12 +126,12 @@ describe('Account email auth flows', () => {
     expect(screen.getByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'athlete@example.test' } })
-    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'secret-pass' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'ValidPass1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
 
     await waitFor(() => expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'athlete@example.test',
-      password: 'secret-pass',
+      password: 'ValidPass1!',
     }))
     expect(await screen.findByText(/Você está conectado como athlete@example.test/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Inscrição pessoal' })).toBeInTheDocument()
@@ -177,11 +178,11 @@ describe('Account password updates', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'next-secret' } })
-    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'next-secret' } })
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'ValidPass1!' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'ValidPass1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
-    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'next-secret' }))
+    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'ValidPass1!' }))
     expect(await screen.findByText('athlete@example.test')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
     expect(supabase.auth.signOut).not.toHaveBeenCalled()
@@ -194,18 +195,18 @@ describe('Account password updates', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'recovered-secret' } })
-    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'recovered-secret' } })
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'ValidPass1!' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'ValidPass1!' } })
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
-    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'recovered-secret' }))
+    await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'ValidPass1!' }))
     expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
   })
 
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
     vi.mocked(supabase.auth.updateUser).mockResolvedValue({
       data: { user: signedInSession.user },
-      error: { message: 'Password policy rejected', name: 'AuthError', status: 422 },
+      error: new AuthApiError('Password should contain at least one character of each', 422, 'weak_password'),
     } as Awaited<ReturnType<typeof supabase.auth.updateUser>>)
 
     render(
@@ -218,7 +219,10 @@ describe('Account password updates', () => {
     fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'weak' } })
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Password policy rejected')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.',
+    )
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'weak' })
     expect(screen.getByText('Você já está autenticada.')).toBeInTheDocument()
     expect(supabase.auth.signOut).not.toHaveBeenCalled()
   })

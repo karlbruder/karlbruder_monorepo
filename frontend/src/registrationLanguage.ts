@@ -35,6 +35,23 @@ const english = {
   "Repita a nova senha": "Repeat the new password",
   "Atualizar senha": "Update password",
   "Não foi possível entrar. Tente novamente.": "We could not sign you in. Please try again.",
+  "E-mail ou senha incorretos. Tente novamente.": "Incorrect email or password. Please try again.",
+  "Confirme seu e-mail antes de entrar.": "Confirm your email before signing in.",
+  "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.":
+    "Use a password with at least 8 characters, including uppercase and lowercase letters, numbers, and symbols.",
+  "A nova senha precisa ser diferente da senha atual.": "Your new password must be different from your current password.",
+  "Este e-mail já está em uso.": "This email is already in use.",
+  "Informe um endereço de e-mail válido.": "Enter a valid email address.",
+  "Aguarde alguns minutos antes de tentar novamente.": "Wait a few minutes before trying again.",
+  "Novas contas por e-mail estão desativadas no momento.": "Email sign-up is disabled at the moment.",
+  "Este link expirou ou já foi usado. Solicite um novo link.": "This link expired or was already used. Request a new link.",
+  "Não foi possível concluir o acesso. Tente novamente.": "We could not complete sign-in. Please try again.",
+  "Não foi possível enviar o e-mail para este endereço. Verifique o e-mail informado.":
+    "We could not send email to this address. Check the email you entered.",
+  "Esta conta está suspensa. Entre em contato com a organização.":
+    "This account is suspended. Contact the organizers.",
+  "Código incorreto ou expirado. Tente novamente.": "Incorrect or expired code. Please try again.",
+  "Confirme sua identidade antes de alterar a senha.": "Confirm your identity before changing your password.",
   "Não foi possível criar a conta. Tente novamente.": "We could not create your account. Please try again.",
   "Não foi possível enviar o link de recuperação. Tente novamente.": "We could not send the recovery link. Please try again.",
   "As senhas precisam ser iguais.": "Passwords must match.",

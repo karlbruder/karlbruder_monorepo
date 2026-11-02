@@ -5,6 +5,8 @@ import { accountRoutes, readReturnTo } from "../../accountRoutes";
 import { supabase } from "../../../supabaseClient";
 import { registrationCopy } from "../../registrationLanguage";
 import type { RegistrationCopyKey, RegistrationLanguage } from "../../registrationLanguage";
+import { supabaseAuthErrorMessage } from "../../supabaseAuthErrors";
+import { useSupabaseAuthRedirectError } from "../../useSupabaseAuthRedirectError";
 import { AccountAuthLayout, AuthServiceNotice, GoogleSignInButton } from "./AccountAuthLayout";
 
 type Props = {
@@ -24,6 +26,7 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
+  const redirectError = useSupabaseAuthRedirectError(language, "sign_in");
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,7 +36,7 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setFormError(error.message);
+        setFormError(supabaseAuthErrorMessage(error, language, "sign_in"));
         return;
       }
       navigate(returnTo, { replace: true });
@@ -94,6 +97,7 @@ export default function AccountSignInPage({ language, authLoading, onGoogleSignI
         <Link to={`${accountRoutes.signUp}?returnTo=${encodeURIComponent(returnTo)}`}>{t("Criar conta")}</Link>
       </p>
       {formError && <p className="account-auth-error" role="alert">{formError}</p>}
+      {!formError && redirectError && <p className="account-auth-error" role="alert">{redirectError}</p>}
     </AccountAuthLayout>
   );
 }
