@@ -21,6 +21,9 @@ from app.tournaments.models import Tournament, TournamentSignup
 from app.tournaments.schemas import (
     ParentalTermDownloadUrlRead,
     ParentalTermUploadUrlRead,
+    PaymentProofDownloadUrlRead,
+    PaymentProofSubmitCreate,
+    PaymentProofUploadUrlRead,
     SignupCreate,
     TournamentSignupPaymentInstructionsRead,
     SignupRead,
@@ -32,9 +35,12 @@ from app.tournaments.schemas import (
 from app.tournaments.services import (
     TOURNAMENT_LOCAL_TIMEZONE,
     create_tournament_signup,
+    create_tournament_signup_payment_proof_upload_url,
     read_tournament_signup_parental_term_download,
     read_tournament_signup_payment_instructions,
+    read_tournament_signup_payment_proof_download,
     resolve_tournament_slug,
+    submit_tournament_signup_payment_proof,
     visible_tournament,
 )
 from app.payments.services.tournament_inscription_payment import (
@@ -277,4 +283,81 @@ def get_tournament_signup_payment_instructions(
         tournament_id,
         inscription_number,
         user,
+    )
+
+
+@router.post(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof/upload-url",
+    response_model=PaymentProofUploadUrlRead,
+)
+def create_payment_proof_upload_url_route(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> PaymentProofUploadUrlRead:
+    storage_key, upload_url, expires_in_seconds, required_headers = (
+        create_tournament_signup_payment_proof_upload_url(
+            session,
+            tournament_id,
+            inscription_number,
+            user,
+            file_storage,
+        )
+    )
+    return PaymentProofUploadUrlRead(
+        storage_key=storage_key,
+        upload_url=upload_url,
+        expires_in_seconds=expires_in_seconds,
+        required_headers=required_headers,
+    )
+
+
+@router.post(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof",
+    response_model=SignupRead,
+)
+def submit_payment_proof(
+    tournament_id: int,
+    inscription_number: str,
+    payload: PaymentProofSubmitCreate,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> SignupRead:
+    tournament_signup = submit_tournament_signup_payment_proof(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
+        storage_key=payload.storage_key,
+        original_file_name=payload.original_file_name,
+        file_storage=file_storage,
+    )
+    return SignupRead.model_validate(tournament_signup)
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof",
+    response_model=PaymentProofDownloadUrlRead,
+)
+def get_payment_proof_download_url(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> PaymentProofDownloadUrlRead:
+    download_url, content_type, expires_in_seconds = read_tournament_signup_payment_proof_download(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
+        file_storage,
+    )
+    return PaymentProofDownloadUrlRead(
+        download_url=download_url,
+        content_type=content_type,
+        expires_in_seconds=expires_in_seconds,
     )

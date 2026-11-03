@@ -16,7 +16,10 @@ from app.tournaments.services.tournament_local_dates import (
     local_calendar_date,
 )
 from app.tournaments.services.tournament_signup_payment import (
+    create_tournament_signup_payment_proof_upload_url,
     read_tournament_signup_payment_instructions,
+    read_tournament_signup_payment_proof_download,
+    submit_tournament_signup_payment_proof,
 )
 from app.tournaments.services.tournament_signups import (
     create_tournament_signup,
@@ -37,6 +40,7 @@ __all__ = [
     "TOURNAMENT_SLUG_PATTERN",
     "build_tournament_slug",
     "create_tournament_signup",
+    "create_tournament_signup_payment_proof_upload_url",
     "current_local_calendar_date",
     "eighteenth_birthday",
     "format_tournament_inscription_number",
@@ -47,6 +51,8 @@ __all__ = [
     "normalize_tournament_registration_identity",
     "read_tournament_signup_parental_term_download",
     "read_tournament_signup_payment_instructions",
+    "read_tournament_signup_payment_proof_download",
     "resolve_tournament_slug",
+    "submit_tournament_signup_payment_proof",
     "visible_tournament",
 ]

@@ -185,6 +185,26 @@ class ParentalTermDownloadUrlRead(BaseModel):
     expires_in_seconds: int
 
 
+class PaymentProofUploadUrlRead(BaseModel):
+    storage_key: str
+    upload_url: str
+    expires_in_seconds: int
+    required_headers: dict[str, str]
+
+
+class PaymentProofSubmitCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
+class PaymentProofDownloadUrlRead(BaseModel):
+    download_url: str
+    content_type: str
+    expires_in_seconds: int
+
+
 class TournamentSignupPaymentProofSummaryRead(BaseModel):
     original_file_name: str
     content_type: str

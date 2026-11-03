@@ -97,6 +97,13 @@ for the tournament registration owner only. Other callers, including admins, rec
 no tournament update route yet. Set or change inscription Pix configuration on an existing row with
 a manual database update outside the repo.
 
+Payment proof uses the same presigned pattern as the parental term. The owner calls
+`POST .../payment-proof/upload-url`, uploads to the returned URL, then
+`POST .../payment-proof` with the staging `storage_key` and `original_file_name`. Status becomes
+`payment_in_review` on the first valid proof. Replacements are allowed while status is
+`awaiting_payment` or `payment_in_review`. Each proof is stored as an append-only row. The owner
+reads only the latest proof through `GET .../payment-proof`, which returns a presigned download URL.
+
 Accepted terms and regulation versions, time, and request IP are recorded as evidence references.
 `GET /api/tournaments/{id}/signups/{inscription_number}/parental-term` returns a short-lived
 presigned download URL for the owner or an admin. The API does not stream file bytes.

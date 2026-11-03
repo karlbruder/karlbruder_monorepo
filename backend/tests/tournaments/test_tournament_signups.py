@@ -17,7 +17,7 @@ import app.auth as auth  # noqa: E402
 import app.tournaments.services.tournament_local_dates as tournament_local_dates  # noqa: E402
 from app.core.services.storage import FileStorageError, get_file_storage  # noqa: E402
 from app.main import karlbruder_app  # noqa: E402
-from app.tournaments.models import TournamentSignup, TournamentSignupFile  # noqa: E402
+from app.tournaments.models import Tournament, TournamentSignup, TournamentSignupFile  # noqa: E402
 
 
 class StaticJwksClient:
@@ -660,3 +660,115 @@ def test_payment_instructions_return_null_pix_and_latest_proof_metadata(setup):
     assert latest["content_type"] == "application/pdf"
     assert latest["size_bytes"] == 256
     assert latest["submitted_at"] is not None
+
+
+def test_payment_proof_presigned_submit_replace_and_read(setup):
+    """Owner submits proof via staging, moves to payment_in_review, replaces proof, and reads latest only."""
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key, max_competitor_capacity=1)
+    owner_id = uuid4()
+    owner = _headers(key, user_id=owner_id, email="payer@example.test")
+    created = _post_signup(client, event_id, owner, _signup(email="payer@example.test", document="PAY-1"))
+    assert created.status_code == 201, created.text
+    number = created.json()["inscription_number"]
+    tournament_before = db_session.scalar(select(Tournament).where(Tournament.id == event_id))
+    serial_before = tournament_before.next_inscription_serial
+    capacity_before = tournament_before.max_competitor_capacity
+
+    proof_base = f"/api/tournaments/{event_id}/signups/{number}/payment-proof"
+    other = _headers(key, email="other@example.test")
+    assert client.post(f"{proof_base}/upload-url", headers=other).status_code == 404
+
+    upload_one = client.post(f"{proof_base}/upload-url", headers=owner)
+    assert upload_one.status_code == 200, upload_one.text
+    staged_one = upload_one.json()["storage_key"]
+    storage.objects[staged_one] = (_pdf_bytes(), "application/pdf")
+
+    submit_one = client.post(
+        f"{proof_base}",
+        headers=owner,
+        json={"storage_key": staged_one, "original_file_name": "proof-one.pdf"},
+    )
+    assert submit_one.status_code == 200, submit_one.text
+    assert submit_one.json()["status"] == "payment_in_review"
+    assert staged_one not in storage.objects
+    proof_rows = db_session.scalars(
+        select(TournamentSignupFile).where(TournamentSignupFile.kind == "payment_proof")
+    ).all()
+    assert len(proof_rows) == 1
+    assert "/payment_proof/" in proof_rows[0].storage_key
+
+    read_one = client.get(f"{proof_base}", headers=owner)
+    assert read_one.status_code == 200
+    assert read_one.json()["download_url"].startswith("https://mock.example/download/")
+
+    upload_two = client.post(f"{proof_base}/upload-url", headers=owner)
+    staged_two = upload_two.json()["storage_key"]
+    storage.objects[staged_two] = (_pdf_bytes(b"-2"), "application/pdf")
+    submit_two = client.post(
+        f"{proof_base}",
+        headers=owner,
+        json={"storage_key": staged_two, "original_file_name": "proof-two.pdf"},
+    )
+    assert submit_two.status_code == 200
+    assert submit_two.json()["status"] == "payment_in_review"
+    proof_rows = db_session.scalars(
+        select(TournamentSignupFile)
+        .where(TournamentSignupFile.kind == "payment_proof")
+        .order_by(TournamentSignupFile.id)
+    ).all()
+    assert len(proof_rows) == 2
+
+    payment = client.get(
+        f"/api/tournaments/{event_id}/signups/{number}/payment",
+        headers=owner,
+    ).json()
+    assert payment["latest_payment_proof"]["original_file_name"] == "proof-two.pdf"
+
+    download_latest = client.get(f"{proof_base}", headers=owner).json()
+    assert proof_rows[1].storage_key in download_latest["download_url"]
+
+    tournament_after = db_session.scalar(select(Tournament).where(Tournament.id == event_id))
+    assert tournament_after.next_inscription_serial == serial_before
+    assert tournament_after.max_competitor_capacity == capacity_before
+    assert client.get(f"{proof_base}", headers=other).status_code == 404
+
+
+def test_payment_proof_rejects_bad_upload_and_wrong_status(setup):
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key)
+    created = _post_signup(client, event_id, owner)
+    number = created.json()["inscription_number"]
+    proof_base = f"/api/tournaments/{event_id}/signups/{number}/payment-proof"
+
+    upload = client.post(f"{proof_base}/upload-url", headers=owner)
+    staged_key = upload.json()["storage_key"]
+    assert client.post(
+        f"{proof_base}",
+        headers=owner,
+        json={"storage_key": staged_key, "original_file_name": "proof.pdf"},
+    ).status_code == 422
+
+    storage.objects[staged_key] = (b"not-a-pdf", "application/pdf")
+    assert client.post(
+        f"{proof_base}",
+        headers=owner,
+        json={"storage_key": staged_key, "original_file_name": "proof.pdf"},
+    ).status_code == 415
+    assert db_session.scalar(select(TournamentSignup)).status == "awaiting_payment"
+
+    storage.objects[staged_key] = (_pdf_bytes(), "application/pdf")
+    storage.copy_should_fail = True
+    assert client.post(
+        f"{proof_base}",
+        headers=owner,
+        json={"storage_key": staged_key, "original_file_name": "proof.pdf"},
+    ).status_code == 503
+    storage.copy_should_fail = False
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignupFile)) == 0
+
+    tournament_signup = db_session.scalar(select(TournamentSignup))
+    tournament_signup.status = "confirmed"
+    db_session.commit()
+    assert client.post(f"{proof_base}/upload-url", headers=owner).status_code == 409
