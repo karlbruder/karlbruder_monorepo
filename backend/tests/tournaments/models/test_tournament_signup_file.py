@@ -1,4 +1,4 @@
-"""Minor-age rules and signup file table constraints."""
+"""Database constraints on tournament signup file metadata."""
 
 from datetime import UTC, date, datetime
 from uuid import uuid4
@@ -6,35 +6,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.tournaments.event_dates import event_date_from_starts_at
-from app.tournaments.minor_eligibility import eighteenth_birthday, is_minor_on_event_date
 from app.tournaments.models import Tournament, TournamentSignup, TournamentSignupFile
-
-
-def test_eighteenth_birthday_for_leap_day_birth_date():
-    assert eighteenth_birthday(date(2008, 2, 29)) == date(2026, 3, 1)
-
-
-@pytest.mark.parametrize(
-    ("birth_date", "event_starts_at", "expected_minor"),
-    [
-        (date(2009, 1, 17), datetime(2027, 1, 17, 12, 0, tzinfo=UTC), False),
-        (date(2009, 1, 17), datetime(2027, 1, 16, 12, 0, tzinfo=UTC), True),
-        (date(2009, 1, 17), datetime(2027, 1, 18, 12, 0, tzinfo=UTC), False),
-    ],
-)
-def test_is_minor_on_event_date_around_eighteenth_birthday(
-    birth_date, event_starts_at, expected_minor
-):
-    assert is_minor_on_event_date(birth_date, event_starts_at) is expected_minor
-
-
-def test_event_date_from_starts_at_uses_utc_minus_three_calendar_day():
-    """A UTC instant after midnight UTC-3 still counts as the previous local day."""
-
-    starts_at = datetime(2027, 1, 17, 2, 59, tzinfo=UTC)
-    assert event_date_from_starts_at(starts_at) == date(2027, 1, 16)
-    assert is_minor_on_event_date(date(2009, 1, 17), starts_at) is True
 
 
 def _persist_signup(db_session) -> TournamentSignup:

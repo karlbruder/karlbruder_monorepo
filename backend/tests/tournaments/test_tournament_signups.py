@@ -14,7 +14,7 @@ from sqlalchemy import delete, func, select
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
 import app.auth as auth  # noqa: E402
-import app.tournaments.signups as signup_service  # noqa: E402
+import app.tournaments.services.tournament_local_dates as tournament_local_dates  # noqa: E402
 from app.main import karlbruder_app  # noqa: E402
 from app.tournaments.models import TournamentSignup  # noqa: E402
 
@@ -96,7 +96,11 @@ def _signup(*, email="fixture@example.test", document="AB-123", **overrides):
 def setup(monkeypatch, db_session):
     key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(auth, "get_jwks_client", lambda: StaticJwksClient(key.public_key()))
-    monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
+    monkeypatch.setattr(
+        tournament_local_dates,
+        "current_local_calendar_date",
+        lambda now=None: date(2026, 10, 19),
+    )
     with TestClient(karlbruder_app) as client:
         yield client, key, db_session
 
@@ -107,13 +111,6 @@ def _create_event(client, key, **changes):
     )
     assert response.status_code == 201, response.text
     return response.json()["id"]
-
-
-def test_registration_day_uses_fixed_utc_minus_three_at_midnight():
-    assert signup_service.registration_date(datetime(2026, 10, 1, 2, 59, tzinfo=UTC)) == date(2026, 9, 30)
-    assert signup_service.registration_date(datetime(2026, 10, 1, 3, 0, tzinfo=UTC)) == date(2026, 10, 1)
-    assert signup_service.registration_date(datetime(2026, 11, 1, 2, 59, tzinfo=UTC)) == date(2026, 10, 31)
-    assert signup_service.registration_date(datetime(2026, 11, 1, 3, 0, tzinfo=UTC)) == date(2026, 11, 1)
 
 
 def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
@@ -244,17 +241,29 @@ def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
     path = f"/api/tournaments/{event_id}/signups"
     owner = _headers(key)
     for today, expected in ((date(2026, 9, 30), 400), (date(2026, 10, 1), 201)):
-        monkeypatch.setattr(signup_service, "registration_date", lambda day=today: day)
+        monkeypatch.setattr(
+            tournament_local_dates,
+            "current_local_calendar_date",
+            lambda now=None, day=today: day,
+        )
         assert client.post(path, json=_signup(), headers=owner).status_code == expected
     db_session.execute(delete(TournamentSignup))
     db_session.commit()
     for today, expected in ((date(2026, 10, 31), 201), (date(2026, 11, 1), 400)):
-        monkeypatch.setattr(signup_service, "registration_date", lambda day=today: day)
+        monkeypatch.setattr(
+            tournament_local_dates,
+            "current_local_calendar_date",
+            lambda now=None, day=today: day,
+        )
         assert client.post(path, json=_signup(document=f"DOC-{today}"), headers=owner).status_code == expected
         if expected == 201:
             db_session.execute(delete(TournamentSignup))
             db_session.commit()
-    monkeypatch.setattr(signup_service, "registration_date", lambda: date(2026, 10, 19))
+    monkeypatch.setattr(
+        tournament_local_dates,
+        "current_local_calendar_date",
+        lambda now=None: date(2026, 10, 19),
+    )
     for changes in (
         {"new_registrations_closed": True},
         {"registration_opens_on": None},

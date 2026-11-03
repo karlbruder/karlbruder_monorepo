@@ -78,7 +78,7 @@ A schema checks shape and field consistency. Domain decisions stay in the servic
 - Business logic lives in `services.py`. New rules go there from the start.
 - A service does not accept a FastAPI `Request` or `Response`.
 - Query code stays in the service. Do not add a selector layer unless a developer has already split a read path for a real reason.
-- Name service and domain methods with a verb that states the action. `create_signup` tells the reader what happens. `signup` does not. Private helpers follow the same rule.
+- Name service and domain methods with a verb that states the action. `create_tournament_signup` tells the reader what happens. `signup` does not. Private helpers follow the same rule.
 - Keep a service focused on one workflow. Add a type hint where it makes the contract obvious.
 
 ## Models

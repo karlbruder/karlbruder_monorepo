@@ -5,7 +5,7 @@ from .exceptions import (
     UploadTooLargeError,
 )
 from .file_storage import FileStorage, get_file_storage
-from .upload_validation import MAX_UPLOAD_BYTES, validate_uploaded_file
+from .services import MAX_UPLOAD_BYTES, validate_uploaded_file
 
 __all__ = [
     "FileStorage",

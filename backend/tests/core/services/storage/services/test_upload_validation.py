@@ -9,7 +9,10 @@ from app.core.services.storage.exceptions import (
     UploadEmptyError,
     UploadTooLargeError,
 )
-from app.core.services.storage.upload_validation import MAX_UPLOAD_BYTES, validate_uploaded_file
+from app.core.services.storage.services.upload_validation import (
+    MAX_UPLOAD_BYTES,
+    validate_uploaded_file,
+)
 
 
 def _pdf_payload(extra_bytes: int = 0) -> bytes:

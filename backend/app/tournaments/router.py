@@ -24,8 +24,12 @@ from app.tournaments.schemas import (
     TournamentList,
     TournamentRead,
 )
-from app.tournaments.services import EVENT_TIMEZONE, resolve_tournament_slug
-from app.tournaments.signups import create_signup, visible_tournament
+from app.tournaments.services import (
+    TOURNAMENT_LOCAL_TIMEZONE,
+    create_tournament_signup,
+    resolve_tournament_slug,
+    visible_tournament,
+)
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
@@ -71,12 +75,12 @@ def _catalog_filters(
         query = query.where(Tournament.name.ilike(f"%{escaped}%", escape="\\"))
     if starts_from is not None:
         query = query.where(
-            Tournament.starts_at >= datetime.combine(starts_from, time.min, EVENT_TIMEZONE)
+            Tournament.starts_at >= datetime.combine(starts_from, time.min, TOURNAMENT_LOCAL_TIMEZONE)
         )
     if starts_to is not None:
         query = query.where(
             Tournament.starts_at
-            < datetime.combine(starts_to + timedelta(days=1), time.min, EVENT_TIMEZONE)
+            < datetime.combine(starts_to + timedelta(days=1), time.min, TOURNAMENT_LOCAL_TIMEZONE)
         )
     return query
 
@@ -128,7 +132,7 @@ def register_for_tournament(
 ) -> SignupRead:
     if request.client is None:
         raise HTTPException(status_code=503, detail="Client address unavailable")
-    signup = create_signup(
+    signup = create_tournament_signup(
         session, tournament_id, user, payload, request.client.host
     )
     return SignupRead.model_validate(signup)
