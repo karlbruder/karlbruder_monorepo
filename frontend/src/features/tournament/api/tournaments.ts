@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
 export type Tournament = {
@@ -66,7 +67,9 @@ export type SignupCreated = {
   tournament_id: number;
 };
 
-export type OwnerSignup = SignupCreated;
+export type OwnerSignup = SignupCreated & {
+  user_id?: string;
+};
 
 export type PaymentProofSummary = {
   original_file_name: string;
@@ -155,7 +158,7 @@ export function monomachiaListQuery(): string {
 }
 
 export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tournament | null> {
-  const response = await fetch(monomachiaListQuery(), { signal });
+  const response = await apiFetch(monomachiaListQuery(), { signal });
   if (!response.ok) {
     throw new Error(`http-${response.status}`);
   }
@@ -174,7 +177,7 @@ export async function requestParentalTermUploadUrl(
   tournamentId: number,
   token: string,
 ): Promise<ParentalTermUploadUrl> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/signups/parental-term/upload-url`,
     {
       method: "POST",
@@ -218,7 +221,7 @@ export async function createSignup(
   token: string,
   payload: SignupCreate,
 ): Promise<SignupCreated> {
-  const response = await fetch(`${apiBaseUrl()}/tournaments/${id}/signups`, {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/signups`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -249,7 +252,9 @@ export async function createSignup(
 function isOwnerSignup(value: unknown): value is OwnerSignup {
   if (value === null || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
+  const accountIdIsOptional = !("user_id" in record) || typeof record.user_id === "string";
   return (
+    accountIdIsOptional &&
     typeof record.inscription_number === "string" &&
     typeof record.status === "string" &&
     typeof record.full_name === "string" &&
@@ -263,7 +268,7 @@ export async function listOwnSignups(
   token: string,
   signal?: AbortSignal,
 ): Promise<OwnerSignup[]> {
-  const response = await fetch(`${apiBaseUrl()}/tournaments/${tournamentId}/signups`, {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/signups`, {
     headers: { Authorization: `Bearer ${token}` },
     signal,
   });
@@ -306,7 +311,7 @@ export async function getPaymentInstructions(
   token: string,
   signal?: AbortSignal,
 ): Promise<PaymentInstructions> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment`,
     { headers: { Authorization: `Bearer ${token}` }, signal },
   );
@@ -322,7 +327,7 @@ export async function requestPaymentProofUploadUrl(
   inscriptionNumber: string,
   token: string,
 ): Promise<PaymentProofUploadUrl> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof/upload-url`,
     {
       method: "POST",
@@ -352,7 +357,7 @@ export async function submitPaymentProof(
   token: string,
   payload: { storage_key: string; original_file_name: string },
 ): Promise<OwnerSignup> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof`,
     {
       method: "POST",

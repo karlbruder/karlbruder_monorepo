@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSignup, requestParentalTermUploadUrl, uploadFileToPresignedUrl, type SignupCreate } from '@/features/tournament/api/tournaments'
+import { createSignup, listOwnSignups, requestParentalTermUploadUrl, uploadFileToPresignedUrl, type SignupCreate } from '@/features/tournament/api/tournaments'
 
 const payload: SignupCreate = {
   full_name: 'Fixture Athlete',
@@ -95,5 +95,29 @@ describe('tournament signup API', () => {
     expect(options.method).toBe('PUT')
     expect(options.body).toBe(file)
     expect(options.headers.get('Content-Type')).toBe('application/pdf')
+  })
+
+  it('listOwnSignups keeps an account id on a staff row and rejects a non-string account id', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '/api')
+    const staffRow = {
+      inscription_number: 'T42-000001-5',
+      status: 'awaiting_payment',
+      full_name: 'Fixture Athlete',
+      email: 'athlete@example.test',
+      tournament_id: 42,
+      user_id: 'athlete-uuid',
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [staffRow],
+    }))
+
+    await expect(listOwnSignups(42, 'test-token')).resolves.toEqual([staffRow])
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ ...staffRow, user_id: 42 }],
+    }))
+    await expect(listOwnSignups(42, 'test-token')).rejects.toThrow('invalid-signup-list')
   })
 })

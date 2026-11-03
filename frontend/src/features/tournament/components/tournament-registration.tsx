@@ -1,12 +1,12 @@
 import LanguageToggle from "@/components/language-toggle";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { accountRoutes } from "@/config/account-routes";
 
 import { useMonomachiaTournament } from "@/features/tournament/api/use-monomachia-tournament";
 import { useOwnTournamentSignups } from "@/features/tournament/api/use-own-tournament-signups";
-import type { SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
+import type { OwnerSignup, SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
 import { appCopy } from "@/utils/app-copy";
@@ -51,26 +51,66 @@ function fee(value: Tournament["inscription_fee_amount"], language: AppLanguage)
   return Number.isFinite(amount) ? new Intl.NumberFormat(locale(language), { style: "currency", currency: "BRL" }).format(amount) : appCopy(language, "A confirmar");
 }
 
+function selectOwnActiveSignup(signups: OwnerSignup[] | undefined, accountId: string): OwnerSignup | null {
+  const activeSignups = (signups ?? []).filter((signup) => signup.status !== "cancelled");
+  if (activeSignups.some((signup) => signup.user_id !== undefined)) {
+    return activeSignups.find((signup) => signup.user_id === accountId) ?? null;
+  }
+  return activeSignups[0] ?? null;
+}
+
+function SignedInRegistration({
+  session,
+  tournament,
+  language,
+}: {
+  session: Session;
+  tournament: Tournament;
+  language: AppLanguage;
+}) {
+  const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
+  const ownSignupsQuery = useOwnTournamentSignups(tournament.id, session.access_token);
+  const [createdSignup, setCreatedSignup] = useState<SignupCreated | null>(null);
+  const activeSignup = createdSignup ?? selectOwnActiveSignup(ownSignupsQuery.data, session.user.id);
+
+  const handleSignupCreated = (signup: SignupCreated) => {
+    setCreatedSignup(signup);
+    void ownSignupsQuery.refetch();
+  };
+
+  return (
+    <>
+      <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
+      {!createdSignup && ownSignupsQuery.isPending ? (
+        <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
+      ) : activeSignup ? (
+        <TournamentPaymentPanel
+          tournament={tournament}
+          session={session}
+          inscriptionNumber={activeSignup.inscription_number}
+          language={language}
+        />
+      ) : tournament.new_registrations_closed ? (
+        <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
+      ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
+        <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
+      ) : (
+        <TournamentRegistrationForm
+          tournament={tournament}
+          session={session}
+          language={language}
+          onSignupCreated={handleSignupCreated}
+        />
+      )}
+    </>
+  );
+}
+
 export default function TournamentRegistration({
   session, authReady, authError, onSignOut, signInButton, language = "pt", onLanguageChange,
 }: Props) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   const { data: tournament, error, isFetching: loading, refetch } = useMonomachiaTournament();
-  const { data: ownSignups, refetch: refetchOwnSignups } = useOwnTournamentSignups(
-    tournament?.id,
-    session?.access_token,
-  );
-  const [createdSignup, setCreatedSignup] = useState<SignupCreated | null>(null);
-
-  const activeSignup = useMemo(() => {
-    if (createdSignup) return createdSignup;
-    return ownSignups?.find((signup) => signup.status !== "cancelled") ?? null;
-  }, [createdSignup, ownSignups]);
-
-  const handleSignupCreated = (signup: SignupCreated) => {
-    setCreatedSignup(signup);
-    void refetchOwnSignups();
-  };
 
   const loadIssue = error
     ? error.message === "http-401" ? "unauthorized" : "request"
@@ -127,29 +167,7 @@ export default function TournamentRegistration({
                   {signInButton}
                 </section>
               ) : (
-                <>
-                  <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
-                  {activeSignup ? (
-                    <TournamentPaymentPanel
-                      tournament={tournament}
-                      session={session}
-                      inscriptionNumber={activeSignup.inscription_number}
-                      language={language}
-                    />
-                  ) : tournament.new_registrations_closed ? (
-                    <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
-                  ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
-                    <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
-                  ) : (
-                    <TournamentRegistrationForm
-                      key={session.user.id}
-                      tournament={tournament}
-                      session={session}
-                      language={language}
-                      onSignupCreated={handleSignupCreated}
-                    />
-                  )}
-                </>
+                <SignedInRegistration key={session.user.id} session={session} tournament={tournament} language={language} />
               )}
               {authError && <p className="registration-auth-error" role="alert">{t(authError)}</p>}
             </div>

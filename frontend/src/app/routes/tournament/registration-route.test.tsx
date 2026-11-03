@@ -53,10 +53,15 @@ function catalogBody(response: unknown) {
 }
 
 function mockTournament(response: unknown = tournament) {
-  const request = vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => catalogBody(response),
+  const request = vi.fn(async (url: string) => {
+    if (url === '/api/tournaments/42/signups') {
+      return { ok: true, status: 200, json: async () => [] }
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => catalogBody(response),
+    }
   })
   vi.stubGlobal('fetch', request)
   return request
@@ -217,7 +222,7 @@ describe('Monomachia registration entry', () => {
     renderApp()
     expect(await screen.findByText(/Você está conectado como athlete@example.test/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Entrar com Google' })).not.toBeInTheDocument()
-    expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
+    expect(await screen.findByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
 
   it.each([

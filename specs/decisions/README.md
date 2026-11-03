@@ -1,7 +1,7 @@
 # Decisions
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-03
 
 Decision records preserve the reason for a significant choice. They are not implementation task lists. Record status, source, consequences, and what direction is superseded. A future proposal should not be labeled accepted before the product owner chooses it.
 
@@ -13,5 +13,6 @@ Decision records preserve the reason for a significant choice. They are not impl
 | [0004](0004-shared-github-actions-role.md) | Accepted direction | One GitHub Actions role for build and deployment, with combined authority accepted for the current scale |
 | [0005](0005-container-access-to-instance-role.md) | Accepted direction | Docker containers may obtain the EC2 host role through IMDSv2 so backend startup can read Secrets Manager |
 | [0006](0006-frontend-application-structure.md) | Accepted direction | Feature layout for the Vite frontend, with React Router kept and helper libraries added only when a screen needs them |
+| [0007](0007-clear-browser-cache-on-sign-out.md) | Accepted direction | Clear the whole browser query cache on sign-out. HTTP 401 signs the user out. HTTP 403 does not |
 
 Production topology is defined by decision 0003. Earlier deployment transport stages remain planning inputs in the [deployment spec](../platform/deployment.md); they do not override the chosen application stack.

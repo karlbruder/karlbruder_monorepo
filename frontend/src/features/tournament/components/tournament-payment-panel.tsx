@@ -9,7 +9,11 @@ import {
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
 import type { Tournament } from "@/features/tournament/api/tournaments";
-import { useTournamentSignupPayment } from "@/features/tournament/api/use-tournament-signup-payment";
+import { ownTournamentSignupsQueryKey } from "@/features/tournament/api/use-own-tournament-signups";
+import {
+  tournamentSignupPaymentQueryKey,
+  useTournamentSignupPayment,
+} from "@/features/tournament/api/use-tournament-signup-payment";
 import { validateParentalTermFile } from "@/features/tournament/utils/validate-parental-term-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -91,9 +95,11 @@ export default function TournamentPaymentPanel({
 
   const invalidatePayment = async () => {
     await queryClient.invalidateQueries({
-      queryKey: ["tournaments", tournament.id, "signups", inscriptionNumber, "payment"],
+      queryKey: tournamentSignupPaymentQueryKey(tournament.id, inscriptionNumber),
     });
-    await queryClient.invalidateQueries({ queryKey: ["tournaments", tournament.id, "signups", "own"] });
+    await queryClient.invalidateQueries({
+      queryKey: ownTournamentSignupsQueryKey(tournament.id),
+    });
   };
 
   const submitProof = async (event: FormEvent<HTMLFormElement>) => {
