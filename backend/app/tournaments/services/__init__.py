@@ -15,6 +15,9 @@ from app.tournaments.services.tournament_local_dates import (
     is_minor_at_tournament_start,
     local_calendar_date,
 )
+from app.tournaments.services.tournament_signup_payment import (
+    read_tournament_signup_payment_instructions,
+)
 from app.tournaments.services.tournament_signups import (
     create_tournament_signup,
     is_duplicate_tournament_signup,
@@ -43,6 +46,7 @@ __all__ = [
     "local_calendar_date",
     "normalize_tournament_registration_identity",
     "read_tournament_signup_parental_term_download",
+    "read_tournament_signup_payment_instructions",
     "resolve_tournament_slug",
     "visible_tournament",
 ]

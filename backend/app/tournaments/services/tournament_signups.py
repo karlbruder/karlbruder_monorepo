@@ -132,7 +132,7 @@ def create_tournament_signup(
 
     serial = tournament.next_inscription_serial
     tournament.next_inscription_serial = serial + 1
-    signup = TournamentSignup(
+    tournament_signup = TournamentSignup(
         **payload.model_dump(
             exclude={"parental_term_storage_key", "parental_term_original_file_name"}
         ),
@@ -147,7 +147,7 @@ def create_tournament_signup(
         accepted_at=datetime.now(timezone.utc),
         acceptance_ip=acceptance_ip,
     )
-    session.add(signup)
+    session.add(tournament_signup)
     final_storage_key: str | None = None
     try:
         session.flush()
@@ -156,11 +156,11 @@ def create_tournament_signup(
                 file_storage,
                 staged_storage_key=staged_storage_key,
                 tournament_id=tournament.id,
-                signup_id=signup.id,
+                signup_id=tournament_signup.id,
             )
             session.add(
                 TournamentSignupFile(
-                    signup_id=signup.id,
+                    signup_id=tournament_signup.id,
                     kind="parental_term",
                     storage_key=final_storage_key,
                     original_file_name=original_file_name or "parental-term",
@@ -186,8 +186,8 @@ def create_tournament_signup(
         if final_storage_key is not None:
             delete_storage_object_quietly(file_storage, final_storage_key)
         raise
-    session.refresh(signup)
-    return signup
+    session.refresh(tournament_signup)
+    return tournament_signup
 
 
 def read_tournament_signup_parental_term_download(
@@ -200,19 +200,19 @@ def read_tournament_signup_parental_term_download(
     """Return a presigned download URL for the parental term when the caller may read it."""
 
     visible_tournament(session, tournament_id, user)
-    signup = session.scalar(
+    tournament_signup = session.scalar(
         select(TournamentSignup).where(
             TournamentSignup.tournament_id == tournament_id,
             TournamentSignup.inscription_number == inscription_number,
         )
     )
-    if signup is None or (
-        signup.user_id != user.id and get_application_role(user) != "admin"
+    if tournament_signup is None or (
+        tournament_signup.user_id != user.id and get_application_role(user) != "admin"
     ):
         raise HTTPException(status_code=404, detail="Registration not found")
     file_row = session.scalar(
         select(TournamentSignupFile).where(
-            TournamentSignupFile.signup_id == signup.id,
+            TournamentSignupFile.signup_id == tournament_signup.id,
             TournamentSignupFile.kind == "parental_term",
         )
     )

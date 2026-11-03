@@ -36,6 +36,7 @@ class TournamentCreate(BaseModel):
     terms_version: str | None = Field(default=None, max_length=100)
     equipment_requirements: str | None = None
     cancellation_policy: str | None = None
+    pix_key: str | None = Field(default=None, max_length=512)
 
     @field_validator("name")
     @classmethod
@@ -182,6 +183,30 @@ class ParentalTermDownloadUrlRead(BaseModel):
     download_url: str
     content_type: str
     expires_in_seconds: int
+
+
+class TournamentSignupPaymentProofSummaryRead(BaseModel):
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+    submitted_at: datetime
+
+
+class PixPaymentOptionRead(BaseModel):
+    pix_key: str | None
+
+
+class TournamentSignupPaymentOptionsRead(BaseModel):
+    pix: PixPaymentOptionRead
+
+
+class TournamentSignupPaymentInstructionsRead(BaseModel):
+    inscription_number: str
+    status: str
+    inscription_fee_amount: Decimal | None
+    payment_due_at: datetime | None
+    payment_options: TournamentSignupPaymentOptionsRead
+    latest_payment_proof: TournamentSignupPaymentProofSummaryRead | None
 
 
 class SignupRead(BaseModel):

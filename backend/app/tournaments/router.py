@@ -22,6 +22,7 @@ from app.tournaments.schemas import (
     ParentalTermDownloadUrlRead,
     ParentalTermUploadUrlRead,
     SignupCreate,
+    TournamentSignupPaymentInstructionsRead,
     SignupRead,
     StaffSignupRead,
     TournamentCreate,
@@ -32,8 +33,12 @@ from app.tournaments.services import (
     TOURNAMENT_LOCAL_TIMEZONE,
     create_tournament_signup,
     read_tournament_signup_parental_term_download,
+    read_tournament_signup_payment_instructions,
     resolve_tournament_slug,
     visible_tournament,
+)
+from app.payments.services.tournament_inscription_payment import (
+    create_tournament_inscription_payment_config,
 )
 from app.tournaments.services.tournament_signup_files import create_parental_term_upload_url
 
@@ -58,8 +63,15 @@ def create_tournament(
         raise HTTPException(status_code=422, detail=str(error)) from error
     if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
         raise HTTPException(status_code=409, detail="Tournament slug already exists")
-    tournament = Tournament(**{**payload.model_dump(), "slug": slug})
+    tournament_payload = payload.model_dump(exclude={"pix_key"})
+    tournament = Tournament(**{**tournament_payload, "slug": slug})
     session.add(tournament)
+    session.flush()
+    create_tournament_inscription_payment_config(
+        session,
+        tournament.id,
+        payload.pix_key,
+    )
     session.commit()
     session.refresh(tournament)
     return tournament
@@ -164,7 +176,7 @@ def register_for_tournament(
     if request.client is None:
         raise HTTPException(status_code=503, detail="Client address unavailable")
     try:
-        signup = create_tournament_signup(
+        tournament_signup = create_tournament_signup(
             session,
             tournament_id,
             user,
@@ -180,7 +192,7 @@ def register_for_tournament(
         ) from error
     except FileStorageError as error:
         raise HTTPException(status_code=503, detail="File storage unavailable") from error
-    return SignupRead.model_validate(signup)
+    return SignupRead.model_validate(tournament_signup)
 
 
 @router.get("/{tournament_id}/signups", response_model=list[SignupRead | StaffSignupRead])
@@ -199,8 +211,8 @@ def list_signups(
         query = query.where(TournamentSignup.user_id == user.id)
     signups = session.scalars(query)
     if get_application_role(user) == "admin":
-        return [StaffSignupRead.model_validate(signup) for signup in signups]
-    return [SignupRead.model_validate(signup) for signup in signups]
+        return [StaffSignupRead.model_validate(tournament_signup) for tournament_signup in signups]
+    return [SignupRead.model_validate(tournament_signup) for tournament_signup in signups]
 
 
 @router.get(
@@ -214,19 +226,19 @@ def get_signup(
     session: Annotated[Session, Depends(get_session)],
 ) -> SignupRead | StaffSignupRead:
     visible_tournament(session, tournament_id, user)
-    signup = session.scalar(
+    tournament_signup = session.scalar(
         select(TournamentSignup).where(
             TournamentSignup.tournament_id == tournament_id,
             TournamentSignup.inscription_number == inscription_number,
         )
     )
-    if signup is None or (
-        signup.user_id != user.id and get_application_role(user) != "admin"
+    if tournament_signup is None or (
+        tournament_signup.user_id != user.id and get_application_role(user) != "admin"
     ):
         raise HTTPException(status_code=404, detail="Registration not found")
     if get_application_role(user) == "admin":
-        return StaffSignupRead.model_validate(signup)
-    return SignupRead.model_validate(signup)
+        return StaffSignupRead.model_validate(tournament_signup)
+    return SignupRead.model_validate(tournament_signup)
 
 
 @router.get(
@@ -247,4 +259,22 @@ def get_parental_term_download_url(
         download_url=download_url,
         content_type=content_type,
         expires_in_seconds=expires_in_seconds,
+    )
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/payment",
+    response_model=TournamentSignupPaymentInstructionsRead,
+)
+def get_tournament_signup_payment_instructions(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+) -> TournamentSignupPaymentInstructionsRead:
+    return read_tournament_signup_payment_instructions(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
     )

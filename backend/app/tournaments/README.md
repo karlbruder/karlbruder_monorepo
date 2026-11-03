@@ -62,8 +62,44 @@ including cancelled rows. Owner responses exclude `safety_note` and acceptance I
 while admin reads may include those staff fields. No public signup directory is exposed.
 Do not log identity documents, contact details, or safety notes.
 
-Accepted terms and regulation versions, time, and request IP are recorded as
-evidence references. `GET /api/tournaments/{id}/signups/{inscription_number}/parental-term`
-returns a short-lived presigned download URL for the owner or an admin. The API
-does not stream file bytes. Approved declaration wording, payment-proof uploads, and later
-payment/staff flows are still required for a production registration journey.
+## Payment configuration and payment instructions
+
+Inscription fees and payment deadlines stay on the **tournament** row (`inscription_fee_amount`,
+`payment_due_at`). How participants pay the inscription fee lives in the **`payments` module**,
+not on `tournaments`.
+
+For each tournament, optional rows in `tournament_inscription_payment_configs` and
+`pix_recipients` store the Pix key staff configure at create time. Membership dues and shop
+checkout will get their own payment config tables later. They can reuse `pix_recipients` when
+the guild shares one receiving key.
+
+The public catalog and `TournamentRead` never expose Pix configuration. Admins pass `pix_key` on
+`POST /api/tournaments` only.
+
+A **tournament signup** is one person's registration in that event. It has its own inscription
+number and status (for example `awaiting_payment`).
+
+**Payment instructions** are not a separate database table. They are the owner-only JSON from
+`GET /api/tournaments/{id}/signups/{inscription_number}/payment`. That route builds one screen
+payload for the registrant:
+
+- From the **tournament signup**: inscription number and current status.
+- From the **tournament**: fee and deadline.
+- From **`payments`**: `payment_options.pix.pix_key`, or null when not configured.
+- From stored files on that registration: metadata for the latest payment proof, or null until
+  proof uploads exist.
+
+So the Pix key answers "where do I send inscription payment for this event?" Payment instructions answer
+"everything this registrant needs for the payment step right now."
+
+`GET /api/tournaments/{id}/signups/{inscription_number}/payment` returns those payment instructions
+for the tournament registration owner only. Other callers, including admins, receive 404. There is
+no tournament update route yet. Set or change inscription Pix configuration on an existing row with
+a manual database update outside the repo.
+
+Accepted terms and regulation versions, time, and request IP are recorded as evidence references.
+`GET /api/tournaments/{id}/signups/{inscription_number}/parental-term` returns a short-lived
+presigned download URL for the owner or an admin. The API does not stream file bytes.
+
+Approved declaration wording, payment-proof uploads, and later payment/staff flows are still
+required for a production registration journey.

@@ -579,3 +579,84 @@ def test_parental_term_on_create_and_read(setup):
     other = _headers(key, email="other@example.test")
     assert client.get(term_path, headers=other).status_code == 404
     assert client.get(term_path).status_code == 401
+
+
+def test_owner_reads_payment_instructions_and_pix_stays_private(setup):
+    """Only the owner reads Pix and fee instructions. Admins and other athletes get 404."""
+    client, key, db_session, _storage = setup
+    fixture_pix = "EXAMPLE-FIXTURE-NOT-A-REAL-PIX-DESTINATION"
+    event_id = _create_event(
+        client,
+        key,
+        pix_key=fixture_pix,
+        inscription_fee_amount="150.00",
+        payment_due_at="2027-02-01T23:59:59+00:00",
+    )
+    owner_id = uuid4()
+    owner = _headers(key, user_id=owner_id)
+    created = _post_signup(client, event_id, owner)
+    assert created.status_code == 201, created.text
+    number = created.json()["inscription_number"]
+
+    payment_path = f"/api/tournaments/{event_id}/signups/{number}/payment"
+    owner_payment = client.get(payment_path, headers=owner)
+    assert owner_payment.status_code == 200, owner_payment.text
+    payload = owner_payment.json()
+    assert payload["inscription_number"] == number
+    assert payload["status"] == "awaiting_payment"
+    assert payload["inscription_fee_amount"] == "150.00"
+    assert payload["payment_due_at"] is not None
+    assert payload["payment_options"]["pix"]["pix_key"] == fixture_pix
+    assert payload["latest_payment_proof"] is None
+
+    other = _headers(key, email="other@example.test")
+    assert client.get(payment_path, headers=other).status_code == 404
+    admin = _headers(key, role="admin")
+    assert client.get(payment_path, headers=admin).status_code == 404
+    assert client.get(payment_path).status_code == 401
+
+
+def test_payment_instructions_return_null_pix_and_latest_proof_metadata(setup):
+    client, key, db_session, _storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key)
+    created = _post_signup(client, event_id, owner)
+    number = created.json()["inscription_number"]
+    tournament_signup = db_session.scalar(
+        select(TournamentSignup).where(TournamentSignup.inscription_number == number)
+    )
+    db_session.add(
+        TournamentSignupFile(
+            signup_id=tournament_signup.id,
+            kind="payment_proof",
+            storage_key=f"tournaments/{event_id}/signups/{tournament_signup.id}/payment_proof/proof-1",
+            original_file_name="proof-old.pdf",
+            content_type="application/pdf",
+            size_bytes=128,
+        )
+    )
+    db_session.add(
+        TournamentSignupFile(
+            signup_id=tournament_signup.id,
+            kind="payment_proof",
+            storage_key=f"tournaments/{event_id}/signups/{tournament_signup.id}/payment_proof/proof-2",
+            original_file_name="proof-latest.pdf",
+            content_type="application/pdf",
+            size_bytes=256,
+        )
+    )
+    db_session.commit()
+
+    payment = client.get(
+        f"/api/tournaments/{event_id}/signups/{number}/payment",
+        headers=owner,
+    )
+    assert payment.status_code == 200
+    body = payment.json()
+    assert body["payment_options"]["pix"]["pix_key"] is None
+    latest = body["latest_payment_proof"]
+    assert latest is not None
+    assert latest["original_file_name"] == "proof-latest.pdf"
+    assert latest["content_type"] == "application/pdf"
+    assert latest["size_bytes"] == 256
+    assert latest["submitted_at"] is not None
