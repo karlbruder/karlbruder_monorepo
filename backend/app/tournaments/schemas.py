@@ -137,6 +137,8 @@ class SignupCreate(BaseModel):
     acknowledges_inherent_risks: StrictBool
     accepts_cancellation_policy: StrictBool
     image_use_authorized: StrictBool
+    parental_term_storage_key: str | None = Field(default=None, max_length=512)
+    parental_term_original_file_name: str | None = Field(default=None, max_length=255)
 
     @field_validator(
         "full_name", "document_id", "email", "phone", "city", "country",
@@ -164,7 +166,22 @@ class SignupCreate(BaseModel):
     def require_hema_experience(self) -> "SignupCreate":
         if not (self.hema_practice_duration or "").strip() and self.hema_practice_start_year is None:
             raise ValueError("HEMA practice duration or start year is required")
+        if self.parental_term_storage_key and not (self.parental_term_original_file_name or "").strip():
+            raise ValueError("Parental term original file name is required when a storage key is sent")
         return self
+
+
+class ParentalTermUploadUrlRead(BaseModel):
+    storage_key: str
+    upload_url: str
+    expires_in_seconds: int
+    required_headers: dict[str, str]
+
+
+class ParentalTermDownloadUrlRead(BaseModel):
+    download_url: str
+    content_type: str
+    expires_in_seconds: int
 
 
 class SignupRead(BaseModel):

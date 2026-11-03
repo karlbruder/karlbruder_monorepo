@@ -19,6 +19,7 @@ from app.tournaments.services.tournament_signups import (
     create_tournament_signup,
     is_duplicate_tournament_signup,
     normalize_tournament_registration_identity,
+    read_tournament_signup_parental_term_download,
     visible_tournament,
 )
 from app.tournaments.services.tournament_slugs import (
@@ -41,6 +42,7 @@ __all__ = [
     "is_valid_tournament_inscription_number",
     "local_calendar_date",
     "normalize_tournament_registration_identity",
+    "read_tournament_signup_parental_term_download",
     "resolve_tournament_slug",
     "visible_tournament",
 ]

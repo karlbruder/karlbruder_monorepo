@@ -32,8 +32,12 @@ role. Provision trusted roles through an authorized Supabase admin process.
 ## Signups
 
 `POST /api/tournaments/{id}/signups` requires a verified token and registers its
-owner. The submitted email must match the account email under the registration
-normalization rule. Clients cannot choose the owner, status, inscription number,
+owner. The body is JSON with the participant fields below. Minors upload the
+parental term directly to object storage. They first call
+`POST /api/tournaments/{id}/signups/parental-term/upload-url`, upload with the
+returned presigned URL, then send `parental_term_storage_key` and
+`parental_term_original_file_name` on create. The submitted email must match the
+account email under the registration normalization rule. Clients cannot choose the owner, status, inscription number,
 accepted versions, or staff safety note. Required declarations include a separate
 truthful-information choice, which must be JSON `true`; image use is an
 independent authorization/refusal choice. Missing, false, or nonboolean required
@@ -59,6 +63,7 @@ while admin reads may include those staff fields. No public signup directory is 
 Do not log identity documents, contact details, or safety notes.
 
 Accepted terms and regulation versions, time, and request IP are recorded as
-evidence references. Approved declaration wording, private parental-term and
-payment-proof uploads, and later payment/staff flows are still required for a
-production registration journey.
+evidence references. `GET /api/tournaments/{id}/signups/{inscription_number}/parental-term`
+returns a short-lived presigned download URL for the owner or an admin. The API
+does not stream file bytes. Approved declaration wording, payment-proof uploads, and later
+payment/staff flows are still required for a production registration journey.

@@ -102,7 +102,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
-    const payload = JSON.parse(request.mock.calls[0][1].body)
+    const [, options] = request.mock.calls[0]
+    const payload = JSON.parse(options.body as string)
     expect(payload.image_use_authorized).toBe(false)
     expect(payload.accepts_regulation).toBe(true)
     expect(payload.accepts_data_processing).toBe(true)
@@ -161,8 +162,11 @@ describe('Athlete submits their own registration and sees the result', () => {
     const [url, options] = request.mock.calls[0]
     expect(url).toBe('/api/tournaments/42/signups')
     expect(options.method).toBe('POST')
-    expect(options.headers).toEqual({ Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' })
-    expect(JSON.parse(options.body)).toEqual({
+    expect(options.headers).toEqual({
+      Authorization: 'Bearer test-access-token',
+      'Content-Type': 'application/json',
+    })
+    expect(JSON.parse(options.body as string)).toEqual({
       full_name: 'Ana Teste', social_name: 'Ana', birth_date: '2000-01-01',
       document_type: 'passport', document_id: 'AB-123', email: 'athlete@example.test',
       phone: '+55 11 0000-0000', city: 'São Carlos', state: 'SP', country: 'Brasil',
@@ -210,7 +214,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     change(/Torneios anteriores/, '0')
     submit()
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
-    const payload = JSON.parse(request.mock.calls[0][1].body)
+    const [, options] = request.mock.calls[0]
+    const payload = JSON.parse(options.body as string)
     expect(payload.hema_practice_duration).toBeNull()
     expect(payload.hema_practice_start_year).toBe(2022)
     expect(payload.image_use_authorized).toBe(true)

@@ -9,10 +9,11 @@ from app.core.services.storage.exceptions import (
 )
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAGIC_BYTE_READ_LENGTH = 16
 
 
-def validate_uploaded_file(body: BinaryIO) -> tuple[str, int]:
-    """Check size and magic bytes, then return ``(content_type, size_bytes)``.
+def validate_uploaded_file(body: BinaryIO) -> tuple[str, int, bytes]:
+    """Check size and magic bytes, then return ``(content_type, size_bytes, payload)``.
 
     Reads at most ``MAX_UPLOAD_BYTES + 1`` bytes so a larger body is never fully
     buffered. Raises ``UploadEmptyError``, ``UploadTooLargeError``, or
@@ -27,7 +28,20 @@ def validate_uploaded_file(body: BinaryIO) -> tuple[str, int]:
     content_type = _detect_content_type(payload)
     if content_type is None:
         raise UploadDisallowedTypeError()
-    return content_type, len(payload)
+    return content_type, len(payload), payload
+
+
+def validate_stored_object_size_and_type(size_bytes: int, leading_bytes: bytes) -> str:
+    """Validate an object already in S3 using its size and leading bytes."""
+
+    if size_bytes < 1:
+        raise UploadEmptyError()
+    if size_bytes > MAX_UPLOAD_BYTES:
+        raise UploadTooLargeError()
+    content_type = _detect_content_type(leading_bytes)
+    if content_type is None:
+        raise UploadDisallowedTypeError()
+    return content_type
 
 
 def _detect_content_type(leading_bytes: bytes) -> str | None:

@@ -13,10 +13,14 @@ from app.auth import (
     require_admin,
     require_authenticated_user,
 )
+from app.core.services.storage import FileStorage, FileStorageError, get_file_storage
 from app.database import get_session
 from app.models import AnonymousUser, User
+from app.tournaments.exceptions import ParentalTermNotAllowedError, ParentalTermRequiredError
 from app.tournaments.models import Tournament, TournamentSignup
 from app.tournaments.schemas import (
+    ParentalTermDownloadUrlRead,
+    ParentalTermUploadUrlRead,
     SignupCreate,
     SignupRead,
     StaffSignupRead,
@@ -27,9 +31,11 @@ from app.tournaments.schemas import (
 from app.tournaments.services import (
     TOURNAMENT_LOCAL_TIMEZONE,
     create_tournament_signup,
+    read_tournament_signup_parental_term_download,
     resolve_tournament_slug,
     visible_tournament,
 )
+from app.tournaments.services.tournament_signup_files import create_parental_term_upload_url
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
@@ -121,6 +127,30 @@ def get_tournament(
 
 
 @router.post(
+    "/{tournament_id}/signups/parental-term/upload-url",
+    response_model=ParentalTermUploadUrlRead,
+)
+def issue_parental_term_upload_url(
+    tournament_id: int,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> ParentalTermUploadUrlRead:
+    visible_tournament(session, tournament_id, user)
+    storage_key, upload_url, expires_in_seconds, required_headers = create_parental_term_upload_url(
+        file_storage,
+        tournament_id,
+        user,
+    )
+    return ParentalTermUploadUrlRead(
+        storage_key=storage_key,
+        upload_url=upload_url,
+        expires_in_seconds=expires_in_seconds,
+        required_headers=required_headers,
+    )
+
+
+@router.post(
     "/{tournament_id}/signups", response_model=SignupRead, status_code=status.HTTP_201_CREATED
 )
 def register_for_tournament(
@@ -129,12 +159,27 @@ def register_for_tournament(
     request: Request,
     user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> SignupRead:
     if request.client is None:
         raise HTTPException(status_code=503, detail="Client address unavailable")
-    signup = create_tournament_signup(
-        session, tournament_id, user, payload, request.client.host
-    )
+    try:
+        signup = create_tournament_signup(
+            session,
+            tournament_id,
+            user,
+            payload,
+            request.client.host,
+            file_storage=file_storage,
+        )
+    except ParentalTermRequiredError as error:
+        raise HTTPException(status_code=422, detail="Parental term is required") from error
+    except ParentalTermNotAllowedError as error:
+        raise HTTPException(
+            status_code=422, detail="Parental term is not allowed for this registration"
+        ) from error
+    except FileStorageError as error:
+        raise HTTPException(status_code=503, detail="File storage unavailable") from error
     return SignupRead.model_validate(signup)
 
 
@@ -182,3 +227,24 @@ def get_signup(
     if get_application_role(user) == "admin":
         return StaffSignupRead.model_validate(signup)
     return SignupRead.model_validate(signup)
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/parental-term",
+    response_model=ParentalTermDownloadUrlRead,
+)
+def get_parental_term_download_url(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> ParentalTermDownloadUrlRead:
+    download_url, content_type, expires_in_seconds = read_tournament_signup_parental_term_download(
+        session, tournament_id, inscription_number, user, file_storage
+    )
+    return ParentalTermDownloadUrlRead(
+        download_url=download_url,
+        content_type=content_type,
+        expires_in_seconds=expires_in_seconds,
+    )

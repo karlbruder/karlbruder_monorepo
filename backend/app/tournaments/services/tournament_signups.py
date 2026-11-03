@@ -12,12 +12,22 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_application_role
+from app.core.services.storage import FileStorage, FileStorageError
 from app.models import User
-from app.tournaments.models import Tournament, TournamentSignup
+from app.tournaments.exceptions import ParentalTermNotAllowedError, ParentalTermRequiredError
+from app.tournaments.models import Tournament, TournamentSignup, TournamentSignupFile
 from . import tournament_local_dates
+from .tournament_local_dates import is_minor_at_tournament_start
 from .tournament_inscriptions import (
     MAX_TOURNAMENT_INSCRIPTION_SERIAL,
     format_tournament_inscription_number,
+)
+from .tournament_signup_files import (
+    create_parental_term_download_url,
+    inspect_staged_parental_term_upload,
+    promote_staged_parental_term_to_signup,
+    validate_staged_parental_term_storage_key,
+    delete_storage_object_quietly,
 )
 
 if TYPE_CHECKING:
@@ -69,6 +79,8 @@ def create_tournament_signup(
     user: User,
     payload: SignupCreate,
     acceptance_ip: str,
+    *,
+    file_storage: FileStorage | None = None,
 ) -> TournamentSignup:
     """Create a tournament registration row, assign the next inscription number, and commit."""
 
@@ -97,10 +109,33 @@ def create_tournament_signup(
     if tournament.next_inscription_serial > MAX_TOURNAMENT_INSCRIPTION_SERIAL:
         raise HTTPException(status_code=409, detail="Inscription number capacity exhausted")
 
+    staged_storage_key = payload.parental_term_storage_key
+    original_file_name = payload.parental_term_original_file_name
+    has_staged_parental_term = staged_storage_key is not None
+
+    is_minor = is_minor_at_tournament_start(payload.birth_date, tournament.starts_at)
+    if is_minor and not has_staged_parental_term:
+        raise ParentalTermRequiredError()
+    if not is_minor and has_staged_parental_term:
+        raise ParentalTermNotAllowedError()
+    if has_staged_parental_term and file_storage is None:
+        raise FileStorageError("File storage is not configured")
+
+    staged_content_type: str | None = None
+    staged_size_bytes: int | None = None
+    if has_staged_parental_term:
+        validate_staged_parental_term_storage_key(staged_storage_key, tournament.id, user.id)
+        staged_content_type, staged_size_bytes = inspect_staged_parental_term_upload(
+            file_storage,
+            staged_storage_key,
+        )
+
     serial = tournament.next_inscription_serial
     tournament.next_inscription_serial = serial + 1
     signup = TournamentSignup(
-        **payload.model_dump(),
+        **payload.model_dump(
+            exclude={"parental_term_storage_key", "parental_term_original_file_name"}
+        ),
         tournament_id=tournament.id,
         user_id=user.id,
         inscription_number=format_tournament_inscription_number(tournament.id, serial),
@@ -113,15 +148,77 @@ def create_tournament_signup(
         acceptance_ip=acceptance_ip,
     )
     session.add(signup)
+    final_storage_key: str | None = None
     try:
+        session.flush()
+        if has_staged_parental_term:
+            final_storage_key = promote_staged_parental_term_to_signup(
+                file_storage,
+                staged_storage_key=staged_storage_key,
+                tournament_id=tournament.id,
+                signup_id=signup.id,
+            )
+            session.add(
+                TournamentSignupFile(
+                    signup_id=signup.id,
+                    kind="parental_term",
+                    storage_key=final_storage_key,
+                    original_file_name=original_file_name or "parental-term",
+                    content_type=staged_content_type,
+                    size_bytes=staged_size_bytes,
+                )
+            )
         session.commit()
     except IntegrityError as exc:
         session.rollback()
+        if final_storage_key is not None:
+            delete_storage_object_quietly(file_storage, final_storage_key)
         if is_duplicate_tournament_signup(exc):
             raise HTTPException(status_code=409, detail="Registration already exists") from exc
         raise
+    except FileStorageError:
+        session.rollback()
+        if final_storage_key is not None:
+            delete_storage_object_quietly(file_storage, final_storage_key)
+        raise
+    except Exception:
+        session.rollback()
+        if final_storage_key is not None:
+            delete_storage_object_quietly(file_storage, final_storage_key)
+        raise
     session.refresh(signup)
     return signup
+
+
+def read_tournament_signup_parental_term_download(
+    session: Session,
+    tournament_id: int,
+    inscription_number: str,
+    user: User,
+    file_storage: FileStorage,
+) -> tuple[str, str, int]:
+    """Return a presigned download URL for the parental term when the caller may read it."""
+
+    visible_tournament(session, tournament_id, user)
+    signup = session.scalar(
+        select(TournamentSignup).where(
+            TournamentSignup.tournament_id == tournament_id,
+            TournamentSignup.inscription_number == inscription_number,
+        )
+    )
+    if signup is None or (
+        signup.user_id != user.id and get_application_role(user) != "admin"
+    ):
+        raise HTTPException(status_code=404, detail="Registration not found")
+    file_row = session.scalar(
+        select(TournamentSignupFile).where(
+            TournamentSignupFile.signup_id == signup.id,
+            TournamentSignupFile.kind == "parental_term",
+        )
+    )
+    if file_row is None:
+        raise HTTPException(status_code=404, detail="Parental term not found")
+    return create_parental_term_download_url(file_storage, file_row.storage_key)
 
 
 def is_duplicate_tournament_signup(exc: IntegrityError) -> bool:

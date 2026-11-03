@@ -84,6 +84,27 @@ def test_storage_methods_wrap_boto_errors_as_file_storage_error():
         storage.store_file("key", b"data", "text/plain")
 
 
+def test_file_storage_creates_presigned_put_and_get_urls():
+    s3_client = MagicMock()
+    s3_client.generate_presigned_url.side_effect = ["put-url", "get-url"]
+    storage = FileStorage(
+        bucket_name="kb-local-bucket",
+        endpoint_url=None,
+        s3_client=s3_client,
+    )
+
+    put_url = storage.create_presigned_put_url(
+        "staging/key",
+        content_type="application/pdf",
+        expires_in=900,
+    )
+    get_url = storage.create_presigned_get_url("final/key", expires_in=600)
+
+    assert put_url == "put-url"
+    assert get_url == "get-url"
+    assert s3_client.generate_presigned_url.call_count == 2
+
+
 @patch("app.core.services.storage.file_storage.build_s3_client")
 def test_file_storage_delegates_client_creation_to_build_s3_client(build_s3_client):
     build_s3_client.return_value = MagicMock()

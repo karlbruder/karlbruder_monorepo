@@ -47,6 +47,15 @@ export type SignupCreate = {
   acknowledges_inherent_risks: boolean;
   accepts_cancellation_policy: boolean;
   image_use_authorized: boolean;
+  parental_term_storage_key?: string | null;
+  parental_term_original_file_name?: string | null;
+};
+
+export type ParentalTermUploadUrl = {
+  storage_key: string;
+  upload_url: string;
+  expires_in_seconds: number;
+  required_headers: Record<string, string>;
 };
 
 export type SignupCreated = {
@@ -124,6 +133,34 @@ export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tour
     throw new Error("invalid-tournament-list");
   }
   return body.items[0];
+}
+
+export async function requestParentalTermUploadUrl(
+  tournamentId: number,
+  token: string,
+): Promise<ParentalTermUploadUrl> {
+  const response = await fetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/parental-term/upload-url`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !body || typeof body !== "object") {
+    throw new Error(`http-${response.status}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (
+    typeof record.storage_key !== "string" ||
+    typeof record.upload_url !== "string" ||
+    typeof record.expires_in_seconds !== "number" ||
+    !record.required_headers ||
+    typeof record.required_headers !== "object"
+  ) {
+    throw new Error("invalid-parental-term-upload-url");
+  }
+  return body as ParentalTermUploadUrl;
 }
 
 export async function createSignup(
