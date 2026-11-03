@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-30
+**Last updated**: 2026-11-02
 
 | Field | Value |
 | --- | --- |
@@ -23,7 +23,7 @@ Allow an authenticated user to register for a tournament, retain an inscription 
 - **REG-005:** Registration is available from the configured opening day through the configured closing day, inclusive, in fixed GMT-3 (UTC-03:00). The window is expressed as calendar days, not configurable times within those days. Creation outside the date range returns HTTP 400, following issue #20.
 - **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `payment_in_review` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm an already-paid waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
 - **REG-007:** Successful submission shows the inscription number, registration summary, current status, and applicable next step. A waitlisted participant has already had payment approved but has no confirmed seat. Status messages must reflect that distinction.
-- **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. Listing complete private registration records across users requires the admin role. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. An inscription number is not authorization to retrieve a private record.
+- **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. The tournament signup list returns every registration to admins. Other authenticated callers receive only their own registrations in the owner-safe projection, including cancelled rows. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. An inscription number is not authorization to retrieve a private record.
 - **REG-009:** Safety notes are staff-only. Participants may retrieve and correct other permitted signup fields, excluding staff/system-managed fields listed in PRIV-005. Public and participant-facing projections omit `safety_note`; edits preserve validation, uniqueness, ownership, and acceptance evidence.
 - **REG-010:** The form works on phones and desktops, with readable labels and validation errors. Saving and resuming an incomplete form is a possible extension, not an established initial requirement.
 - **REG-011:** Users sign up to the application before registering for a tournament. Registration ownership uses their existing Supabase `auth.users.id` UUID, obtained from the verified token subject. No separate user identity is created for tournament registration. On creation, the registration email must match the authenticated account email using REG-012. Changing the account email does not invalidate or transfer an existing registration.

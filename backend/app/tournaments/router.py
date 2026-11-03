@@ -138,19 +138,24 @@ def register_for_tournament(
     return SignupRead.model_validate(signup)
 
 
-@router.get("/{tournament_id}/signups", response_model=list[StaffSignupRead])
+@router.get("/{tournament_id}/signups", response_model=list[SignupRead | StaffSignupRead])
 def list_signups(
     tournament_id: int,
-    admin: Annotated[User, Depends(require_admin)],
+    user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
-) -> list[StaffSignupRead]:
-    visible_tournament(session, tournament_id, admin)
-    signups = session.scalars(
+) -> list[SignupRead | StaffSignupRead]:
+    visible_tournament(session, tournament_id, user)
+    query = (
         select(TournamentSignup)
         .where(TournamentSignup.tournament_id == tournament_id)
         .order_by(TournamentSignup.id)
     )
-    return [StaffSignupRead.model_validate(signup) for signup in signups]
+    if get_application_role(user) != "admin":
+        query = query.where(TournamentSignup.user_id == user.id)
+    signups = session.scalars(query)
+    if get_application_role(user) == "admin":
+        return [StaffSignupRead.model_validate(signup) for signup in signups]
+    return [SignupRead.model_validate(signup) for signup in signups]
 
 
 @router.get(

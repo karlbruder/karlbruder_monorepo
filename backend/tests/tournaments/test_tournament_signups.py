@@ -150,7 +150,10 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     assert client.get(detail_path).status_code == 401
     assert client.get(detail_path, headers={"Authorization": "Bearer invalid"}).status_code == 401
     assert client.get(detail_path, headers={"Authorization": "Basic invalid"}).status_code == 401
-    assert client.get(f"/api/tournaments/{event_id}/signups", headers=owner).status_code == 403
+    owner_list = client.get(f"/api/tournaments/{event_id}/signups", headers=owner)
+    assert owner_list.status_code == 200
+    assert owner_list.json() == [owner_view]
+    assert {"safety_note", "acceptance_ip", "user_id"}.isdisjoint(owner_list.json()[0])
     assert client.get(f"/api/tournaments/{event_id}/signups").status_code == 401
     admin = _headers(key, role="admin")
     staff_view = client.get(detail_path, headers=admin).json()
@@ -162,6 +165,53 @@ def test_self_signup_owner_lookup_admin_listing_and_private_projection(setup):
     assert staff_view["user_id"] == str(owner_id)
     assert client.get(f"/api/tournaments/{event_id}/signups", headers=admin).json() == [staff_view]
     assert "safety_note" not in client.get(detail_path, headers=owner).json()
+
+
+def test_list_signups_returns_own_rows_for_participants_and_all_rows_for_admin(setup):
+    """Each participant lists only their registrations. Admins list everyone. Guests get 401."""
+    client, key, db_session = setup
+    event_id = _create_event(client, key)
+    internal_id = _create_event(client, key, internal=True)
+    owner_a_id = uuid4()
+    owner_b_id = uuid4()
+    owner_a = _headers(key, user_id=owner_a_id, email="a@example.test")
+    owner_b = _headers(key, user_id=owner_b_id, email="b@example.test")
+    signup_b = _signup(email="b@example.test", document="CD-456")
+    created_a = client.post(
+        f"/api/tournaments/{event_id}/signups",
+        json=_signup(email="a@example.test"),
+        headers=owner_a,
+    )
+    created_b = client.post(
+        f"/api/tournaments/{event_id}/signups", json=signup_b, headers=owner_b
+    )
+    assert created_a.status_code == created_b.status_code == 201
+    view_a = created_a.json()
+    view_b = created_b.json()
+    list_path = f"/api/tournaments/{event_id}/signups"
+    assert client.get(list_path, headers=owner_a).json() == [view_a]
+    assert client.get(list_path, headers=owner_b).json() == [view_b]
+    other_event = _create_event(client, key)
+    assert client.get(f"/api/tournaments/{other_event}/signups", headers=owner_a).json() == []
+    stored = db_session.scalar(
+        select(TournamentSignup).where(TournamentSignup.inscription_number == view_a["inscription_number"])
+    )
+    stored.status = "cancelled"
+    db_session.commit()
+    cancelled_list = client.get(list_path, headers=owner_a).json()
+    assert len(cancelled_list) == 1
+    assert cancelled_list[0]["status"] == "cancelled"
+    assert {"safety_note", "acceptance_ip", "user_id"}.isdisjoint(cancelled_list[0])
+    admin = _headers(key, role="admin")
+    admin_rows = client.get(list_path, headers=admin).json()
+    assert len(admin_rows) == 2
+    assert {row["inscription_number"] for row in admin_rows} == {
+        view_a["inscription_number"],
+        view_b["inscription_number"],
+    }
+    assert all(row.get("user_id") for row in admin_rows)
+    regular = _headers(key)
+    assert client.get(f"/api/tournaments/{internal_id}/signups", headers=regular).status_code == 404
 
 
 def test_priv_002_truthfulness_requires_explicit_json_true_without_creating_row(setup):

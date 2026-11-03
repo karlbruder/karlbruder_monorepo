@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-02
 
 This module stores reusable `Tournament` and `TournamentSignup` records in the
 domain database. Monomachia is one event using the same catalog and registration
@@ -52,8 +52,10 @@ while locking the tournament row so concurrent signups do not reuse numbers.
 
 `GET /api/tournaments/{id}/signups/{inscription_number}` is available only to
 the owner or an admin; other callers receive 404. `GET /api/tournaments/{id}/signups`
-is admin-only. Owner responses exclude `safety_note` and acceptance IP, while
-admin reads may include those staff fields. No public signup directory is exposed.
+requires a verified token. Admins receive every registration in staff shape.
+Everyone else receives only their own registrations in the owner-safe shape,
+including cancelled rows. Owner responses exclude `safety_note` and acceptance IP,
+while admin reads may include those staff fields. No public signup directory is exposed.
 Do not log identity documents, contact details, or safety notes.
 
 Accepted terms and regulation versions, time, and request IP are recorded as
