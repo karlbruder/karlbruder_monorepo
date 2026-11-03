@@ -26,3 +26,5 @@ class TestSettings(Settings):
     AUTH_DB_NAME: str = "postgres"
 
     SUPABASE_URL: AnyHttpUrl = "https://test-project.supabase.co"  # type: ignore[assignment]
+
+    S3_BUCKET_NAME: str = "kb-test-bucket"

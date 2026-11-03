@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Local development S3 bucket for Karlbruder
+
+Resources:
+  LocalBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: kb-local-bucket

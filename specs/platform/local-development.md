@@ -1,13 +1,13 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
 | Field | Value |
 | --- | --- |
 | Status | Draft |
 | Scope | Platform foundation and contributor onboarding |
-| Applications | landing, frontend, backend, local PostgreSQL; Ministack when file storage is implemented |
+| Applications | landing, frontend, backend, local PostgreSQL, Ministack for private files |
 | Sources | Product-owner stack clarification; [decision 0003](../decisions/0003-local-and-production-stacks.md); [#6](https://github.com/karlbruder/karlbruder_monorepo/issues/6), [#8](https://github.com/karlbruder/karlbruder_monorepo/issues/8), [#22](https://github.com/karlbruder/karlbruder_monorepo/issues/22); current source and READMEs |
 
 ## Goal
@@ -24,7 +24,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 - **DEV-006:** Retain the existing default development ports rather than introducing a new port-selection decision: current Compose uses landing 3000, frontend 5173, backend 8000, and PostgreSQL 5432. Align forwarding, health checks, and allowed origins with those settings as implementation work. Local servers may publish their development ports; production's Nginx-only exposure is a different stack boundary.
 - **DEV-007:** Contributors can distinguish application liveness, domain database connectivity, and optional Auth database diagnostics. A missing Auth database diagnostic connection must not be described as a domain database failure.
 - **DEV-008:** Verification commands correspond to the relevant application's actual scripts and dependencies. Report skipped external integration checks rather than describing them as passed.
-- **DEV-009:** When file storage is implemented, the local Compose stack includes Ministack for S3 emulation. Configure the backend's S3 endpoint for Ministack, using local buckets and credentials. Production uses AWS S3 instead. Ministack does not replace the ordinary local PostgreSQL container.
+- **DEV-009:** Local Compose includes Ministack for S3 emulation. Configure the backend's S3 endpoint for Ministack, using local buckets and credentials. Production uses AWS S3 instead. Ministack does not replace the ordinary local PostgreSQL container.
 - **DEV-010:** The application's browser-facing `/api` prefix is preserved when forwarding to backend routes, matching production. The local frontend may use its development-server proxy; the production Nginx container does not need to be copied into the local stack.
 - **DEV-011:** Application email integration uses SMTP, with AWS SES as the production provider. The local SMTP decision is deferred; the likely approach is real SES with real AWS/SES credentials supplied through local backend configuration. Do not add a mail emulator or require a decision now. Ministack remains the selected local S3 emulator.
 
@@ -37,7 +37,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 | Backend container | API/domain behavior, using the same application rules as production |
 | PostgreSQL container | Local domain tables in `public` |
 | Hosted Supabase Auth | Application sign-in and verified user identity; still external in local development |
-| Ministack, planned addition | Local S3 storage when file upload/storage is implemented |
+| Ministack | Local S3 on port 4566. Bucket from CloudFormation in `ministack/bootstrap-ministack.sh` |
 
 Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [mode comparison and diagrams](../architecture.md#mode-comparison).
 
@@ -61,7 +61,7 @@ Changes since the 17 October baseline, confirmed by source inspection on 29 Octo
 
 Compose files as of 31 October 2026:
 
-- Local `compose.yml` runs landing, frontend, backend, and PostgreSQL. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
+- Local `compose.yml` runs landing, frontend, backend, PostgreSQL, and Ministack. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
 - `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
 - `compose.production.yml` is production mode. The `dev` and `prod` hosts both use it. It runs Nginx, landing, frontend, and backend. Nginx publishes 443 with a self-signed certificate.
 
@@ -83,7 +83,7 @@ The 17 October specification pass did not run services or application tests to e
 - **DEV-AC-003:** A frontend request reaches the expected backend endpoint and the backend connects to the intended domain database without manual route guessing.
 - **DEV-AC-004:** Optional remote integration checks are explicitly enabled and identify their target without disclosing credentials.
 - **DEV-AC-005:** Local domain records are written to Docker PostgreSQL's `public` schema while authentication still uses the configured hosted Supabase Auth project.
-- **DEV-AC-006:** Once storage is implemented, file integration checks use Ministack rather than production S3 and do not require switching application business logic.
+- **DEV-AC-006:** File integration checks use Ministack rather than production S3 and do not require switching application business logic.
 
 ## Open questions
 

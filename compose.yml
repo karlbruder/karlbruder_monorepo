@@ -1,3 +1,18 @@
+x-local-aws-credentials: &local-aws-credentials
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_DEFAULT_REGION: us-east-2
+
+x-backend-environment: &backend-environment
+  <<: *local-aws-credentials
+  S3_BUCKET_NAME: kb-local-bucket
+  S3_ENDPOINT_URL: http://ministack:4566
+
+x-ministack-environment: &ministack-environment
+  <<: *local-aws-credentials
+  S3_PERSIST: "1"
+  S3_DATA_DIR: /mnt/ministack/s3
+
 services:
   db:
     image: postgres:17
@@ -76,9 +91,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ministack:
+        condition: service_healthy
 
     env_file:
       - ./backend/.env
+
+    environment:
+      <<: *backend-environment
 
     volumes:
       - ./backend:/app
@@ -122,6 +142,41 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+
+  ministack:
+    image: ministackorg/ministack:1.5.27
+    container_name: kb-ministack
+    restart: unless-stopped
+
+    ports:
+      - "4566:4566"
+
+    environment:
+      <<: *ministack-environment
+
+    volumes:
+      - ./ministack/data/s3:/mnt/ministack/s3
+      - ./ministack/bootstrap-ministack.sh:/etc/localstack/init/ready.d/bootstrap-ministack.sh:ro
+      - ./ministack/ministack-aws-emulator-stack.yml:/etc/localstack/init/ministack-aws-emulator-stack.yml:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "aws",
+          "--endpoint-url",
+          "http://localhost:4566",
+          "--region",
+          "us-east-2",
+          "s3api",
+          "head-bucket",
+          "--bucket",
+          "kb-local-bucket",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

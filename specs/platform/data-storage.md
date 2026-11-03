@@ -1,7 +1,7 @@
 # Data storage
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-02
 
 | Field | Value |
 | --- | --- |
@@ -24,7 +24,7 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 - **DATA-006:** Persist unique inscription numbers and prevent non-cancelled registrations from sharing the same tournament plus user UUID, normalized email, or normalized document. Cancelled participation is excluded from those duplicate checks even while a refund awaits processing. Follow REG-012's comparison normalization and retain the original registration email for display/history. Send notifications to the current account email under COM-008. Coordinate confirmation and capacity assignment transactionally. Admin-only manual Supabase reopening must preserve these invariants.
 - **DATA-007:** Registration ownership directly uses the existing Supabase `auth.users.id` UUID from the verified token subject. Users already have that identity before tournament registration. An account email change leaves ownership and registration validity unchanged. No separate user identity or intermediate owner mapping is required. Do not duplicate Supabase passwords, create a second authentication store, or modify managed Auth objects.
 - **DATA-008:** Credentials are supplied through environment/secrets configuration. No private database URI belongs in browser bundles or source. Diagnostic responses must not expose passwords or raw internal errors.
-- **DATA-009:** Private uploaded files, including all payment-proof versions and scanned parental terms, use Amazon S3 in production and Ministack S3 emulation locally once file storage is implemented. Backend authorization applies in both environments. Participants see only their latest proof; authorized staff can audit all submissions. PRIV-011 establishes interim indefinite retention for covered records. Backup/recovery and deletion-request procedures remain separate work. Private object storage is separate from public landing-site assets.
+- **DATA-009:** Private uploaded files, including all payment-proof versions and scanned parental terms, use Amazon S3 in production and Ministack S3 emulation locally. Backend authorization applies in both environments. Participants see only their latest proof; authorized staff can audit all submissions. PRIV-011 establishes interim indefinite retention for covered records. Backup/recovery and deletion-request procedures remain separate work. Private object storage is separate from public landing-site assets.
 
 ## Storage by environment
 
@@ -32,13 +32,15 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 | --- | --- | --- |
 | Application identity | Hosted Supabase Auth, managed `auth` schema | Hosted Supabase Auth, managed `auth` schema |
 | Domain records | Docker PostgreSQL, `public` schema | Hosted Supabase PostgreSQL, `public` schema |
-| Private uploaded files | Ministack S3 emulation, planned | Amazon S3 |
+| Private uploaded files | Ministack S3 emulation | Amazon S3 |
 
 The backend uses the same domain migrations and S3-facing storage logic across environments. Configuration selects endpoints, credentials, bucket, and database destination. The optional hosted Auth database diagnostic connection is distinct from the local domain connection; it is not a reason to run a second local Auth database.
 
 ## Observed configuration
 
 The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
+
+File storage uses `S3_BUCKET_NAME` and an optional `S3_ENDPOINT_URL`. Local Compose points the endpoint at Ministack and creates the `kb-local-bucket` bucket through a CloudFormation stack in `ministack/bootstrap-ministack.sh`. Deployed environments use names such as `kb-dev-bucket` and `kb-prod-bucket` from secrets. Tests mock the storage client and do not start Ministack.
 
 The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
 
@@ -49,7 +51,7 @@ The source inspection on 17 October 2026 did not establish a live connection, mi
 - **DATA-AC-003:** Duplicate concurrent registration attempts cannot bypass the agreed database uniqueness constraints.
 - **DATA-AC-004:** Domain diagnostics and Auth diagnostics report their own connection failures independently and do not expose credentials.
 - **DATA-AC-005:** A fresh supported domain database can reach the required schema using the versioned migrations once they are delivered.
-- **DATA-AC-006:** Once file storage is delivered, the backend can store and retrieve an authorized proof through Ministack locally and S3 in production without changing the storage business rules.
+- **DATA-AC-006:** The backend can store and retrieve an authorized proof through Ministack locally and S3 in production without changing the storage business rules.
 
 ## Open questions
 
@@ -57,7 +59,7 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 
 ## Implementation and operations decisions
 
-- Define S3/Ministack bucket, endpoint, credentials, persistence, and object-deletion configuration in the storage implementation plan. Apply the retention policy chosen in the privacy spec rather than defining a second one here.
+- Define bucket, endpoint, credentials, persistence, and object-deletion configuration in the storage implementation work tracked with issue #59. Apply the retention policy chosen in the privacy spec rather than defining a second one here.
 - Define which health-diagnostic fields are exposed to public callers versus protected access, while preserving DATA-008's ban on credential disclosure. This is an operational/API design decision, not another application-role hierarchy.
 
 ## Related specifications
