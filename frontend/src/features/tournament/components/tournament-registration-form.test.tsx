@@ -39,9 +39,13 @@ function change(label: RegExp, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 }
 
-function fillRequired({ declarations = true, image = 'no' }: { declarations?: boolean; image?: 'yes' | 'no' | null } = {}) {
+function fillRequired({ declarations = true, image = 'no', birthDate = '2000-01-01' }: {
+  declarations?: boolean
+  image?: 'yes' | 'no' | null
+  birthDate?: string
+} = {}) {
   change(/Nome completo/, ' Ana Teste ')
-  change(/Data de nascimento/, '2000-01-01')
+  change(/Data de nascimento/, birthDate)
   change(/^Documento/, 'passport')
   change(/Número do documento/, ' AB-123 ')
   change(/^Telefone \*/, '+55 11 0000-0000')
@@ -79,6 +83,41 @@ function submit() {
 
 function response(status: number, body: unknown) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
+}
+
+function pdfFile(name = 'term.pdf') {
+  const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])
+  const file = new File([bytes], name, { type: 'application/pdf' })
+  Object.defineProperty(file, 'arrayBuffer', {
+    configurable: true,
+    value: () => Promise.resolve(bytes.slice().buffer),
+  })
+  return file
+}
+
+function mockPresignedSignupFlow(createStatus = 201, createBody: unknown = created) {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input)
+    if (url.includes('/parental-term/upload-url')) {
+      return response(200, {
+        storage_key: 'tournaments/42/staging/user/parental_term/staged',
+        upload_url: 'https://upload.example.test/put',
+        expires_in_seconds: 900,
+        required_headers: { 'Content-Type': 'application/pdf' },
+      })
+    }
+    if (init?.method === 'PUT') return { ok: true, status: 200 }
+    if (url.endsWith('/signups') && init?.method === 'POST') {
+      return response(createStatus, createBody)
+    }
+    return response(404, { detail: 'unexpected' })
+  })
+}
+
+function attachParentalTerm(file: File) {
+  const input = screen.getByLabelText(/Termo de responsabilidade assinado/) as HTMLInputElement
+  Object.defineProperty(input, 'files', { configurable: true, value: [file] })
+  fireEvent.change(input, { target: { files: [file] } })
 }
 
 beforeEach(() => {
@@ -259,5 +298,69 @@ describe('Athlete submits their own registration and sees the result', () => {
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar a inscrição agora.')
     expect(screen.queryByText(created.inscription_number)).not.toBeInTheDocument()
+  })
+
+  it('does not show the parental term field for an adult birth date', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fillRequired()
+    expect(screen.queryByLabelText(/Termo de responsabilidade assinado/)).not.toBeInTheDocument()
+  })
+
+  it('shows the parental term field for a minor and blocks submit without a file', () => {
+    const request = vi.fn()
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fillRequired({ birthDate: '2010-06-01' })
+    expect(screen.getByLabelText(/Termo de responsabilidade assinado/)).toBeInTheDocument()
+    submit()
+    expect(request).not.toHaveBeenCalled()
+    expect(screen.getByText(/Envie o termo de responsabilidade assinado/)).toBeInTheDocument()
+  })
+
+  it('presigns, uploads, and creates signup with storage key fields for a minor', async () => {
+    const request = mockPresignedSignupFlow()
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fillRequired({ birthDate: '2010-06-01' })
+    attachParentalTerm(pdfFile())
+    submit()
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(3))
+    const createCall = request.mock.calls.find(
+      ([url, options]) => String(url).endsWith('/signups') && options?.method === 'POST',
+    )
+    expect(createCall).toBeDefined()
+    const payload = JSON.parse(createCall![1]!.body as string)
+    expect(payload.parental_term_storage_key).toContain('parental_term')
+    expect(payload.parental_term_original_file_name).toBe('term.pdf')
+    expect(await screen.findByText(created.inscription_number)).toBeInTheDocument()
+  })
+
+  it('rejects a disallowed file type before calling the API', async () => {
+    const request = vi.fn()
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fillRequired({ birthDate: '2010-06-01' })
+    const bytes = new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c])
+    const htmlAsPdf = new File([bytes], 'term.pdf', { type: 'application/pdf' })
+    Object.defineProperty(htmlAsPdf, 'arrayBuffer', {
+      configurable: true,
+      value: () => Promise.resolve(bytes.slice().buffer),
+    })
+    attachParentalTerm(htmlAsPdf)
+    submit()
+    await waitFor(() => expect(screen.getByText(/PDF, JPEG ou PNG/)).toBeInTheDocument())
+    expect(request).not.toHaveBeenCalled()
+  })
+
+  it('maps a backend parental term type rejection after upload', async () => {
+    const request = mockPresignedSignupFlow(415, { detail: 'Parental term file type is not allowed' })
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fillRequired({ birthDate: '2010-06-01' })
+    attachParentalTerm(pdfFile())
+    submit()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/servidor recusou o termo de responsabilidade/)
+    expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
 })

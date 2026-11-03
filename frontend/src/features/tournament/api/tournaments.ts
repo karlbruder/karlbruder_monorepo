@@ -163,6 +163,21 @@ export async function requestParentalTermUploadUrl(
   return body as ParentalTermUploadUrl;
 }
 
+export async function uploadFileToPresignedUrl(
+  uploadUrl: string,
+  file: File,
+  requiredHeaders: Record<string, string>,
+): Promise<void> {
+  const headers = new Headers(requiredHeaders);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", file.type || "application/octet-stream");
+  }
+  const response = await fetch(uploadUrl, { method: "PUT", headers, body: file });
+  if (!response.ok) {
+    throw new Error(`presigned-upload-${response.status}`);
+  }
+}
+
 export async function createSignup(
   id: number,
   token: string,

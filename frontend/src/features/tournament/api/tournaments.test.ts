@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSignup, requestParentalTermUploadUrl, type SignupCreate } from '@/features/tournament/api/tournaments'
+import { createSignup, requestParentalTermUploadUrl, uploadFileToPresignedUrl, type SignupCreate } from '@/features/tournament/api/tournaments'
 
 const payload: SignupCreate = {
   full_name: 'Fixture Athlete',
@@ -81,5 +81,19 @@ describe('tournament signup API', () => {
     expect(options.method).toBe('POST')
     expect(options.headers).toEqual({ Authorization: 'Bearer test-token' })
     expect(upload.storage_key).toContain('parental_term')
+  })
+
+  it('uploadFileToPresignedUrl sends a PUT with required headers and the file body', async () => {
+    const file = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'term.pdf', { type: 'application/pdf' })
+    const request = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', request)
+
+    await uploadFileToPresignedUrl('https://example.test/upload', file, { 'Content-Type': 'application/pdf' })
+
+    const [url, options] = request.mock.calls[0]
+    expect(url).toBe('https://example.test/upload')
+    expect(options.method).toBe('PUT')
+    expect(options.body).toBe(file)
+    expect(options.headers.get('Content-Type')).toBe('application/pdf')
   })
 })
