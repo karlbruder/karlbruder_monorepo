@@ -33,6 +33,11 @@ output "application_ecr_repository_urls" {
   value       = { for name, repository in aws_ecr_repository.application : name => repository.repository_url }
 }
 
+output "application_files_bucket_name" {
+  description = "Private S3 bucket for application uploads such as payment proofs and parental terms."
+  value       = module.application_files.bucket_name
+}
+
 output "ses_auth_mail" {
   description = "Supabase auth mail: Cloudflare DNS rows and SMTP settings. Null outside the prod workspace."
   value       = local.env == "prod" ? module.ses_auth_mail[0].handoff : null
