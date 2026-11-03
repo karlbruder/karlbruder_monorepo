@@ -1,7 +1,7 @@
 """Transactional signup creation and narrow database-conflict translation."""
 
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -10,11 +10,10 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_application_role
 from app.models import User
+from app.tournaments.event_dates import calendar_date_in_registration_timezone
 from app.tournaments.inscriptions import MAX_SERIAL, format_inscription_number
 from app.tournaments.models import Tournament, TournamentSignup
 from app.tournaments.schemas import SignupCreate
-
-REGISTRATION_TIMEZONE = timezone(timedelta(hours=-3))
 _DUPLICATE_CONSTRAINTS = {
     "uq_tournament_signups_active_user",
     "uq_tournament_signups_active_email",
@@ -36,7 +35,8 @@ def normalize_identity(value: str) -> str:
 def registration_date(now: datetime | None = None) -> date:
     """Use fixed UTC-03:00 calendar days, independent of server timezone."""
 
-    return (now or datetime.now(timezone.utc)).astimezone(REGISTRATION_TIMEZONE).date()
+    instant = now or datetime.now(timezone.utc)
+    return calendar_date_in_registration_timezone(instant)
 
 
 def visible_tournament(
