@@ -66,12 +66,47 @@ export type SignupCreated = {
   tournament_id: number;
 };
 
+export type OwnerSignup = SignupCreated;
+
+export type PaymentProofSummary = {
+  original_file_name: string;
+  content_type: string;
+  size_bytes: number;
+  submitted_at: string;
+};
+
+export type PaymentInstructions = {
+  inscription_number: string;
+  status: string;
+  inscription_fee_amount: string | number | null;
+  payment_due_at: string | null;
+  payment_options: {
+    pix: {
+      pix_key: string | null;
+    };
+  };
+  latest_payment_proof: PaymentProofSummary | null;
+};
+
+export type PaymentProofUploadUrl = ParentalTermUploadUrl;
+
 export class SignupRequestError extends Error {
   readonly status: number;
   readonly detail: string | null;
 
   constructor(status: number, detail: string | null) {
     super(`Signup request failed with HTTP ${status}`);
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+export class PaymentProofRequestError extends Error {
+  readonly status: number;
+  readonly detail: string | null;
+
+  constructor(status: number, detail: string | null) {
+    super(`Payment proof request failed with HTTP ${status}`);
     this.status = status;
     this.detail = detail;
   }
@@ -209,4 +244,134 @@ export async function createSignup(
     throw new Error("Invalid signup response");
   }
   return body as SignupCreated;
+}
+
+function isOwnerSignup(value: unknown): value is OwnerSignup {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.inscription_number === "string" &&
+    typeof record.status === "string" &&
+    typeof record.full_name === "string" &&
+    typeof record.email === "string" &&
+    typeof record.tournament_id === "number"
+  );
+}
+
+export async function listOwnSignups(
+  tournamentId: number,
+  token: string,
+  signal?: AbortSignal,
+): Promise<OwnerSignup[]> {
+  const response = await fetch(`${apiBaseUrl()}/tournaments/${tournamentId}/signups`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(body)) {
+    throw new Error(`http-${response.status}`);
+  }
+  if (!body.every(isOwnerSignup)) {
+    throw new Error("invalid-signup-list");
+  }
+  return body;
+}
+
+function isPaymentInstructions(value: unknown): value is PaymentInstructions {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  const paymentOptions = record.payment_options;
+  if (paymentOptions === null || typeof paymentOptions !== "object") return false;
+  const pix = (paymentOptions as Record<string, unknown>).pix;
+  if (pix === null || typeof pix !== "object") return false;
+  const pixKey = (pix as Record<string, unknown>).pix_key;
+  return (
+    typeof record.inscription_number === "string" &&
+    typeof record.status === "string" &&
+    (record.inscription_fee_amount === null ||
+      typeof record.inscription_fee_amount === "string" ||
+      typeof record.inscription_fee_amount === "number") &&
+    (record.payment_due_at === null || typeof record.payment_due_at === "string") &&
+    (pixKey === null || typeof pixKey === "string") &&
+    (record.latest_payment_proof === null ||
+      (typeof record.latest_payment_proof === "object" &&
+        record.latest_payment_proof !== null &&
+        typeof (record.latest_payment_proof as Record<string, unknown>).original_file_name === "string"))
+  );
+}
+
+export async function getPaymentInstructions(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<PaymentInstructions> {
+  const response = await fetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment`,
+    { headers: { Authorization: `Bearer ${token}` }, signal },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !isPaymentInstructions(body)) {
+    throw new Error(`http-${response.status}`);
+  }
+  return body;
+}
+
+export async function requestPaymentProofUploadUrl(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+): Promise<PaymentProofUploadUrl> {
+  const response = await fetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof/upload-url`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !body || typeof body !== "object") {
+    throw new Error(`http-${response.status}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (
+    typeof record.storage_key !== "string" ||
+    typeof record.upload_url !== "string" ||
+    typeof record.expires_in_seconds !== "number" ||
+    !record.required_headers ||
+    typeof record.required_headers !== "object"
+  ) {
+    throw new Error("invalid-payment-proof-upload-url");
+  }
+  return body as PaymentProofUploadUrl;
+}
+
+export async function submitPaymentProof(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+  payload: { storage_key: string; original_file_name: string },
+): Promise<OwnerSignup> {
+  const response = await fetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
+      ? body.detail
+      : null;
+    throw new PaymentProofRequestError(response.status, detail);
+  }
+  if (!isOwnerSignup(body)) {
+    throw new Error("invalid-payment-proof-submit-response");
+  }
+  return body;
 }

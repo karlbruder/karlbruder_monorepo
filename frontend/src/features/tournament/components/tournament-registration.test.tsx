@@ -117,18 +117,42 @@ describe('Tournament registration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('O acesso aos dados do torneio foi recusado.')
   })
 
-  it('posts the signup to the ID returned by the catalog lookup', async () => {
-    const resolvedTournament = { ...tournament, id: 73 }
-    const request = vi.fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => catalogBody(resolvedTournament) })
-      .mockResolvedValueOnce({
-        ok: true, status: 201,
-        json: async () => ({
-          inscription_number: 'T73-000001-1', status: 'awaiting_payment',
-          full_name: 'Fixture Athlete', email: 'athlete@example.test', tournament_id: 73,
-        }),
-      })
-    vi.stubGlobal('fetch', request)
+  it("posts the signup to the ID returned by the catalog lookup and opens the payment panel", async () => {
+    const resolvedTournament = { ...tournament, id: 73 };
+    const paymentPayload = {
+      inscription_number: "T73-000001-1",
+      status: "awaiting_payment",
+      inscription_fee_amount: "150.00",
+      payment_due_at: null,
+      payment_options: { pix: { pix_key: null } },
+      latest_payment_proof: null,
+    };
+    const request = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === monomachiaListUrl) {
+        return { ok: true, status: 200, json: async () => catalogBody(resolvedTournament) };
+      }
+      if (url === "/api/tournaments/73/signups" && (!init?.method || init.method === "GET")) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      if (url === "/api/tournaments/73/signups" && init?.method === "POST") {
+        return {
+          ok: true,
+          status: 201,
+          json: async () => ({
+            inscription_number: "T73-000001-1",
+            status: "awaiting_payment",
+            full_name: "Fixture Athlete",
+            email: "athlete@example.test",
+            tournament_id: 73,
+          }),
+        };
+      }
+      if (url.endsWith("/payment")) {
+        return { ok: true, status: 200, json: async () => paymentPayload };
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal("fetch", request);
     render(
       <TournamentRegistration
         session={signedInSession} authReady authError={null}
@@ -152,10 +176,100 @@ describe('Tournament registration', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
     fireEvent.submit(form)
 
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2))
-    expect(request.mock.calls[0][0]).toBe(monomachiaListUrl)
-    expect(request.mock.calls[1][0]).toBe('/api/tournaments/73/signups')
-    expect(request.mock.calls[1][1].headers.Authorization).toBe('Bearer test-token')
-    expect(await screen.findByText('T73-000001-1')).toBeInTheDocument()
-  })
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        "/api/tournaments/73/signups",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument();
+  });
+
+  it("shows the payment panel instead of the form when the caller already has an active signup", async () => {
+    mockTournament(tournament);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === monomachiaListUrl) {
+          return { ok: true, status: 200, json: async () => catalogBody(tournament) };
+        }
+        if (url === "/api/tournaments/42/signups") {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => [{
+              inscription_number: "T42-000001-5",
+              status: "awaiting_payment",
+              full_name: "Fixture Athlete",
+              email: "athlete@example.test",
+              tournament_id: 42,
+            }],
+          };
+        }
+        if (url.endsWith("/payment")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              inscription_number: "T42-000001-5",
+              status: "awaiting_payment",
+              inscription_fee_amount: null,
+              payment_due_at: null,
+              payment_options: { pix: { pix_key: null } },
+              latest_payment_proof: null,
+            }),
+          };
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      }),
+    );
+    render(
+      <TournamentRegistration
+        session={signedInSession}
+        authReady
+        authError={null}
+        onSignOut={vi.fn()}
+        signInButton={<button>Entrar</button>}
+      />,
+    );
+    expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument();
+  });
+
+  it("shows the registration form when only cancelled signups exist for the caller", async () => {
+    mockTournament(tournament);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === monomachiaListUrl) {
+          return { ok: true, status: 200, json: async () => catalogBody(tournament) };
+        }
+        if (url === "/api/tournaments/42/signups") {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => [{
+              inscription_number: "T42-000001-5",
+              status: "cancelled",
+              full_name: "Fixture Athlete",
+              email: "athlete@example.test",
+              tournament_id: 42,
+            }],
+          };
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      }),
+    );
+    render(
+      <TournamentRegistration
+        session={signedInSession}
+        authReady
+        authError={null}
+        onSignOut={vi.fn()}
+        signInButton={<button>Entrar</button>}
+      />,
+    );
+    expect(await screen.findByRole("form", { name: "Formulário de inscrição" })).toBeInTheDocument();
+  });
 })

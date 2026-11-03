@@ -17,6 +17,7 @@ type Props = {
   tournament: Tournament;
   session: Session;
   language?: AppLanguage;
+  onSignupCreated?: (signup: SignupCreated) => void;
 };
 
 type Errors = Record<string, AppCopyKey>;
@@ -218,7 +219,12 @@ function Success({ result, tournament, language }: { result: SignupCreated; tour
   );
 }
 
-export default function TournamentRegistrationForm({ tournament, session, language = "pt" }: Props) {
+export default function TournamentRegistrationForm({
+  tournament,
+  session,
+  language = "pt",
+  onSignupCreated,
+}: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const [errors, setErrors] = useState<Errors>({});
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
@@ -269,7 +275,11 @@ export default function TournamentRegistrationForm({ tournament, session, langua
         };
       }
       const created = await createSignup(tournament.id, session.access_token, signupPayload);
-      setResult(created);
+      if (onSignupCreated) {
+        onSignupCreated(created);
+      } else {
+        setResult(created);
+      }
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("presigned-upload-")) {
         setRequestError("Não foi possível enviar o termo de responsabilidade. Tente novamente.");

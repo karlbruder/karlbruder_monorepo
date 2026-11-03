@@ -1,10 +1,13 @@
 import LanguageToggle from "@/components/language-toggle";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { accountRoutes } from "@/config/account-routes";
 
 import { useMonomachiaTournament } from "@/features/tournament/api/use-monomachia-tournament";
-import type { Tournament } from "@/features/tournament/api/tournaments";
+import { useOwnTournamentSignups } from "@/features/tournament/api/use-own-tournament-signups";
+import type { SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
+import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -53,6 +56,22 @@ export default function TournamentRegistration({
 }: Props) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   const { data: tournament, error, isFetching: loading, refetch } = useMonomachiaTournament();
+  const { data: ownSignups, refetch: refetchOwnSignups } = useOwnTournamentSignups(
+    tournament?.id,
+    session?.access_token,
+  );
+  const [createdSignup, setCreatedSignup] = useState<SignupCreated | null>(null);
+
+  const activeSignup = useMemo(() => {
+    if (createdSignup) return createdSignup;
+    return ownSignups?.find((signup) => signup.status !== "cancelled") ?? null;
+  }, [createdSignup, ownSignups]);
+
+  const handleSignupCreated = (signup: SignupCreated) => {
+    setCreatedSignup(signup);
+    void refetchOwnSignups();
+  };
+
   const loadIssue = error
     ? error.message === "http-401" ? "unauthorized" : "request"
     : tournament === null ? "missing" : null;
@@ -110,12 +129,25 @@ export default function TournamentRegistration({
               ) : (
                 <>
                   <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
-                  {tournament.new_registrations_closed ? (
+                  {activeSignup ? (
+                    <TournamentPaymentPanel
+                      tournament={tournament}
+                      session={session}
+                      inscriptionNumber={activeSignup.inscription_number}
+                      language={language}
+                    />
+                  ) : tournament.new_registrations_closed ? (
                     <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
                   ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
                     <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
                   ) : (
-                    <TournamentRegistrationForm key={session.user.id} tournament={tournament} session={session} language={language} />
+                    <TournamentRegistrationForm
+                      key={session.user.id}
+                      tournament={tournament}
+                      session={session}
+                      language={language}
+                      onSignupCreated={handleSignupCreated}
+                    />
                   )}
                 </>
               )}

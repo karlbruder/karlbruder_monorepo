@@ -199,6 +199,37 @@ const english = {
     "The server rejected the parental responsibility term. Send PDF, JPEG, or PNG up to 10 MB.",
   "O servidor recusou o termo por tamanho. Use um arquivo de até 10 MB.":
     "The server rejected the term because of size. Use a file up to 10 MB.",
+  "Pagamento da inscrição": "Registration payment",
+  "Inscrição": "Registration",
+  "Número de inscrição": "Registration number",
+  "Valor da inscrição": "Registration fee",
+  "Prazo para pagamento": "Payment deadline",
+  "Chave Pix": "Pix key",
+  "A chave Pix deste torneio ainda não foi configurada.": "This tournament's Pix key has not been configured yet.",
+  "Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.":
+    "Complete the Pix transfer outside the platform, then upload your proof below. Uploading a file does not transfer money or reserve a place.",
+  "Comprovante de pagamento": "Payment proof",
+  "Resumo do comprovante": "Proof summary",
+  "Nenhum comprovante enviado ainda.": "No payment proof uploaded yet.",
+  "Último comprovante enviado": "Latest uploaded proof",
+  "Enviado em": "Submitted on",
+  "Enviar comprovante": "Upload payment proof",
+  "Substituir comprovante": "Replace payment proof",
+  "Enviando comprovante...": "Uploading payment proof...",
+  "Pagamento em análise": "Payment under review",
+  "Seu comprovante foi recebido e está aguardando análise da equipe. Nenhuma vaga foi reservada.":
+    "Your proof was received and is waiting for staff review. No place has been reserved.",
+  "Escolha PDF, JPEG ou PNG de até 10 MB.": "Choose PDF, JPEG, or PNG up to 10 MB.",
+  "Este arquivo não foi aceito. Escolha PDF, JPEG ou PNG de até 10 MB.":
+    "This file was not accepted. Choose PDF, JPEG, or PNG up to 10 MB.",
+  "Não foi possível enviar o comprovante agora. Tente novamente mais tarde.":
+    "We could not upload the payment proof now. Please try again later.",
+  "O servidor recusou o comprovante. Envie PDF, JPEG ou PNG de até 10 MB.":
+    "The server rejected the payment proof. Send PDF, JPEG, or PNG up to 10 MB.",
+  "O servidor recusou o comprovante por tamanho. Use um arquivo de até 10 MB.":
+    "The server rejected the payment proof because of size. Use a file up to 10 MB.",
+  "Não foi possível carregar as instruções de pagamento. Tente novamente.":
+    "We could not load payment instructions. Please try again.",
 } as const;
 
 export type AppCopyKey = keyof typeof english;
