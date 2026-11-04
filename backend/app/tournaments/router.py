@@ -53,7 +53,10 @@ from app.tournaments.services.tournament_policies import (
 
 from app.tournaments.services.registration_acceptances import project_registration
 
+from app.tournaments.staff_router import router as staff_router
+
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
+router.include_router(staff_router)
 
 
 def _can_view_internal(user: User | AnonymousUser) -> bool:

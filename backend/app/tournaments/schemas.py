@@ -339,3 +339,53 @@ class StaffRegistrationRead(RegistrationRead):
     identity_document_number_normalized: str
     accepted_from_ip: str
     staff_safety_note: str | None
+
+
+class StaffPaymentReviewQueueItem(BaseModel):
+    registration_number: str
+    tournament_id: int
+    tournament_name: str
+    full_name: str
+    registration_status: str
+    document_id: int
+    submitted_at: datetime
+
+
+class StaffPaymentReviewQueue(BaseModel):
+    items: list[StaffPaymentReviewQueueItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class PaymentProofReviewRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    document_id: int
+    decision: str
+    reviewed_by_user_id: UUID
+    reviewed_at: datetime
+    rejection_reason: str | None
+
+
+class StaffReviewDocumentRead(BaseModel):
+    id: int
+    document_type: str
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+    submitted_at: datetime
+
+
+class StaffPaymentReviewDetail(BaseModel):
+    registration: StaffRegistrationRead
+    tournament_name: str
+    registration_fee_amount: Decimal | None
+    payment_due_at: datetime | None
+    competitor_capacity: int | None
+    confirmed_count: int
+    equipment_requirements: str | None
+    latest_document_id: int | None
+    documents: list[StaffReviewDocumentRead]
+    reviews: list[PaymentProofReviewRead]

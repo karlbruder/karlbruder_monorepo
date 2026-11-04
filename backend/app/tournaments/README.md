@@ -218,3 +218,22 @@ chain and the intermediate rename migration are removed. There is no old-schema
 upgrade or old request-field/route alias. The development reset must include
 `public.alembic_version`, with Supabase-managed `auth` objects left intact.
 See [migration notes](../../../docs/database-migrations.md) for the reset and test boundaries.
+
+## Staff payment-review evidence
+
+Admins can read pending work across all tournaments with
+`GET /api/tournaments/staff/payment-reviews`. The queue supports `limit` (1–100),
+`offset`, and an optional exact `registration_number`. It includes only registrations
+in `payment_in_review` whose latest proof has no decision. Results are ordered by
+current proof ID. The queue excludes contact, identity, safety, and storage fields.
+
+`GET /api/tournaments/staff/payment-reviews/{registration_number}` returns the staff
+registration projection, fee, deadline, equipment requirements, capacity, confirmed
+count, proof versions, parental form metadata, and review history. Decided records
+remain readable. Reads do not allocate seats or record decisions.
+
+`GET /api/tournaments/staff/payment-reviews/{registration_number}/documents/{document_id}/download-url`
+issues a short-lived URL only for a proof or parental form belonging to that
+registration. Metadata reads do not call storage. Unknown registrations and mismatched
+documents return 404. Storage failures return 503. Guests receive 401 and authenticated
+non-admins receive 403 on all three endpoints. Owner proof access remains latest-only.
