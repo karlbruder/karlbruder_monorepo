@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-02
 
 This module stores reusable `Tournament` and `TournamentSignup` records in the
 domain database. Monomachia is one event using the same catalog and registration
@@ -32,8 +32,12 @@ role. Provision trusted roles through an authorized Supabase admin process.
 ## Signups
 
 `POST /api/tournaments/{id}/signups` requires a verified token and registers its
-owner. The submitted email must match the account email under the registration
-normalization rule. Clients cannot choose the owner, status, inscription number,
+owner. The body is JSON with the participant fields below. Minors upload the
+parental term directly to object storage. They first call
+`POST /api/tournaments/{id}/signups/parental-term/upload-url`, upload with the
+returned presigned URL, then send `parental_term_storage_key` and
+`parental_term_original_file_name` on create. The submitted email must match the
+account email under the registration normalization rule. Clients cannot choose the owner, status, inscription number,
 accepted versions, or staff safety note. Required declarations include a separate
 truthful-information choice, which must be JSON `true`; image use is an
 independent authorization/refusal choice. Missing, false, or nonboolean required
@@ -52,11 +56,57 @@ while locking the tournament row so concurrent signups do not reuse numbers.
 
 `GET /api/tournaments/{id}/signups/{inscription_number}` is available only to
 the owner or an admin; other callers receive 404. `GET /api/tournaments/{id}/signups`
-is admin-only. Owner responses exclude `safety_note` and acceptance IP, while
-admin reads may include those staff fields. No public signup directory is exposed.
+requires a verified token. Admins receive every registration in staff shape.
+Everyone else receives only their own registrations in the owner-safe shape,
+including cancelled rows. Owner responses exclude `safety_note` and acceptance IP,
+while admin reads may include those staff fields. No public signup directory is exposed.
 Do not log identity documents, contact details, or safety notes.
 
-Accepted terms and regulation versions, time, and request IP are recorded as
-evidence references. Approved declaration wording, private parental-term and
-payment-proof uploads, and later payment/staff flows are still required for a
-production registration journey.
+## Payment configuration and payment instructions
+
+Inscription fees and payment deadlines stay on the **tournament** row (`inscription_fee_amount`,
+`payment_due_at`). How participants pay the inscription fee lives in the **`payments` module**,
+not on `tournaments`.
+
+For each tournament, optional rows in `tournament_inscription_payment_configs` and
+`pix_recipients` store the Pix key staff configure at create time. Membership dues and shop
+checkout will get their own payment config tables later. They can reuse `pix_recipients` when
+the guild shares one receiving key.
+
+The public catalog and `TournamentRead` never expose Pix configuration. Admins pass `pix_key` on
+`POST /api/tournaments` only.
+
+A **tournament signup** is one person's registration in that event. It has its own inscription
+number and status (for example `awaiting_payment`).
+
+**Payment instructions** are not a separate database table. They are the owner-only JSON from
+`GET /api/tournaments/{id}/signups/{inscription_number}/payment`. That route builds one screen
+payload for the registrant:
+
+- From the **tournament signup**: inscription number and current status.
+- From the **tournament**: fee and deadline.
+- From **`payments`**: `payment_options.pix.pix_key`, or null when not configured.
+- From stored files on that registration: metadata for the latest payment proof, or null until
+  proof uploads exist.
+
+So the Pix key answers "where do I send inscription payment for this event?" Payment instructions answer
+"everything this registrant needs for the payment step right now."
+
+`GET /api/tournaments/{id}/signups/{inscription_number}/payment` returns those payment instructions
+for the tournament registration owner only. Other callers, including admins, receive 404. There is
+no tournament update route yet. Set or change inscription Pix configuration on an existing row with
+a manual database update outside the repo.
+
+Payment proof uses the same presigned pattern as the parental term. The owner calls
+`POST .../payment-proof/upload-url`, uploads to the returned URL, then
+`POST .../payment-proof` with the staging `storage_key` and `original_file_name`. Status becomes
+`payment_in_review` on the first valid proof. Replacements are allowed while status is
+`awaiting_payment` or `payment_in_review`. Each proof is stored as an append-only row. The owner
+reads only the latest proof through `GET .../payment-proof`, which returns a presigned download URL.
+
+Accepted terms and regulation versions, time, and request IP are recorded as evidence references.
+`GET /api/tournaments/{id}/signups/{inscription_number}/parental-term` returns a short-lived
+presigned download URL for the owner or an admin. The API does not stream file bytes.
+
+Approved declaration wording, payment-proof uploads, and later payment/staff flows are still
+required for a production registration journey.

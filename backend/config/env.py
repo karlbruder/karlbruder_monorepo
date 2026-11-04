@@ -10,7 +10,7 @@ ENV_NAME = os.getenv("ENV_NAME", "local").lower()
 
 CONTAINER_NAME = os.getenv("CONTAINER_NAME", APP_NAME).lower()
 
-AWS_REGION = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+AWS_REGION = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION", "us-east-2")
 
 SECRET_NAME = os.getenv("SECRET_NAME") or None
 

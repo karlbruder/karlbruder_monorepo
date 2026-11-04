@@ -1,8 +1,15 @@
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { createSignup, SignupRequestError } from "@/features/tournament/api/tournaments";
+import {
+  createSignup,
+  requestParentalTermUploadUrl,
+  SignupRequestError,
+  uploadFileToPresignedUrl,
+} from "@/features/tournament/api/tournaments";
 import type { SignupCreate, SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
+import { isMinorAtTournamentStart } from "@/features/tournament/utils/is-minor-at-tournament-start";
+import { validateParentalTermFile } from "@/features/tournament/utils/validate-parental-term-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 
@@ -10,6 +17,7 @@ type Props = {
   tournament: Tournament;
   session: Session;
   language?: AppLanguage;
+  onSignupCreated?: (signup: SignupCreated) => void;
 };
 
 type Errors = Record<string, AppCopyKey>;
@@ -24,7 +32,12 @@ const requiredDeclarations = [
   ["accepts_cancellation_policy", "Li as regras de cancelamento, reembolso e desclassificação."],
 ] as const;
 
-function readSignup(form: HTMLFormElement, accountEmail: string | undefined): { payload: SignupCreate | null; errors: Errors } {
+function readSignup(
+  form: HTMLFormElement,
+  accountEmail: string | undefined,
+  tournamentStartsAt: string,
+  birthDateFallback = "",
+): { payload: SignupCreate | null; errors: Errors; parentalTermFile: File | null } {
   const data = new FormData(form);
   const value = (key: string) => String(data.get(key) ?? "").trim();
   const optional = (key: string) => value(key) || null;
@@ -34,8 +47,11 @@ function readSignup(form: HTMLFormElement, accountEmail: string | undefined): { 
     "emergency_contact_name", "emergency_contact_phone",
   ];
   for (const key of requiredText) {
+    if (key === "birth_date") continue;
     if (!value(key)) errors[key] = "Campo obrigatório.";
   }
+  const birthDate = value("birth_date") || birthDateFallback.trim();
+  if (!birthDate) errors.birth_date = "Campo obrigatório.";
   if (!accountEmail) errors.email = "Entre com uma conta que tenha e-mail.";
 
   const documentType = value("document_type");
@@ -65,14 +81,37 @@ function readSignup(form: HTMLFormElement, accountEmail: string | undefined): { 
     errors.image_use_authorized = "Escolha autorizar ou não autorizar.";
   }
 
-  if (Object.keys(errors).length > 0) return { payload: null, errors };
+  const needsParentalTerm = Boolean(birthDate) && isMinorAtTournamentStart(birthDate, tournamentStartsAt);
+  let parentalTermFile: File | null = null;
+  if (needsParentalTerm) {
+    const fileInput = form.elements.namedItem("parental_term");
+    const fileFromInput =
+      fileInput instanceof HTMLInputElement && fileInput.files && fileInput.files.length > 0
+        ? fileInput.files[0]
+        : null;
+    const fileFromFormData = data.get("parental_term");
+    const resolvedFile =
+      fileFromInput && fileFromInput.size > 0
+        ? fileFromInput
+        : fileFromFormData instanceof File && fileFromFormData.size > 0
+          ? fileFromFormData
+          : null;
+    if (!resolvedFile) {
+      errors.parental_term = "Envie o termo de responsabilidade assinado em PDF ou imagem (JPEG ou PNG).";
+    } else {
+      parentalTermFile = resolvedFile;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) return { payload: null, errors, parentalTermFile: null };
 
   return {
     errors,
+    parentalTermFile,
     payload: {
       full_name: value("full_name"),
       social_name: optional("social_name"),
-      birth_date: value("birth_date"),
+      birth_date: birthDate,
       document_type: documentType as SignupCreate["document_type"],
       document_id: value("document_id"),
       email: accountEmail!.trim(),
@@ -105,6 +144,12 @@ function readSignup(form: HTMLFormElement, accountEmail: string | undefined): { 
 function messageForRequest(error: unknown): AppCopyKey {
   if (error instanceof SignupRequestError) {
     if (error.status === 401) return "Sua sessão expirou. Saia e entre novamente antes de enviar.";
+    if (error.status === 413) {
+      return "O servidor recusou o termo por tamanho. Use um arquivo de até 10 MB.";
+    }
+    if (error.status === 415) {
+      return "O servidor recusou o termo de responsabilidade. Envie PDF, JPEG ou PNG de até 10 MB.";
+    }
     if (error.status === 400) {
       if (error.detail === "Registration is closed") return "As inscrições estão encerradas. Nenhum dado foi enviado.";
       if (error.detail === "Registration terms are not configured") return "Os termos do torneio ainda não estão configurados.";
@@ -174,29 +219,75 @@ function Success({ result, tournament, language }: { result: SignupCreated; tour
   );
 }
 
-export default function TournamentRegistrationForm({ tournament, session, language = "pt" }: Props) {
+export default function TournamentRegistrationForm({
+  tournament,
+  session,
+  language = "pt",
+  onSignupCreated,
+}: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const [errors, setErrors] = useState<Errors>({});
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SignupCreated | null>(null);
+  const [birthDateForDisplay, setBirthDateForDisplay] = useState("");
   const requestPending = useRef(false);
+
+  const showParentalTermField = Boolean(birthDateForDisplay)
+    && isMinorAtTournamentStart(birthDateForDisplay, tournament.starts_at);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (requestPending.current) return;
-    const { payload, errors: nextErrors } = readSignup(event.currentTarget, session.user.email);
+    const { payload, errors: nextErrors, parentalTermFile } = readSignup(
+      event.currentTarget,
+      session.user.email,
+      tournament.starts_at,
+      birthDateForDisplay,
+    );
     setErrors(nextErrors);
     setRequestError(null);
     if (!payload) return;
 
+    if (parentalTermFile) {
+      const clientFileError = await validateParentalTermFile(parentalTermFile);
+      if (clientFileError) {
+        setErrors(previous => ({ ...previous, parental_term: clientFileError }));
+        return;
+      }
+    }
+
     requestPending.current = true;
     setPending(true);
     try {
-      const created = await createSignup(tournament.id, session.access_token, payload);
-      setResult(created);
+      let signupPayload = payload;
+      if (parentalTermFile) {
+        const uploadInfo = await requestParentalTermUploadUrl(tournament.id, session.access_token);
+        await uploadFileToPresignedUrl(
+          uploadInfo.upload_url,
+          parentalTermFile,
+          uploadInfo.required_headers,
+        );
+        signupPayload = {
+          ...payload,
+          parental_term_storage_key: uploadInfo.storage_key,
+          parental_term_original_file_name: parentalTermFile.name,
+        };
+      }
+      const created = await createSignup(tournament.id, session.access_token, signupPayload);
+      if (onSignupCreated) {
+        onSignupCreated(created);
+      } else {
+        setResult(created);
+      }
     } catch (error) {
-      setRequestError(messageForRequest(error));
+      if (error instanceof Error && error.message.startsWith("presigned-upload-")) {
+        setRequestError("Não foi possível enviar o termo de responsabilidade. Tente novamente.");
+      } else if (error instanceof Error && error.message.startsWith("http-")) {
+        setRequestError("Não foi possível enviar o termo de responsabilidade. Tente novamente.");
+      } else {
+        setRequestError(messageForRequest(error));
+      }
     } finally {
       requestPending.current = false;
       setPending(false);
@@ -234,7 +325,22 @@ export default function TournamentRegistrationForm({ tournament, session, langua
               {errors.document_type && <span className="signup-field-error">{t(errors.document_type)}</span>}
             </div>
             <Field name="document_id" label={t("Número do documento")} errors={errors} language={language} required />
-            <Field name="birth_date" label={t("Data de nascimento")} errors={errors} language={language} type="date" required />
+            <div className="signup-field">
+              <label htmlFor="birth_date">{t("Data de nascimento")} *</label>
+              <input
+                id="birth_date"
+                name="birth_date"
+                type="date"
+                required
+                value={birthDateForDisplay}
+                onChange={(event) => setBirthDateForDisplay(event.target.value)}
+                aria-invalid={Boolean(errors.birth_date)}
+                aria-describedby={errors.birth_date ? "birth_date-error" : undefined}
+              />
+              {errors.birth_date && (
+                <span id="birth_date-error" className="signup-field-error">{t(errors.birth_date)}</span>
+              )}
+            </div>
             <Field name="country" label={t("País")} errors={errors} language={language} required />
             <Field name="city" label={t("Cidade")} errors={errors} language={language} required />
             <Field name="state" label={t("Estado / província (opcional)")} errors={errors} language={language} />
@@ -273,6 +379,31 @@ export default function TournamentRegistrationForm({ tournament, session, langua
             <Field name="emergency_contact_name" label={t("Contato de emergência")} errors={errors} language={language} required />
             <Field name="emergency_contact_phone" label={t("Telefone de emergência")} errors={errors} language={language} type="tel" required />
           </div>
+          {showParentalTermField && (
+            <div className="signup-minor-panel">
+              <p className="signup-help signup-grid-wide">{t("Participação de menor de idade")}</p>
+              <p className="signup-help signup-grid-wide">
+                {t("Envie o termo assinado pelo responsável. No evento, você deverá estar acompanhado e ambos apresentarão documentos para conferência.")}
+              </p>
+              <p className="signup-help signup-grid-wide">
+                {t("A idade no dia do torneio orienta este campo. O servidor confirma se o envio é obrigatório.")}
+              </p>
+              <div className="signup-field signup-grid-wide">
+                <label htmlFor="parental_term">{t("Termo de responsabilidade assinado")} *</label>
+                <input
+                  id="parental_term"
+                  name="parental_term"
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                  aria-invalid={Boolean(errors.parental_term)}
+                  aria-describedby={errors.parental_term ? "parental_term-error" : undefined}
+                />
+                {errors.parental_term && (
+                  <span id="parental_term-error" className="signup-field-error">{t(errors.parental_term)}</span>
+                )}
+              </div>
+            </div>
+          )}
           <div className="signup-documents">
             <PolicyContent label={t("Regulamento")} value={tournament.regulation} language={language} />
             <PolicyContent label={t("Política de cancelamento")} value={tournament.cancellation_policy} language={language} />

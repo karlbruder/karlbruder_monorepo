@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { getSession, onAuthStateChange, signInWithOAuth, signOut as requestSignOut } from "@/features/auth/api/auth";
+import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
 import type { AppCopyKey } from "@/utils/app-copy";
 
 export function useAuthSessionState() {
@@ -10,6 +12,33 @@ export function useAuthSessionState() {
   const [authError, setAuthError] = useState<AppCopyKey | null>(null);
   const [sessionLapsed, setSessionLapsed] = useState(false);
   const userInitiatedSignOutRef = useRef(false);
+  const previousAccountIdRef = useRef<string | undefined>(undefined);
+  const expiredSignOutStartedRef = useRef(false);
+  const queryClient = useQueryClient();
+  const accountId = session?.user.id;
+
+  useEffect(() => {
+    const signedOut = previousAccountIdRef.current !== undefined && !accountId;
+    previousAccountIdRef.current = accountId;
+    if (signedOut) {
+      queryClient.clear();
+    }
+    if (accountId) {
+      expiredSignOutStartedRef.current = false;
+    }
+  }, [accountId, queryClient]);
+
+  useEffect(() => {
+    setApiUnauthorizedHandler(() => {
+      if (expiredSignOutStartedRef.current) return;
+      expiredSignOutStartedRef.current = true;
+      userInitiatedSignOutRef.current = false;
+      void requestSignOut().then(({ error }) => {
+        if (error) setAuthError("Não foi possível sair. Tente novamente.");
+      });
+    });
+    return () => setApiUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     let active = true;

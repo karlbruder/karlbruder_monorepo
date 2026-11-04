@@ -13,19 +13,40 @@ from app.auth import (
     require_admin,
     require_authenticated_user,
 )
+from app.core.services.storage import FileStorage, FileStorageError, get_file_storage
 from app.database import get_session
 from app.models import AnonymousUser, User
+from app.tournaments.exceptions import ParentalTermNotAllowedError, ParentalTermRequiredError
 from app.tournaments.models import Tournament, TournamentSignup
 from app.tournaments.schemas import (
+    ParentalTermDownloadUrlRead,
+    ParentalTermUploadUrlRead,
+    PaymentProofDownloadUrlRead,
+    PaymentProofSubmitCreate,
+    PaymentProofUploadUrlRead,
     SignupCreate,
+    TournamentSignupPaymentInstructionsRead,
     SignupRead,
     StaffSignupRead,
     TournamentCreate,
     TournamentList,
     TournamentRead,
 )
-from app.tournaments.services import EVENT_TIMEZONE, resolve_tournament_slug
-from app.tournaments.signups import create_signup, visible_tournament
+from app.tournaments.services import (
+    TOURNAMENT_LOCAL_TIMEZONE,
+    create_tournament_signup,
+    create_tournament_signup_payment_proof_upload_url,
+    read_tournament_signup_parental_term_download,
+    read_tournament_signup_payment_instructions,
+    read_tournament_signup_payment_proof_download,
+    resolve_tournament_slug,
+    submit_tournament_signup_payment_proof,
+    visible_tournament,
+)
+from app.payments.services.tournament_inscription_payment import (
+    create_tournament_inscription_payment_config,
+)
+from app.tournaments.services.tournament_signup_files import create_parental_term_upload_url
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
@@ -48,8 +69,15 @@ def create_tournament(
         raise HTTPException(status_code=422, detail=str(error)) from error
     if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
         raise HTTPException(status_code=409, detail="Tournament slug already exists")
-    tournament = Tournament(**{**payload.model_dump(), "slug": slug})
+    tournament_payload = payload.model_dump(exclude={"pix_key"})
+    tournament = Tournament(**{**tournament_payload, "slug": slug})
     session.add(tournament)
+    session.flush()
+    create_tournament_inscription_payment_config(
+        session,
+        tournament.id,
+        payload.pix_key,
+    )
     session.commit()
     session.refresh(tournament)
     return tournament
@@ -71,12 +99,12 @@ def _catalog_filters(
         query = query.where(Tournament.name.ilike(f"%{escaped}%", escape="\\"))
     if starts_from is not None:
         query = query.where(
-            Tournament.starts_at >= datetime.combine(starts_from, time.min, EVENT_TIMEZONE)
+            Tournament.starts_at >= datetime.combine(starts_from, time.min, TOURNAMENT_LOCAL_TIMEZONE)
         )
     if starts_to is not None:
         query = query.where(
             Tournament.starts_at
-            < datetime.combine(starts_to + timedelta(days=1), time.min, EVENT_TIMEZONE)
+            < datetime.combine(starts_to + timedelta(days=1), time.min, TOURNAMENT_LOCAL_TIMEZONE)
         )
     return query
 
@@ -117,6 +145,30 @@ def get_tournament(
 
 
 @router.post(
+    "/{tournament_id}/signups/parental-term/upload-url",
+    response_model=ParentalTermUploadUrlRead,
+)
+def issue_parental_term_upload_url(
+    tournament_id: int,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> ParentalTermUploadUrlRead:
+    visible_tournament(session, tournament_id, user)
+    storage_key, upload_url, expires_in_seconds, required_headers = create_parental_term_upload_url(
+        file_storage,
+        tournament_id,
+        user,
+    )
+    return ParentalTermUploadUrlRead(
+        storage_key=storage_key,
+        upload_url=upload_url,
+        expires_in_seconds=expires_in_seconds,
+        required_headers=required_headers,
+    )
+
+
+@router.post(
     "/{tournament_id}/signups", response_model=SignupRead, status_code=status.HTTP_201_CREATED
 )
 def register_for_tournament(
@@ -125,28 +177,48 @@ def register_for_tournament(
     request: Request,
     user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> SignupRead:
     if request.client is None:
         raise HTTPException(status_code=503, detail="Client address unavailable")
-    signup = create_signup(
-        session, tournament_id, user, payload, request.client.host
-    )
-    return SignupRead.model_validate(signup)
+    try:
+        tournament_signup = create_tournament_signup(
+            session,
+            tournament_id,
+            user,
+            payload,
+            request.client.host,
+            file_storage=file_storage,
+        )
+    except ParentalTermRequiredError as error:
+        raise HTTPException(status_code=422, detail="Parental term is required") from error
+    except ParentalTermNotAllowedError as error:
+        raise HTTPException(
+            status_code=422, detail="Parental term is not allowed for this registration"
+        ) from error
+    except FileStorageError as error:
+        raise HTTPException(status_code=503, detail="File storage unavailable") from error
+    return SignupRead.model_validate(tournament_signup)
 
 
-@router.get("/{tournament_id}/signups", response_model=list[StaffSignupRead])
+@router.get("/{tournament_id}/signups", response_model=list[SignupRead | StaffSignupRead])
 def list_signups(
     tournament_id: int,
-    admin: Annotated[User, Depends(require_admin)],
+    user: Annotated[User, Depends(require_authenticated_user)],
     session: Annotated[Session, Depends(get_session)],
-) -> list[StaffSignupRead]:
-    visible_tournament(session, tournament_id, admin)
-    signups = session.scalars(
+) -> list[SignupRead | StaffSignupRead]:
+    visible_tournament(session, tournament_id, user)
+    query = (
         select(TournamentSignup)
         .where(TournamentSignup.tournament_id == tournament_id)
         .order_by(TournamentSignup.id)
     )
-    return [StaffSignupRead.model_validate(signup) for signup in signups]
+    if get_application_role(user) != "admin":
+        query = query.where(TournamentSignup.user_id == user.id)
+    signups = session.scalars(query)
+    if get_application_role(user) == "admin":
+        return [StaffSignupRead.model_validate(tournament_signup) for tournament_signup in signups]
+    return [SignupRead.model_validate(tournament_signup) for tournament_signup in signups]
 
 
 @router.get(
@@ -160,16 +232,132 @@ def get_signup(
     session: Annotated[Session, Depends(get_session)],
 ) -> SignupRead | StaffSignupRead:
     visible_tournament(session, tournament_id, user)
-    signup = session.scalar(
+    tournament_signup = session.scalar(
         select(TournamentSignup).where(
             TournamentSignup.tournament_id == tournament_id,
             TournamentSignup.inscription_number == inscription_number,
         )
     )
-    if signup is None or (
-        signup.user_id != user.id and get_application_role(user) != "admin"
+    if tournament_signup is None or (
+        tournament_signup.user_id != user.id and get_application_role(user) != "admin"
     ):
         raise HTTPException(status_code=404, detail="Registration not found")
     if get_application_role(user) == "admin":
-        return StaffSignupRead.model_validate(signup)
-    return SignupRead.model_validate(signup)
+        return StaffSignupRead.model_validate(tournament_signup)
+    return SignupRead.model_validate(tournament_signup)
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/parental-term",
+    response_model=ParentalTermDownloadUrlRead,
+)
+def get_parental_term_download_url(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> ParentalTermDownloadUrlRead:
+    download_url, content_type, expires_in_seconds = read_tournament_signup_parental_term_download(
+        session, tournament_id, inscription_number, user, file_storage
+    )
+    return ParentalTermDownloadUrlRead(
+        download_url=download_url,
+        content_type=content_type,
+        expires_in_seconds=expires_in_seconds,
+    )
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/payment",
+    response_model=TournamentSignupPaymentInstructionsRead,
+)
+def get_tournament_signup_payment_instructions(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+) -> TournamentSignupPaymentInstructionsRead:
+    return read_tournament_signup_payment_instructions(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
+    )
+
+
+@router.post(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof/upload-url",
+    response_model=PaymentProofUploadUrlRead,
+)
+def create_payment_proof_upload_url_route(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> PaymentProofUploadUrlRead:
+    storage_key, upload_url, expires_in_seconds, required_headers = (
+        create_tournament_signup_payment_proof_upload_url(
+            session,
+            tournament_id,
+            inscription_number,
+            user,
+            file_storage,
+        )
+    )
+    return PaymentProofUploadUrlRead(
+        storage_key=storage_key,
+        upload_url=upload_url,
+        expires_in_seconds=expires_in_seconds,
+        required_headers=required_headers,
+    )
+
+
+@router.post(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof",
+    response_model=SignupRead,
+)
+def submit_payment_proof(
+    tournament_id: int,
+    inscription_number: str,
+    payload: PaymentProofSubmitCreate,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> SignupRead:
+    tournament_signup = submit_tournament_signup_payment_proof(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
+        storage_key=payload.storage_key,
+        original_file_name=payload.original_file_name,
+        file_storage=file_storage,
+    )
+    return SignupRead.model_validate(tournament_signup)
+
+
+@router.get(
+    "/{tournament_id}/signups/{inscription_number}/payment-proof",
+    response_model=PaymentProofDownloadUrlRead,
+)
+def get_payment_proof_download_url(
+    tournament_id: int,
+    inscription_number: str,
+    user: Annotated[User, Depends(require_authenticated_user)],
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> PaymentProofDownloadUrlRead:
+    download_url, content_type, expires_in_seconds = read_tournament_signup_payment_proof_download(
+        session,
+        tournament_id,
+        inscription_number,
+        user,
+        file_storage,
+    )
+    return PaymentProofDownloadUrlRead(
+        download_url=download_url,
+        content_type=content_type,
+        expires_in_seconds=expires_in_seconds,
+    )

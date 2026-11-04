@@ -36,6 +36,7 @@ class TournamentCreate(BaseModel):
     terms_version: str | None = Field(default=None, max_length=100)
     equipment_requirements: str | None = None
     cancellation_policy: str | None = None
+    pix_key: str | None = Field(default=None, max_length=512)
 
     @field_validator("name")
     @classmethod
@@ -137,6 +138,8 @@ class SignupCreate(BaseModel):
     acknowledges_inherent_risks: StrictBool
     accepts_cancellation_policy: StrictBool
     image_use_authorized: StrictBool
+    parental_term_storage_key: str | None = Field(default=None, max_length=512)
+    parental_term_original_file_name: str | None = Field(default=None, max_length=255)
 
     @field_validator(
         "full_name", "document_id", "email", "phone", "city", "country",
@@ -164,7 +167,66 @@ class SignupCreate(BaseModel):
     def require_hema_experience(self) -> "SignupCreate":
         if not (self.hema_practice_duration or "").strip() and self.hema_practice_start_year is None:
             raise ValueError("HEMA practice duration or start year is required")
+        if self.parental_term_storage_key and not (self.parental_term_original_file_name or "").strip():
+            raise ValueError("Parental term original file name is required when a storage key is sent")
         return self
+
+
+class ParentalTermUploadUrlRead(BaseModel):
+    storage_key: str
+    upload_url: str
+    expires_in_seconds: int
+    required_headers: dict[str, str]
+
+
+class ParentalTermDownloadUrlRead(BaseModel):
+    download_url: str
+    content_type: str
+    expires_in_seconds: int
+
+
+class PaymentProofUploadUrlRead(BaseModel):
+    storage_key: str
+    upload_url: str
+    expires_in_seconds: int
+    required_headers: dict[str, str]
+
+
+class PaymentProofSubmitCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
+class PaymentProofDownloadUrlRead(BaseModel):
+    download_url: str
+    content_type: str
+    expires_in_seconds: int
+
+
+class TournamentSignupPaymentProofSummaryRead(BaseModel):
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+    submitted_at: datetime
+
+
+class PixPaymentOptionRead(BaseModel):
+    pix_key: str | None
+
+
+class TournamentSignupPaymentOptionsRead(BaseModel):
+    pix: PixPaymentOptionRead
+
+
+class TournamentSignupPaymentInstructionsRead(BaseModel):
+    inscription_number: str
+    status: str
+    inscription_fee_amount: Decimal | None
+    payment_due_at: datetime | None
+    payment_options: TournamentSignupPaymentOptionsRead
+    latest_payment_proof: TournamentSignupPaymentProofSummaryRead | None
 
 
 class SignupRead(BaseModel):

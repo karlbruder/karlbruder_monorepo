@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
 export type Tournament = {
@@ -47,6 +48,15 @@ export type SignupCreate = {
   acknowledges_inherent_risks: boolean;
   accepts_cancellation_policy: boolean;
   image_use_authorized: boolean;
+  parental_term_storage_key?: string | null;
+  parental_term_original_file_name?: string | null;
+};
+
+export type ParentalTermUploadUrl = {
+  storage_key: string;
+  upload_url: string;
+  expires_in_seconds: number;
+  required_headers: Record<string, string>;
 };
 
 export type SignupCreated = {
@@ -57,12 +67,49 @@ export type SignupCreated = {
   tournament_id: number;
 };
 
+export type OwnerSignup = SignupCreated & {
+  user_id?: string;
+};
+
+export type PaymentProofSummary = {
+  original_file_name: string;
+  content_type: string;
+  size_bytes: number;
+  submitted_at: string;
+};
+
+export type PaymentInstructions = {
+  inscription_number: string;
+  status: string;
+  inscription_fee_amount: string | number | null;
+  payment_due_at: string | null;
+  payment_options: {
+    pix: {
+      pix_key: string | null;
+    };
+  };
+  latest_payment_proof: PaymentProofSummary | null;
+};
+
+export type PaymentProofUploadUrl = ParentalTermUploadUrl;
+
 export class SignupRequestError extends Error {
   readonly status: number;
   readonly detail: string | null;
 
   constructor(status: number, detail: string | null) {
     super(`Signup request failed with HTTP ${status}`);
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+export class PaymentProofRequestError extends Error {
+  readonly status: number;
+  readonly detail: string | null;
+
+  constructor(status: number, detail: string | null) {
+    super(`Payment proof request failed with HTTP ${status}`);
     this.status = status;
     this.detail = detail;
   }
@@ -111,7 +158,7 @@ export function monomachiaListQuery(): string {
 }
 
 export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tournament | null> {
-  const response = await fetch(monomachiaListQuery(), { signal });
+  const response = await apiFetch(monomachiaListQuery(), { signal });
   if (!response.ok) {
     throw new Error(`http-${response.status}`);
   }
@@ -126,12 +173,55 @@ export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tour
   return body.items[0];
 }
 
+export async function requestParentalTermUploadUrl(
+  tournamentId: number,
+  token: string,
+): Promise<ParentalTermUploadUrl> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/parental-term/upload-url`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !body || typeof body !== "object") {
+    throw new Error(`http-${response.status}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (
+    typeof record.storage_key !== "string" ||
+    typeof record.upload_url !== "string" ||
+    typeof record.expires_in_seconds !== "number" ||
+    !record.required_headers ||
+    typeof record.required_headers !== "object"
+  ) {
+    throw new Error("invalid-parental-term-upload-url");
+  }
+  return body as ParentalTermUploadUrl;
+}
+
+export async function uploadFileToPresignedUrl(
+  uploadUrl: string,
+  file: File,
+  requiredHeaders: Record<string, string>,
+): Promise<void> {
+  const headers = new Headers(requiredHeaders);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", file.type || "application/octet-stream");
+  }
+  const response = await fetch(uploadUrl, { method: "PUT", headers, body: file });
+  if (!response.ok) {
+    throw new Error(`presigned-upload-${response.status}`);
+  }
+}
+
 export async function createSignup(
   id: number,
   token: string,
   payload: SignupCreate,
 ): Promise<SignupCreated> {
-  const response = await fetch(`${apiBaseUrl()}/tournaments/${id}/signups`, {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/signups`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -157,4 +247,136 @@ export async function createSignup(
     throw new Error("Invalid signup response");
   }
   return body as SignupCreated;
+}
+
+function isOwnerSignup(value: unknown): value is OwnerSignup {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  const accountIdIsOptional = !("user_id" in record) || typeof record.user_id === "string";
+  return (
+    accountIdIsOptional &&
+    typeof record.inscription_number === "string" &&
+    typeof record.status === "string" &&
+    typeof record.full_name === "string" &&
+    typeof record.email === "string" &&
+    typeof record.tournament_id === "number"
+  );
+}
+
+export async function listOwnSignups(
+  tournamentId: number,
+  token: string,
+  signal?: AbortSignal,
+): Promise<OwnerSignup[]> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/signups`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(body)) {
+    throw new Error(`http-${response.status}`);
+  }
+  if (!body.every(isOwnerSignup)) {
+    throw new Error("invalid-signup-list");
+  }
+  return body;
+}
+
+function isPaymentInstructions(value: unknown): value is PaymentInstructions {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  const paymentOptions = record.payment_options;
+  if (paymentOptions === null || typeof paymentOptions !== "object") return false;
+  const pix = (paymentOptions as Record<string, unknown>).pix;
+  if (pix === null || typeof pix !== "object") return false;
+  const pixKey = (pix as Record<string, unknown>).pix_key;
+  return (
+    typeof record.inscription_number === "string" &&
+    typeof record.status === "string" &&
+    (record.inscription_fee_amount === null ||
+      typeof record.inscription_fee_amount === "string" ||
+      typeof record.inscription_fee_amount === "number") &&
+    (record.payment_due_at === null || typeof record.payment_due_at === "string") &&
+    (pixKey === null || typeof pixKey === "string") &&
+    (record.latest_payment_proof === null ||
+      (typeof record.latest_payment_proof === "object" &&
+        record.latest_payment_proof !== null &&
+        typeof (record.latest_payment_proof as Record<string, unknown>).original_file_name === "string"))
+  );
+}
+
+export async function getPaymentInstructions(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<PaymentInstructions> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment`,
+    { headers: { Authorization: `Bearer ${token}` }, signal },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !isPaymentInstructions(body)) {
+    throw new Error(`http-${response.status}`);
+  }
+  return body;
+}
+
+export async function requestPaymentProofUploadUrl(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+): Promise<PaymentProofUploadUrl> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof/upload-url`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !body || typeof body !== "object") {
+    throw new Error(`http-${response.status}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (
+    typeof record.storage_key !== "string" ||
+    typeof record.upload_url !== "string" ||
+    typeof record.expires_in_seconds !== "number" ||
+    !record.required_headers ||
+    typeof record.required_headers !== "object"
+  ) {
+    throw new Error("invalid-payment-proof-upload-url");
+  }
+  return body as PaymentProofUploadUrl;
+}
+
+export async function submitPaymentProof(
+  tournamentId: number,
+  inscriptionNumber: string,
+  token: string,
+  payload: { storage_key: string; original_file_name: string },
+): Promise<OwnerSignup> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
+      ? body.detail
+      : null;
+    throw new PaymentProofRequestError(response.status, detail);
+  }
+  if (!isOwnerSignup(body)) {
+    throw new Error("invalid-payment-proof-submit-response");
+  }
+  return body;
 }

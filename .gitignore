@@ -28,3 +28,6 @@ override.tf.json
 
 # Python script bytecode
 __pycache__/
+
+# Local Ministack persistence (bind-mounted from compose.yml)
+ministack/data/

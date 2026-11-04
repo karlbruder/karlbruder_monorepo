@@ -8,6 +8,7 @@ from sqlalchemy.engine import make_url
 
 from app.database import Base
 from config import settings
+from app.payments import models as payment_models  # noqa: F401 - register domain metadata
 from app.tournaments import models  # noqa: F401 - register domain metadata
 
 config = context.config

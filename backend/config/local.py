@@ -8,3 +8,7 @@ class LocalSettings(Settings):
     DB_PASSWORD: str = "postgres"
     DB_HOST: str = "db"
     DB_NAME: str = "postgres"
+
+    S3_BUCKET_NAME: str = "kb-local-bucket"
+    S3_ENDPOINT_URL: str = "http://ministack:4566"
+    S3_BROWSER_ENDPOINT_URL: str = "http://localhost:4566"

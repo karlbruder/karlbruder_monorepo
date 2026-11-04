@@ -1,7 +1,7 @@
 # Deployment
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -92,6 +92,14 @@ Outbound traffic is DNS on UDP and TCP 53, HTTP on TCP 80 for Ubuntu package mir
 First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. The agent publishes CPU, memory, and disk every 60 seconds, and those alarms use that interval. The status check also uses a one minute period. Basic EC2 monitoring still publishes hypervisor CPU every five minutes. These alarms do not use that metric. Those alarms do not notify an SNS topic yet. Refresh the Cloudflare IPv4 list in `infra/main.ec2.application-host.tf` from [Cloudflare's IPv4 list](https://www.cloudflare.com/ips-v4) when Cloudflare publishes a change.
 
 A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a running instance. Replacing the image or the script is a deliberate change.
+
+## Application files bucket
+
+Each workspace has a private Amazon S3 bucket for application uploads such as payment proofs and scanned parental terms. Terraform defines it in `infra/main.s3.files.tf` through the shared `s3-bucket` module. The name prefix is `kb-<env>-bucket` with the account-regional suffix the module appends. Public read stays off. The bucket policy denies insecure transport. Object versioning stays on.
+
+The application host instance role can call `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on objects in that bucket only. It does not receive a blanket `s3:ListBucket` grant on the bucket ARN. The bucket CORS rule allows `PUT` with `Content-Type` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. Public read stays off.
+
+After apply, copy `application_files_bucket_name` from Terraform output into the workspace backend secret as `S3_BUCKET_NAME`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in cloud secrets. Operators follow [Application files S3 bucket](../../docs/runbooks/application-files-s3-bucket.md) for apply order and verification. Issue #59 delivery assumes this bucket exists before presigned uploads work in a deployed environment.
 
 ## Application image deploy
 
