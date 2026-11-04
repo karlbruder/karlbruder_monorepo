@@ -9,7 +9,8 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.core.files.models import StoredFile
-from app.payments.models import (
+from app.payments.services.records import add_payment_record, add_refund_record
+from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,
     RegistrationRefund,
@@ -82,13 +83,17 @@ def _review(session, document, **overrides):
 
 
 def _payment(session, registration, review, **overrides):
+    receipt = add_payment_record(
+        session,
+        amount_received=overrides.pop("amount_received", Decimal("125.50")),
+        verified_by_user_id=overrides.pop("verified_by_user_id", uuid4()),
+        verified_at=overrides.pop("verified_at", NOW),
+    )
     row = RegistrationPayment(
         **{
             "registration_id": registration.id,
             "proof_review_id": review.id,
-            "amount_received": Decimal("125.50"),
-            "verified_by_user_id": uuid4(),
-            "verified_at": NOW,
+            "payment_id": receipt.id,
             **overrides,
         }
     )
@@ -98,14 +103,17 @@ def _payment(session, registration, review, **overrides):
 
 
 def _refund(session, payment, **overrides):
+    due_on = overrides.pop("due_on", date(2026, 11, 18))
+    shared = add_refund_record(
+        session,
+        payment_id=overrides.pop("payment_id", payment.payment_id),
+        amount_owed=overrides.pop("amount_owed", payment.payment.amount_received),
+        obligated_at=overrides.pop("obligated_at", NOW),
+    )
+    for name, value in overrides.items():
+        setattr(shared, name, value)
     row = RegistrationRefund(
-        **{
-            "payment_id": payment.id,
-            "amount_owed": payment.amount_received,
-            "obligated_at": NOW,
-            "due_on": date(2026, 11, 18),
-            **overrides,
-        }
+        registration_payment_id=payment.id, refund=shared, due_on=due_on
     )
     session.add(row)
     session.flush()
@@ -184,12 +192,12 @@ def test_verified_payment_preserves_actual_brl_amount_independently_of_fee_and_s
     review = _review(db_session, document)
     payment = _payment(db_session, registration, review)
     db_session.expire_all()
-    assert payment.amount_received == Decimal("125.50")
-    assert payment.amount_received != tournament.registration_fee_amount
+    assert payment.payment.amount_received == Decimal("125.50")
+    assert payment.payment.amount_received != tournament.registration_fee_amount
     assert payment.proof_review.document.id == document.id
     assert payment.registration.id == registration.id
-    assert payment.verified_at == NOW
-    assert payment.verified_by_user_id is not None
+    assert payment.payment.verified_at == NOW
+    assert payment.payment.verified_by_user_id is not None
     assert registration.registration_status == "awaiting_payment"
     assert tournament.competitor_capacity == 0
 
@@ -262,19 +270,20 @@ def test_refund_absence_pending_obligation_and_recorded_completion_are_distinct(
     assert db_session.scalar(select(RegistrationRefund)) is None
     registration.registration_status = "cancelled"
     refund = _refund(db_session, payment)
-    assert refund.refund_status == "awaiting_refund"
-    assert refund.amount_owed == Decimal("125.50")
+    assert refund.refund.refund_status == "awaiting_refund"
+    assert refund.refund.amount_owed == Decimal("125.50")
     assert refund.due_on == date(2026, 11, 18)
-    assert refund.completed_at is None
-    assert refund.completed_by_user_id is None
-    refund.refund_status = "completed"
-    refund.completed_at = NOW + timedelta(days=1)
-    refund.completed_by_user_id = uuid4()
+    assert refund.refund.completed_at is None
+    assert refund.refund.completed_by_user_id is None
+    refund.refund.refund_status = "completed"
+    refund.refund.completed_at = NOW + timedelta(days=1)
+    refund.refund.completed_by_user_id = uuid4()
     db_session.flush()
     db_session.expire_all()
-    assert refund.refund_status == "completed"
-    assert refund.completed_at > refund.obligated_at
-    assert refund.payment.id == payment.id
+    assert refund.refund.refund_status == "completed"
+    assert refund.refund.completed_at > refund.refund.obligated_at
+    assert refund.registration_payment.id == payment.id
+    assert refund.refund.payment_id == payment.payment_id
     assert registration.registration_status == "cancelled"
 
 
@@ -322,7 +331,8 @@ def test_payment_can_have_only_one_refund_obligation(db_session, evidence):
     [
         "UPDATE public.payment_proof_reviews SET decision = 'rejected', rejection_reason = 'Changed'",
         "DELETE FROM public.payment_proof_reviews",
-        "UPDATE public.registration_payments SET amount_received = 1",
+        "UPDATE public.registration_payments SET registration_id = -1",
+        "UPDATE public.payments SET amount_received = 1",
         "DELETE FROM public.registration_payments",
         "UPDATE public.tournament_registration_documents SET registration_id = -1",
     ],
@@ -334,3 +344,41 @@ def test_recorded_review_and_receipt_evidence_cannot_be_rewritten(
     with pytest.raises(IntegrityError, match="immutable"):
         with db_session.begin_nested():
             db_session.execute(text(statement))
+
+
+def test_tournament_refund_cannot_link_another_shared_payment(db_session, evidence):
+    registration_payment = _payment(
+        db_session, evidence[1], _review(db_session, evidence[2])
+    )
+    other = add_payment_record(
+        db_session,
+        amount_received=Decimal("125.50"),
+        verified_by_user_id=uuid4(),
+        verified_at=NOW,
+    )
+    refund = add_refund_record(
+        db_session,
+        payment_id=other.id,
+        amount_owed=other.amount_received,
+        obligated_at=NOW,
+    )
+    with pytest.raises(IntegrityError, match="Tournament refund must match"):
+        with db_session.begin_nested():
+            db_session.add(
+                RegistrationRefund(
+                    registration_payment_id=registration_payment.id,
+                    refund_id=refund.id,
+                    due_on=date(2026, 11, 18),
+                )
+            )
+            db_session.flush()
+
+
+def test_tournament_refund_association_cannot_be_reassigned(db_session, evidence):
+    payment = _payment(db_session, evidence[1], _review(db_session, evidence[2]))
+    _refund(db_session, payment)
+    with pytest.raises(IntegrityError, match="immutable"):
+        with db_session.begin_nested():
+            db_session.execute(
+                text("UPDATE public.registration_refunds SET refund_id=-1")
+            )

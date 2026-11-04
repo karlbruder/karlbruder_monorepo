@@ -35,9 +35,9 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 ## Persisted outcome references
 
 Message workflows use `registration_number` as the participant reference.
-PaymentProofReview records evidence decisions. RegistrationPayment records the
-actual verified receipt. RegistrationRefund records the obligation and actual
-completion separately from cancelled participation. Notify from the committed
+PaymentProofReview records evidence decisions. RegistrationPayment links the
+actual verified Payment. RegistrationRefund links the shared Refund and its
+completion evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
 new trigger. Issue #60 and later refund work own those commands and notifications.
 

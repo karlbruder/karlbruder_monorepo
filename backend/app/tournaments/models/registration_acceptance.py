@@ -61,10 +61,10 @@ class RegistrationAcceptance(Base):
     content_digest: Mapped[str] = mapped_column(String(64), nullable=False)
     content: Mapped[dict] = mapped_column(JSON, nullable=False)
     rules_archive_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.policy_archives.id", ondelete="RESTRICT")
+        ForeignKey("public.archived_documents.id", ondelete="RESTRICT")
     )
     cancellation_policy_archive_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.policy_archives.id", ondelete="RESTRICT")
+        ForeignKey("public.archived_documents.id", ondelete="RESTRICT")
     )
 
     registration = relationship("TournamentRegistration", back_populates="acceptances")

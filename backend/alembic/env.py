@@ -6,11 +6,12 @@ from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
-from app.core.files import models as file_models  # noqa: F401 - register shared file metadata
+import app.core.files.models  # noqa: F401 - metadata registry
+import app.core.documents.models  # noqa: F401 - metadata registry
+import app.payments.models  # noqa: F401 - metadata registry
+import app.tournaments.models  # noqa: F401 - metadata registry
 from app.database import Base
 from config import settings
-from app.payments import models as payment_models  # noqa: F401 - register domain metadata
-from app.tournaments import models  # noqa: F401 - register domain metadata
 
 config = context.config
 if config.config_file_name is not None:

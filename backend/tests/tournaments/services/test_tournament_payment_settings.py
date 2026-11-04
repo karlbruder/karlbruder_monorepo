@@ -1,4 +1,4 @@
-"""Tournament inscription payment configuration services."""
+"""Tournament-owned payment destination settings."""
 
 from datetime import UTC, datetime
 
@@ -6,8 +6,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.payments.models import TournamentPaymentSettings
-from app.payments.services.tournament_payment_settings import (
+from app.tournaments.models import TournamentPaymentSettings
+from app.tournaments.services.tournament_payment_settings import (
     create_tournament_payment_settings,
     read_registration_pix_key_for_tournament,
 )

@@ -23,7 +23,7 @@ Before editing a module, identify its role, its callers, and the data it owns. K
 
 Use the smallest design that makes a change easy to understand. Keep a short helper beside its only caller. Extract a module when it has a distinct responsibility, meaningful reuse outside one workflow, or behavior that benefits from focused tests. Do not create a file for every function. Do not impose a line-count limit or split every service into a package on sight.
 
-Cross-domain infrastructure belongs in `app/core/`. `app/core/files/` owns StoredFile metadata and shared storage operations. Domain-specific document associations, access decisions, file-type allowlists and size limits stay with the consuming domain. Domain rules stay in the domain package. Storage can own bounded reads and file-signature detection. The capability that accepts an upload owns its allowed types and size policy, unless the same policy is explicitly shared. Do not make one feature's policy universal merely by putting it in core. Tournament registration windows and minor eligibility belong in `tournaments/`.
+Cross-domain infrastructure belongs in `app/core/`. `app/core/files/` owns StoredFile metadata and shared storage operations. `app/core/documents/` owns immutable ArchivedDocument snapshots with optional source URLs. Domain-specific document associations, version selection, access decisions, file-type allowlists and size limits stay with the consuming domain. Domain rules stay in the domain package. Storage can own bounded reads and file-signature detection. The capability that accepts an upload owns its allowed types and size policy, unless the same policy is explicitly shared. Do not make one feature's policy universal merely by putting it in core. Tournament registration windows and minor eligibility belong in `tournaments/`.
 
 ## Structure
 
@@ -105,6 +105,7 @@ Dependency direction is explicit:
 - Routers call services. Services may use their domain's schemas, models, and helpers, plus auth identity types and core infrastructure. Services do not import routers.
 - Core infrastructure does not import domain services, models, or routers. Pass required values to core instead.
 - When one domain needs another's behavior, call a deliberate public service contract. Do not call its router or scatter writes to its tables across the caller. Keep that dependency one-way. Move only genuinely shared mechanisms into core.
+- TournamentPaymentSettings, PaymentProofReview and registration payment/refund associations belong to tournaments. Payments owns generic Payment and Refund facts. Consuming domains depend on payment persistence services. Shared payments/core modules do not import those domains or hold their foreign keys. Domain rules such as full refunds and deadlines stay with their associations.
 
 A domain may split its router by API area when it becomes difficult to navigate. Keep one domain router as the assembly point. Route handlers still belong to the HTTP layer, not services or model modules.
 

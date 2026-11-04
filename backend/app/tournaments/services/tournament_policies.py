@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import TYPE_CHECKING
-from datetime import datetime, timezone
-from uuid import uuid4
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -14,8 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from app.core.files import FileStorage
 from app.models import User
 from app.auth import get_application_role
-from app.core.files.models import StoredFile
-from app.payments.services.tournament_payment_settings import (
+from app.core.documents.services import archive_document
+from app.tournaments.services.tournament_payment_settings import (
     create_tournament_payment_settings,
 )
 from app.tournaments.exceptions import (
@@ -23,7 +20,6 @@ from app.tournaments.exceptions import (
     RegistrationNotAllowedError,
 )
 from app.tournaments.models import Tournament
-from app.tournaments.models.policy_archive import PolicyArchive
 from .policy_fetch import PolicyFetcher
 from .registration_acceptances import acceptance_content, content_digest
 from .registration_documents import delete_storage_object_quietly
@@ -34,7 +30,12 @@ if TYPE_CHECKING:
     from app.tournaments.schemas import TournamentCreate, TournamentRead
 
 
-def prepare_policy_archives(tournament: Tournament, storage: FileStorage, fetcher: PolicyFetcher, created_keys: list[str]) -> None:
+def prepare_policy_archives(
+    tournament: Tournament,
+    storage: FileStorage,
+    fetcher: PolicyFetcher,
+    created_keys: list[str],
+) -> None:
     """Capture configured URL versions without committing or holding a database lock."""
     for name in ("rules", "cancellation_policy"):
         url = getattr(tournament, f"{name}_url")
@@ -42,29 +43,25 @@ def prepare_policy_archives(tournament: Tournament, storage: FileStorage, fetche
             setattr(tournament, f"{name}_archive", None)
             continue
         fetched = fetcher.fetch(url)
-        key = f"tournaments/policy-archives/{uuid4()}"
-        created_keys.append(key)
-        # Force attachments even for HTML. Stored bytes are never trusted app markup.
-        storage.store_file(key, fetched.body, fetched.content_type)
-        setattr(
-            tournament,
-            f"{name}_archive",
-            PolicyArchive(
-                source_url=url,
-                final_url=fetched.final_url,
-                sha256=hashlib.sha256(fetched.body).hexdigest(),
-                captured_at=datetime.now(timezone.utc),
-                file=StoredFile(
-                    storage_key=key,
-                    original_file_name=f"{name}.{'pdf' if fetched.content_type == 'application/pdf' else 'txt'}",
-                    content_type=fetched.content_type,
-                    size_bytes=len(fetched.body),
-                ),
-            ),
+        archive = archive_document(
+            storage,
+            body=fetched.body,
+            original_file_name=f"{name}.{'pdf' if fetched.content_type == 'application/pdf' else 'txt'}",
+            content_type=fetched.content_type,
+            source_url=url,
+            final_url=fetched.final_url,
         )
+        created_keys.append(archive.file.storage_key)
+        setattr(tournament, f"{name}_archive", archive)
 
 
-def create_tournament_configuration(session: Session, payload: TournamentCreate, actor: User, storage: FileStorage, fetcher: PolicyFetcher) -> TournamentRead:
+def create_tournament_configuration(
+    session: Session,
+    payload: TournamentCreate,
+    actor: User,
+    storage: FileStorage,
+    fetcher: PolicyFetcher,
+) -> TournamentRead:
     if get_application_role(actor) != "admin":
         raise RegistrationNotAllowedError("Guild staff access is required")
     slug = resolve_tournament_slug(

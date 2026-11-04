@@ -14,9 +14,9 @@ qualified as `public`, even when another schema comes first in `search_path`.
 The product owner authorized replacing the old migration chain during issue #69
 because there is no participant data to preserve. Revision `20261103_0001` is the
 new initial migration. It creates the current tournament, registration, shared
-file, registration-document, policy-archive, acceptance-history and payment-settings
-tables directly. It also creates proof-review, verified-payment and refund
-records. It has no parent revision.
+file, registration-document, shared document-archive, acceptance-history and payment-settings
+tables directly. It also creates tournament proof reviews, domain payment/refund associations
+and shared Payment / Refund records. It has no parent revision.
 The old revisions and the intermediate rename migration are removed.
 
 This is a deliberate pre-data reset. It does not provide an upgrade from the
@@ -43,8 +43,9 @@ attempted ORM and SQL mutations as well as clean rebuilds.
 
 Payment guards validate proof purpose, same-registration approved evidence and
 refund equality with the received amount. Review and receipt rows are immutable.
-Reviewed document associations are protected. Refund status/completion fields
-remain separate from registration status. Downgrade drops financial dependants
+Reviewed document associations are protected. Shared Refund status/completion fields
+remain separate from registration status. Tournament-specific proof/refund guards
+live on tournament associations. Shared payment/refund schemas have no domain IDs. Downgrade drops financial dependants
 and their guard functions before dropping the registration/file schema.
 
 ## Applying migrations

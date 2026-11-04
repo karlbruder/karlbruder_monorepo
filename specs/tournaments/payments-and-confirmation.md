@@ -39,18 +39,28 @@ participation, consume capacity, send a message or move money.
 | --- | --- |
 | TournamentRegistrationDocument | One exact submitted proof and its StoredFile reference. |
 | PaymentProofReview | `document_id`, approved/rejected `decision`, `reviewed_by_user_id`, `reviewed_at` and a nonblank `rejection_reason` when rejected. |
-| RegistrationPayment | `registration_id`, approved `proof_review_id`, actual BRL `amount_received`, `verified_by_user_id` and `verified_at`. |
-| RegistrationRefund | `payment_id`, exact `amount_owed`, `obligated_at`, deadline `due_on`, independent `refund_status` and actual `completed_at` / `completed_by_user_id`. |
+| RegistrationPayment, tournaments | `registration_id`, approved `proof_review_id`, unique shared `payment_id`. |
+| Payment, payments | Actual BRL `amount_received`, `verified_by_user_id`, `verified_at`. No registration or membership reference. |
+| RegistrationRefund, tournaments | `registration_payment_id`, unique shared `refund_id`, deadline `due_on`. |
+| Refund, payments | `payment_id`, `amount_owed`, `obligated_at`, `refund_status`, `completed_at` / `completed_by_user_id`. |
 
-The database accepts reviews only for payment-proof documents. A verified receipt
-must reference an approved review of the same registration. Review decisions and
-verified receipts are retained as immutable facts. The reviewed document's
-association is protected too. The current non-installment schema permits one
-verified receipt per registration and per review, and one refund obligation per
-receipt. Received and owed amounts are finite, nonnegative BRL decimals.
-A refund's amount equals the receipt, even when that amount differs from the fee.
+TournamentPaymentSettings and PaymentProofReview belong to tournaments. A review
+must identify an exact payment-proof document. Its RegistrationPayment association
+must reference an approved review of the same registration and a shared Payment.
+Reviews, verified receipts and domain associations are immutable. Reviewed document
+associations are protected too. The current tournament schema permits one receipt
+per registration/review and one refund association per receipt. Received and owed
+amounts are finite, nonnegative BRL decimals.
 
-An absent refund row means no recorded obligation. `awaiting_refund` and
+Tournament refund associations require the shared Refund to refer to the same
+shared Payment and owe its exact received amount, even when that differs from the
+fee. The full-refund and 10-business-day rules stay in tournaments. Shared refunds
+retain financial facts without imposing tournament policy on future consumers.
+They contain no domain ID, fee/capacity rule or deadline calculation. The financial
+source payment, amount and obligation time cannot be rewritten. No duplicate
+amount, actor or progress columns live on the tournament associations.
+
+An absent RegistrationRefund association means no recorded tournament obligation. `awaiting_refund` and
 `completed` represent separate refund states. Pending refunds have no completion evidence. Completed refunds require both the actual time and
 recording admin UUID. They do not reactivate cancelled participation or prevent
 an otherwise valid replacement registration. These constraints also apply to

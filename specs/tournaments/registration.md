@@ -71,7 +71,10 @@ the refreshed content. The initial RegistrationAcceptance and any required
 parental document are saved in the registration transaction. Choices, versions,
 content, source IP and time live in immutable acceptance history.
 Participant and staff reads project the latest permitted acceptance fields.
-Linked rules and cancellation policies are read from preserved archive copies.
+Linked rules and cancellation policies are read from shared ArchivedDocument
+copies. Each tournament owns its policy purpose and access rules. Uploaded
+archives can also be reused by future legal-policy capabilities without creating
+a tournament registration document.
 
 ## Lifecycle boundary
 

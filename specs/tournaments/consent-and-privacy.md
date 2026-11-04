@@ -35,7 +35,10 @@ accepted versions, exact displayed declaration and policy content, language,
 verified user UUID, server time and source IP. The initial snapshot is atomic
 with registration and any required parental document. Registration does not keep
 a competing mutable copy. Later snapshots preserve earlier evidence.
-Database guards reject updates and deletes, including direct ORM writes.
+Policy captures reference shared ArchivedDocument records in core/documents.
+Their source URLs are optional for uploaded documents. Tournament ownership and
+retrieval remain domain-controlled. Database guards reject updates and deletes,
+including direct ORM writes.
 Owner responses project permitted latest choices and omit source IP and staff notes.
 
 The registration form uses server-provided draft declarations in the selected

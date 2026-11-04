@@ -30,12 +30,13 @@ Give guild staff (admins) control over tournament participation, payment review,
 
 ## Lifecycle boundary
 
-The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund separately records `awaiting_refund` or `completed`. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
+The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund links a shared Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
 
 Confirmation allocates a seat after the requirements applicable at that stage are met. Event-day checks remain separate: confirming a minor's registration does not waive the identity-document check and parental accompaniment required at the event by PRIV-010.
 
-The payments domain retains PaymentProofReview, RegistrationPayment and
-RegistrationRefund separately from TournamentRegistration. Staff decisions must
+Tournaments retains PaymentProofReview and the RegistrationPayment /
+RegistrationRefund associations separately from TournamentRegistration. Payments
+retains shared Payment and Refund financial facts. Staff decisions must
 identify the exact proof, actual received amount and attributable actor/time.
 No review, receipt or refund row changes capacity or participation by itself.
 The review commands in #60 apply the relevant facts and participation outcome

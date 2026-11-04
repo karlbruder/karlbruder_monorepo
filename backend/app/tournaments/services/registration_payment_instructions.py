@@ -12,7 +12,7 @@ from app.tournaments.exceptions import (
     TournamentError,
 )
 from app.models import User
-from app.payments.services.tournament_payment_settings import (
+from app.tournaments.services.tournament_payment_settings import (
     read_registration_pix_key_for_tournament,
 )
 from app.core.files.models import StoredFile

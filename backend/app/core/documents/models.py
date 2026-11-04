@@ -1,4 +1,4 @@
-"""Immutable capture of an externally configured tournament policy."""
+"""Immutable file evidence, independent of its consuming domain."""
 
 from datetime import datetime
 
@@ -9,18 +9,18 @@ from app.core.files.models import StoredFile
 from app.database import Base
 
 
-class PolicyArchive(Base):
-    __tablename__ = "policy_archives"
+class ArchivedDocument(Base):
+    __tablename__ = "archived_documents"
     __table_args__ = {"schema": "public"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     file_id: Mapped[int] = mapped_column(
         ForeignKey("public.stored_files.id", ondelete="RESTRICT"), nullable=False
     )
-    source_url: Mapped[str] = mapped_column(Text, nullable=False)
-    final_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    final_url: Mapped[str | None] = mapped_column(Text)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    captured_at: Mapped[datetime] = mapped_column(
+    archived_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
 

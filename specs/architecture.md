@@ -128,13 +128,30 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 | Membership, future | Association membership and monthly dues, independent of tournaments |
 | Equipment, future | Admin-only guild inventory of equipment, type, quantity, and condition; no loans or tournament reservations |
 
-Current shared file metadata lives in `app/core/files/` as StoredFile.
+Shared file metadata lives in `app/core/files/` as StoredFile. Immutable captured
+versions live in `app/core/documents/` as ArchivedDocument. Source URLs are optional
+so a consuming domain can archive an uploaded document too.
 Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
-RegistrationAcceptance and PolicyArchive. Payments owns TournamentPaymentSettings,
-PaymentProofReview, RegistrationPayment and RegistrationRefund. Domain associations
+RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview,
+RegistrationPayment and RegistrationRefund. The last two are associations to
+shared Payment and Refund records owned by payments. Domain associations
 control file purpose and access. Generic file metadata grants no access by itself.
 Settings, submitted proof, evidence decision, actual receipt, participation and
 refund progress remain separate facts. See the [tournament API guide](../backend/app/tournaments/README.md).
+
+Dependency arrows below mean “uses”. Shared code contains no reverse domain
+imports or tournament/member foreign keys. Future membership links are illustrative,
+not an implemented capability.
+
+```mermaid
+flowchart TD
+    T[Tournaments: participation and financial associations] --> P[Payments: Payment and Refund]
+    T --> D[Core documents: ArchivedDocument]
+    D --> F[Core files: StoredFile and storage]
+    T --> F
+    M[Future membership: dues and its own associations] -.-> P
+    M -.-> D
+```
 
 These concepts do not prescribe one table per concept. Issue #20 provides a starting schema, not a complete schema for every future workflow.
 

@@ -1,4 +1,4 @@
-"""Create the initial domain schema with shared files and tournament registrations.
+"""Create the initial domain schema with shared archives, finances and domain associations.
 
 Revision ID: 20261103_0001
 Revises: none
@@ -7,7 +7,6 @@ Revises: none
 from alembic import op
 import sqlalchemy as sa
 
-
 revision = "20261103_0001"
 down_revision = None
 branch_labels = None
@@ -15,6 +14,19 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.create_table(
+        "payments",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("amount_received", sa.Numeric(precision=12, scale=2), nullable=False),
+        sa.Column("verified_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
+        sa.CheckConstraint(
+            "amount_received >= 0 AND amount_received <> 'NaN'::numeric",
+            name="ck_payments_amount_nonnegative",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        schema="public",
+    )
     op.create_table(
         "stored_files",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -34,18 +46,53 @@ def upgrade() -> None:
         schema="public",
     )
     op.create_table(
-        "policy_archives",
-        sa.Column("id", sa.Integer(), primary_key=True),
+        "archived_documents",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("file_id", sa.Integer(), nullable=False),
+        sa.Column("source_url", sa.Text(), nullable=True),
+        sa.Column("final_url", sa.Text(), nullable=True),
+        sa.Column("sha256", sa.String(length=64), nullable=False),
+        sa.Column("archived_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["file_id"], ["public.stored_files.id"], ondelete="RESTRICT"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        schema="public",
+    )
+    op.create_table(
+        "refunds",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("payment_id", sa.Integer(), nullable=False),
+        sa.Column("amount_owed", sa.Numeric(precision=12, scale=2), nullable=False),
         sa.Column(
-            "file_id",
-            sa.Integer(),
-            sa.ForeignKey("public.stored_files.id", ondelete="RESTRICT"),
+            "refund_status",
+            sa.String(length=32),
+            server_default=sa.text("'awaiting_refund'"),
             nullable=False,
         ),
-        sa.Column("source_url", sa.Text(), nullable=False),
-        sa.Column("final_url", sa.Text(), nullable=False),
-        sa.Column("sha256", sa.String(64), nullable=False),
-        sa.Column("captured_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("obligated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("completed_by_user_id", sa.Uuid(), nullable=True),
+        sa.CheckConstraint(
+            "(refund_status = 'awaiting_refund' AND completed_at IS NULL AND completed_by_user_id IS NULL) OR (refund_status = 'completed' AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL)",
+            name="ck_refunds_completion_evidence",
+        ),
+        sa.CheckConstraint(
+            "amount_owed >= 0 AND amount_owed <> 'NaN'::numeric",
+            name="ck_refunds_amount_nonnegative",
+        ),
+        sa.CheckConstraint(
+            "refund_status IN ('awaiting_refund', 'completed')",
+            name="ck_refunds_status",
+        ),
+        sa.CheckConstraint(
+            "completed_at IS NULL OR completed_at >= obligated_at",
+            name="ck_refunds_completion_order",
+        ),
+        sa.ForeignKeyConstraint(
+            ["payment_id"], ["public.payments.id"], ondelete="RESTRICT"
+        ),
+        sa.PrimaryKeyConstraint("id"),
         schema="public",
     )
     op.create_table(
@@ -82,16 +129,8 @@ def upgrade() -> None:
         sa.Column("equipment_requirements", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_text", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_url", sa.Text(), nullable=True),
-        sa.Column(
-            "rules_archive_id",
-            sa.Integer(),
-            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
-        ),
-        sa.Column(
-            "cancellation_policy_archive_id",
-            sa.Integer(),
-            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
-        ),
+        sa.Column("rules_archive_id", sa.Integer(), nullable=True),
+        sa.Column("cancellation_policy_archive_id", sa.Integer(), nullable=True),
         sa.Column(
             "next_registration_number",
             sa.Integer(),
@@ -129,6 +168,14 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "registration_opens_on IS NULL OR registration_closes_on IS NULL OR registration_opens_on <= registration_closes_on",
             name="ck_tournaments_registration_window_order",
+        ),
+        sa.ForeignKeyConstraint(
+            ["cancellation_policy_archive_id"],
+            ["public.archived_documents.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["rules_archive_id"], ["public.archived_documents.id"], ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("slug", name="uq_tournaments_slug"),
@@ -241,6 +288,7 @@ def upgrade() -> None:
         unique=True,
         schema="public",
         postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
     )
     op.create_index(
         "uq_tournament_registrations_active_email",
@@ -249,6 +297,7 @@ def upgrade() -> None:
         unique=True,
         schema="public",
         postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
     )
     op.create_index(
         "uq_tournament_registrations_active_user",
@@ -257,6 +306,52 @@ def upgrade() -> None:
         unique=True,
         schema="public",
         postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
+    )
+    op.create_table(
+        "registration_acceptances",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("registration_id", sa.Integer(), nullable=False),
+        sa.Column("accepted_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
+        sa.Column("declares_has_required_equipment", sa.Boolean(), nullable=False),
+        sa.Column("declares_physically_fit", sa.Boolean(), nullable=False),
+        sa.Column("accepts_rules", sa.Boolean(), nullable=False),
+        sa.Column("accepts_data_processing", sa.Boolean(), nullable=False),
+        sa.Column("acknowledges_inherent_risks", sa.Boolean(), nullable=False),
+        sa.Column("accepts_cancellation_policy", sa.Boolean(), nullable=False),
+        sa.Column("authorizes_image_use", sa.Boolean(), nullable=False),
+        sa.Column("accepted_terms_version", sa.String(length=100), nullable=False),
+        sa.Column("accepted_rules_version", sa.String(length=100), nullable=False),
+        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("accepted_from_ip", sa.String(length=45), nullable=False),
+        sa.Column("language", sa.String(length=2), nullable=False),
+        sa.Column("content_digest", sa.String(length=64), nullable=False),
+        sa.Column("content", sa.JSON(), nullable=False),
+        sa.Column("rules_archive_id", sa.Integer(), nullable=True),
+        sa.Column("cancellation_policy_archive_id", sa.Integer(), nullable=True),
+        sa.CheckConstraint(
+            "language IN ('pt', 'en')", name="ck_registration_acceptances_language"
+        ),
+        sa.CheckConstraint(
+            "declares_truthful_information AND declares_has_required_equipment AND declares_physically_fit AND accepts_rules AND accepts_data_processing AND acknowledges_inherent_risks AND accepts_cancellation_policy",
+            name="ck_registration_acceptances_required_choices",
+        ),
+        sa.ForeignKeyConstraint(
+            ["cancellation_policy_archive_id"],
+            ["public.archived_documents.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["registration_id"],
+            ["public.tournament_registrations.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["rules_archive_id"], ["public.archived_documents.id"], ondelete="RESTRICT"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        schema="public",
     )
     op.create_table(
         "tournament_registration_documents",
@@ -303,48 +398,76 @@ def upgrade() -> None:
         schema="public",
         postgresql_where=sa.text("document_type = 'parental_consent_form'"),
     )
-
     op.create_table(
-        "registration_acceptances",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column(
-            "registration_id",
-            sa.Integer(),
-            sa.ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column("accepted_by_user_id", sa.Uuid(), nullable=False),
-        sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
-        sa.Column("declares_has_required_equipment", sa.Boolean(), nullable=False),
-        sa.Column("declares_physically_fit", sa.Boolean(), nullable=False),
-        sa.Column("accepts_rules", sa.Boolean(), nullable=False),
-        sa.Column("accepts_data_processing", sa.Boolean(), nullable=False),
-        sa.Column("acknowledges_inherent_risks", sa.Boolean(), nullable=False),
-        sa.Column("accepts_cancellation_policy", sa.Boolean(), nullable=False),
-        sa.Column("authorizes_image_use", sa.Boolean(), nullable=False),
-        sa.Column("accepted_terms_version", sa.String(length=100), nullable=False),
-        sa.Column("accepted_rules_version", sa.String(length=100), nullable=False),
-        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("accepted_from_ip", sa.String(length=45), nullable=False),
-        sa.Column("language", sa.String(2), nullable=False),
-        sa.Column("content_digest", sa.String(64), nullable=False),
-        sa.Column("content", sa.JSON(), nullable=False),
-        sa.Column(
-            "rules_archive_id",
-            sa.Integer(),
-            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
-        ),
-        sa.Column(
-            "cancellation_policy_archive_id",
-            sa.Integer(),
-            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
+        "payment_proof_reviews",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("document_id", sa.Integer(), nullable=False),
+        sa.Column("decision", sa.String(length=16), nullable=False),
+        sa.Column("reviewed_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("rejection_reason", sa.Text(), nullable=True),
+        sa.CheckConstraint(
+            "decision <> 'rejected' OR (rejection_reason IS NOT NULL AND rejection_reason ~ '[^[:space:]]')",
+            name="ck_payment_proof_reviews_rejection_reason",
         ),
         sa.CheckConstraint(
-            "declares_truthful_information AND declares_has_required_equipment AND declares_physically_fit AND accepts_rules AND accepts_data_processing AND acknowledges_inherent_risks AND accepts_cancellation_policy",
-            name="ck_registration_acceptances_required_choices",
+            "decision IN ('approved', 'rejected')",
+            name="ck_payment_proof_reviews_decision",
         ),
-        sa.CheckConstraint(
-            "language IN ('pt', 'en')", name="ck_registration_acceptances_language"
+        sa.ForeignKeyConstraint(
+            ["document_id"],
+            ["public.tournament_registration_documents.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        schema="public",
+    )
+    op.create_table(
+        "registration_payments",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("registration_id", sa.Integer(), nullable=False),
+        sa.Column("proof_review_id", sa.Integer(), nullable=False),
+        sa.Column("payment_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["payment_id"], ["public.payments.id"], ondelete="RESTRICT"
+        ),
+        sa.ForeignKeyConstraint(
+            ["proof_review_id"],
+            ["public.payment_proof_reviews.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["registration_id"],
+            ["public.tournament_registrations.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("payment_id", name="uq_registration_payments_payment"),
+        sa.UniqueConstraint("proof_review_id", name="uq_registration_payments_review"),
+        sa.UniqueConstraint(
+            "registration_id", name="uq_registration_payments_registration"
+        ),
+        schema="public",
+    )
+    op.create_table(
+        "registration_refunds",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("registration_payment_id", sa.Integer(), nullable=False),
+        sa.Column("refund_id", sa.Integer(), nullable=False),
+        sa.Column("due_on", sa.Date(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["refund_id"], ["public.refunds.id"], ondelete="RESTRICT"
+        ),
+        sa.ForeignKeyConstraint(
+            ["registration_payment_id"],
+            ["public.registration_payments.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("refund_id", name="uq_registration_refunds_refund"),
+        sa.UniqueConstraint(
+            "registration_payment_id",
+            name="uq_registration_refunds_registration_payment",
         ),
         schema="public",
     )
@@ -356,7 +479,7 @@ def upgrade() -> None:
         END $$
     """
     )
-    for table in ("registration_acceptances", "policy_archives"):
+    for table in ("registration_acceptances", "archived_documents"):
         op.execute(
             f"CREATE TRIGGER immutable_evidence BEFORE UPDATE OR DELETE ON public.{table} FOR EACH ROW EXECUTE FUNCTION public.reject_evidence_mutation()"
         )
@@ -364,7 +487,7 @@ def upgrade() -> None:
         """
         CREATE FUNCTION public.protect_archived_file_metadata() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
-            IF EXISTS (SELECT 1 FROM public.policy_archives WHERE file_id = OLD.id) THEN
+            IF EXISTS (SELECT 1 FROM public.archived_documents WHERE file_id = OLD.id) THEN
                 RAISE EXCEPTION 'Archived file metadata is immutable' USING ERRCODE = '23514';
             END IF;
             IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
@@ -374,99 +497,6 @@ def upgrade() -> None:
     )
     op.execute(
         "CREATE TRIGGER immutable_archived_file BEFORE UPDATE OR DELETE ON public.stored_files FOR EACH ROW EXECUTE FUNCTION public.protect_archived_file_metadata()"
-    )
-
-    op.create_table(
-        "payment_proof_reviews",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column(
-            "document_id",
-            sa.Integer(),
-            sa.ForeignKey(
-                "public.tournament_registration_documents.id", ondelete="RESTRICT"
-            ),
-            nullable=False,
-        ),
-        sa.Column("decision", sa.String(16), nullable=False),
-        sa.Column("reviewed_by_user_id", sa.Uuid(), nullable=False),
-        sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("rejection_reason", sa.Text()),
-        sa.CheckConstraint(
-            "decision IN ('approved', 'rejected')",
-            name="ck_payment_proof_reviews_decision",
-        ),
-        sa.CheckConstraint(
-            "decision <> 'rejected' OR (rejection_reason IS NOT NULL AND rejection_reason ~ '[^[:space:]]')",
-            name="ck_payment_proof_reviews_rejection_reason",
-        ),
-        schema="public",
-    )
-    op.create_table(
-        "registration_payments",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column(
-            "registration_id",
-            sa.Integer(),
-            sa.ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "proof_review_id",
-            sa.Integer(),
-            sa.ForeignKey("public.payment_proof_reviews.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column("amount_received", sa.Numeric(12, 2), nullable=False),
-        sa.Column("verified_by_user_id", sa.Uuid(), nullable=False),
-        sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint(
-            "amount_received >= 0 AND amount_received <> 'NaN'::numeric",
-            name="ck_registration_payments_amount_nonnegative",
-        ),
-        sa.UniqueConstraint("proof_review_id", name="uq_registration_payments_review"),
-        sa.UniqueConstraint(
-            "registration_id", name="uq_registration_payments_registration"
-        ),
-        schema="public",
-    )
-    op.create_table(
-        "registration_refunds",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column(
-            "payment_id",
-            sa.Integer(),
-            sa.ForeignKey("public.registration_payments.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column("amount_owed", sa.Numeric(12, 2), nullable=False),
-        sa.Column(
-            "refund_status",
-            sa.String(32),
-            nullable=False,
-            server_default=sa.text("'awaiting_refund'"),
-        ),
-        sa.Column("obligated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("due_on", sa.Date(), nullable=False),
-        sa.Column("completed_at", sa.DateTime(timezone=True)),
-        sa.Column("completed_by_user_id", sa.Uuid()),
-        sa.UniqueConstraint("payment_id", name="uq_registration_refunds_payment"),
-        sa.CheckConstraint(
-            "amount_owed >= 0 AND amount_owed <> 'NaN'::numeric",
-            name="ck_registration_refunds_amount_nonnegative",
-        ),
-        sa.CheckConstraint(
-            "refund_status IN ('awaiting_refund', 'completed')",
-            name="ck_registration_refunds_status",
-        ),
-        sa.CheckConstraint(
-            "(refund_status = 'awaiting_refund' AND completed_at IS NULL AND completed_by_user_id IS NULL) OR (refund_status = 'completed' AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL)",
-            name="ck_registration_refunds_completion_evidence",
-        ),
-        sa.CheckConstraint(
-            "completed_at IS NULL OR completed_at >= obligated_at",
-            name="ck_registration_refunds_completion_order",
-        ),
-        schema="public",
     )
     op.execute(
         """
@@ -507,10 +537,14 @@ def upgrade() -> None:
         """
         CREATE FUNCTION public.validate_registration_refund() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
-            PERFORM 1 FROM public.registration_payments
-                WHERE id = NEW.payment_id AND amount_received = NEW.amount_owed FOR SHARE;
+            PERFORM 1 FROM public.registration_payments rp
+                JOIN public.payments p ON p.id = rp.payment_id
+                JOIN public.refunds f ON f.id = NEW.refund_id
+                WHERE rp.id = NEW.registration_payment_id
+                    AND f.payment_id = p.id AND f.amount_owed = p.amount_received
+                FOR SHARE OF rp, p, f;
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Refund must equal the verified amount received' USING ERRCODE = '23514';
+                RAISE EXCEPTION 'Tournament refund must match its registration payment and exact amount received' USING ERRCODE = '23514';
             END IF;
             RETURN NEW;
         END $$
@@ -534,32 +568,41 @@ def upgrade() -> None:
     op.execute(
         "CREATE TRIGGER immutable_reviewed_document BEFORE UPDATE OR DELETE ON public.tournament_registration_documents FOR EACH ROW EXECUTE FUNCTION public.protect_reviewed_document()"
     )
-    for table in ("payment_proof_reviews", "registration_payments"):
+    for table in (
+        "payment_proof_reviews",
+        "registration_payments",
+        "registration_refunds",
+        "payments",
+    ):
         op.execute(
             f"CREATE TRIGGER immutable_evidence BEFORE UPDATE OR DELETE ON public.{table} FOR EACH ROW EXECUTE FUNCTION public.reject_evidence_mutation()"
         )
+    op.execute(
+        """
+        CREATE FUNCTION public.protect_refund_obligation() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF ROW(NEW.payment_id, NEW.amount_owed, NEW.obligated_at)
+                IS DISTINCT FROM ROW(OLD.payment_id, OLD.amount_owed, OLD.obligated_at) THEN
+                RAISE EXCEPTION 'Refund obligation facts are immutable' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER immutable_refund_obligation BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION public.protect_refund_obligation()"
+    )
 
 
 def downgrade() -> None:
-    op.execute(
-        "DROP TRIGGER immutable_reviewed_document ON public.tournament_registration_documents"
-    )
-    op.execute("DROP FUNCTION public.protect_reviewed_document()")
     op.drop_table("registration_refunds", schema="public")
     op.drop_table("registration_payments", schema="public")
     op.drop_table("payment_proof_reviews", schema="public")
-    op.execute("DROP FUNCTION public.validate_registration_refund()")
-    op.execute("DROP FUNCTION public.validate_registration_payment()")
-    op.execute("DROP FUNCTION public.validate_payment_proof_review()")
-    op.execute("DROP TRIGGER immutable_archived_file ON public.stored_files")
-    op.execute("DROP FUNCTION public.protect_archived_file_metadata()")
-    op.drop_table("registration_acceptances", schema="public")
-    op.execute("DROP TRIGGER immutable_evidence ON public.policy_archives")
-    op.execute("DROP FUNCTION public.reject_evidence_mutation()")
     op.drop_index(
         "uq_tournament_registration_documents_one_parental_consent_form",
         table_name="tournament_registration_documents",
         schema="public",
+        postgresql_where=sa.text("document_type = 'parental_consent_form'"),
     )
     op.drop_index(
         "ix_tournament_registration_documents_registration_id",
@@ -567,20 +610,27 @@ def downgrade() -> None:
         schema="public",
     )
     op.drop_table("tournament_registration_documents", schema="public")
+    op.drop_table("registration_acceptances", schema="public")
     op.drop_index(
         "uq_tournament_registrations_active_user",
         table_name="tournament_registrations",
         schema="public",
+        postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
     )
     op.drop_index(
         "uq_tournament_registrations_active_email",
         table_name="tournament_registrations",
         schema="public",
+        postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
     )
     op.drop_index(
         "uq_tournament_registrations_active_document",
         table_name="tournament_registrations",
         schema="public",
+        postgresql_where=sa.text("registration_status <> 'cancelled'"),
+        sqlite_where=sa.text("registration_status <> 'cancelled'"),
     )
     op.drop_index(
         "ix_tournament_registrations_tournament_id",
@@ -590,5 +640,14 @@ def downgrade() -> None:
     op.drop_table("tournament_registrations", schema="public")
     op.drop_table("tournament_payment_settings", schema="public")
     op.drop_table("tournaments", schema="public")
-    op.drop_table("policy_archives", schema="public")
+    op.drop_table("refunds", schema="public")
+    op.drop_table("archived_documents", schema="public")
     op.drop_table("stored_files", schema="public")
+    op.drop_table("payments", schema="public")
+    op.execute("DROP FUNCTION public.reject_evidence_mutation()")
+    op.execute("DROP FUNCTION public.protect_archived_file_metadata()")
+    op.execute("DROP FUNCTION public.validate_payment_proof_review()")
+    op.execute("DROP FUNCTION public.validate_registration_payment()")
+    op.execute("DROP FUNCTION public.validate_registration_refund()")
+    op.execute("DROP FUNCTION public.protect_reviewed_document()")
+    op.execute("DROP FUNCTION public.protect_refund_obligation()")

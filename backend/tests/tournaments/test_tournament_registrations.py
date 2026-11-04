@@ -874,13 +874,21 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         .order_by(TournamentRegistrationDocument.id)
     ).all()
     assert len(proof_rows) == 2
-    from app.payments.models import (
+    from app.tournaments.models import (
         PaymentProofReview,
         RegistrationPayment,
         RegistrationRefund,
     )
 
-    for model in (PaymentProofReview, RegistrationPayment, RegistrationRefund):
+    from app.payments.models import Payment, Refund
+
+    for model in (
+        PaymentProofReview,
+        RegistrationPayment,
+        RegistrationRefund,
+        Payment,
+        Refund,
+    ):
         assert db_session.scalar(select(func.count()).select_from(model)) == 0
 
     payment = client.get(
@@ -1439,7 +1447,7 @@ def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):
 
 
 def test_archived_policies_survive_source_and_configuration_changes(setup, monkeypatch):
-    from app.tournaments.models import PolicyArchive
+    from app.core.documents.models import ArchivedDocument
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
     from app.tournaments.services.tournament_policies import prepare_policy_archives
     from sqlalchemy import text
@@ -1459,7 +1467,7 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     assert _post_registration(client, event_id, owner).status_code == 201
     row = session.scalar(select(TournamentRegistration))
     first = row.acceptances[0]
-    archive = session.get(PolicyArchive, first.rules_archive_id)
+    archive = session.get(ArchivedDocument, first.rules_archive_id)
     original_key = archive.file.storage_key
     assert storage.objects[original_key][0] == source["body"]
     source["body"] = b"<html>Replaced source</html>"
@@ -1473,8 +1481,8 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     assert storage.objects[original_key][0] == b"<html>Original policy</html>"
     assert original_key not in storage.deleted_keys
     for sql in (
-        "UPDATE public.policy_archives SET sha256 = 'tampered'",
-        "DELETE FROM public.policy_archives",
+        "UPDATE public.archived_documents SET sha256 = 'tampered'",
+        "DELETE FROM public.archived_documents",
         f"UPDATE public.stored_files SET storage_key = 'tampered' WHERE id = {archive.file_id}",
     ):
         with pytest.raises(IntegrityError, match="immutable"):
@@ -1487,7 +1495,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
 ):
     from app.tournaments.exceptions import PolicyArchiveError
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.tournaments.models import PolicyArchive
+    from app.core.documents.models import ArchivedDocument
 
     client, key, session, storage = setup
 
@@ -1509,7 +1517,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
     assert storage.objects == {}
     assert len(storage.deleted_keys) == 1
     assert session.scalar(select(func.count()).select_from(Tournament)) == 0
-    assert session.scalar(select(func.count()).select_from(PolicyArchive)) == 0
+    assert session.scalar(select(func.count()).select_from(ArchivedDocument)) == 0
     assert session.scalar(select(func.count()).select_from(StoredFile)) == 0
 
 
@@ -1519,7 +1527,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
 ):
     from sqlalchemy.exc import SQLAlchemyError
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.tournaments.models import PolicyArchive
+    from app.core.documents.models import ArchivedDocument
 
     client, key, session, storage = setup
     monkeypatch.setattr(
@@ -1561,7 +1569,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
     else:
         assert request().status_code == 503
     assert session.scalar(select(func.count()).select_from(Tournament)) == 1
-    assert session.scalar(select(func.count()).select_from(PolicyArchive)) == 1
+    assert session.scalar(select(func.count()).select_from(ArchivedDocument)) == 1
     assert session.scalar(select(func.count()).select_from(StoredFile)) == 1
     assert existing_key in storage.objects
     assert existing_key not in storage.deleted_keys
@@ -1574,7 +1582,7 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
 ):
     """REG-004 and PAY-009: stored refund facts never reactivate cancelled participation."""
     from decimal import Decimal
-    from app.payments.models import (
+    from app.tournaments.models import (
         PaymentProofReview,
         RegistrationPayment,
         RegistrationRefund,
@@ -1606,24 +1614,34 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
     )
     session.add(review)
     session.flush()
-    payment = RegistrationPayment(
-        registration_id=original.id,
-        proof_review_id=review.id,
+    from app.payments.services.records import add_payment_record, add_refund_record
+
+    receipt = add_payment_record(
+        session,
         amount_received=Decimal("125.50"),
         verified_by_user_id=uuid4(),
         verified_at=now,
     )
+    payment = RegistrationPayment(
+        registration_id=original.id, proof_review_id=review.id, payment_id=receipt.id
+    )
     session.add(payment)
     session.flush()
     original.registration_status = "cancelled"
-    refund = RegistrationRefund(
-        payment_id=payment.id,
-        amount_owed=payment.amount_received,
-        refund_status=refund_status,
+    shared_refund = add_refund_record(
+        session,
+        payment_id=receipt.id,
+        amount_owed=receipt.amount_received,
         obligated_at=now,
+    )
+    if refund_status == "completed":
+        shared_refund.refund_status = "completed"
+        shared_refund.completed_at = now
+        shared_refund.completed_by_user_id = uuid4()
+    refund = RegistrationRefund(
+        registration_payment_id=payment.id,
+        refund=shared_refund,
         due_on=now.date() + timedelta(days=14),
-        completed_at=now if refund_status == "completed" else None,
-        completed_by_user_id=uuid4() if refund_status == "completed" else None,
     )
     session.add(refund)
     session.commit()
@@ -1635,5 +1653,7 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
         session.get(TournamentRegistration, original.id).registration_status
         == "cancelled"
     )
-    assert session.get(RegistrationRefund, refund.id).refund_status == refund_status
-    assert refund.amount_owed == Decimal("125.50")
+    assert (
+        session.get(RegistrationRefund, refund.id).refund.refund_status == refund_status
+    )
+    assert refund.refund.amount_owed == Decimal("125.50")

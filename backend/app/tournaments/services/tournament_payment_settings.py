@@ -3,7 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.payments.models import TournamentPaymentSettings
+from app.tournaments.models import TournamentPaymentSettings
 
 
 def create_tournament_payment_settings(

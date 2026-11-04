@@ -27,7 +27,9 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
         "tournament_registration_documents",
         "stored_files",
         "registration_acceptances",
-        "policy_archives",
+        "archived_documents",
+        "payments",
+        "refunds",
         "payment_proof_reviews",
         "registration_payments",
         "registration_refunds",
@@ -38,6 +40,7 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
             "tournament_signups",
             "tournament_signup_files",
             "registration_documents",
+            "policy_archives",
             "pix_recipients",
             "tournament_inscription_payment_configs",
         }

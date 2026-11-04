@@ -36,7 +36,7 @@ accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
 
 Saving tournament configuration captures each configured policy URL before
 publishing the event. Inline text remains separate and both forms may be present.
-Each URL capture creates a PolicyArchive referencing shared StoredFile metadata.
+Each URL capture creates a shared ArchivedDocument referencing StoredFile metadata.
 The capture retains source/final URLs, SHA-256 and capture time. Private stored
 bytes use a fresh key. Reads do not fetch the source again. Saving a new policy
 configuration captures a new copy even when its source URL is unchanged.
@@ -161,7 +161,7 @@ identity-document checks remain separate requirements.
 
 ## Payment settings and instructions
 
-The payments domain owns optional `TournamentPaymentSettings`, with a unique
+The tournaments domain owns optional `TournamentPaymentSettings`, with a unique
 `tournament_id` and a directly stored `pix_key`. There is no shared-recipient
 indirection. A blank key creates no settings row. The public catalog never exposes
 Pix configuration. Admins may supply `pix_key` at tournament creation.
@@ -180,8 +180,8 @@ Replacement is allowed while `awaiting_payment` or `payment_in_review`.
 Every submitted proof is retained. The owner retrieves only the latest through
 `GET .../payment-proof`. Staff review of the history remains #60.
 
-A proof is evidence, not a verified receipt or a transfer. Payments owns
-PaymentProofReview, RegistrationPayment and RegistrationRefund. These persistence
+A proof is evidence, not a verified receipt or a transfer. Tournaments owns
+PaymentProofReview and the RegistrationPayment / RegistrationRefund associations. These persistence
 records do not change registration status or capacity by themselves.
 Payment decisions, refund actions and notifications remain later workflows. The frontend entry remains `/tournaments/registration`.
 
@@ -193,28 +193,35 @@ PaymentProofReview references one exact TournamentRegistrationDocument through
 `rejection_reason`. A rejected decision requires a nonblank reason. Each decision
 is retained rather than overwritten. Recording a decision creates no receipt.
 
-RegistrationPayment references the registration and its approved `proof_review_id`.
-It stores `amount_received` as a BRL decimal, `verified_by_user_id` and `verified_at`.
-The amount is independent of the advertised fee. The current schema allows one
-verified receipt per registration and per review. It introduces no installments.
-Database guards reject a rejected review or a proof from another registration.
-Review and receipt records cannot be updated or deleted. A reviewed document's
-association cannot be reassigned or rewritten.
+RegistrationPayment stores `registration_id`, the approved `proof_review_id`
+and unique `payment_id`. It links one registration/review to a shared Payment.
+Payment lives in the payments domain and stores actual BRL `amount_received`,
+`verified_by_user_id` and `verified_at`. Those facts are not duplicated on the
+association. The amount is independent of the advertised fee. Tournament guards
+reject a rejected review or a proof from another registration. The current
+tournament schema permits one verified receipt per registration/review.
 
-RegistrationRefund references that receipt through unique `payment_id`. It stores
-`amount_owed`, `obligated_at`, `due_on`, `refund_status`, `completed_at` and
-`completed_by_user_id`. The amount must equal the verified amount received.
-No row means no recorded obligation. `awaiting_refund` has no completion evidence.
-`completed` requires both the actual completion time and recording admin UUID.
-Completion cannot precede the obligation. Updating these fields does not transfer
-funds or change the registration's cancelled state.
+RegistrationRefund stores `registration_payment_id`, unique `refund_id` and
+`due_on`. The linked shared Refund stores `payment_id`, `amount_owed`,
+`obligated_at`, `refund_status`, `completed_at` and `completed_by_user_id`.
+Tournament guards require the refund to reference that registration's exact
+shared payment and equal its received amount. The one-obligation/full-refund rule
+and deadline belong to tournaments. Shared refunds do not impose those rules on
+other consumers. No monetary or progress columns are duplicated on the association.
+
+No association means no recorded tournament refund obligation. A linked Refund
+in `awaiting_refund` has no completion evidence. `completed` requires both actual
+time and recording UUID. Completion cannot precede the obligation. Source-payment,
+amount and obligation time are immutable while completion can be recorded later.
+Review, receipt and association history is retained. These records do not transfer
+money, reserve a seat or reactivate cancelled participation.
 
 Issue #60 must verify the admin, reviewability and concurrent command state.
 Its approval transaction must write the review and receipt together with the
 confirmed or paid-waitlist outcome. Later cancellation/refund work calculates the
 10-business-day deadline, records the exact amount owed and actual completion,
-and sends the required notifications. No new command or endpoint writes these
-financial records in this checkpoint. Fixture rows in tests verify persistence.
+and sends the required notifications. Generic persistence helpers use the caller’s transaction. No staff decision
+or refund command/endpoint is added in this checkpoint. Fixture rows in tests verify persistence.
 
 ## Migration boundary
 

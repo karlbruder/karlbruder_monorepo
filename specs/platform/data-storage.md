@@ -83,9 +83,22 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 
 ## Preserved acceptance content
 
-PolicyArchive belongs to tournaments and references StoredFile. It stores source
-and final URLs, capture time and SHA-256. RegistrationAcceptance references those
-archives and stores the exact inline policies and draft declarations accepted.
+ArchivedDocument lives in core/documents and references StoredFile. It stores
+SHA-256, archived_at and optional source/final URLs. Uploaded documents do not
+require a source URL. Fresh immutable captures can represent tournament policies
+or future terms/privacy versions. Each consuming domain owns the logical policy,
+current-version pointer, publication rules, access and file validation.
+RegistrationAcceptance references those shared archives and stores the exact inline policies and draft declarations accepted.
 Both records are immutable. Archived-file metadata is protected while referenced.
 Private bytes use fresh keys and attachment downloads under tournament visibility.
 There is no generic file-access endpoint or automatic expiry.
+
+## Shared financial records
+
+Payments owns Payment and Refund. They retain financial amounts, verification,
+obligation time and completion evidence without tournament or membership references.
+TournamentPaymentSettings, PaymentProofReview and the registration payment/refund
+associations belong to tournaments. Domain associations point to shared facts.
+The reverse dependency does not exist. Tournament proof eligibility, full-refund
+amount equality, one payment/obligation and deadline rules stay in that domain.
+Future membership can add its own associations without inheriting tournament rules.
