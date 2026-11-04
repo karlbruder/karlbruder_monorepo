@@ -2,6 +2,7 @@
 
 from io import BytesIO
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse
 
 import pytest
 from botocore.exceptions import ClientError
@@ -132,6 +133,47 @@ def test_build_s3_client_omits_endpoint_configuration_when_endpoint_is_none(boto
     boto3_client.assert_called_once_with("s3", region_name="us-east-2")
 
 
+def test_presigned_url_uses_the_browser_endpoint_while_object_calls_stay_on_the_server(monkeypatch):
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    storage = FileStorage(
+        bucket_name="kb-local-bucket",
+        endpoint_url="http://ministack:4566",
+        browser_endpoint_url="http://localhost:4566",
+    )
+
+    put_url = storage.create_presigned_put_url(
+        "staging/key",
+        content_type="application/pdf",
+        expires_in=60,
+    )
+    get_url = storage.create_presigned_get_url("final/key", expires_in=60)
+
+    assert urlparse(put_url).hostname in {"localhost", "127.0.0.1"}
+    assert urlparse(get_url).hostname in {"localhost", "127.0.0.1"}
+    assert storage._s3_client.meta.endpoint_url == "http://ministack:4566"
+    assert "ministack" not in put_url
+    assert "ministack" not in get_url
+
+
+def test_presigned_urls_use_the_server_client_when_no_browser_endpoint_is_set():
+    s3_client = MagicMock()
+    s3_client.generate_presigned_url.return_value = "https://s3.amazonaws.com/kb-prod-bucket/key"
+    storage = FileStorage(
+        bucket_name="kb-prod-bucket",
+        endpoint_url=None,
+        s3_client=s3_client,
+    )
+
+    storage.create_presigned_put_url(
+        "staging/key",
+        content_type="application/pdf",
+        expires_in=60,
+    )
+
+    s3_client.generate_presigned_url.assert_called_once()
+
+
 def test_get_file_storage_passes_settings_to_the_client_builder(monkeypatch):
     monkeypatch.setattr(
         "app.core.services.storage.file_storage.settings",
@@ -155,3 +197,32 @@ def test_get_file_storage_passes_settings_to_the_client_builder(monkeypatch):
         get_file_storage()
 
     build_s3_client.assert_called_once_with(endpoint_url="http://ministack:4566")
+
+
+@patch("app.core.services.storage.file_storage.build_s3_client")
+def test_get_file_storage_signs_browser_urls_with_the_browser_endpoint(build_s3_client, monkeypatch):
+    monkeypatch.setattr(
+        "app.core.services.storage.file_storage.settings",
+        Settings(
+            DB_USER="postgres",
+            DB_PASSWORD="postgres",
+            DB_HOST="db",
+            DB_NAME="postgres",
+            AUTH_DB_USER="auth",
+            AUTH_DB_PASSWORD="auth",
+            AUTH_DB_HOST="auth-db",
+            AUTH_DB_NAME="auth",
+            SUPABASE_URL="https://example.supabase.co",
+            S3_BUCKET_NAME="kb-local-bucket",
+            S3_ENDPOINT_URL="http://ministack:4566",
+            S3_BROWSER_ENDPOINT_URL="http://localhost:4566",
+        ),
+    )
+    build_s3_client.return_value = MagicMock()
+
+    get_file_storage()
+
+    assert [call.kwargs for call in build_s3_client.call_args_list] == [
+        {"endpoint_url": "http://ministack:4566"},
+        {"endpoint_url": "http://localhost:4566"},
+    ]

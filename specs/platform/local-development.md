@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -37,7 +37,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 | Backend container | API/domain behavior, using the same application rules as production |
 | PostgreSQL container | Local domain tables in `public` |
 | Hosted Supabase Auth | Application sign-in and verified user identity; still external in local development |
-| Ministack | Local S3 on port 4566. Bucket from CloudFormation in `ministack/bootstrap-ministack.sh` |
+| Ministack | Local S3 on port 4566. The backend calls `http://ministack:4566`. Presigned URLs use `http://localhost:4566`. `ministack/bootstrap-ministack.sh` creates `kb-local-bucket` and allows browser `PUT` from `http://localhost:5173`. |
 
 Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [mode comparison and diagrams](../architecture.md#mode-comparison).
 

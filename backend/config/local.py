@@ -11,3 +11,4 @@ class LocalSettings(Settings):
 
     S3_BUCKET_NAME: str = "kb-local-bucket"
     S3_ENDPOINT_URL: str = "http://ministack:4566"
+    S3_BROWSER_ENDPOINT_URL: str = "http://localhost:4566"

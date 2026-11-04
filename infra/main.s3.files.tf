@@ -8,6 +8,21 @@ module "application_files" {
   versioning_enabled     = true
 }
 
+resource "aws_s3_bucket_cors_configuration" "application_files" {
+  bucket = module.application_files.bucket_id
+
+  cors_rule {
+    allowed_headers = ["Content-Type"]
+    allowed_methods = ["PUT"]
+    allowed_origins = [
+      "https://app.karlbruder.com",
+      "https://app-prod.karlbruder.com",
+      "https://app-dev.karlbruder.com",
+    ]
+    max_age_seconds = 3000
+  }
+}
+
 resource "aws_iam_role_policy" "application_host_application_files" {
   name = replace(title(replace("${local.namespace}-application-files-s3", "-", " ")), " ", "")
   role = module.application_host.iam_role_name

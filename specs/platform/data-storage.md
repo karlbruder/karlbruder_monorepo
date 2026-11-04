@@ -1,7 +1,7 @@
 # Data storage
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -40,7 +40,7 @@ The backend uses the same domain migrations and S3-facing storage logic across e
 
 The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
 
-File storage uses `S3_BUCKET_NAME` and an optional `S3_ENDPOINT_URL`. Local Compose points the endpoint at Ministack and creates the `kb-local-bucket` bucket through a CloudFormation stack in `ministack/bootstrap-ministack.sh`. Deployed environments use names such as `kb-dev-bucket` and `kb-prod-bucket` from secrets. Tests mock the storage client and do not start Ministack.
+File storage uses `S3_BUCKET_NAME` and an optional `S3_ENDPOINT_URL`. Local Compose points that endpoint at `http://ministack:4566` for server-side calls. Presigned URLs use `S3_BROWSER_ENDPOINT_URL`, which local Compose sets to `http://localhost:4566`. Cloud secrets leave both endpoint settings unset so signing uses the normal S3 host. Local Compose creates the `kb-local-bucket` bucket through a CloudFormation stack in `ministack/bootstrap-ministack.sh`, then allows browser `PUT` from `http://localhost:5173`. The private application bucket in Terraform allows browser `PUT` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. That CORS rule does not grant public reads. Deployed environments use names such as `kb-dev-bucket` and `kb-prod-bucket` from secrets. Tests mock the storage client and do not start Ministack.
 
 The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
 

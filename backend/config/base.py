@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     # S3 File storage
     S3_BUCKET_NAME: str
     S3_ENDPOINT_URL: str | None = None
+    S3_BROWSER_ENDPOINT_URL: str | None = None
 
     @field_validator("SUPABASE_URL")
     @classmethod

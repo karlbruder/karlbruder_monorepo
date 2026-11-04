@@ -15,10 +15,18 @@ class FileStorage:
         self,
         bucket_name: str,
         endpoint_url: str | None,
+        browser_endpoint_url: str | None = None,
         s3_client=None,
+        browser_s3_client=None,
     ) -> None:
         self._bucket_name = bucket_name
         self._s3_client = s3_client or build_s3_client(endpoint_url=endpoint_url)
+        if browser_s3_client is not None:
+            self._browser_s3_client = browser_s3_client
+        elif browser_endpoint_url:
+            self._browser_s3_client = build_s3_client(endpoint_url=browser_endpoint_url)
+        else:
+            self._browser_s3_client = self._s3_client
 
     def create_presigned_put_url(
         self,
@@ -28,7 +36,7 @@ class FileStorage:
         expires_in: int,
     ) -> str:
         try:
-            return self._s3_client.generate_presigned_url(
+            return self._browser_s3_client.generate_presigned_url(
                 "put_object",
                 Params={
                     "Bucket": self._bucket_name,
@@ -43,7 +51,7 @@ class FileStorage:
 
     def create_presigned_get_url(self, storage_key: str, *, expires_in: int) -> str:
         try:
-            return self._s3_client.generate_presigned_url(
+            return self._browser_s3_client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self._bucket_name, "Key": storage_key},
                 ExpiresIn=expires_in,
@@ -132,4 +140,5 @@ def get_file_storage() -> FileStorage:
     return FileStorage(
         bucket_name=settings.S3_BUCKET_NAME,
         endpoint_url=settings.S3_ENDPOINT_URL,
+        browser_endpoint_url=settings.S3_BROWSER_ENDPOINT_URL,
     )
