@@ -2,8 +2,8 @@
 
 ## Directory-specific instructions
 
-- Before working in a directory, check for and read any nested `AGENTS.md` files along the path from the repository root to the files you will change. This includes `backend/`, `frontend/`, `landing/`, and any deeper directories.
-- Apply each nested file together with the applicable parent instructions. A child file covers its directory and descendants. It does not cover sibling directories. A nested file adds local rules. It does not copy this file.
+- Before working in a directory, read every `AGENTS.md` along the path from the repository root to the files you will change.
+- Apply parent and child instructions together. A child file adds local rules for its directory and descendants, not siblings.
 - If a child instruction conflicts with this file or another parent, stop the conflicting work and ask which instruction to follow. Name the files and the conflicting lines. Recommend the more specific child file as the override for its scope. Do not apply that override until the user confirms. Continue independent work that the conflict does not affect.
 - Honor a conflict resolution the user has already confirmed for the same scope.
 
@@ -24,9 +24,7 @@ Open [product](specs/product.md) when the task crosses the public site, the appl
 
 ## Specifications and issues
 
-For issue-driven work, start with the issue and follow [Issue workflow](#issue-workflow). When the issue needs a rule that is not in this file, use [the specification index](specs/README.md) to find it. Read the section that applies, and any decision that section links. Leave the index closed when the issue or this file already states the rule.
-
-Read the assigned GitHub issue when its contents are available or access is authorized.
+For issue-driven work, read the assigned issue when its contents are available or access is authorized. Follow [Issue workflow](#issue-workflow). Use [the specification index](specs/README.md) only for rules missing from the issue or this file. Read the relevant section and its linked decisions.
 
 - Specifications describe intended behavior. Issues describe delivery scope, dependencies, and tasks.
 - A closed issue is not evidence that every acceptance criterion is implemented.
@@ -35,7 +33,7 @@ Read the assigned GitHub issue when its contents are available or access is auth
 
 ## Issue workflow
 
-The skill file is the procedure. Read it and follow it. This section only says which skill to open.
+Read and follow the skill for the requested action:
 
 Create-issue, plan-issue, and implement-issue require a GitHub issue. They have no branch-only mode. Review-issue, debate-review, and open-pr accept an issue number or URL, or `--source` and `--target`. Explicit refs select branch mode.
 
@@ -71,5 +69,5 @@ Write those files, and code comments, for a person who is skimming. Use short se
 - The backend owns domain rules, authorization, and database access. Frontend visibility checks do not replace backend authorization.
 - Supabase Auth owns application identity. Domain objects belong in PostgreSQL `public`. Do not modify Supabase-managed `auth` objects. Open [team access](specs/platform/team-access.md) and [AWS](docs/aws.md) only when the task is how the team signs into AWS. Open a file under [runbooks](docs/runbooks/README.md) only when the task is an operational procedure that file already describes.
 - Keep credentials, personal registration data, payment proofs, and private safety notes out of source files and public assets.
-- Do not add a comment that only restates the next line. A module docstring is fine. A section separator is fine. A short class or function docstring is fine when it adds something the name does not already say. When a class or function is hard to follow, the docstring may explain the reason and give an example. A comment on a line belongs where the reason is not visible in the code. Settings files and env examples follow the same rule.
-- A test function name should say what the check does and what result it locks in. The file name is only the behavior area. When the function name already says both, stop. When it does not, add one short description in plain language. Pytest uses a function docstring. Vitest and Jest put that sentence in the `it` or `test` title, and add a comment only when the title still hides the point.
+- Comments explain reasons that are not visible in the code. Do not restate the next line. Module docstrings and section separators are allowed. Class and function docstrings add information beyond the name, with an example when useful. Apply the same rule to settings and env examples.
+- A test name states the check and expected result. The filename names the behavior area. Add a short description only when the name is insufficient. Pytest uses a function docstring. Vitest and Jest use the `it` or `test` title, with a comment only if the title still hides the point.

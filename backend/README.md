@@ -56,18 +56,14 @@ Database diagnostics report schema presence separately from connectivity; inspec
 
 ## Domain migrations
 
-Alembic manages the domain tables in the database selected by the `DB_*` settings.
-From `backend/`, apply migrations before starting an API version that uses new tables:
-
-```sh
-poetry run alembic upgrade head
-poetry run alembic current
-```
+Alembic manages domain tables in the database selected by `DB_*`. Follow the
+[migration notes](docs/migrations.md) to apply or verify migrations before starting
+an API version that uses new tables.
 
 The pre-data refactor uses the clean initial revision `20261103_0001`.
 It replaces the old history and has no old-schema upgrade path. A user-managed
 development reset must include `public.alembic_version` and leave Supabase-managed
-`auth` objects intact. See the [migration notes](docs/migrations.md).
+`auth` objects intact.
 
 From the repository root, these commands manage only the Compose database `postgres`.
 They stop if the backend database host is not `db` or the database name is not `postgres`.
@@ -89,8 +85,8 @@ need to be running.
 
 ## Tournament module
 
-The [tournament guide](app/tournaments/README.md) explains the catalog and registration
-APIs, access rules, registration behavior, and current release dependencies.
+The [tournament guide](app/tournaments/README.md) explains the implemented APIs,
+access rules, and persistence boundaries.
 
 ## Tests and lint
 

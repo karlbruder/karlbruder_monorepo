@@ -2,15 +2,11 @@
 
 These instructions apply to `frontend/` and everything under it. They add to the repository root [AGENTS.md](../AGENTS.md). Read both.
 
-Test function titles and comments follow the root file.
-
-The app already uses React Router in library mode (`react-router-dom`). Vite does not choose the URL. The router does. Keep this router. Do not add a file-based router.
+Keep React Router in library mode (`react-router-dom`). Do not add a file-based router.
 
 ## Design principles
 
-Organize code by the capability it owns and the reason it changes. Folder placement supports that ownership. Moving a large screen into `features/` does not finish a refactor if it still mixes unrelated responsibilities.
-
-Before editing a module, identify its role, its callers, and the state it owns. Keep working behavior as a regression baseline. Do not assume that the existing names, boundaries, or abstractions are worth keeping.
+Organize code by capability and reason for change. Before editing a module, identify its role, callers, and state. Preserve working behavior as a regression baseline. Moving a screen into `features/` does not resolve mixed responsibilities.
 
 Use the smallest design that makes a change easy to understand. Keep a short helper beside its only caller. Extract a module when it has a distinct responsibility, meaningful reuse, or behavior that benefits from focused tests. Do not create a hook, provider, type file, or component for every function. Do not impose a line-count limit or split every JSX section into a file.
 
@@ -68,7 +64,7 @@ An application route may read auth state and pass the required values or an auth
 
 `AppProvider` composes application-wide providers. It creates the query client once for its mounted tree. It does not declare URLs, render screens, or collect all application state into one object.
 
-A context transports state to descendants. It does not decide who owns that state. Keep auth session state and its provider in `features/auth`. Language preferences are shared. Use specific consumer hooks such as `useAuthSession` and `useLanguage`. Do not recreate a catch-all `AppContext` for unrelated concerns.
+A context transports state without changing its owner. Keep auth session state and its provider in `features/auth`. Language preferences are shared. Use specific hooks such as `useAuthSession` and `useLanguage`, not a catch-all `AppContext`.
 
 A provider component belongs with its owning UI code. A context and consumer hook may share a non-JSX hook module, with a separate provider component when needed for Fast Refresh. A separate state hook is useful when the lifecycle is substantial. This is not a requirement to create three files for every context.
 
@@ -103,7 +99,7 @@ Use these local conventions consistently. They are not file-based routing rules.
 | Feature panel | `password-reset-panel.tsx`, `PasswordResetPanel` | Related loading, error, and form states |
 | Provider | `auth-session-provider.tsx`, `AuthSessionProvider` | One named state scope |
 
-Name an exported component for what it does, and make its filename agree. Use `TournamentRegistrationForm` to distinguish tournament registration from account sign-up. Prefer a concrete name over `Manager`, `Container`, or `Content` when those names hide the responsibility. Existing React conventions such as `AppProvider` and `AppRouter` remain useful.
+Name components by responsibility and make filenames agree. Follow the [application vocabulary](../specs/taxonomy.md#application-vocabulary), including `TournamentRegistrationForm` for tournament participation. Prefer concrete names over `Manager`, `Container`, or `Content`. Keep useful React names such as `AppProvider` and `AppRouter`.
 
 ### Feature
 
@@ -111,7 +107,7 @@ A feature is one product area, such as `auth` or `tournament`. It lives in `src/
 
 ### Component inside a feature
 
-A component in `src/features/<name>/components/` is UI for that feature only. Another feature does not import it. When a second feature needs the same UI, move the genuinely shared piece to `src/components`.
+A component in `src/features/<name>/components/` belongs to that feature. Move genuinely shared UI to `src/components` when another feature needs it.
 
 Prefer composition through `children`, slots, and callbacks when a screen combines features. Pass the values a child needs, not a whole application context object. Keep controlled form fields and submission feedback near the form. Keep independently meaningful success notices, summaries, and panels separate when that makes the flow easier to read.
 
@@ -123,29 +119,21 @@ A large form may need separate payload parsing, field validation, or request-err
 
 A feature API module can adapt the configured Supabase client. Keep transport details here and UI navigation in the route. Do not add another service or repository layer that simply forwards the same arguments. Request types may stay beside their functions until a separate feature type module makes ownership clearer.
 
-### Component outside a feature
+### Shared modules
 
-`src/components` holds UI used by more than one feature. A button or a field that only one feature renders stays inside that feature. Do not sort these files into atoms, molecules, and organisms.
+Keep components, hooks, and utilities beside their feature until more than one feature needs them.
 
-### Hook outside a feature
-
-`src/hooks` holds a hook used by more than one feature. A hook used by one feature stays in `src/features/<name>/hooks/`.
-
-### `src/lib`
-
-`src/lib` holds a configured client that the rest of the app calls, such as the Supabase client or the query client setup. Endpoints do not live here. They live in the feature `api/` folder.
-
-### `src/config`
-
-`src/config` holds environment values and other globals the app reads. It does not render UI, and it does not call the API.
-
-### `src/utils`
-
-`src/utils` holds a plain function with no React and no knowledge of one feature, when more than one feature uses it. A function that only one feature uses stays in that feature.
+| Folder | Responsibility |
+| --- | --- |
+| `src/components` | Shared UI. Do not sort it into atoms, molecules, and organisms |
+| `src/hooks` | Hooks used by multiple features |
+| `src/lib` | Configured clients, such as Supabase and Query. Endpoints stay in feature `api/` folders |
+| `src/config` | Environment values and globals. No UI or API calls |
+| `src/utils` | Shared plain functions with no React or feature knowledge |
 
 ### Tests
 
-A test file sits beside the source it checks. `src/features/auth/components/sign-in-form.test.tsx` sits next to `sign-in-form.tsx`. The folder lists both. A missing test is visible there, and moving the component moves the test.
+A test file sits beside its source, such as `sign-in-form.test.tsx` beside `sign-in-form.tsx` in `src/features/auth/components/`. Move them together. Test titles and comments follow the root instructions.
 
 Use a `.test.ts` or `.test.tsx` suffix. Do not add a `__tests__` folder. Do not add a `frontend/tests` tree that mirrors `src`. Do not use a `.spec` suffix.
 
@@ -176,6 +164,4 @@ Review responsibility, naming, dependency direction, and state ownership as well
 
 ## Reference philosophy
 
-[Bulletproof React's Vite example](https://github.com/alan2207/bulletproof-react/tree/master/apps/react-vite/src), its [structure guidance](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md), and the [AdeptDev article](https://www.adeptdev.io/blogs/react-folder-structure-best-practices) inform this layout. They are examples, not a dependency list or an exact tree to copy.
-
-Keep feature ownership and application-level composition. Adapt the amount of structure to the code that exists. Our role suffixes, auth ownership, and frame placement are local choices. The AdeptDev examples include barrel exports. We retain direct imports, consistent with the current Bulletproof guidance. We retain React Router, Supabase session ownership, colocated tests, and the library limits above instead of copying a reference application's stack.
+[Bulletproof React's Vite example](https://github.com/alan2207/bulletproof-react/tree/master/apps/react-vite/src), its [structure guidance](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md), and the [AdeptDev article](https://www.adeptdev.io/blogs/react-folder-structure-best-practices) are background examples. [Decision 0006](../specs/decisions/0006-frontend-application-structure.md) records the chosen layout. Follow the local rules above rather than copying an external template or dependency list.

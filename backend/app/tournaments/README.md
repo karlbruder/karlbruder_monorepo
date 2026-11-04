@@ -34,13 +34,13 @@ accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
 
 ## Preserved policies and acceptance
 
-Saving tournament configuration captures each configured policy URL before
-publishing the event. Inline text remains separate and both forms may be present.
+Tournament creation captures each configured policy URL before saving the event.
+Inline text remains separate and both forms may be present.
 Each URL capture creates a shared ArchivedFile referencing StoredFile metadata.
 The capture retains source/final URLs, SHA-256 and capture time. Private stored
-bytes use a fresh key. Reads do not fetch the source again. Saving a new policy
-configuration captures a new copy even when its source URL is unchanged.
-There is no tournament-editing endpoint in this checkpoint.
+bytes use a fresh key. Reads do not fetch the source again. A new capture preserves
+a new copy even when its source URL is unchanged. Tournament editing is not
+implemented.
 
 The bounded client accepts public HTTP(S) PDF, plain text and HTML documents.
 It checks every redirect and resolved address, pins the connected IP, retains
@@ -48,7 +48,7 @@ HTTPS hostname verification, and sends no application credentials. Limits are
 three redirects, 10 MiB and ten seconds per document. DNS waits are bounded with
 at most four outstanding resolver calls per process. Compressed responses are
 rejected. Two linked policies may add up to twenty seconds to a configuration
-save. This uses no deployed worker, queue or new dependency.
+save. Captures run synchronously without a worker or queue.
 
 Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by
 `pt` and `en`, plus `rules_archive_url` and `cancellation_policy_archive_url`.
@@ -70,9 +70,9 @@ Registration, first acceptance and required parental document commit together.
 Database triggers prevent updating or deleting acceptances and policy archives,
 and prevent changing metadata of files referenced by policy archives. Later
 snapshots append history. Owner/staff responses explicitly project the latest
-snapshot and keep their existing privacy boundary. No history/editing endpoint or
-approved legal wording is introduced. Failed saves roll back metadata and clean
-only newly created objects. Historical archives are retained.
+snapshot and keep their existing privacy boundary. Acceptance history/editing
+endpoints and approved legal wording are not provided. Failed saves roll back
+metadata and clean only newly created objects. Historical archives are retained.
 
 ## Registration
 
@@ -92,8 +92,8 @@ year. A HEMA Ratings reference is not required to be a URL. `social_name` remain
 available. Category notes do not constitute staff eligibility approval.
 
 The declarations retain separate truthful-information, equipment, physical-fitness,
-risk, data-processing, rules, and cancellation-policy choices. The renamed choices
-are `declares_has_required_equipment`, `accepts_rules`, and `authorizes_image_use`.
+risk, data-processing, rules, and cancellation-policy choices. Field names include
+`declares_has_required_equipment`, `accepts_rules`, and `authorizes_image_use`.
 The backend records accepted versions, acceptance time, and `accepted_from_ip`.
 Clients select a displayed language and content digest. The server supplies
 versions, time, IP and ownership. Clients cannot choose the owner, `registration_status`,
@@ -136,22 +136,19 @@ a restrictive foreign key. One registration may have one parental consent form
 and multiple retained payment proofs. The same stored file cannot be attached
 twice within tournament registrations.
 
-`StoredFile` lives in `app/core/files/models.py`. It records `storage_key`,
-`original_file_name`, `content_type`, `size_bytes`, and `created_at`. Core stores
-file metadata without a tournament reference, document-purpose enum, access
-policy, or tournament upload-size limit. Shared S3 operations live beside it in
-`app/core/files/storage.py`. Neither shared module imports tournament code.
+`app/core/files/` owns file metadata and storage operations. Tournament services
+own purpose, validation, access, retention, and version selection. Core files
+does not import tournaments. See [decision 0008](../../../specs/decisions/0008-shared-files-and-archives.md)
+for the boundary and future reuse examples.
 
 The tournament upload policy lives in `services/registration_uploads.py`.
 It accepts PDF, JPEG, or PNG up to 10 MB and validates the copied permanent bytes.
 Registration, stored-file metadata and document association commit together.
 A database failure rolls them back and removes the newly promoted object.
-Creation and proof submission still consume no seat.
 
 File metadata is retrieved through authorized tournament operations. There is
 no generic file-access endpoint. Owner/staff permissions and latest-proof-only
-owner reads stay in the tournament domain. Existing response fields remain
-unchanged even though metadata now comes from the referenced StoredFile.
+owner reads stay in the tournament domain.
 Storage remains private S3 in production and Ministack locally.
 
 `GET .../registrations/{registration_number}/parental-consent-form`
@@ -178,50 +175,40 @@ with the required headers, then calls `POST .../payment-proof` with `storage_key
 and `original_file_name`. The first valid submission sets `payment_in_review`.
 Replacement is allowed while `awaiting_payment` or `payment_in_review`.
 Every submitted proof is retained. The owner retrieves only the latest through
-`GET .../payment-proof`. Staff review of the history remains #60.
+`GET .../payment-proof`. Staff review commands are not implemented.
 
-A proof is evidence, not a verified receipt or a transfer. Tournaments owns
-PaymentProofReview and the RegistrationPayment / RegistrationRefund associations. These persistence
-records do not change registration status or capacity by themselves.
-Payment decisions, refund actions and notifications remain later workflows. The frontend entry remains `/tournaments/registration`.
+A proof is evidence, not a verified receipt or a transfer. Payment decisions,
+refund actions, and notifications remain future workflows. The frontend entry
+is `/tournaments/registration`.
 
 ## Financial evidence records
 
-PaymentProofReview references one exact TournamentRegistrationDocument through
-`document_id`. Only a `payment_proof` document is reviewable. It records
-`decision` (`approved` or `rejected`), `reviewed_by_user_id`, `reviewed_at` and
-`rejection_reason`. A rejected decision requires a nonblank reason. Each decision
-is retained rather than overwritten. Recording a decision creates no receipt.
+Tournaments owns these records:
 
-RegistrationPayment stores `registration_id`, the approved `proof_review_id`
-and unique `payment_id`. It links one registration/review to a shared Payment.
-Payment lives in the payments domain and stores actual BRL `amount_received`,
-`verified_by_user_id` and `verified_at`. Those facts are not duplicated on the
-association. The amount is independent of the advertised fee. Tournament guards
-reject a rejected review or a proof from another registration. The current
-tournament schema permits one verified receipt per registration/review.
+| Record | Fields and constraints |
+| --- | --- |
+| PaymentProofReview | `document_id`, `decision`, `reviewed_by_user_id`, `reviewed_at`, `rejection_reason`. Review only an exact `payment_proof`. Decisions are `approved` or `rejected`, with a nonblank reason for rejection |
+| RegistrationPayment | `registration_id`, approved `proof_review_id`, unique `payment_id`. The proof must belong to that registration. One receipt per registration/review |
+| RegistrationRefund | `registration_payment_id`, unique `refund_id`, `due_on`. The shared refund must reference that exact payment and owe its full received amount |
 
-RegistrationRefund stores `registration_payment_id`, unique `refund_id` and
-`due_on`. The linked shared Refund stores `payment_id`, `amount_owed`,
-`obligated_at`, `refund_status`, `completed_at` and `completed_by_user_id`.
-Tournament guards require the refund to reference that registration's exact
-shared payment and equal its received amount. The one-obligation/full-refund rule
-and deadline belong to tournaments. Shared refunds do not impose those rules on
-other consumers. No monetary or progress columns are duplicated on the association.
+Payments owns the linked [Payment and Refund facts](../payments/README.md),
+without duplicate amounts, actors, or progress on tournament associations. The
+received amount is independent of the advertised fee. No RegistrationRefund
+association means no recorded tournament refund obligation. Review, receipt,
+and association history is retained. These records do not change participation,
+reserve a seat, or transfer money.
 
-No association means no recorded tournament refund obligation. A linked Refund
-in `awaiting_refund` has no completion evidence. `completed` requires both actual
-time and recording UUID. Completion cannot precede the obligation. Source-payment,
-amount and obligation time are immutable while completion can be recorded later.
-Review, receipt and association history is retained. These records do not transfer
-money, reserve a seat or reactivate cancelled participation.
+Future staff workflows must authorize the actor and commit review, receipt,
+association, and participation changes atomically. Cancellation/refund workflows
+must calculate the 10-business-day deadline, record the exact amount owed and actual
+completion, and send required notifications. Shared persistence helpers use the
+caller's transaction. These commands are not implemented.
 
-Issue #60 must verify the admin, reviewability and concurrent command state.
-Its approval transaction must write the review and receipt together with the
-confirmed or paid-waitlist outcome. Later cancellation/refund work calculates the
-10-business-day deadline, records the exact amount owed and actual completion,
-and sends the required notifications. Generic persistence helpers use the caller’s transaction. No staff decision
-or refund command/endpoint is added in this checkpoint. Fixture rows in tests verify persistence.
+The [payment spec](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract)
+owns the persistence requirements. [Decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
+explains ownership. [Decision 0010](../../../specs/decisions/0010-database-evidence-guards.md)
+explains database guards. They protect evidence invariants, not actor authorization,
+staff workflows, or S3 bytes.
 
 ## Migration boundary
 
