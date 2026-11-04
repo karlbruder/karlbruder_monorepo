@@ -39,7 +39,7 @@ PaymentProofReview records evidence decisions. RegistrationPayment links the
 actual verified Payment. RegistrationRefund links the shared Refund and its
 completion evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
-new trigger. Issue #60 and later refund work own those commands and notifications.
+new trigger. Staff review/refund commands and their notifications are not implemented.
 
 ## Acceptance criteria
 

@@ -54,11 +54,58 @@ time. Its workflows enforce the tournament upload rules and preserve every
 proof submission. A file identifier alone never authorizes access. The shared
 metadata model does not introduce membership, inventory, or generic file APIs.
 
+## Preserved acceptance content
+
+`ArchivedFile` in core files references StoredFile and retains SHA-256,
+`archived_at`, and optional source/final URLs. `archive_file` stores caller-validated
+bytes under a fresh key. The domain owns the transaction, cleanup on database
+failure, policy purpose, validation, access, retention, and current-version selection.
+Future terms/privacy capabilities can reuse this mechanism under their own rules,
+as illustrated in decision 0008.
+
+`RegistrationAcceptance` retains separate choices, exact inline policies and draft
+declarations, and linked archive IDs. Inline text stays text. Linked documents use
+archived copies and authorized attachment downloads. There is no generic file-access
+endpoint or automatic retention expiry.
+
+Database guards prevent changes to acceptance/archive rows and to file metadata
+referenced by archives. They do not authorize actors or prevent replacement of S3
+bytes. See [decision 0010](../decisions/0010-database-evidence-guards.md) for the
+protected invariants and limits.
+
+## Shared financial records
+
+The boundary and future consumer examples are recorded in
+[decision 0009](../decisions/0009-shared-payments-and-domain-associations.md).
+The database enforcement rationale is recorded in
+[decision 0010](../decisions/0010-database-evidence-guards.md).
+
+Payments owns Payment and Refund. They retain financial amounts, verification,
+obligation time and completion evidence without tournament or membership references.
+TournamentPaymentSettings, PaymentProofReview and the registration payment/refund
+associations belong to tournaments. Domain associations point to shared facts.
+The reverse dependency does not exist. Tournament proof eligibility, full-refund
+amount equality, one payment/obligation and deadline rules stay in that domain.
+Future membership can add its own associations without inheriting tournament rules.
+
 ## Observed configuration
 
 The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
 
-File storage uses `S3_BUCKET_NAME` and an optional `S3_ENDPOINT_URL`. Local Compose points that endpoint at `http://ministack:4566` for server-side calls. Presigned URLs use `S3_BROWSER_ENDPOINT_URL`, which local Compose sets to `http://localhost:4566`. Cloud secrets leave both endpoint settings unset so signing uses the normal S3 host. Local Compose creates the `kb-local-bucket` bucket through a CloudFormation stack in `ministack/bootstrap-ministack.sh`, then allows browser `PUT` from `http://localhost:5173`. The private application bucket in Terraform allows browser `PUT` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. That CORS rule does not grant public reads. Deployed environments use names such as `kb-dev-bucket` and `kb-prod-bucket` from secrets. Tests mock the storage client and do not start Ministack.
+File storage uses `S3_BUCKET_NAME` and optional endpoint overrides:
+
+| Setting | Local Compose | Cloud configuration |
+| --- | --- | --- |
+| `S3_BUCKET_NAME` | `kb-local-bucket` | Exact `application_files_bucket_name` Terraform output, stored in the backend secret |
+| `S3_ENDPOINT_URL` | `http://ministack:4566` for backend calls | Unset to use Amazon S3 |
+| `S3_BROWSER_ENDPOINT_URL` | `http://localhost:4566` for presigned browser URLs | Unset to use Amazon S3 |
+
+Local Compose creates its bucket through `ministack/bootstrap-ministack.sh` and
+allows browser `PUT` from `http://localhost:5173`. Terraform allows cloud `PUT`
+from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and
+`https://app-dev.karlbruder.com`. CORS does not grant public reads. Tests mock the
+storage client without starting Ministack. See [deployment](deployment.md#application-files-bucket)
+for bucket provisioning and host permissions.
 
 The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
 
@@ -77,36 +124,9 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 
 ## Implementation and operations decisions
 
-- Define bucket, endpoint, credentials, persistence, and object-deletion configuration in the storage implementation work tracked with issue #59. Apply the retention policy chosen in the privacy spec rather than defining a second one here.
+- Bucket and endpoint configuration are described above. Backup, recovery, and deletion-request procedures remain separate operational work. Apply PRIV-011's interim indefinite retention and keep PRIV-Q4 unresolved until its policy is decided.
 - Define which health-diagnostic fields are exposed to public callers versus protected access, while preserving DATA-008's ban on credential disclosure. This is an operational/API design decision, not another application-role hierarchy.
 
 ## Related specifications
 
 [Architecture](../architecture.md), [registration](../tournaments/registration.md), [capacity](../tournaments/capacity-and-waitlist.md), [privacy](../tournaments/consent-and-privacy.md), [deployment](deployment.md).
-
-## Preserved acceptance content
-
-ArchivedFile lives in core/files and references StoredFile. It stores
-SHA-256, archived_at and optional source/final URLs. Uploaded documents do not
-require a source URL. Fresh immutable captures can represent tournament policies
-or future terms/privacy versions. Each consuming domain owns the logical policy,
-current-version pointer, publication rules, access and file validation.
-RegistrationAcceptance references those shared archives and stores the exact inline policies and draft declarations accepted.
-Both records are immutable. Archived-file metadata is protected while referenced.
-Private bytes use fresh keys and attachment downloads under tournament visibility.
-There is no generic file-access endpoint or automatic expiry.
-
-## Shared financial records
-
-The boundary and future consumer examples are recorded in
-[decision 0009](../decisions/0009-shared-payments-and-domain-associations.md).
-The database enforcement rationale is recorded in
-[decision 0010](../decisions/0010-database-evidence-guards.md).
-
-Payments owns Payment and Refund. They retain financial amounts, verification,
-obligation time and completion evidence without tournament or membership references.
-TournamentPaymentSettings, PaymentProofReview and the registration payment/refund
-associations belong to tournaments. Domain associations point to shared facts.
-The reverse dependency does not exist. Tournament proof eligibility, full-refund
-amount equality, one payment/obligation and deadline rules stay in that domain.
-Future membership can add its own associations without inheriting tournament rules.

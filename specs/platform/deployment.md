@@ -1,7 +1,7 @@
 # Deployment
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -99,7 +99,7 @@ Each workspace has a private Amazon S3 bucket for application uploads such as pa
 
 The application host instance role can call `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on objects in that bucket only. It does not receive a blanket `s3:ListBucket` grant on the bucket ARN. The bucket CORS rule allows `PUT` with `Content-Type` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. Public read stays off.
 
-After apply, copy `application_files_bucket_name` from Terraform output into the workspace backend secret as `S3_BUCKET_NAME`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in cloud secrets. Operators follow [Application files S3 bucket](../../docs/runbooks/application-files-s3-bucket.md) for apply order and verification. Issue #59 delivery assumes this bucket exists before presigned uploads work in a deployed environment.
+After apply, copy `application_files_bucket_name` from Terraform output into the workspace backend secret as `S3_BUCKET_NAME`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in cloud secrets. Operators follow [Application files S3 bucket](../../docs/runbooks/application-files-s3-bucket.md) for apply order and verification. Deployed presigned uploads require the bucket and host permissions to exist first.
 
 ## Application image deploy
 

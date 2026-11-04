@@ -78,12 +78,15 @@ A bucket version alone does not supply those application relationships or access
 rules. Copying a linked document also avoids depending on the original publisher
 to keep serving the content that was accepted.
 
-This design does not implement S3 versioning or Object Lock. ArchivedFile does
-not store an S3 version ID. Fresh keys and database guards preserve the application's
+Terraform enables versioning on the application S3 bucket. ArchivedFile does not
+store an S3 version ID, and archive storage and downloads do not select a specific
+object version. The archive mechanism does not use Object Lock.
+Fresh keys and database guards preserve the application's
 references, but do not stop an authorized storage writer from replacing or deleting
 bytes at a key. The stored digest records the captured content. It does not lock
-an object or automatically verify every download. Storage-level protection and
-recovery remain separate operational choices.
+an object or automatically verify every download. Configured bucket versioning
+does not establish a verified recovery process. Storage-level protection and
+recovery remain separate operational concerns.
 
 ## Alternatives and consequences
 

@@ -38,7 +38,7 @@ The cleanup did not resolve or discard remaining technical work. These topics ar
 | Owner | Topics |
 | --- | --- |
 | [Identity](identity/authentication-and-access.md#implementation-decisions) | Verify hosted redirects and provider configuration. Preserve established account routes, session handling, and trusted role checks in future workflows |
-| [Storage](platform/data-storage.md#implementation-and-operations-decisions) | S3/Ministack configuration and health-diagnostic exposure |
+| [Storage](platform/data-storage.md#implementation-and-operations-decisions) | Backup, recovery, deletion-request procedures, and health-diagnostic exposure |
 | [Deployment](platform/deployment.md#implementation-and-operations-decisions) | Verify live rollout state; workflow configuration; migrations, backups, recovery; Session Manager; DNS cutover |
 | [Local development](platform/local-development.md#implementation-decisions) | Verify browser flows and integrations using the configured ports, API forwarding, and test tooling |
 | [AWS team access](platform/team-access.md#implementation-and-operations-decisions) | Verify deployed grants; onboarding/removal procedures; emergency access and automation credentials |
