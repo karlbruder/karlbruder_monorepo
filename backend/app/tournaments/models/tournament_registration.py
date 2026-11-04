@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
-    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -27,6 +26,7 @@ from app.database import Base
 from app.tournaments.models.tournament import Tournament
 
 if TYPE_CHECKING:
+    from .registration_acceptance import RegistrationAcceptance
     from app.tournaments.models.tournament_registration_document import (
         TournamentRegistrationDocument,
     )
@@ -58,16 +58,6 @@ class TournamentRegistration(Base):
         CheckConstraint(
             "hema_experience_description IS NOT NULL OR hema_started_year IS NOT NULL",
             name="ck_tournament_registrations_hema_experience",
-        ),
-        CheckConstraint(
-            "declares_has_required_equipment AND declares_physically_fit "
-            "AND accepts_rules AND accepts_data_processing "
-            "AND acknowledges_inherent_risks AND accepts_cancellation_policy",
-            name="ck_tournament_registrations_required_declarations",
-        ),
-        CheckConstraint(
-            "declares_truthful_information",
-            name="ck_tournament_registrations_truthfulness",
         ),
         Index("ix_tournament_registrations_tournament_id", "tournament_id"),
         Index(
@@ -133,22 +123,6 @@ class TournamentRegistration(Base):
 
     emergency_contact_name: Mapped[str] = mapped_column(String(200), nullable=False)
     emergency_contact_phone: Mapped[str] = mapped_column(String(40), nullable=False)
-    declares_truthful_information: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    declares_has_required_equipment: Mapped[bool] = mapped_column(
-        Boolean, nullable=False
-    )
-    declares_physically_fit: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    accepts_rules: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    accepts_data_processing: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    acknowledges_inherent_risks: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    accepts_cancellation_policy: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    authorizes_image_use: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    accepted_terms_version: Mapped[str] = mapped_column(String(100), nullable=False)
-    accepted_rules_version: Mapped[str] = mapped_column(String(100), nullable=False)
-    accepted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    accepted_from_ip: Mapped[str] = mapped_column(String(45), nullable=False)
     staff_safety_note: Mapped[str | None] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -164,4 +138,10 @@ class TournamentRegistration(Base):
     tournament: Mapped[Tournament] = relationship(back_populates="registrations")
     documents: Mapped[list["TournamentRegistrationDocument"]] = relationship(
         back_populates="registration"
+    )
+
+    acceptances: Mapped[list["RegistrationAcceptance"]] = relationship(
+        back_populates="registration",
+        order_by="RegistrationAcceptance.id",
+        lazy="selectin",
     )

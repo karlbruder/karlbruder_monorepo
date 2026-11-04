@@ -47,3 +47,7 @@ class UploadTooLargeError(Exception):
 
 class UploadDisallowedTypeError(Exception):
     """Leading bytes did not match an allowed file type."""
+
+
+class PolicyArchiveError(TournamentError):
+    """A linked policy could not be captured safely."""

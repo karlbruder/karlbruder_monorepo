@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Integer,
+    ForeignKey,
     Numeric,
     String,
     Text,
@@ -82,6 +83,19 @@ class Tournament(Base):
     equipment_requirements: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_text: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_url: Mapped[str | None] = mapped_column(Text)
+    rules_archive_id: Mapped[int | None] = mapped_column(
+        ForeignKey("public.policy_archives.id", ondelete="RESTRICT")
+    )
+    cancellation_policy_archive_id: Mapped[int | None] = mapped_column(
+        ForeignKey("public.policy_archives.id", ondelete="RESTRICT")
+    )
+    rules_archive = relationship(
+        "PolicyArchive", foreign_keys=[rules_archive_id], lazy="joined"
+    )
+    cancellation_policy_archive = relationship(
+        "PolicyArchive", foreign_keys=[cancellation_policy_archive_id], lazy="joined"
+    )
+
     next_registration_number: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("1")
     )

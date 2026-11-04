@@ -14,7 +14,8 @@ qualified as `public`, even when another schema comes first in `search_path`.
 The product owner authorized replacing the old migration chain during issue #69
 because there is no participant data to preserve. Revision `20261103_0001` is the
 new initial migration. It creates the current tournament, registration, shared
-file, registration-document, and payment-settings tables directly. It has no parent revision.
+file, registration-document, policy-archive, acceptance-history and payment-settings
+tables directly. It has no parent revision.
 The old revisions and the intermediate rename migration are removed.
 
 This is a deliberate pre-data reset. It does not provide an upgrade from the
@@ -32,6 +33,12 @@ choices, private document metadata, and optional Pix configuration. Event timest
 are `starts_at` and `ends_at`. Registration windows use inclusive calendar dates
 `registration_opens_on` and `registration_closes_on`. The local seed is a draft
 fixture with placeholder terms/rules versions.
+
+The baseline includes database triggers that reject acceptance/archive updates
+and deletes. StoredFile metadata referenced by an archive is protected too.
+Downgrade removes those triggers/functions with the evidence tables.
+Schema comparison alone does not verify triggers. The backend suite exercises
+attempted ORM and SQL mutations as well as clean rebuilds.
 
 ## Applying migrations
 

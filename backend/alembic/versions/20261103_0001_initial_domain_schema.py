@@ -34,6 +34,21 @@ def upgrade() -> None:
         schema="public",
     )
     op.create_table(
+        "policy_archives",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "file_id",
+            sa.Integer(),
+            sa.ForeignKey("public.stored_files.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column("source_url", sa.Text(), nullable=False),
+        sa.Column("final_url", sa.Text(), nullable=False),
+        sa.Column("sha256", sa.String(64), nullable=False),
+        sa.Column("captured_at", sa.DateTime(timezone=True), nullable=False),
+        schema="public",
+    )
+    op.create_table(
         "tournaments",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=200), nullable=False),
@@ -67,6 +82,16 @@ def upgrade() -> None:
         sa.Column("equipment_requirements", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_text", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_url", sa.Text(), nullable=True),
+        sa.Column(
+            "rules_archive_id",
+            sa.Integer(),
+            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
+        ),
+        sa.Column(
+            "cancellation_policy_archive_id",
+            sa.Integer(),
+            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
+        ),
         sa.Column(
             "next_registration_number",
             sa.Integer(),
@@ -159,18 +184,6 @@ def upgrade() -> None:
         sa.Column("category_or_eligibility_note", sa.Text(), nullable=True),
         sa.Column("emergency_contact_name", sa.String(length=200), nullable=False),
         sa.Column("emergency_contact_phone", sa.String(length=40), nullable=False),
-        sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
-        sa.Column("declares_has_required_equipment", sa.Boolean(), nullable=False),
-        sa.Column("declares_physically_fit", sa.Boolean(), nullable=False),
-        sa.Column("accepts_rules", sa.Boolean(), nullable=False),
-        sa.Column("accepts_data_processing", sa.Boolean(), nullable=False),
-        sa.Column("acknowledges_inherent_risks", sa.Boolean(), nullable=False),
-        sa.Column("accepts_cancellation_policy", sa.Boolean(), nullable=False),
-        sa.Column("authorizes_image_use", sa.Boolean(), nullable=False),
-        sa.Column("accepted_terms_version", sa.String(length=100), nullable=False),
-        sa.Column("accepted_rules_version", sa.String(length=100), nullable=False),
-        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("accepted_from_ip", sa.String(length=45), nullable=False),
         sa.Column("staff_safety_note", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
@@ -195,14 +208,6 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "registration_status IN ('awaiting_payment', 'payment_in_review', 'confirmed', 'waitlist', 'cancelled')",
             name="ck_tournament_registrations_status",
-        ),
-        sa.CheckConstraint(
-            "declares_has_required_equipment AND declares_physically_fit AND accepts_rules AND accepts_data_processing AND acknowledges_inherent_risks AND accepts_cancellation_policy",
-            name="ck_tournament_registrations_required_declarations",
-        ),
-        sa.CheckConstraint(
-            "declares_truthful_information",
-            name="ck_tournament_registrations_truthfulness",
         ),
         sa.CheckConstraint(
             "hema_experience_description IS NOT NULL OR hema_started_year IS NOT NULL",
@@ -299,8 +304,85 @@ def upgrade() -> None:
         postgresql_where=sa.text("document_type = 'parental_consent_form'"),
     )
 
+    op.create_table(
+        "registration_acceptances",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "registration_id",
+            sa.Integer(),
+            sa.ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column("accepted_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
+        sa.Column("declares_has_required_equipment", sa.Boolean(), nullable=False),
+        sa.Column("declares_physically_fit", sa.Boolean(), nullable=False),
+        sa.Column("accepts_rules", sa.Boolean(), nullable=False),
+        sa.Column("accepts_data_processing", sa.Boolean(), nullable=False),
+        sa.Column("acknowledges_inherent_risks", sa.Boolean(), nullable=False),
+        sa.Column("accepts_cancellation_policy", sa.Boolean(), nullable=False),
+        sa.Column("authorizes_image_use", sa.Boolean(), nullable=False),
+        sa.Column("accepted_terms_version", sa.String(length=100), nullable=False),
+        sa.Column("accepted_rules_version", sa.String(length=100), nullable=False),
+        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("accepted_from_ip", sa.String(length=45), nullable=False),
+        sa.Column("language", sa.String(2), nullable=False),
+        sa.Column("content_digest", sa.String(64), nullable=False),
+        sa.Column("content", sa.JSON(), nullable=False),
+        sa.Column(
+            "rules_archive_id",
+            sa.Integer(),
+            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
+        ),
+        sa.Column(
+            "cancellation_policy_archive_id",
+            sa.Integer(),
+            sa.ForeignKey("public.policy_archives.id", ondelete="RESTRICT"),
+        ),
+        sa.CheckConstraint(
+            "declares_truthful_information AND declares_has_required_equipment AND declares_physically_fit AND accepts_rules AND accepts_data_processing AND acknowledges_inherent_risks AND accepts_cancellation_policy",
+            name="ck_registration_acceptances_required_choices",
+        ),
+        sa.CheckConstraint(
+            "language IN ('pt', 'en')", name="ck_registration_acceptances_language"
+        ),
+        schema="public",
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.reject_evidence_mutation() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            RAISE EXCEPTION 'Acceptance and policy evidence is immutable' USING ERRCODE = '23514';
+        END $$
+    """
+    )
+    for table in ("registration_acceptances", "policy_archives"):
+        op.execute(
+            f"CREATE TRIGGER immutable_evidence BEFORE UPDATE OR DELETE ON public.{table} FOR EACH ROW EXECUTE FUNCTION public.reject_evidence_mutation()"
+        )
+    op.execute(
+        """
+        CREATE FUNCTION public.protect_archived_file_metadata() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF EXISTS (SELECT 1 FROM public.policy_archives WHERE file_id = OLD.id) THEN
+                RAISE EXCEPTION 'Archived file metadata is immutable' USING ERRCODE = '23514';
+            END IF;
+            IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER immutable_archived_file BEFORE UPDATE OR DELETE ON public.stored_files FOR EACH ROW EXECUTE FUNCTION public.protect_archived_file_metadata()"
+    )
+
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER immutable_archived_file ON public.stored_files")
+    op.execute("DROP FUNCTION public.protect_archived_file_metadata()")
+    op.drop_table("registration_acceptances", schema="public")
+    op.execute("DROP TRIGGER immutable_evidence ON public.policy_archives")
+    op.execute("DROP FUNCTION public.reject_evidence_mutation()")
     op.drop_index(
         "uq_tournament_registration_documents_one_parental_consent_form",
         table_name="tournament_registration_documents",
@@ -335,4 +417,5 @@ def downgrade() -> None:
     op.drop_table("tournament_registrations", schema="public")
     op.drop_table("tournament_payment_settings", schema="public")
     op.drop_table("tournaments", schema="public")
+    op.drop_table("policy_archives", schema="public")
     op.drop_table("stored_files", schema="public")

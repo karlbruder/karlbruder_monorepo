@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   createRegistration,
+  getTournament,
   requestParentalConsentFormUploadUrl,
   RegistrationRequestError,
   uploadFileToPresignedUrl,
@@ -23,20 +24,22 @@ type Props = {
 type Errors = Record<string, AppCopyKey>;
 
 const requiredDeclarations = [
-  ["accepts_rules", "Li e aceito o regulamento do torneio."],
-  ["accepts_data_processing", "Li as informações sobre o tratamento dos dados e a visibilidade de participação e resultados."],
-  ["declares_truthful_information", "Declaro que as informações fornecidas são verdadeiras."],
-  ["acknowledges_inherent_risks", "Estou ciente dos riscos da esgrima histórica."],
-  ["declares_has_required_equipment", "Declaro possuir o equipamento obrigatório."],
-  ["declares_physically_fit", "Declaro estar fisicamente apto para participar."],
-  ["accepts_cancellation_policy", "Li as regras de cancelamento, reembolso e desclassificação."],
+  ["accepts_rules"],
+  ["accepts_data_processing"],
+  ["declares_truthful_information"],
+  ["acknowledges_inherent_risks"],
+  ["declares_has_required_equipment"],
+  ["declares_physically_fit"],
+  ["accepts_cancellation_policy"],
 ] as const;
 
 function readRegistration(
   form: HTMLFormElement,
   accountEmail: string | undefined,
   tournamentStartsAt: string,
-  birthDateFallback = "",
+  birthDateFallback: string,
+  acceptanceToken: string,
+  acceptanceLanguage: AppLanguage,
 ): { payload: RegistrationCreate | null; errors: Errors; parentalConsentFormFile: File | null } {
   const data = new FormData(form);
   const value = (key: string) => String(data.get(key) ?? "").trim();
@@ -109,6 +112,8 @@ function readRegistration(
     errors,
     parentalConsentFormFile,
     payload: {
+      acceptance_token: acceptanceToken,
+      acceptance_language: acceptanceLanguage,
       full_name: value("full_name"),
       social_name: optional("social_name"),
       birth_date: birthDate,
@@ -222,12 +227,13 @@ function Success({ result, tournament, language }: { result: RegistrationCreated
 }
 
 export default function TournamentRegistrationForm({
-  tournament,
+  tournament: initialTournament,
   session,
   language = "pt",
   onRegistrationCreated,
 }: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
+  const [tournament, setTournament] = useState(initialTournament);
   const [errors, setErrors] = useState<Errors>({});
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
@@ -241,11 +247,14 @@ export default function TournamentRegistrationForm({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (requestPending.current) return;
+    const form = event.currentTarget;
     const { payload, errors: nextErrors, parentalConsentFormFile } = readRegistration(
       event.currentTarget,
       session.user.email,
       tournament.starts_at,
       birthDateForDisplay,
+      tournament.acceptance_tokens[language],
+      language,
     );
     setErrors(nextErrors);
     setRequestError(null);
@@ -283,7 +292,16 @@ export default function TournamentRegistrationForm({
         setResult(created);
       }
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith("presigned-upload-")) {
+      if (error instanceof RegistrationRequestError && error.status === 409 && error.detail === "Registration terms changed; refresh before accepting") {
+        try {
+          const refreshed = await getTournament(tournament.id, session.access_token);
+          setTournament(refreshed);
+          form.querySelectorAll<HTMLInputElement>('.registration-declarations input, .registration-image-choice input').forEach(input => { input.checked = false; });
+          setRequestError("Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.");
+        } catch {
+          setRequestError("Não foi possível atualizar os termos. Tente enviar novamente para atualizar.");
+        }
+      } else if (error instanceof Error && error.message.startsWith("presigned-upload-")) {
         setRequestError("Não foi possível enviar o termo de responsabilidade. Tente novamente.");
       } else if (error instanceof Error && error.message.startsWith("http-")) {
         setRequestError("Não foi possível enviar o termo de responsabilidade. Tente novamente.");
@@ -407,17 +425,17 @@ export default function TournamentRegistrationForm({
             </div>
           )}
           <div className="registration-documents">
-            <PolicyContent label={t("Regulamento")} text={tournament.rules_text} url={tournament.rules_url} language={language} />
-            <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_url} language={language} />
+            <PolicyContent label={t("Regulamento")} text={tournament.rules_text} url={tournament.rules_archive_url} language={language} />
+            <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_archive_url} language={language} />
             {tournament.equipment_requirements && <PolicyContent label={t("Equipamento obrigatório")} text={tournament.equipment_requirements} language={language} />}
           </div>
           <p className="registration-help">{t("Os termos e o regulamento são registrados pelas versões configuradas para este torneio.")}</p>
           <div className="registration-declarations">
-            {requiredDeclarations.map(([name, label]) => (
+            {requiredDeclarations.map(([name]) => (
               <div key={name}>
                 <label className="registration-choice">
                   <input type="checkbox" name={name} aria-invalid={Boolean(errors[name])} />
-                  <span>{t(label)} *</span>
+                  <span>{tournament.acceptance_content[language].declarations[name]} *</span>
                 </label>
                 {errors[name] && <span className="registration-field-error">{t(errors[name])}</span>}
               </div>
@@ -425,8 +443,8 @@ export default function TournamentRegistrationForm({
           </div>
           <fieldset className="registration-image-choice">
             <legend>{t("Uso de imagem")} *</legend>
-            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="yes" /> {t("Autorizo o uso da minha imagem.")}</label>
-            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="no" /> {t("Não autorizo o uso da minha imagem.")}</label>
+            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="yes" /> {tournament.acceptance_content[language].declarations.image_use_choices.yes}</label>
+            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="no" /> {tournament.acceptance_content[language].declarations.image_use_choices.no}</label>
             {errors.authorizes_image_use && <span className="registration-field-error">{t(errors.authorizes_image_use)}</span>}
           </fieldset>
         </section>

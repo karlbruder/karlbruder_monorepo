@@ -32,12 +32,28 @@ class OfflineJwksClient:
 
 @pytest.fixture
 def client(monkeypatch):
+    from app.core.files import get_file_storage
+    from app.tournaments.services.policy_fetch import get_policy_fetcher, FetchedPolicy
+    from unittest.mock import Mock
+
+    storage = Mock()
+    storage.create_presigned_get_url.side_effect = (
+        lambda key, **kwargs: f"https://archive.example.test/{key}"
+    )
+    fetcher = Mock()
+    fetcher.fetch.side_effect = lambda url: FetchedPolicy(
+        b"%PDF-1.4 fixture", "application/pdf", url
+    )
+    karlbruder_app.dependency_overrides[get_file_storage] = lambda: storage
+    karlbruder_app.dependency_overrides[get_policy_fetcher] = lambda: fetcher
     signing_key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(
         auth, "get_jwks_client", lambda: StaticJwksClient(signing_key.public_key())
     )
     with TestClient(karlbruder_app) as test_client:
         yield test_client, signing_key
+    karlbruder_app.dependency_overrides.pop(get_file_storage, None)
+    karlbruder_app.dependency_overrides.pop(get_policy_fetcher, None)
 
 
 def _headers(signing_key, role=None, *, user_metadata=None):

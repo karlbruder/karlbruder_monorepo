@@ -62,6 +62,17 @@ owner/admin retrieval, accepted types and sizes, proof history and latest-proof
 visibility. Creation saves the registration, any required parental document,
 and its file metadata in one transaction.
 
+## Acceptance submission
+
+Creation requires the displayed `acceptance_language` and `acceptance_token` from
+the tournament read response. The server checks the token against current
+preserved content. A stale form returns 409 and requires explicit acceptance of
+the refreshed content. The initial RegistrationAcceptance and any required
+parental document are saved in the registration transaction. Choices, versions,
+content, source IP and time live in immutable acceptance history.
+Participant and staff reads project the latest permitted acceptance fields.
+Linked rules and cancellation policies are read from preserved archive copies.
+
 ## Lifecycle boundary
 
 | State or outcome | Meaning | Capacity |

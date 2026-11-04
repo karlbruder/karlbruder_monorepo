@@ -28,6 +28,15 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
 
+Linked policies are automatically archived when their configuration is saved,
+before they are offered for acceptance. Each capture preserves private bytes,
+source/final URL, type, size, digest and time. Existing authorized tournament
+readers receive expiring attachment links to the captured copy. HTML is never
+inserted as trusted application markup. Reads do not re-fetch mutable sources.
+Failed captures publish no partial configuration. Policy changes retain earlier
+archives and acceptance snapshots. Saving policy configuration again captures
+new linked content, including when the source URL is unchanged.
+
 ## User flow
 
 The user selects a tournament, reads its available details, and enters registration at `/tournaments/registration`. Signing in is required to register, and a user registers only themselves. In the later results capability, non-internal results may be public; internal results require guild membership, including the inherited access of guild staff.

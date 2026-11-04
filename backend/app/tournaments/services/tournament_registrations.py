@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
@@ -26,6 +25,7 @@ from app.tournaments.models import (
     TournamentRegistration,
     TournamentRegistrationDocument,
 )
+from .registration_acceptances import CHOICE_FIELDS, create_acceptance
 from . import tournament_local_dates
 from .tournament_local_dates import is_minor_at_tournament_start
 from .registration_numbers import (
@@ -76,7 +76,7 @@ def visible_tournament(
     if get_application_role(user) not in ("guild_member", "admin"):
         query = query.where(Tournament.is_internal.is_(False))
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(of=Tournament)
     tournament = session.scalar(query)
     if tournament is None:
         raise RegistrationResourceNotFoundError("Tournament not found")
@@ -143,11 +143,15 @@ def create_tournament_registration(
         )
         inspect_staged_parental_consent_form_upload(file_storage, staged_storage_key)
 
+    acceptance = create_acceptance(tournament, user.id, payload, accepted_from_ip)
     serial = tournament.next_registration_number
     tournament.next_registration_number = serial + 1
     tournament_registration = TournamentRegistration(
         **payload.model_dump(
             exclude={
+                *CHOICE_FIELDS,
+                "acceptance_token",
+                "acceptance_language",
                 "parental_consent_form_storage_key",
                 "parental_consent_form_original_file_name",
             }
@@ -160,11 +164,8 @@ def create_tournament_registration(
         registration_status="awaiting_payment",
         email_normalized=email_normalized,
         identity_document_number_normalized=document_normalized,
-        accepted_terms_version=tournament.terms_version,
-        accepted_rules_version=tournament.rules_version,
-        accepted_at=datetime.now(timezone.utc),
-        accepted_from_ip=accepted_from_ip,
     )
+    tournament_registration.acceptances.append(acceptance)
     session.add(tournament_registration)
     final_storage_key: str | None = None
     try:

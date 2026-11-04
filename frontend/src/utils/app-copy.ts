@@ -168,6 +168,8 @@ const english = {
   "Política de cancelamento": "Cancellation policy",
   "Equipamento obrigatório": "Required equipment",
   "Os termos e o regulamento são registrados pelas versões configuradas para este torneio.": "The accepted terms and rules are recorded using the versions configured for this tournament.",
+  "Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.": "The terms changed. Read the updated content and confirm your choices again.",
+  "Não foi possível atualizar os termos. Tente enviar novamente para atualizar.": "The terms could not be refreshed. Submit again to retry the refresh.",
   "Li e aceito o regulamento do torneio.": "I have read and accept the tournament rules.",
   "Li as informações sobre o tratamento dos dados e a visibilidade de participação e resultados.": "I have read the information about data processing and visibility of participation and results.",
   "Declaro que as informações fornecidas são verdadeiras.": "I declare that the information I provided is true.",

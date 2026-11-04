@@ -14,9 +14,11 @@ from app.tournaments.exceptions import (
     RegistrationNotAllowedError,
     RegistrationResourceNotFoundError,
     TournamentError,
+    PolicyArchiveError,
 )
 
 _ERROR_STATUS = {
+    PolicyArchiveError: 422,
     RegistrationNotAllowedError: 400,
     RegistrationResourceNotFoundError: 404,
     RegistrationConflictError: 409,

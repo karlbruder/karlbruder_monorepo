@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { createRegistration, listOwnRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
 
 const payload: RegistrationCreate = {
+  acceptance_token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  acceptance_language: "pt",
   full_name: 'Fixture Athlete',
   social_name: null,
   birth_date: '2000-01-01',

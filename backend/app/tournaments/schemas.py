@@ -127,6 +127,10 @@ class TournamentRead(BaseModel):
     equipment_requirements: str | None
     cancellation_policy_text: str | None
     cancellation_policy_url: str | None
+    acceptance_content: dict[str, dict]
+    acceptance_tokens: dict[str, str]
+    rules_archive_url: str | None
+    cancellation_policy_archive_url: str | None
     created_at: datetime
 
 
@@ -142,6 +146,8 @@ class RegistrationCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    acceptance_token: str = Field(pattern=r"^[a-f0-9]{64}$")
+    acceptance_language: Literal["pt", "en"]
     full_name: str = Field(min_length=1, max_length=200)
     social_name: str | None = Field(default=None, max_length=200)
     birth_date: date

@@ -1,3 +1,4 @@
+import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
@@ -18,6 +19,7 @@ const tournament: Tournament = {
   is_registration_closed: false,
   rules_text: null,
   rules_url: "https://example.test/rules_text",
+  ...acceptanceEvidence,
   rules_version: "draft-rules_text-v1",
   terms_version: "draft-terms-v1",
   cancellation_policy_text: "Policy fixture",

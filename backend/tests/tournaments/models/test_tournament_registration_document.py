@@ -44,18 +44,6 @@ def _persist_registration(db_session) -> TournamentRegistration:
         previous_tournament_count=0,
         emergency_contact_name="Fixture Contact",
         emergency_contact_phone="+55 11 0000-0001",
-        declares_truthful_information=True,
-        declares_has_required_equipment=True,
-        declares_physically_fit=True,
-        accepts_rules=True,
-        accepts_data_processing=True,
-        acknowledges_inherent_risks=True,
-        accepts_cancellation_policy=True,
-        authorizes_image_use=False,
-        accepted_terms_version="fixture-terms-v1",
-        accepted_rules_version="fixture-rules_text-v1",
-        accepted_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
-        accepted_from_ip="127.0.0.1",
     )
     db_session.add(registration)
     db_session.flush()

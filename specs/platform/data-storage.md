@@ -80,3 +80,12 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 ## Related specifications
 
 [Architecture](../architecture.md), [registration](../tournaments/registration.md), [capacity](../tournaments/capacity-and-waitlist.md), [privacy](../tournaments/consent-and-privacy.md), [deployment](deployment.md).
+
+## Preserved acceptance content
+
+PolicyArchive belongs to tournaments and references StoredFile. It stores source
+and final URLs, capture time and SHA-256. RegistrationAcceptance references those
+archives and stores the exact inline policies and draft declarations accepted.
+Both records are immutable. Archived-file metadata is protected while referenced.
+Private bytes use fresh keys and attachment downloads under tournament visibility.
+There is no generic file-access endpoint or automatic expiry.

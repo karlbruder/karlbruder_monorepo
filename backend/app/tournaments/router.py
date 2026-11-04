@@ -38,16 +38,20 @@ from app.tournaments.services import (
     read_tournament_registration_parental_consent_form_download,
     read_registration_payment_instructions,
     read_registration_payment_proof_download,
-    resolve_tournament_slug,
     submit_registration_payment_proof,
     visible_tournament,
-)
-from app.payments.services.tournament_payment_settings import (
-    create_tournament_payment_settings,
 )
 from app.tournaments.services.registration_documents import (
     create_parental_consent_form_upload_url,
 )
+
+from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
+from app.tournaments.services.tournament_policies import (
+    create_tournament_configuration,
+    project_tournament,
+)
+
+from app.tournaments.services.registration_acceptances import project_registration
 
 router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
 
@@ -59,29 +63,17 @@ def _can_view_internal(user: User | AnonymousUser) -> bool:
 @router.post("", response_model=TournamentRead, status_code=status.HTTP_201_CREATED)
 def create_tournament(
     payload: TournamentCreate,
-    _admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
-) -> Tournament:
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+    fetcher: Annotated[PolicyFetcher, Depends(get_policy_fetcher)],
+) -> TournamentRead:
     try:
-        slug = resolve_tournament_slug(
-            payload.name, payload.discipline, payload.starts_at, payload.slug
+        return create_tournament_configuration(
+            session, payload, admin, storage, fetcher
         )
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
-    if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
-        raise HTTPException(status_code=409, detail="Tournament slug already exists")
-    tournament_payload = payload.model_dump(exclude={"pix_key"})
-    tournament = Tournament(**{**tournament_payload, "slug": slug})
-    session.add(tournament)
-    session.flush()
-    create_tournament_payment_settings(
-        session,
-        tournament.id,
-        payload.pix_key,
-    )
-    session.commit()
-    session.refresh(tournament)
-    return tournament
 
 
 def _catalog_filters(
@@ -119,6 +111,7 @@ def _catalog_filters(
 def list_tournaments(
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
     name: Annotated[str | None, Query(min_length=1, max_length=200)] = None,
     starts_from: date | None = None,
     starts_to: date | None = None,
@@ -134,7 +127,12 @@ def list_tournaments(
             .offset(offset)
         )
     )
-    return TournamentList(items=items, total=total, limit=limit, offset=offset)
+    return TournamentList(
+        items=[project_tournament(item, storage) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{tournament_id}", response_model=TournamentRead)
@@ -142,14 +140,15 @@ def get_tournament(
     tournament_id: int,
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
-) -> Tournament:
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> TournamentRead:
     query = select(Tournament).where(Tournament.id == tournament_id)
     if not _can_view_internal(user):
         query = query.where(Tournament.is_internal.is_(False))
     tournament = session.scalar(query)
     if tournament is None:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    return tournament
+    return project_tournament(tournament, storage)
 
 
 @router.post(
@@ -201,7 +200,7 @@ def register_for_tournament(
         request.client.host,
         file_storage=file_storage,
     )
-    return RegistrationRead.model_validate(tournament_registration)
+    return project_registration(tournament_registration)
 
 
 @router.get(
@@ -224,11 +223,11 @@ def list_registrations(
     registrations = session.scalars(query)
     if get_application_role(user) == "admin":
         return [
-            StaffRegistrationRead.model_validate(tournament_registration)
+            project_registration(tournament_registration, staff=True)
             for tournament_registration in registrations
         ]
     return [
-        RegistrationRead.model_validate(tournament_registration)
+        project_registration(tournament_registration)
         for tournament_registration in registrations
     ]
 
@@ -256,8 +255,8 @@ def get_registration(
     ):
         raise HTTPException(status_code=404, detail="Registration not found")
     if get_application_role(user) == "admin":
-        return StaffRegistrationRead.model_validate(tournament_registration)
-    return RegistrationRead.model_validate(tournament_registration)
+        return project_registration(tournament_registration, staff=True)
+    return project_registration(tournament_registration)
 
 
 @router.get(
@@ -350,7 +349,7 @@ def submit_payment_proof(
         original_file_name=payload.original_file_name,
         file_storage=file_storage,
     )
-    return RegistrationRead.model_validate(tournament_registration)
+    return project_registration(tournament_registration)
 
 
 @router.get(

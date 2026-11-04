@@ -1,3 +1,4 @@
+import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -46,6 +47,7 @@ const tournament = {
   is_registration_closed: false,
   rules_text: null,
   rules_url: 'https://example.test/rules',
+  ...acceptanceEvidence,
   rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
   cancellation_policy_text: 'Policy fixture',

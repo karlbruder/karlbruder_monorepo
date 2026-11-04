@@ -1,3 +1,4 @@
+import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
@@ -17,6 +18,7 @@ const tournament: Tournament = {
   is_registration_closed: false,
   rules_text: null,
   rules_url: 'https://example.test/rules_text',
+  ...acceptanceEvidence,
   rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
   cancellation_policy_text: 'Policy fixture',
@@ -145,6 +147,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     const [, options] = request.mock.calls[0]
     const payload = JSON.parse(options.body as string)
+    expect(payload.acceptance_token).toBe(acceptanceEvidence.acceptance_tokens.en)
+    expect(payload.acceptance_language).toBe("en")
     expect(payload.authorizes_image_use).toBe(false)
     expect(payload.accepts_rules).toBe(true)
     expect(payload.accepts_data_processing).toBe(true)
@@ -208,6 +212,8 @@ describe('Athlete submits their own registration and sees the result', () => {
       'Content-Type': 'application/json',
     })
     expect(JSON.parse(options.body as string)).toEqual({
+      acceptance_token: acceptanceEvidence.acceptance_tokens.pt,
+      acceptance_language: 'pt',
       full_name: 'Ana Teste', social_name: 'Ana', birth_date: '2000-01-01',
       identity_document_type: 'passport', identity_document_number: 'AB-123', email: 'athlete@example.test',
       phone: '+55 11 0000-0000', city: 'São Carlos', state_or_province: 'SP', country: 'Brasil',
@@ -367,14 +373,14 @@ describe('Athlete submits their own registration and sees the result', () => {
   })
 
   it.each(['pt', 'en'] as const)('renders separate policy text and URL in %s without turning text into a link', (language) => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null }} session={session} language={language} />)
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null, cancellation_policy_archive_url: null }} session={session} language={language} />)
     expect(screen.getByText('Fixture rules text')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', 'https://example.test/rules')
+    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', acceptanceEvidence.rules_archive_url)
     expect(screen.getByText(/conteúdo ainda não configurado|content has not been configured/i)).toBeInTheDocument()
   })
 
   it('renders URL-like policy text as text when no policy URL is configured', () => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null }} session={session} />)
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null, rules_archive_url: null }} session={session} />)
     expect(screen.getByText('https://example.test/plain-text')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Consultar regulamento/ })).not.toBeInTheDocument()
   })
@@ -386,4 +392,37 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByLabelText(/Signed parental consent form/)).toBeInTheDocument()
   })
 
+})
+
+
+it('refreshes changed terms, preserves personal fields and requires new choices before resubmission', async () => {
+  const updated = {
+    ...tournament,
+    acceptance_tokens: { ...tournament.acceptance_tokens, pt: 'c'.repeat(64) },
+    acceptance_content: {
+      ...tournament.acceptance_content,
+      pt: { declarations: { ...tournament.acceptance_content.pt.declarations, accepts_rules: 'Updated rules choice' } },
+    },
+    rules_text: 'Updated official rules',
+  }
+  const request = vi.fn()
+    .mockResolvedValueOnce(response(409, { detail: 'Registration terms changed; refresh before accepting' }))
+    .mockResolvedValueOnce(response(200, updated))
+    .mockResolvedValueOnce(response(201, created))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+  fillRequired()
+  submit()
+  expect(await screen.findByText('Updated official rules')).toBeInTheDocument()
+  expect(await screen.findByRole('alert')).toHaveTextContent(/Os termos mudaram/)
+  expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
+  expect(screen.getByLabelText(/Updated rules choice/)).toBeInTheDocument()
+  expect(screen.getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true)
+  expect(screen.getAllByRole('radio').every(input => !(input as HTMLInputElement).checked)).toBe(true)
+  for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
+  fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
+  submit()
+  expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
+  expect(JSON.parse(request.mock.calls[2][1].body).acceptance_token).toBe('c'.repeat(64))
+  expect(request.mock.calls[1][0]).toBe('/api/tournaments/42')
 })

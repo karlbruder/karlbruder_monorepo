@@ -10,7 +10,6 @@ from config import settings
 from config.env import AWS_REGION, IS_LOCAL_ENV
 
 
-
 class FileStorageError(Exception):
     """The storage client could not complete the request."""
 
@@ -66,11 +65,23 @@ class FileStorage:
         except (ClientError, BotoCoreError) as error:
             raise FileStorageError("Failed to create upload URL") from error
 
-    def create_presigned_get_url(self, storage_key: str, *, expires_in: int) -> str:
+    def create_presigned_get_url(
+        self, storage_key: str, *, expires_in: int, download_name: str | None = None
+    ) -> str:
         try:
             return self._browser_s3_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self._bucket_name, "Key": storage_key},
+                Params={
+                    "Bucket": self._bucket_name,
+                    "Key": storage_key,
+                    **(
+                        {
+                            "ResponseContentDisposition": f'attachment; filename="{download_name}"'
+                        }
+                        if download_name
+                        else {}
+                    ),
+                },
                 ExpiresIn=expires_in,
                 HttpMethod="GET",
             )
@@ -105,7 +116,9 @@ class FileStorage:
         except (ClientError, BotoCoreError) as error:
             raise FileStorageError("Failed to read object") from error
 
-    def copy_object(self, source_storage_key: str, destination_storage_key: str) -> None:
+    def copy_object(
+        self, source_storage_key: str, destination_storage_key: str
+    ) -> None:
         try:
             self._s3_client.copy_object(
                 Bucket=self._bucket_name,

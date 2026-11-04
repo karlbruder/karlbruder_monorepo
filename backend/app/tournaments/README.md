@@ -32,6 +32,48 @@ or separately. Missing content remains visibly unconfigured. Text is displayed a
 text even when it resembles a URL. `rules_version` and `terms_version` identify
 accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
 
+## Preserved policies and acceptance
+
+Saving tournament configuration captures each configured policy URL before
+publishing the event. Inline text remains separate and both forms may be present.
+Each URL capture creates a PolicyArchive referencing shared StoredFile metadata.
+The capture retains source/final URLs, SHA-256 and capture time. Private stored
+bytes use a fresh key. Reads do not fetch the source again. Saving a new policy
+configuration captures a new copy even when its source URL is unchanged.
+There is no tournament-editing endpoint in this checkpoint.
+
+The bounded client accepts public HTTP(S) PDF, plain text and HTML documents.
+It checks every redirect and resolved address, pins the connected IP, retains
+HTTPS hostname verification, and sends no application credentials. Limits are
+three redirects, 10 MiB and ten seconds per document. DNS waits are bounded with
+at most four outstanding resolver calls per process. Compressed responses are
+rejected. Two linked policies may add up to twenty seconds to a configuration
+save. This uses no deployed worker, queue or new dependency.
+
+Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by
+`pt` and `en`, plus `rules_archive_url` and `cancellation_policy_archive_url`.
+Archive links follow the existing tournament visibility rules. They expire after
+900 seconds and force an attachment download, including for HTML. Original source
+URLs remain configuration metadata. The form reads the preserved copy and renders
+inline content as text.
+
+Registration creation requires `acceptance_language` and `acceptance_token`.
+The digest binds the exact draft declaration labels, both image choices, policy
+text/archive references, equipment requirements and configured versions.
+Changed content returns 409 with `Registration terms changed; refresh before accepting`.
+The form refreshes the event, retains personal fields and clears declaration/image
+choices. It never silently retries acceptance of changed content.
+
+RegistrationAcceptance owns the eight individual choices, accepted versions,
+verified user UUID, language, exact content, digest, server time and source IP.
+Registration, first acceptance and required parental document commit together.
+Database triggers prevent updating or deleting acceptances and policy archives,
+and prevent changing metadata of files referenced by policy archives. Later
+snapshots append history. Owner/staff responses explicitly project the latest
+snapshot and keep their existing privacy boundary. No history/editing endpoint or
+approved legal wording is introduced. Failed saves roll back metadata and clean
+only newly created objects. Historical archives are retained.
+
 ## Registration
 
 `POST /api/tournaments/{tournament_id}/registrations` registers the verified
@@ -53,7 +95,8 @@ The declarations retain separate truthful-information, equipment, physical-fitne
 risk, data-processing, rules, and cancellation-policy choices. The renamed choices
 are `declares_has_required_equipment`, `accepts_rules`, and `authorizes_image_use`.
 The backend records accepted versions, acceptance time, and `accepted_from_ip`.
-Clients cannot choose these evidence values, the owner, `registration_status`,
+Clients select a displayed language and content digest. The server supplies
+versions, time, IP and ownership. Clients cannot choose the owner, `registration_status`,
 `registration_number`, or `staff_safety_note`.
 
 Creation requires configured terms/rules versions and an open registration window.
@@ -137,10 +180,9 @@ Replacement is allowed while `awaiting_payment` or `payment_in_review`.
 Every submitted proof is retained. The owner retrieves only the latest through
 `GET .../payment-proof`. Staff review of the history remains #60.
 
-A proof is evidence, not a verified receipt or a transfer. This checkpoint does
-not add payment decisions, refunds, notifications, acceptance-history storage,
-or linked-policy archiving. Those remaining #69 checkpoints and #60 consume the
-renamed contracts. The frontend entry remains `/tournaments/registration`.
+A proof is evidence, not a verified receipt or a transfer. Financial records
+remain the next #69 checkpoint. Payment decisions, refunds and notifications
+remain later workflows. The frontend entry remains `/tournaments/registration`.
 
 ## Migration boundary
 

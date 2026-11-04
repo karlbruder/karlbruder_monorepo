@@ -1,7 +1,20 @@
 import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
+export type AcceptanceContent = {
+  declarations: {
+    accepts_rules: string; accepts_data_processing: string; declares_truthful_information: string;
+    acknowledges_inherent_risks: string; declares_has_required_equipment: string;
+    declares_physically_fit: string; accepts_cancellation_policy: string;
+    image_use_choices: { yes: string; no: string };
+  };
+};
+
 export type Tournament = {
+  acceptance_content: Record<"pt" | "en", AcceptanceContent>;
+  acceptance_tokens: Record<"pt" | "en", string>;
+  rules_archive_url: string | null;
+  cancellation_policy_archive_url: string | null;
   id: number;
   name: string;
   slug: string;
@@ -22,6 +35,8 @@ export type Tournament = {
 };
 
 export type RegistrationCreate = {
+  acceptance_language: "pt" | "en";
+  acceptance_token: string;
   full_name: string;
   social_name: string | null;
   birth_date: string;
@@ -127,6 +142,26 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
+function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
+  return ["pt", "en"].every(language => {
+    const key = language as "pt" | "en";
+    const declarations = event.acceptance_content?.[key]?.declarations;
+    return typeof event.acceptance_tokens?.[key] === "string"
+      && /^[a-f0-9]{64}$/.test(event.acceptance_tokens[key])
+      && declarations !== undefined
+      && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string")
+      && typeof declarations.image_use_choices?.yes === "string"
+      && typeof declarations.image_use_choices?.no === "string";
+  }) && isNullableString(event.rules_archive_url) && isNullableString(event.cancellation_policy_archive_url);
+}
+
+export async function getTournament(id: number, token: string): Promise<Tournament> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  const body: unknown = await response.json();
+  if (!response.ok || !isTournament(body)) throw new Error("invalid-tournament");
+  return body;
+}
+
 function isTournament(value: unknown): value is Tournament {
   if (value === null || typeof value !== "object") return false;
   const event = value as Record<string, unknown>;
@@ -135,6 +170,7 @@ function isTournament(value: unknown): value is Tournament {
     typeof event.slug === "string" && event.slug.length > 0 &&
     typeof event.name === "string" && event.name.trim().length > 0 &&
     typeof event.starts_at === "string" &&
+    isAcceptanceEvidence(event) &&
     typeof event.is_registration_closed === "boolean" &&
     isNullableString(event.discipline) &&
     isNullableString(event.location) &&

@@ -127,13 +127,17 @@ def test_build_s3_client_uses_path_style_addressing_for_a_local_endpoint(boto3_c
 
 
 @patch("app.core.files.storage.boto3.client")
-def test_build_s3_client_omits_endpoint_configuration_when_endpoint_is_none(boto3_client):
+def test_build_s3_client_omits_endpoint_configuration_when_endpoint_is_none(
+    boto3_client,
+):
     build_s3_client(endpoint_url=None)
 
     boto3_client.assert_called_once_with("s3", region_name="us-east-2")
 
 
-def test_presigned_url_uses_the_browser_endpoint_while_object_calls_stay_on_the_server(monkeypatch):
+def test_presigned_url_uses_the_browser_endpoint_while_object_calls_stay_on_the_server(
+    monkeypatch,
+):
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
     storage = FileStorage(
@@ -158,7 +162,9 @@ def test_presigned_url_uses_the_browser_endpoint_while_object_calls_stay_on_the_
 
 def test_presigned_urls_use_the_server_client_when_no_browser_endpoint_is_set():
     s3_client = MagicMock()
-    s3_client.generate_presigned_url.return_value = "https://s3.amazonaws.com/kb-prod-bucket/key"
+    s3_client.generate_presigned_url.return_value = (
+        "https://s3.amazonaws.com/kb-prod-bucket/key"
+    )
     storage = FileStorage(
         bucket_name="kb-prod-bucket",
         endpoint_url=None,
@@ -200,7 +206,9 @@ def test_get_file_storage_passes_settings_to_the_client_builder(monkeypatch):
 
 
 @patch("app.core.files.storage.build_s3_client")
-def test_get_file_storage_signs_browser_urls_with_the_browser_endpoint(build_s3_client, monkeypatch):
+def test_get_file_storage_signs_browser_urls_with_the_browser_endpoint(
+    build_s3_client, monkeypatch
+):
     monkeypatch.setattr(
         "app.core.files.storage.settings",
         Settings(
@@ -226,3 +234,17 @@ def test_get_file_storage_signs_browser_urls_with_the_browser_endpoint(build_s3_
         {"endpoint_url": "http://ministack:4566"},
         {"endpoint_url": "http://localhost:4566"},
     ]
+
+
+def test_archived_html_download_uses_an_attachment_disposition():
+    s3_client = MagicMock()
+    storage = FileStorage(bucket_name="fixture", endpoint_url=None, s3_client=s3_client)
+    storage.create_presigned_get_url(
+        "archive-key", expires_in=900, download_name="rules.txt"
+    )
+    assert (
+        s3_client.generate_presigned_url.call_args.kwargs["Params"][
+            "ResponseContentDisposition"
+        ]
+        == 'attachment; filename="rules.txt"'
+    )

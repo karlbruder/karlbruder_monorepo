@@ -28,6 +28,22 @@ Collect the necessary participant declarations, preserve their evidence, and res
 - **PRIV-010:** Minors register themselves. Participation requires a signed parental consent form, scanned and uploaded through the platform, and parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff to verify both in person. Store the scanned term privately with authorized staff access. Verification evidence follows the existing actor/time audit requirements; its representation is an implementation choice, not another product-policy question. This in-person check does not require additional identity-document uploads or copies.
 - **PRIV-011:** The interim retention policy is indefinite for registrations, every submitted payment proof, safety information, acceptance/IP evidence, and audit records. Do not add automatic expiry or deletion under an invented period. A final retention schedule remains deferred for policy review; correction/deletion requests remain subject to PRIV-Q4.
 
+## Acceptance evidence
+
+RegistrationAcceptance is append-only history. It records all separate choices,
+accepted versions, exact displayed declaration and policy content, language,
+verified user UUID, server time and source IP. The initial snapshot is atomic
+with registration and any required parental document. Registration does not keep
+a competing mutable copy. Later snapshots preserve earlier evidence.
+Database guards reject updates and deletes, including direct ORM writes.
+Owner responses project permitted latest choices and omit source IP and staff notes.
+
+The registration form uses server-provided draft declarations in the selected
+interface language. Its submitted content digest must match the current content.
+A mismatch requires refreshing and accepting the changed content again.
+Personal fields are retained while declaration and image choices are cleared.
+This preserves the existing draft wording. PRIV-Q1 and PRIV-Q4 remain unresolved.
+
 ## Delivery boundary
 
 Issue #21 deferred the full consent package to a later issue. That is a delivery split, not a decision to omit consent or privacy from released registration. PROD-011 defines the first-release scope, and its required declarations and data protections still apply. Final consent/privacy text is owned here; regulation text or URL is Tournament configuration with versioned acceptance evidence. This draft records the owner's interim indefinite-retention choice, not final legal wording.

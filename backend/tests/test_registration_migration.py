@@ -26,6 +26,8 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
         "tournament_registrations",
         "tournament_registration_documents",
         "stored_files",
+        "registration_acceptances",
+        "policy_archives",
         "tournament_payment_settings",
     } <= tables
     assert tables.isdisjoint(
@@ -75,3 +77,8 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
         if c["name"] == "ck_tournament_registration_documents_document_type"
     )
     assert "parental_consent_form" in document_type["sqltext"]
+
+    registration_columns = {column["name"] for column in inspector.get_columns("tournament_registrations", schema="public")}
+    assert registration_columns.isdisjoint({"accepts_rules", "authorizes_image_use", "accepted_at", "accepted_from_ip"})
+    acceptance_columns = {column["name"] for column in inspector.get_columns("registration_acceptances", schema="public")}
+    assert {"accepted_by_user_id", "accepts_rules", "authorizes_image_use", "content", "accepted_at", "accepted_from_ip", "rules_archive_id"} <= acceptance_columns
