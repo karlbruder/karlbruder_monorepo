@@ -1,9 +1,14 @@
 ---
 name: create-issue
-description: Clarify a developer's requested change and create one self-contained GitHub issue with detailed task checkboxes, relevant spec references, and verifiable acceptance criteria. Use to scope and create a delivery issue, not to plan commit checkpoints or open a PR.
+description: Clarify a developer's requested change and create one self-contained GitHub issue with detailed task checkboxes, relevant spec references, and verifiable acceptance criteria. Use to scope and create a delivery issue, not to plan commit checkpoints or open a PR. Use only when the user explicitly invokes create-issue.
 ---
 
 # Create Issue
+
+Use this workflow only when the user explicitly invokes `$create-issue`, `/create-issue`,
+or names this skill and asks to use it. Continue an active invocation across turns,
+but do not start another lifecycle skill automatically. Ordinary problem discussion,
+implementation, or review requests do not activate this skill.
 
 Turn one agreed piece of work into a clear, junior-friendly issue for one focused PR. The issue is a complete implementation brief for that slice, not a copy of an entire spec.
 

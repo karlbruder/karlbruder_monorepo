@@ -1,4 +1,6 @@
 interface:
   display_name: "Commit Message"
-  short_description: "Suggest a commit message from chat context and Git diff"
-  default_prompt: "Use $commit-message to suggest a Conventional Commit message from this chat and the Git diff."
+  short_description: "Draft a commit message from staged or selected changes"
+  default_prompt: "Use $commit-message to draft one copyable message from staged changes, following repository conventions."
+policy:
+  allow_implicit_invocation: false

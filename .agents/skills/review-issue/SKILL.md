@@ -1,9 +1,14 @@
 ---
 name: review-issue
-description: Review an issue implementation or explicit source/target branch diff adversarially, saving prioritized findings and runnable probes for independent debate. Use for issue or branch review, not implementation or automatic fixes.
+description: Review an issue implementation or explicit source/target branch diff adversarially, saving prioritized findings and runnable probes for independent debate. Use for issue or branch review, not implementation or automatic fixes. Use only when the user explicitly invokes review-issue.
 ---
 
 # Review Issue
+
+Use this workflow only when the user explicitly invokes `$review-issue`, `/review-issue`,
+or names this skill and asks to use it. Continue an active invocation across turns,
+but do not start another lifecycle skill automatically. Ordinary problem discussion,
+implementation, or review requests do not activate this skill.
 
 Adapt the adversarial review approach to the issue's actual delivery scope. Understand intent first, then challenge correctness, missing engineering, and unnecessary complexity. A review is evidence to evaluate, not an instruction to implement every suggestion.
 
@@ -40,7 +45,7 @@ Follow [evidence and probe rules](references/evidence.md). Save each run under:
 
 For example, `--source feature/payments --target master` uses `.local/review-issue/master__feature-payments/review-1__sol/`.
 
-Sanitize branch labels by replacing `/` and other path-unsafe characters with `-`, retaining the original refs in report metadata. Use `<target>__<source>` as the branch namespace, matching GitHub base (target) then compare (source). New runs use this order; preserve older source-first reports without renaming them. If distinct refs map to a namespace already used by another pair, append the first 8 hexadecimal characters of SHA-256 of the UTF-8 string `target + \0 + source` (original refs separated by a NUL byte), and verify the stored pair before reusing it. Record the selected namespace in the report so debate-review uses the same folder name. Use the same namespace calculation in both skills. Use sanitized model labels. Use a supplied model label or the actual known model; ask if unavailable rather than inventing it. Allocate the next free N for this branch pair and model, creating the directory exclusively and retrying on collision. Never overwrite an earlier run. Save `review.md` and any `probes/` files inside that run.
+Sanitize branch labels by replacing `/` and other path-unsafe characters with `-`, retaining the original refs in report metadata. Use `<target>__<source>` as the branch namespace, matching GitHub base (target) then compare (source). New runs use this order; preserve older source-first reports without renaming them. If distinct refs map to a namespace already used by another pair, append the first 8 hexadecimal characters of SHA-256 of the UTF-8 string `target + \0 + source` (original refs separated by a NUL byte), and verify the stored pair before reusing it. Record the selected namespace in the report so debate-issue-review uses the same folder name. Use the same namespace calculation in both skills. Use sanitized model labels. Use a supplied model label or the actual known model; ask if unavailable rather than inventing it. Allocate the next free N for this branch pair and model, creating the directory exclusively and retrying on collision. Never overwrite an earlier run. Save `review.md` and any `probes/` files inside that run.
 
 The report begins with the recorded boundary metadata and uses these headings from the original review approach:
 
@@ -53,4 +58,4 @@ The report begins with the recorded boundary metadata and uses these headings fr
 
 Keep empty finding categories brief and honest. In issue mode, include an acceptance-coverage summary; in branch mode, summarize the verified behavior and review coverage, without inventing acceptance criteria. In either mode, distinguish verified, failed, and not-verified coverage. Each finding appears once with its ID and evidence; Priority fixes ranks those IDs rather than duplicating the full text. Add `Probes` when applicable, linking every saved reproducer, fixture, command, expected/actual result, and output. Record limitations and questions explicitly.
 
-Review only: do not modify product code, stage, commit, push, post reviews/comments, or change issue/project state. Local report and isolated probe artifacts are allowed. Return clickable absolute report/probe paths and a short prioritized summary. Point the implementing agent to [debate-review](../debate-review/SKILL.md) for independent assessment; do not automatically accept or fix findings.
+Review only: do not modify product code, stage, commit, push, post reviews/comments, or change issue/project state. Local report and isolated probe artifacts are allowed. Return clickable absolute report/probe paths and a short prioritized summary. Point the implementing agent to [debate-issue-review](../debate-issue-review/SKILL.md) for independent assessment; do not automatically accept or fix findings.

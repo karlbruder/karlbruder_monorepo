@@ -37,7 +37,7 @@ Use these entry points when the task needs them:
 
 ## Specifications and issues
 
-For issue-driven work, read the assigned issue when its contents are available or access is authorized. Follow [Issue workflow](#issue-workflow).
+For an explicitly invoked issue workflow, read the assigned issue when its contents are available or access is authorized. Follow [Issue workflow](#issue-workflow). An issue reference alone does not activate that workflow.
 
 - Specifications describe intended behavior. Issues describe delivery scope, dependencies, and tasks.
 - A closed issue is not evidence that every acceptance criterion is implemented.
@@ -46,15 +46,26 @@ For issue-driven work, read the assigned issue when its contents are available o
 
 ## Issue workflow
 
-Read and follow the skill for the requested action:
+The lifecycle is opt-in. Start a lifecycle skill only when the user explicitly
+invokes it with `$skill-name`, `/skill-name`, or names the skill and asks to use it.
+Continue an active invocation across turns, respecting its checkpoints. Invoking
+one skill does not authorize starting the next.
 
-Create-issue, plan-issue, and implement-issue require a GitHub issue. They have no branch-only mode. Review-issue, debate-review, and open-pr accept an issue number or URL, or `--source` and `--target`. Explicit refs select branch mode.
+Ordinary questions, problem reports, implementation requests, and reviews stay as
+direct work. Do not require an issue, saved issue plan, or lifecycle checkpoint
+process for those requests. Use the user's scope, applicable specs, and relevant
+checks. Keep staging and committing with the developer. Publication still requires
+the user's authorization.
 
-- New development work without an issue: [create-issue](.agents/skills/create-issue/SKILL.md). Ask when scope, requirements, or boundaries are unclear. Do not infer missing requirements. Preview the issue before publishing.
-- An existing issue that needs a plan: [plan-issue](.agents/skills/plan-issue/SKILL.md). Save the plan under `.local/plan-issue/`. A chat summary is not a plan. Planning does not start implementation.
+When a lifecycle skill is explicitly invoked, read and follow its procedure:
+
+Create-issue creates a GitHub issue. Plan-issue and implement-issue require an existing issue. These three skills have no branch-only mode. Review-issue, debate-issue-review, and open-pr accept an issue number or URL, or `--source` and `--target`. Explicit refs select branch mode.
+
+- Create an issue: [create-issue](.agents/skills/create-issue/SKILL.md). Ask when scope, requirements, or boundaries are unclear. Do not infer missing requirements. Preview the issue before publishing.
+- Plan an existing issue: [plan-issue](.agents/skills/plan-issue/SKILL.md). Save the plan under `.local/plan-issue/`. A chat summary is not a plan. Planning does not start implementation.
 - Implement a saved plan: [implement-issue](.agents/skills/implement-issue/SKILL.md). One authorized checkpoint at a time. Include the tests in that same checkpoint. Never stage, commit, amend, or push. Suggest a commit message and stop for review.
-- A requested review: [review-issue](.agents/skills/review-issue/SKILL.md). Findings are claims to verify. They are not instructions to change code.
-- Assess review feedback before fixing it: [debate-review](.agents/skills/debate-review/SKILL.md).
+- Review an issue or branch comparison: [review-issue](.agents/skills/review-issue/SKILL.md). Findings are claims to verify. They are not instructions to change code.
+- Assess supplied review feedback: [debate-issue-review](.agents/skills/debate-issue-review/SKILL.md).
 - Publish committed work: [open-pr](.agents/skills/open-pr/SKILL.md). Never stage, commit, or merge.
 
 Keep delivery checklists in the issue. Keep decisions, checkpoint state, commit evidence, and verification in the saved plan so a fresh chat can resume.

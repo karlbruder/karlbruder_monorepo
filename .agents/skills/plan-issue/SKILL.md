@@ -1,9 +1,14 @@
 ---
 name: plan-issue
-description: Create or revise a complete implementation plan for one GitHub issue, with focused commit-sized steps and human checkpoints. Save the plan on disk and hand execution to implement-issue.
+description: Create or revise a complete implementation plan for one GitHub issue, with focused commit-sized steps and human checkpoints. Save the plan on disk and hand execution to implement-issue. Use only when the user explicitly invokes plan-issue.
 ---
 
 # Plan Issue
+
+Use this workflow only when the user explicitly invokes `$plan-issue`, `/plan-issue`,
+or names this skill and asks to use it. Continue an active invocation across turns,
+but do not start another lifecycle skill automatically. Ordinary problem discussion,
+implementation, or review requests do not activate this skill.
 
 Use the issue as the delivery contract. Produce a complete, concrete plan that can be executed in this chat or a fresh chat. Planning ends with the saved plan; [implement-issue](../implement-issue/SKILL.md) owns execution and the human owns staging and commits.
 

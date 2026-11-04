@@ -139,9 +139,15 @@ for focused checks and host development.
 
 ## Agentic development
 
-The linked skills own the procedure. Invoke them with `$skill-name` in Codex or
-`/skill-name` in Claude Code and Cursor. GitHub operations use the developer's
-CLI account and require approval before each `gh` command.
+This optional lifecycle supports tech-lead issue handoff and structured developer
+execution. It starts only when you invoke one of the skills below with `$skill-name`,
+`/skill-name`, or by naming the skill and asking to use it. Invoking one skill does
+not automatically start the next. An active invocation can continue across turns.
+
+Ordinary problem discussion, implementation, and reviews remain direct work.
+They do not require creating an issue or saved issue plan. The developer still
+owns staging and commits. GitHub operations use the developer's CLI account and
+require approval before each `gh` command.
 
 | Step | Skill and example |
 | --- | --- |
@@ -152,7 +158,7 @@ CLI account and require approval before each `gh` command.
 | Assess review findings | [debate-issue-review](.agents/skills/debate-issue-review/SKILL.md), `$debate-issue-review 123 <review-path>` |
 | Publish committed work | [open-pr](.agents/skills/open-pr/SKILL.md), `$open-pr 123` |
 
-Review the saved plan before implementation. Each checkpoint includes its checks.
+Within the lifecycle, review the saved plan before implementation. Each checkpoint includes its checks.
 The developer reviews, stages, and commits. The agent suggests a message and waits
 for authorization before the next checkpoint. Reviews produce findings for the
 developer to assess before fixes. The tech lead approves and merges the PR.

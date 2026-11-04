@@ -1,9 +1,14 @@
 ---
 name: open-pr
-description: Publish a branch and open a GitHub pull request with a reviewer-focused description based on its actual diff. Accept an optional issue, --source, and --target; no saved plan is required. Never stage, commit, or merge.
+description: Publish a branch and open a GitHub pull request with a reviewer-focused description based on its actual diff. Accept an optional issue, --source, and --target; no saved plan is required. Never stage, commit, or merge. Use only when the user explicitly invokes open-pr.
 ---
 
 # Open PR
+
+Use this workflow only when the user explicitly invokes `$open-pr`, `/open-pr`,
+or names this skill and asks to use it. Continue an active invocation across turns,
+but do not start another lifecycle skill automatically. Ordinary problem discussion,
+implementation, or review requests do not activate this skill.
 
 Open a PR after [implement-issue](../implement-issue/SKILL.md) or for other committed development work. An issue and saved plan are optional context, not prerequisites. Create the PR with its finished description in the initial body. Follow [the description guide](references/pr-description.md), adapted from the team's PR Write Description style and bundled here so every developer can use it.
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Debate Issue Review"
+  short_description: "Challenge review findings and prioritize justified fixes"
+  default_prompt: "Use $debate-issue-review to assess these review reports and save Markdown triage plus a visual report."
+policy:
+  allow_implicit_invocation: false

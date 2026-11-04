@@ -1,6 +1,6 @@
 # Reproducible evidence for review and debate
 
-Both review-issue and debate-review use these rules. Preserve enough evidence for another developer or agent to reproduce or falsify a claim without the original chat.
+Both review-issue and debate-issue-review use these rules. Preserve enough evidence for another developer or agent to reproduce or falsify a claim without the original chat.
 
 ## Save before running
 
