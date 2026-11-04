@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
@@ -95,23 +96,44 @@ def build_final_parental_term_storage_key(tournament_id: int, signup_id: int) ->
     return f"tournaments/{tournament_id}/signups/{signup_id}/parental_term/{uuid4()}"
 
 
+def _copy_staged_object_then_confirm_promoted_upload(
+    file_storage: FileStorage,
+    staged_storage_key: str,
+    final_storage_key: str,
+    confirm_promoted_upload: Callable[[FileStorage, str], tuple[str, int]],
+) -> tuple[str, int]:
+    """Copy staging, then accept the permanent object only if those copied bytes pass."""
+
+    try:
+        file_storage.copy_object(staged_storage_key, final_storage_key)
+        content_type, size_bytes = confirm_promoted_upload(file_storage, final_storage_key)
+        file_storage.delete_file(staged_storage_key)
+    except FileStorageError as error:
+        delete_storage_object_quietly(file_storage, final_storage_key)
+        raise error
+    except HTTPException:
+        delete_storage_object_quietly(file_storage, final_storage_key)
+        raise
+    return content_type, size_bytes
+
+
 def promote_staged_parental_term_to_signup(
     file_storage: FileStorage,
     *,
     staged_storage_key: str,
     tournament_id: int,
     signup_id: int,
-) -> str:
-    """Copy the staged object to its permanent key and remove the staging object."""
+) -> tuple[str, str, int]:
+    """Copy the staged term and return the permanent key plus the copied object's type and size."""
 
     final_storage_key = build_final_parental_term_storage_key(tournament_id, signup_id)
-    try:
-        file_storage.copy_object(staged_storage_key, final_storage_key)
-        file_storage.delete_file(staged_storage_key)
-    except FileStorageError as error:
-        delete_storage_object_quietly(file_storage, final_storage_key)
-        raise error
-    return final_storage_key
+    content_type, size_bytes = _copy_staged_object_then_confirm_promoted_upload(
+        file_storage,
+        staged_storage_key,
+        final_storage_key,
+        inspect_staged_parental_term_upload,
+    )
+    return final_storage_key, content_type, size_bytes
 
 
 def create_parental_term_download_url(
@@ -209,15 +231,17 @@ def promote_staged_payment_proof_to_signup(
     staged_storage_key: str,
     tournament_id: int,
     signup_id: int,
-) -> str:
+) -> tuple[str, str, int]:
+    """Copy the staged proof and return the permanent key plus the copied object's type and size."""
+
     final_storage_key = build_final_payment_proof_storage_key(tournament_id, signup_id)
-    try:
-        file_storage.copy_object(staged_storage_key, final_storage_key)
-        file_storage.delete_file(staged_storage_key)
-    except FileStorageError as error:
-        delete_storage_object_quietly(file_storage, final_storage_key)
-        raise error
-    return final_storage_key
+    content_type, size_bytes = _copy_staged_object_then_confirm_promoted_upload(
+        file_storage,
+        staged_storage_key,
+        final_storage_key,
+        inspect_staged_payment_proof_upload,
+    )
+    return final_storage_key, content_type, size_bytes
 
 
 def create_payment_proof_download_url(

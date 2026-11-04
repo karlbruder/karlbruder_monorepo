@@ -90,11 +90,11 @@ def submit_tournament_signup_payment_proof(
         raise HTTPException(status_code=422, detail="Payment proof original file name is required")
 
     validate_staged_payment_proof_storage_key(storage_key, tournament_id, user.id)
-    content_type, size_bytes = inspect_staged_payment_proof_upload(file_storage, storage_key)
+    inspect_staged_payment_proof_upload(file_storage, storage_key)
 
     final_storage_key: str | None = None
     try:
-        final_storage_key = promote_staged_payment_proof_to_signup(
+        final_storage_key, content_type, size_bytes = promote_staged_payment_proof_to_signup(
             file_storage,
             staged_storage_key=storage_key,
             tournament_id=tournament_id,
@@ -118,6 +118,11 @@ def submit_tournament_signup_payment_proof(
         if final_storage_key is not None:
             delete_storage_object_quietly(file_storage, final_storage_key)
         raise HTTPException(status_code=503, detail="File storage unavailable") from error
+    except HTTPException:
+        session.rollback()
+        if final_storage_key is not None:
+            delete_storage_object_quietly(file_storage, final_storage_key)
+        raise
 
     session.refresh(tournament_signup)
     return tournament_signup

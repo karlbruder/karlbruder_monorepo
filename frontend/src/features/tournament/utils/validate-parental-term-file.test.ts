@@ -4,7 +4,7 @@ import {
   validateParentalTermFile,
 } from '@/features/tournament/utils/validate-parental-term-file'
 
-function fileFromBytes(bytes: Uint8Array, name: string): File {
+function fileFromBytes(bytes: Uint8Array<ArrayBuffer>, name: string): File {
   const file = new File([bytes], name, { type: 'application/octet-stream' })
   Object.defineProperty(file, 'arrayBuffer', {
     configurable: true,

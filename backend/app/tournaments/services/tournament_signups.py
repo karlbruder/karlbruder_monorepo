@@ -121,14 +121,9 @@ def create_tournament_signup(
     if has_staged_parental_term and file_storage is None:
         raise FileStorageError("File storage is not configured")
 
-    staged_content_type: str | None = None
-    staged_size_bytes: int | None = None
     if has_staged_parental_term:
         validate_staged_parental_term_storage_key(staged_storage_key, tournament.id, user.id)
-        staged_content_type, staged_size_bytes = inspect_staged_parental_term_upload(
-            file_storage,
-            staged_storage_key,
-        )
+        inspect_staged_parental_term_upload(file_storage, staged_storage_key)
 
     serial = tournament.next_inscription_serial
     tournament.next_inscription_serial = serial + 1
@@ -152,7 +147,7 @@ def create_tournament_signup(
     try:
         session.flush()
         if has_staged_parental_term:
-            final_storage_key = promote_staged_parental_term_to_signup(
+            final_storage_key, content_type, size_bytes = promote_staged_parental_term_to_signup(
                 file_storage,
                 staged_storage_key=staged_storage_key,
                 tournament_id=tournament.id,
@@ -164,8 +159,8 @@ def create_tournament_signup(
                     kind="parental_term",
                     storage_key=final_storage_key,
                     original_file_name=original_file_name or "parental-term",
-                    content_type=staged_content_type,
-                    size_bytes=staged_size_bytes,
+                    content_type=content_type,
+                    size_bytes=size_bytes,
                 )
             )
         session.commit()

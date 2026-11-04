@@ -32,6 +32,7 @@ class RecordingFileStorage:
     def __init__(self) -> None:
         self.objects: dict[str, tuple[bytes, str]] = {}
         self.copy_should_fail = False
+        self.object_to_put_before_copy: tuple[bytes, str] | None = None
         self.deleted_keys: list[str] = []
 
     def create_presigned_put_url(
@@ -55,6 +56,8 @@ class RecordingFileStorage:
     def copy_object(self, source_storage_key: str, destination_storage_key: str) -> None:
         if self.copy_should_fail:
             raise FileStorageError("Failed to copy object")
+        if self.object_to_put_before_copy is not None:
+            self.objects[source_storage_key] = self.object_to_put_before_copy
         self.objects[destination_storage_key] = self.objects[source_storage_key]
 
     def delete_file(self, storage_key: str) -> None:
@@ -772,3 +775,124 @@ def test_payment_proof_rejects_bad_upload_and_wrong_status(setup):
     tournament_signup.status = "confirmed"
     db_session.commit()
     assert client.post(f"{proof_base}/upload-url", headers=owner).status_code == 409
+
+
+def _rejected_promoted_keys(storage) -> list[str]:
+    return [storage_key for storage_key in storage.deleted_keys if "/signups/" in storage_key]
+
+
+def test_minor_signup_rejects_a_staging_object_replaced_before_copy(setup):
+    """Replacing the staged parental term before copy returns 413 and creates no registration."""
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key, email="minor-race@example.test")
+    upload = client.post(
+        f"/api/tournaments/{event_id}/signups/parental-term/upload-url",
+        headers=owner,
+    )
+    assert upload.status_code == 200
+    staged_key = upload.json()["storage_key"]
+    storage.objects[staged_key] = (_pdf_bytes(), "application/octet-stream")
+    from app.core.services.storage.services.upload_validation import MAX_UPLOAD_BYTES
+
+    storage.object_to_put_before_copy = (
+        b"MZ" + b"x" * MAX_UPLOAD_BYTES,
+        "application/octet-stream",
+    )
+    rejected = _post_signup(
+        client,
+        event_id,
+        owner,
+        _minor_signup(email="minor-race@example.test", document="MINOR-RACE"),
+        staged_parental_term_key=staged_key,
+    )
+    assert rejected.status_code == 413
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignup)) == 0
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignupFile)) == 0
+    promoted_keys = _rejected_promoted_keys(storage)
+    assert promoted_keys
+    assert all(storage_key not in storage.objects for storage_key in promoted_keys)
+
+
+def test_payment_proof_rejects_a_staging_object_replaced_before_copy(setup):
+    """Replacing the staged proof before copy returns 413 and leaves the signup awaiting payment."""
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key)
+    created = _post_signup(client, event_id, owner)
+    assert created.status_code == 201
+    number = created.json()["inscription_number"]
+    proof_base = f"/api/tournaments/{event_id}/signups/{number}/payment-proof"
+    upload = client.post(f"{proof_base}/upload-url", headers=owner)
+    staged_key = upload.json()["storage_key"]
+    storage.objects[staged_key] = (_pdf_bytes(), "application/octet-stream")
+    from app.core.services.storage.services.upload_validation import MAX_UPLOAD_BYTES
+
+    storage.object_to_put_before_copy = (
+        b"MZ" + b"x" * MAX_UPLOAD_BYTES,
+        "application/octet-stream",
+    )
+    rejected = client.post(
+        proof_base,
+        headers=owner,
+        json={"storage_key": staged_key, "original_file_name": "proof.pdf"},
+    )
+    assert rejected.status_code == 413
+    assert db_session.scalar(select(TournamentSignup)).status == "awaiting_payment"
+    assert db_session.scalar(select(func.count()).select_from(TournamentSignupFile)) == 0
+    promoted_keys = _rejected_promoted_keys(storage)
+    assert promoted_keys
+    assert all(storage_key not in storage.objects for storage_key in promoted_keys)
+
+
+def test_promoted_parental_term_records_the_copied_bytes(setup):
+    """The file row stores the copied object size when staging changes after the first inspection."""
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key, email="minor-copy@example.test")
+    upload = client.post(
+        f"/api/tournaments/{event_id}/signups/parental-term/upload-url",
+        headers=owner,
+    )
+    staged_key = upload.json()["storage_key"]
+    storage.objects[staged_key] = (_pdf_bytes(), "application/octet-stream")
+    copied_bytes = _pdf_bytes(b"copied-bytes")
+    storage.object_to_put_before_copy = (copied_bytes, "application/octet-stream")
+    created = _post_signup(
+        client,
+        event_id,
+        owner,
+        _minor_signup(email="minor-copy@example.test", document="MINOR-COPY"),
+        staged_parental_term_key=staged_key,
+    )
+    assert created.status_code == 201, created.text
+    file_row = db_session.scalar(select(TournamentSignupFile))
+    assert file_row.content_type == "application/pdf"
+    assert file_row.size_bytes == len(copied_bytes)
+    assert storage.objects[file_row.storage_key][0] == copied_bytes
+
+
+def test_promoted_payment_proof_records_the_copied_bytes(setup):
+    """The proof row stores the copied object size when staging changes after the first inspection."""
+    client, key, db_session, storage = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key)
+    created = _post_signup(client, event_id, owner)
+    assert created.status_code == 201
+    number = created.json()["inscription_number"]
+    proof_base = f"/api/tournaments/{event_id}/signups/{number}/payment-proof"
+    upload = client.post(f"{proof_base}/upload-url", headers=owner)
+    staged_key = upload.json()["storage_key"]
+    storage.objects[staged_key] = (_pdf_bytes(), "application/octet-stream")
+    copied_bytes = _pdf_bytes(b"copied-proof")
+    storage.object_to_put_before_copy = (copied_bytes, "application/octet-stream")
+    submitted = client.post(
+        proof_base,
+        headers=owner,
+        json={"storage_key": staged_key, "original_file_name": "proof.pdf"},
+    )
+    assert submitted.status_code == 200, submitted.text
+    file_row = db_session.scalar(select(TournamentSignupFile))
+    assert file_row.content_type == "application/pdf"
+    assert file_row.size_bytes == len(copied_bytes)
+    assert storage.objects[file_row.storage_key][0] == copied_bytes
