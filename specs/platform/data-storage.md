@@ -38,6 +38,9 @@ The backend uses the same domain migrations and S3-facing storage logic across e
 
 ## File metadata ownership
 
+For the rationale, alternatives and future legal-policy reuse, see
+[decision 0008](../decisions/0008-shared-files-and-archives.md).
+
 `StoredFile` in `app/core/files/models.py` stores metadata for one object in
 `public.stored_files`. It has a unique storage key, original file name, content
 type, nonnegative size, and creation time. It has no tournament reference or
@@ -94,6 +97,11 @@ Private bytes use fresh keys and attachment downloads under tournament visibilit
 There is no generic file-access endpoint or automatic expiry.
 
 ## Shared financial records
+
+The boundary and future consumer examples are recorded in
+[decision 0009](../decisions/0009-shared-payments-and-domain-associations.md).
+The database enforcement rationale is recorded in
+[decision 0010](../decisions/0010-database-evidence-guards.md).
 
 Payments owns Payment and Refund. They retain financial amounts, verification,
 obligation time and completion evidence without tournament or membership references.

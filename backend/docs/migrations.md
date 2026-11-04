@@ -40,3 +40,6 @@ Schema comparison does not verify triggers. The backend suite also checks
 immutable acceptance/archive evidence, archived file metadata, reviewed proof
 associations and their file metadata, verified receipts, and payment/refund
 consistency. Downgrade removes the evidence guards with their tables.
+
+The reasons for using trigger functions, their alternatives and their limits are
+recorded in [decision 0010](../../specs/decisions/0010-database-evidence-guards.md).

@@ -185,6 +185,13 @@ The questions from this architecture round are resolved: admins have global acce
 
 How `frontend/src` is organized is [decision 0006](decisions/0006-frontend-application-structure.md). That decision does not change the service boundaries in this document.
 
+The shared file/archive boundary and future reuse are explained in
+[decision 0008](decisions/0008-shared-files-and-archives.md).
+Shared financial facts and domain associations are explained in
+[decision 0009](decisions/0009-shared-payments-and-domain-associations.md).
+The database evidence guards, their alternatives and their maintenance costs are
+explained in [decision 0010](decisions/0010-database-evidence-guards.md).
+
 Local SMTP setup is explicitly deferred, with real SES as the likely choice. See [identity](identity/authentication-and-access.md), [data storage](platform/data-storage.md), and [deployment](platform/deployment.md) for the related rules.
 
 ## Service reference
