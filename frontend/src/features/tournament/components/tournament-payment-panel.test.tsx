@@ -3,23 +3,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
-import type { PaymentInstructions, Tournament } from "@/features/tournament/api/tournaments";
+import type { RegistrationPaymentInstructions, Tournament } from "@/features/tournament/api/tournaments";
 
 const tournament: Tournament = {
   id: 42,
   name: "Monomachia Karlbrüder 2027",
   slug: "monomachia-2027",
-  modality: "longsword",
+  discipline: "longsword",
   starts_at: "2027-01-17T12:00:00Z",
   location: null,
-  inscription_fee_amount: "150.00",
+  registration_fee_amount: "150.00",
   registration_opens_on: "2026-11-01",
   registration_closes_on: "2026-12-31",
-  new_registrations_closed: false,
-  regulation: "https://example.test/regulation",
-  regulation_version: "draft-regulation-v1",
+  is_registration_closed: false,
+  rules_text: null,
+  rules_url: "https://example.test/rules_text",
+  rules_version: "draft-rules_text-v1",
   terms_version: "draft-terms-v1",
-  cancellation_policy: "Policy fixture",
+  cancellation_policy_text: "Policy fixture",
+  cancellation_policy_url: null,
   equipment_requirements: null,
 };
 
@@ -28,20 +30,20 @@ const session = {
   user: { id: "athlete-uuid", email: "athlete@example.test" },
 } as Session;
 
-const paymentInstructions: PaymentInstructions = {
-  inscription_number: "T42-000001-5",
-  status: "awaiting_payment",
-  inscription_fee_amount: "150.00",
+const paymentInstructions: RegistrationPaymentInstructions = {
+  registration_number: "T42-000001-5",
+  registration_status: "awaiting_payment",
+  registration_fee_amount: "150.00",
   payment_due_at: "2027-02-01T23:59:59+00:00",
   payment_options: { pix: { pix_key: "EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY" } },
   latest_payment_proof: null,
 };
 
-function ownerSignupAfterProof(status: string) {
+function ownerRegistrationAfterProof(registration_status: string) {
   return {
     tournament_id: tournament.id,
-    inscription_number: paymentInstructions.inscription_number,
-    status,
+    registration_number: paymentInstructions.registration_number,
+    registration_status,
     full_name: "Athlete Fixture",
     email: "athlete@example.test",
   };
@@ -80,7 +82,7 @@ describe("Tournament payment panel", () => {
       <TournamentPaymentPanel
         tournament={tournament}
         session={session}
-        inscriptionNumber="T42-000001-5"
+        registrationNumber="T42-000001-5"
       />,
     );
     expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument();
@@ -104,7 +106,7 @@ describe("Tournament payment panel", () => {
       <TournamentPaymentPanel
         tournament={tournament}
         session={session}
-        inscriptionNumber="T42-000001-5"
+        registrationNumber="T42-000001-5"
       />,
     );
     expect(await screen.findByText(/A chave Pix deste torneio ainda não foi configurada/)).toBeInTheDocument();
@@ -122,7 +124,7 @@ describe("Tournament payment panel", () => {
             paymentFetchCount > 1
               ? {
                   ...paymentInstructions,
-                  status: "payment_in_review",
+                  registration_status: "payment_in_review",
                   latest_payment_proof: {
                     original_file_name: "proof.pdf",
                     content_type: "application/pdf",
@@ -149,7 +151,7 @@ describe("Tournament payment panel", () => {
         return {
           ok: true,
           status: 200,
-          json: async () => ownerSignupAfterProof("payment_in_review"),
+          json: async () => ownerRegistrationAfterProof("payment_in_review"),
         };
       }
       if (url === "https://mock.example/upload/staged" && init?.method === "PUT") {
@@ -163,7 +165,7 @@ describe("Tournament payment panel", () => {
       <TournamentPaymentPanel
         tournament={tournament}
         session={session}
-        inscriptionNumber="T42-000001-5"
+        registrationNumber="T42-000001-5"
       />,
     );
     await screen.findByRole("heading", { name: "Pagamento da inscrição" });
@@ -172,7 +174,7 @@ describe("Tournament payment panel", () => {
     fireEvent.submit(screen.getByRole("form", { name: "Comprovante de pagamento" }));
 
     await waitFor(() => expect(request).toHaveBeenCalledWith(
-      "/api/tournaments/42/signups/T42-000001-5/payment-proof",
+      "/api/tournaments/42/registrations/T42-000001-5/payment-proof",
       expect.objectContaining({ method: "POST" }),
     ));
     expect(await screen.findByText("Pagamento em análise")).toBeInTheDocument();
@@ -186,7 +188,7 @@ describe("Tournament payment panel", () => {
           status: 200,
           json: async () => ({
             ...paymentInstructions,
-            status: "payment_in_review",
+            registration_status: "payment_in_review",
             latest_payment_proof: {
               original_file_name: "proof-old.pdf",
               content_type: "application/pdf",
@@ -222,7 +224,7 @@ describe("Tournament payment panel", () => {
       <TournamentPaymentPanel
         tournament={tournament}
         session={session}
-        inscriptionNumber="T42-000001-5"
+        registrationNumber="T42-000001-5"
       />,
     );
     await screen.findByRole("heading", { name: "Pagamento da inscrição" });

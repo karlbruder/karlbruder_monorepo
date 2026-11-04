@@ -8,17 +8,19 @@ const tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
   slug: 'monomachia-2027',
-  modality: 'longsword',
+  discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  inscription_fee_amount: null,
+  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
-  new_registrations_closed: false,
-  regulation: 'https://example.test/rules',
-  regulation_version: 'draft-regulation-v1',
+  is_registration_closed: false,
+  rules_text: null,
+  rules_url: 'https://example.test/rules',
+  rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
-  cancellation_policy: 'Policy fixture',
+  cancellation_policy_text: 'Policy fixture',
+  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 
@@ -78,7 +80,7 @@ describe('Tournament registration', () => {
   })
 
   it('shows staff closure and an unavailable event without claiming registration is open', async () => {
-    mockTournament({ ...tournament, new_registrations_closed: true })
+    mockTournament({ ...tournament, is_registration_closed: true })
     const view = render(
       <TournamentRegistration
         session={signedInSession}
@@ -118,12 +120,12 @@ describe('Tournament registration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('O acesso aos dados do torneio foi recusado.')
   })
 
-  it("posts the signup to the ID returned by the catalog lookup and opens the payment panel", async () => {
+  it("posts the registration to the ID returned by the catalog lookup and opens the payment panel", async () => {
     const resolvedTournament = { ...tournament, id: 73 };
     const paymentPayload = {
-      inscription_number: "T73-000001-1",
-      status: "awaiting_payment",
-      inscription_fee_amount: "150.00",
+      registration_number: "T73-000001-1",
+      registration_status: "awaiting_payment",
+      registration_fee_amount: "150.00",
       payment_due_at: null,
       payment_options: { pix: { pix_key: null } },
       latest_payment_proof: null,
@@ -132,16 +134,16 @@ describe('Tournament registration', () => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(resolvedTournament) };
       }
-      if (url === "/api/tournaments/73/signups" && (!init?.method || init.method === "GET")) {
+      if (url === "/api/tournaments/73/registrations" && (!init?.method || init.method === "GET")) {
         return { ok: true, status: 200, json: async () => [] };
       }
-      if (url === "/api/tournaments/73/signups" && init?.method === "POST") {
+      if (url === "/api/tournaments/73/registrations" && init?.method === "POST") {
         return {
           ok: true,
           status: 201,
           json: async () => ({
-            inscription_number: "T73-000001-1",
-            status: "awaiting_payment",
+            registration_number: "T73-000001-1",
+            registration_status: "awaiting_payment",
             full_name: "Fixture Athlete",
             email: "athlete@example.test",
             tournament_id: 73,
@@ -179,7 +181,7 @@ describe('Tournament registration', () => {
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
-        "/api/tournaments/73/signups",
+        "/api/tournaments/73/registrations",
         expect.objectContaining({ method: "POST" }),
       );
     });
@@ -187,7 +189,7 @@ describe('Tournament registration', () => {
     expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument();
   });
 
-  it("shows the payment panel instead of the form when the caller already has an active signup", async () => {
+  it("shows the payment panel instead of the form when the caller already has an active registration", async () => {
     mockTournament(tournament);
     vi.stubGlobal(
       "fetch",
@@ -195,13 +197,13 @@ describe('Tournament registration', () => {
         if (url === monomachiaListUrl) {
           return { ok: true, status: 200, json: async () => catalogBody(tournament) };
         }
-        if (url === "/api/tournaments/42/signups") {
+        if (url === "/api/tournaments/42/registrations") {
           return {
             ok: true,
             status: 200,
             json: async () => [{
-              inscription_number: "T42-000001-5",
-              status: "awaiting_payment",
+              registration_number: "T42-000001-5",
+              registration_status: "awaiting_payment",
               full_name: "Fixture Athlete",
               email: "athlete@example.test",
               tournament_id: 42,
@@ -213,9 +215,9 @@ describe('Tournament registration', () => {
             ok: true,
             status: 200,
             json: async () => ({
-              inscription_number: "T42-000001-5",
-              status: "awaiting_payment",
-              inscription_fee_amount: null,
+              registration_number: "T42-000001-5",
+              registration_status: "awaiting_payment",
+              registration_fee_amount: null,
               payment_due_at: null,
               payment_options: { pix: { pix_key: null } },
               latest_payment_proof: null,
@@ -238,7 +240,7 @@ describe('Tournament registration', () => {
     expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument();
   });
 
-  it("shows the registration form when only cancelled signups exist for the caller", async () => {
+  it("shows the registration form when only cancelled registrations exist for the caller", async () => {
     mockTournament(tournament);
     vi.stubGlobal(
       "fetch",
@@ -246,13 +248,13 @@ describe('Tournament registration', () => {
         if (url === monomachiaListUrl) {
           return { ok: true, status: 200, json: async () => catalogBody(tournament) };
         }
-        if (url === "/api/tournaments/42/signups") {
+        if (url === "/api/tournaments/42/registrations") {
           return {
             ok: true,
             status: 200,
             json: async () => [{
-              inscription_number: "T42-000001-5",
-              status: "cancelled",
+              registration_number: "T42-000001-5",
+              registration_status: "cancelled",
               full_name: "Fixture Athlete",
               email: "athlete@example.test",
               tournament_id: 42,
@@ -283,22 +285,22 @@ describe('Tournament registration', () => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
       }
-      if (url === "/api/tournaments/42/signups") {
+      if (url === "/api/tournaments/42/registrations") {
         return {
           ok: true,
           status: 200,
           json: async () => [
             {
-              inscription_number: "T42-OTHER",
-              status: "awaiting_payment",
+              registration_number: "T42-OTHER",
+              registration_status: "awaiting_payment",
               full_name: "Other Athlete",
               email: "other@example.test",
               tournament_id: 42,
               user_id: "other-uuid",
             },
             {
-              inscription_number: "T42-ADMIN",
-              status: "awaiting_payment",
+              registration_number: "T42-ADMIN",
+              registration_status: "awaiting_payment",
               full_name: "Admin Athlete",
               email: "admin@example.test",
               tournament_id: 42,
@@ -307,14 +309,14 @@ describe('Tournament registration', () => {
           ],
         }
       }
-      if (url === "/api/tournaments/42/signups/T42-ADMIN/payment") {
+      if (url === "/api/tournaments/42/registrations/T42-ADMIN/payment") {
         return {
           ok: true,
           status: 200,
           json: async () => ({
-            inscription_number: "T42-ADMIN",
-            status: "awaiting_payment",
-            inscription_fee_amount: null,
+            registration_number: "T42-ADMIN",
+            registration_status: "awaiting_payment",
+            registration_fee_amount: null,
             payment_due_at: null,
             payment_options: { pix: { pix_key: null } },
             latest_payment_proof: null,
@@ -337,7 +339,7 @@ describe('Tournament registration', () => {
     expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument()
   })
 
-  it("shows the creation form when an admin has no signup of their own", async () => {
+  it("shows the creation form when an admin has no registration of their own", async () => {
     const adminSession = {
       access_token: "admin-token",
       user: { id: "admin-uuid", email: "admin@example.test", user_metadata: {} },
@@ -346,13 +348,13 @@ describe('Tournament registration', () => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
       }
-      if (url === "/api/tournaments/42/signups") {
+      if (url === "/api/tournaments/42/registrations") {
         return {
           ok: true,
           status: 200,
           json: async () => [{
-            inscription_number: "T42-OTHER",
-            status: "awaiting_payment",
+            registration_number: "T42-OTHER",
+            registration_status: "awaiting_payment",
             full_name: "Other Athlete",
             email: "other@example.test",
             tournament_id: 42,
@@ -374,7 +376,7 @@ describe('Tournament registration', () => {
     )
     expect(await screen.findByRole("form", { name: "Formulário de inscrição" })).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "Pagamento da inscrição" })).not.toBeInTheDocument()
-    expect(request.mock.calls.map(([url]) => url)).not.toContain("/api/tournaments/42/signups/T42-OTHER/payment")
+    expect(request.mock.calls.map(([url]) => url)).not.toContain("/api/tournaments/42/registrations/T42-OTHER/payment")
   })
 
   it("drops a registration created on this page when a different account signs in", async () => {
@@ -383,9 +385,9 @@ describe('Tournament registration', () => {
       user: { id: "account-b", email: "b@example.test", user_metadata: {} },
     } as Session
     const paymentPayload = {
-      inscription_number: "T42-000001-1",
-      status: "awaiting_payment",
-      inscription_fee_amount: "150.00",
+      registration_number: "T42-000001-1",
+      registration_status: "awaiting_payment",
+      registration_fee_amount: "150.00",
       payment_due_at: null,
       payment_options: { pix: { pix_key: null } },
       latest_payment_proof: null,
@@ -395,23 +397,23 @@ describe('Tournament registration', () => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
       }
-      if (url === "/api/tournaments/42/signups" && init?.method === "POST") {
+      if (url === "/api/tournaments/42/registrations" && init?.method === "POST") {
         return {
           ok: true,
           status: 201,
           json: async () => ({
-            inscription_number: "T42-000001-1",
-            status: "awaiting_payment",
+            registration_number: "T42-000001-1",
+            registration_status: "awaiting_payment",
             full_name: "Fixture Athlete",
             email: "athlete@example.test",
             tournament_id: 42,
           }),
         }
       }
-      if (url === "/api/tournaments/42/signups" && authorization === "Bearer token-b") {
+      if (url === "/api/tournaments/42/registrations" && authorization === "Bearer token-b") {
         return { ok: true, status: 200, json: async () => [] }
       }
-      if (url === "/api/tournaments/42/signups") {
+      if (url === "/api/tournaments/42/registrations") {
         return { ok: true, status: 200, json: async () => [] }
       }
       if (url.endsWith("/payment")) {

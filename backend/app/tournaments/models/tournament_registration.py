@@ -1,0 +1,167 @@
+"""Tournament registration row."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import TYPE_CHECKING
+from uuid import UUID
+
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    func,
+    text,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+from app.tournaments.models.tournament import Tournament
+
+if TYPE_CHECKING:
+    from app.tournaments.models.tournament_registration_document import (
+        TournamentRegistrationDocument,
+    )
+
+
+class TournamentRegistration(Base):
+    __tablename__ = "tournament_registrations"
+    __table_args__ = (
+        UniqueConstraint(
+            "registration_number",
+            name="uq_tournament_registrations_registration_number",
+        ),
+        CheckConstraint(
+            "registration_status IN ('awaiting_payment', 'payment_in_review', 'confirmed', 'waitlist', 'cancelled')",
+            name="ck_tournament_registrations_status",
+        ),
+        CheckConstraint(
+            "identity_document_type IN ('cpf', 'passport')",
+            name="ck_tournament_registrations_identity_document_type",
+        ),
+        CheckConstraint(
+            "handedness IS NULL OR handedness IN ('right', 'left', 'ambidextrous')",
+            name="ck_tournament_registrations_handedness",
+        ),
+        CheckConstraint(
+            "previous_tournament_count >= 0",
+            name="ck_tournament_registrations_prior_count",
+        ),
+        CheckConstraint(
+            "hema_experience_description IS NOT NULL OR hema_started_year IS NOT NULL",
+            name="ck_tournament_registrations_hema_experience",
+        ),
+        CheckConstraint(
+            "declares_has_required_equipment AND declares_physically_fit "
+            "AND accepts_rules AND accepts_data_processing "
+            "AND acknowledges_inherent_risks AND accepts_cancellation_policy",
+            name="ck_tournament_registrations_required_declarations",
+        ),
+        CheckConstraint(
+            "declares_truthful_information",
+            name="ck_tournament_registrations_truthfulness",
+        ),
+        Index("ix_tournament_registrations_tournament_id", "tournament_id"),
+        Index(
+            "uq_tournament_registrations_active_user",
+            "tournament_id",
+            "user_id",
+            unique=True,
+            postgresql_where=text("registration_status <> 'cancelled'"),
+            sqlite_where=text("registration_status <> 'cancelled'"),
+        ),
+        Index(
+            "uq_tournament_registrations_active_email",
+            "tournament_id",
+            "email_normalized",
+            unique=True,
+            postgresql_where=text("registration_status <> 'cancelled'"),
+            sqlite_where=text("registration_status <> 'cancelled'"),
+        ),
+        Index(
+            "uq_tournament_registrations_active_document",
+            "tournament_id",
+            "identity_document_number_normalized",
+            unique=True,
+            postgresql_where=text("registration_status <> 'cancelled'"),
+            sqlite_where=text("registration_status <> 'cancelled'"),
+        ),
+        {"schema": "public"},
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False
+    )
+    user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    registration_number: Mapped[str] = mapped_column(String(50), nullable=False)
+    registration_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'awaiting_payment'")
+    )
+
+    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    social_name: Mapped[str | None] = mapped_column(String(200))
+    birth_date: Mapped[date] = mapped_column(Date, nullable=False)
+    identity_document_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    identity_document_number: Mapped[str] = mapped_column(String(100), nullable=False)
+    identity_document_number_normalized: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    email_normalized: Mapped[str] = mapped_column(String(320), nullable=False)
+    phone: Mapped[str] = mapped_column(String(40), nullable=False)
+    city: Mapped[str] = mapped_column(String(150), nullable=False)
+    state_or_province: Mapped[str | None] = mapped_column(String(150))
+    country: Mapped[str] = mapped_column(String(150), nullable=False)
+
+    school_or_team_name: Mapped[str | None] = mapped_column(String(200))
+    instructor_name: Mapped[str | None] = mapped_column(String(200))
+    hema_experience_description: Mapped[str | None] = mapped_column(String(100))
+    hema_started_year: Mapped[int | None] = mapped_column(Integer)
+    previous_tournament_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    hema_ratings_reference: Mapped[str | None] = mapped_column(String(300))
+    handedness: Mapped[str | None] = mapped_column(String(16))
+    category_or_eligibility_note: Mapped[str | None] = mapped_column(Text)
+
+    emergency_contact_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    emergency_contact_phone: Mapped[str] = mapped_column(String(40), nullable=False)
+    declares_truthful_information: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    declares_has_required_equipment: Mapped[bool] = mapped_column(
+        Boolean, nullable=False
+    )
+    declares_physically_fit: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    accepts_rules: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    accepts_data_processing: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    acknowledges_inherent_risks: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    accepts_cancellation_policy: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    authorizes_image_use: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    accepted_terms_version: Mapped[str] = mapped_column(String(100), nullable=False)
+    accepted_rules_version: Mapped[str] = mapped_column(String(100), nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    accepted_from_ip: Mapped[str] = mapped_column(String(45), nullable=False)
+    staff_safety_note: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    tournament: Mapped[Tournament] = relationship(back_populates="registrations")
+    documents: Mapped[list["TournamentRegistrationDocument"]] = relationship(
+        back_populates="registration"
+    )

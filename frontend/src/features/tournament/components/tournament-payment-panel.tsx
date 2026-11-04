@@ -9,24 +9,24 @@ import {
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
 import type { Tournament } from "@/features/tournament/api/tournaments";
-import { ownTournamentSignupsQueryKey } from "@/features/tournament/api/use-own-tournament-signups";
+import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
 import {
-  tournamentSignupPaymentQueryKey,
-  useTournamentSignupPayment,
-} from "@/features/tournament/api/use-tournament-signup-payment";
-import { validateParentalTermFile } from "@/features/tournament/utils/validate-parental-term-file";
+  tournamentRegistrationPaymentQueryKey,
+  useTournamentRegistrationPayment,
+} from "@/features/tournament/api/use-tournament-registration-payment";
+import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 
 type Props = {
   tournament: Tournament;
   session: Session;
-  inscriptionNumber: string;
+  registrationNumber: string;
   language?: AppLanguage;
 };
 
 function formatMoney(
-  value: Tournament["inscription_fee_amount"] | string | number | null,
+  value: Tournament["registration_fee_amount"] | string | number | null,
   language: AppLanguage,
 ): string {
   if (value === null) return appCopy(language, "A confirmar");
@@ -49,10 +49,10 @@ function formatDateTime(value: string | null, language: AppLanguage): string {
   }).format(date);
 }
 
-function statusLabel(status: string, language: AppLanguage): string {
-  if (status === "awaiting_payment") return appCopy(language, "Aguardando pagamento");
-  if (status === "payment_in_review") return appCopy(language, "Pagamento em análise");
-  return status;
+function statusLabel(registrationStatus: string, language: AppLanguage): string {
+  if (registrationStatus === "awaiting_payment") return appCopy(language, "Aguardando pagamento");
+  if (registrationStatus === "payment_in_review") return appCopy(language, "Pagamento em análise");
+  return registrationStatus;
 }
 
 function messageForProofRequest(error: unknown): AppCopyKey {
@@ -71,7 +71,7 @@ function messageForProofRequest(error: unknown): AppCopyKey {
 export default function TournamentPaymentPanel({
   tournament,
   session,
-  inscriptionNumber,
+  registrationNumber,
   language = "pt",
 }: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
@@ -82,23 +82,23 @@ export default function TournamentPaymentPanel({
   const [pending, setPending] = useState(false);
   const [replaceMode, setReplaceMode] = useState(false);
 
-  const { data: payment, error, isFetching, refetch } = useTournamentSignupPayment(
+  const { data: payment, error, isFetching, refetch } = useTournamentRegistrationPayment(
     tournament.id,
-    inscriptionNumber,
+    registrationNumber,
     session.access_token,
   );
 
   const canUpload =
-    payment?.status === "awaiting_payment" || payment?.status === "payment_in_review";
+    payment?.registration_status === "awaiting_payment" || payment?.registration_status === "payment_in_review";
   const showReplaceForm =
-    canUpload && (replaceMode || payment?.status === "awaiting_payment" || !payment?.latest_payment_proof);
+    canUpload && (replaceMode || payment?.registration_status === "awaiting_payment" || !payment?.latest_payment_proof);
 
   const invalidatePayment = async () => {
     await queryClient.invalidateQueries({
-      queryKey: tournamentSignupPaymentQueryKey(tournament.id, inscriptionNumber),
+      queryKey: tournamentRegistrationPaymentQueryKey(tournament.id, registrationNumber),
     });
     await queryClient.invalidateQueries({
-      queryKey: ownTournamentSignupsQueryKey(tournament.id),
+      queryKey: ownTournamentRegistrationsQueryKey(tournament.id),
     });
   };
 
@@ -117,7 +117,7 @@ export default function TournamentPaymentPanel({
       setFileError("Escolha PDF, JPEG ou PNG de até 10 MB.");
       return;
     }
-    const validationError = await validateParentalTermFile(file);
+    const validationError = await validateParentalConsentFormFile(file);
     if (validationError) {
       setFileError("Este arquivo não foi aceito. Escolha PDF, JPEG ou PNG de até 10 MB.");
       return;
@@ -128,11 +128,11 @@ export default function TournamentPaymentPanel({
     try {
       const uploadInfo = await requestPaymentProofUploadUrl(
         tournament.id,
-        inscriptionNumber,
+        registrationNumber,
         session.access_token,
       );
       await uploadFileToPresignedUrl(uploadInfo.upload_url, file, uploadInfo.required_headers);
-      await submitPaymentProof(tournament.id, inscriptionNumber, session.access_token, {
+      await submitPaymentProof(tournament.id, registrationNumber, session.access_token, {
         storage_key: uploadInfo.storage_key,
         original_file_name: file.name,
       });
@@ -166,28 +166,28 @@ export default function TournamentPaymentPanel({
     );
   }
 
-  const feeAmount = payment.inscription_fee_amount ?? tournament.inscription_fee_amount;
+  const feeAmount = payment.registration_fee_amount ?? tournament.registration_fee_amount;
 
   return (
-    <section className="registration-card signup-payment-panel" aria-labelledby="payment-panel-title">
+    <section className="registration-card registration-payment-panel" aria-labelledby="payment-panel-title">
       <p className="registration-eyebrow">{t("Inscrição")}</p>
       <h2 id="payment-panel-title">{t("Pagamento da inscrição")}</h2>
-      <strong className="signup-number">{payment.inscription_number}</strong>
-      <dl className="signup-success-facts">
-        <div><dt>{t("Situação")}</dt><dd>{statusLabel(payment.status, language)}</dd></div>
+      <strong className="registration-number">{payment.registration_number}</strong>
+      <dl className="registration-success-facts">
+        <div><dt>{t("Situação")}</dt><dd>{statusLabel(payment.registration_status, language)}</dd></div>
         <div><dt>{t("Valor da inscrição")}</dt><dd>{formatMoney(feeAmount, language)}</dd></div>
         <div><dt>{t("Prazo para pagamento")}</dt><dd>{formatDateTime(payment.payment_due_at, language)}</dd></div>
         <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>
       </dl>
-      <p className="signup-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>
+      <p className="registration-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>
 
-      {payment.status === "payment_in_review" && (
+      {payment.registration_status === "payment_in_review" && (
         <p className="registration-notice" role="status">
           {t("Seu comprovante foi recebido e está aguardando análise da equipe. Nenhuma vaga foi reservada.")}
         </p>
       )}
 
-      <div className="signup-payment-proof-summary">
+      <div className="registration-payment-proof-summary">
         <h3>{t("Resumo do comprovante")}</h3>
         {payment.latest_payment_proof ? (
           <p>
@@ -201,16 +201,16 @@ export default function TournamentPaymentPanel({
       </div>
 
       {canUpload && payment.latest_payment_proof && !showReplaceForm && (
-        <button type="button" className="signup-submit" onClick={() => setReplaceMode(true)}>
+        <button type="button" className="registration-submit" onClick={() => setReplaceMode(true)}>
           {t("Substituir comprovante")}
         </button>
       )}
 
       {showReplaceForm && (
-        <form className="signup-payment-proof-form" aria-label={t("Comprovante de pagamento")} onSubmit={submitProof}>
-          {fileError && <p className="signup-field-error" role="alert">{t(fileError)}</p>}
-          {requestError && <p className="signup-error-summary" role="alert">{t(requestError)}</p>}
-          <div className="signup-field">
+        <form className="registration-payment-proof-form" aria-label={t("Comprovante de pagamento")} onSubmit={submitProof}>
+          {fileError && <p className="registration-field-error" role="alert">{t(fileError)}</p>}
+          {requestError && <p className="registration-error-summary" role="alert">{t(requestError)}</p>}
+          <div className="registration-field">
             <label htmlFor="payment_proof">{t("Comprovante de pagamento")}</label>
             <input
               id="payment_proof"
@@ -219,9 +219,9 @@ export default function TournamentPaymentPanel({
               accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
               disabled={pending}
             />
-            <span className="signup-help">{t("Escolha PDF, JPEG ou PNG de até 10 MB.")}</span>
+            <span className="registration-help">{t("Escolha PDF, JPEG ou PNG de até 10 MB.")}</span>
           </div>
-          <button className="signup-submit" type="submit" disabled={pending}>
+          <button className="registration-submit" type="submit" disabled={pending}>
             {t(pending ? "Enviando comprovante..." : payment.latest_payment_proof ? "Substituir comprovante" : "Enviar comprovante")}
           </button>
         </form>

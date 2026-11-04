@@ -186,17 +186,17 @@ const english = {
     "Upload the term signed by your parent or guardian. At the event you must attend with them and both of you will present identity documents for staff verification.",
   "A idade no dia do torneio orienta este campo. O servidor confirma se o envio é obrigatório.":
     "Age on the tournament day guides this field. The server confirms whether the upload is required.",
-  "Termo de responsabilidade assinado": "Signed parental responsibility term",
+  "Termo de responsabilidade assinado": "Signed parental consent form",
   "Envie o termo de responsabilidade assinado em PDF ou imagem (JPEG ou PNG).":
-    "Upload the signed parental responsibility term as PDF or image (JPEG or PNG).",
+    "Upload the signed parental consent form as PDF or image (JPEG or PNG).",
   "O termo de responsabilidade deve ser PDF, JPEG ou PNG.":
-    "The parental responsibility term must be PDF, JPEG, or PNG.",
+    "The parental consent form must be PDF, JPEG, or PNG.",
   "O termo de responsabilidade deve ter no máximo 10 MB.":
-    "The parental responsibility term must be 10 MB or smaller.",
+    "The parental consent form must be 10 MB or smaller.",
   "Não foi possível enviar o termo de responsabilidade. Tente novamente.":
-    "We could not upload the parental responsibility term. Please try again.",
+    "We could not upload the parental consent form. Please try again.",
   "O servidor recusou o termo de responsabilidade. Envie PDF, JPEG ou PNG de até 10 MB.":
-    "The server rejected the parental responsibility term. Send PDF, JPEG, or PNG up to 10 MB.",
+    "The server rejected the parental consent form. Send PDF, JPEG, or PNG up to 10 MB.",
   "O servidor recusou o termo por tamanho. Use um arquivo de até 10 MB.":
     "The server rejected the term because of size. Use a file up to 10 MB.",
   "Pagamento da inscrição": "Registration payment",

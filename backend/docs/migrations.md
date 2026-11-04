@@ -1,40 +1,63 @@
 # Domain migration notes
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-03
 
-Alembic manages Karlbrüder domain tables in the database selected by
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The migrations use PostgreSQL's `public` schema and do not create
-or modify Supabase-managed `auth` objects. Tournament table names, their foreign
-key, indexes, and Alembic version state are explicitly qualified as `public`,
-even when another schema comes first in the connection's `search_path`. Verify
-the target database before a controlled deployment, then run
-`poetry run alembic upgrade head` and
-`poetry run alembic current` from `backend/`.
+Alembic manages application domain tables in PostgreSQL `public`.
+Connection settings select the target database through `DB_HOST`, `DB_PORT`,
+`DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Supabase-managed `auth` objects are
+outside this migration history. Domain tables and `alembic_version` are explicitly
+qualified as `public`, even when another schema comes first in `search_path`.
 
-For local Compose, start PostgreSQL with `docker compose up -d db` from the
-repository root. The backend image also contains Alembic, so a built and running
-backend can apply migrations with `docker compose exec -T backend alembic upgrade head`.
-In production, point `DB_HOST` and `DB_NAME` at the intended Supabase PostgreSQL database.
-The production container entrypoint runs `alembic upgrade head` before starting Gunicorn
-on every startup. If the upgrade fails, the container exits without starting the API.
-Verify the database target before deploying. Development and test images keep their
-existing startup commands.
+## Clean initial schema
 
-If an earlier deployment ran these revisions with a non-`public` schema first
-in `search_path`, stop and inspect the location of its tables and
-`alembic_version` before upgrading. Moving existing registration data requires
-a separately reviewed migration; the current revisions do not move it.
+The product owner authorized replacing the old migration chain during issue #69
+because there is no participant data to preserve. Revision `20261103_0001` is the
+new initial migration. It creates the current tournament, registration, shared
+file, registration-document, and payment-settings tables directly. It has no parent revision.
+The old revisions and the intermediate rename migration are removed.
 
-## Initial schema
+This is a deliberate pre-data reset. It does not provide an upgrade from the
+removed history. A database still marked with an old revision cannot apply this
+new history until its old domain schema and migration marker are cleared.
 
-Revision `20261019_0001` creates the tournament and signup tables. `slug` is a
-required unique column. `declares_truthful_information` is a required signup
-column with no server default, created with the table. There is no later
-migration for either column. Drop a local database that was migrated with the
-removed revisions, including `20261019_0002`, before upgrading this chain. From
-the repository root, `make db-reset` does that for the
-Compose database and then seeds a local Monomachia event. `starts_at` and `ends_at` are the
-event dates. `registration_opens_on` and `registration_closes_on` are the
-registration window. When create omits `slug`, the API builds it from the name,
-modality, and the event year of `starts_at` in UTC−3.
+The product owner will remove the development domain tables. Include
+`public.alembic_version` in that reset so Alembic can start from the new baseline.
+Leave Supabase-managed `auth` objects intact. This repository change does not
+perform that development reset. A database with data that must be retained needs
+a separately reviewed conversion before adopting the new history.
+
+The initial schema retains the unique tournament slug, separate declaration
+choices, private document metadata, and optional Pix configuration. Event timestamps
+are `starts_at` and `ends_at`. Registration windows use inclusive calendar dates
+`registration_opens_on` and `registration_closes_on`. The local seed is a draft
+fixture with placeholder terms/rules versions.
+
+## Applying migrations
+
+Verify the target database before applying changes. From `backend/`, run
+`poetry run alembic upgrade head`, then `poetry run alembic current`.
+A running local backend container can use
+`docker compose exec -T backend alembic upgrade head` from the repository root.
+
+Production uses the intended Supabase PostgreSQL database. The production
+entrypoint runs `alembic upgrade head` before starting Gunicorn. A migration
+failure exits without starting the API. Production data must never be reset
+merely to make that startup pass.
+
+Future revisions already published on `master` remain immutable. The issue #69
+reset is an explicit one-time exception authorized by the product owner.
+While the new baseline exists only on the issue branch, later #69 model
+checkpoints may extend it before publication.
+
+## Verification
+
+Use the isolated root `compose.test.yml` database with a unique project name.
+Run `alembic upgrade head`, `alembic check`, `alembic downgrade base`, and
+`alembic upgrade head` there. Remove the disposable project with `down -v`,
+including after a failure. The backend suite also tests rebuilding the schema
+with the existing PostgreSQL fixture and exercises the resulting constraints.
+
+No #59 upgrade rehearsal is required after this approved reset. Do not run
+`make db-reset` against the development database merely to verify migrations.
+The local reset helper remains available for a separately authorized local reset.

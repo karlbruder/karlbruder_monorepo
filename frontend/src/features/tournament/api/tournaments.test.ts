@@ -1,45 +1,45 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSignup, listOwnSignups, requestParentalTermUploadUrl, uploadFileToPresignedUrl, type SignupCreate } from '@/features/tournament/api/tournaments'
+import { createRegistration, listOwnRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
 
-const payload: SignupCreate = {
+const payload: RegistrationCreate = {
   full_name: 'Fixture Athlete',
   social_name: null,
   birth_date: '2000-01-01',
-  document_type: 'passport',
-  document_id: 'AB-123',
+  identity_document_type: 'passport',
+  identity_document_number: 'AB-123',
   email: 'athlete@example.test',
   phone: '+55 11 0000-0000',
   city: 'Fixture City',
-  state: null,
+  state_or_province: null,
   country: 'Fixture Country',
-  school_name: null,
-  responsible_instructor_name: null,
-  hema_practice_duration: '2 years',
-  hema_practice_start_year: null,
-  prior_tournaments_count: 0,
-  hema_ratings_ref: null,
+  school_or_team_name: null,
+  instructor_name: null,
+  hema_experience_description: '2 years',
+  hema_started_year: null,
+  previous_tournament_count: 0,
+  hema_ratings_reference: null,
   handedness: null,
-  special_category_note: null,
+  category_or_eligibility_note: null,
   emergency_contact_name: 'Fixture Contact',
   emergency_contact_phone: '+55 11 0000-0001',
   declares_truthful_information: true,
-  declares_required_equipment: true,
+  declares_has_required_equipment: true,
   declares_physically_fit: true,
-  accepts_regulation: true,
+  accepts_rules: true,
   accepts_data_processing: true,
   acknowledges_inherent_risks: true,
   accepts_cancellation_policy: true,
-  image_use_authorized: false,
+  authorizes_image_use: false,
 }
 
-describe('tournament signup API', () => {
-  it('createSignup sends JSON with the bearer token', async () => {
+describe('tournament registration API', () => {
+  it('createRegistration sends JSON with the bearer token', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
       json: async () => ({
-        inscription_number: 'T1-000001-1',
-        status: 'awaiting_payment',
+        registration_number: 'T1-000001-1',
+        registration_status: 'awaiting_payment',
         full_name: payload.full_name,
         email: payload.email,
         tournament_id: 1,
@@ -48,10 +48,10 @@ describe('tournament signup API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    await createSignup(1, 'test-token', payload)
+    await createRegistration(1, 'test-token', payload)
 
     const [url, options] = request.mock.calls[0]
-    expect(url).toBe('/api/tournaments/1/signups')
+    expect(url).toBe('/api/tournaments/1/registrations')
     expect(options.method).toBe('POST')
     expect(options.headers).toEqual({
       Authorization: 'Bearer test-token',
@@ -60,12 +60,12 @@ describe('tournament signup API', () => {
     expect(JSON.parse(options.body as string)).toEqual(payload)
   })
 
-  it('requestParentalTermUploadUrl posts with the bearer token only', async () => {
+  it('requestParentalConsentFormUploadUrl posts with the bearer token only', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        storage_key: 'tournaments/1/staging/user/parental_term/uuid',
+        storage_key: 'tournaments/1/staging/user/parental_consent_form/uuid',
         upload_url: 'https://example.test/upload',
         expires_in_seconds: 900,
         required_headers: { 'Content-Type': 'application/pdf' },
@@ -74,13 +74,13 @@ describe('tournament signup API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    const upload = await requestParentalTermUploadUrl(42, 'test-token')
+    const upload = await requestParentalConsentFormUploadUrl(42, 'test-token')
 
     const [url, options] = request.mock.calls[0]
-    expect(url).toBe('/api/tournaments/42/signups/parental-term/upload-url')
+    expect(url).toBe('/api/tournaments/42/registrations/parental-consent-form/upload-url')
     expect(options.method).toBe('POST')
     expect(options.headers).toEqual({ Authorization: 'Bearer test-token' })
-    expect(upload.storage_key).toContain('parental_term')
+    expect(upload.storage_key).toContain('parental_consent_form')
   })
 
   it('uploadFileToPresignedUrl sends a PUT with required headers and the file body', async () => {
@@ -97,11 +97,11 @@ describe('tournament signup API', () => {
     expect(options.headers.get('Content-Type')).toBe('application/pdf')
   })
 
-  it('listOwnSignups keeps an account id on a staff row and rejects a non-string account id', async () => {
+  it('listOwnRegistrations keeps an account id on a staff row and rejects a non-string account id', async () => {
     vi.stubEnv('VITE_API_BASE_URL', '/api')
     const staffRow = {
-      inscription_number: 'T42-000001-5',
-      status: 'awaiting_payment',
+      registration_number: 'T42-000001-5',
+      registration_status: 'awaiting_payment',
       full_name: 'Fixture Athlete',
       email: 'athlete@example.test',
       tournament_id: 42,
@@ -112,12 +112,12 @@ describe('tournament signup API', () => {
       json: async () => [staffRow],
     }))
 
-    await expect(listOwnSignups(42, 'test-token')).resolves.toEqual([staffRow])
+    await expect(listOwnRegistrations(42, 'test-token')).resolves.toEqual([staffRow])
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => [{ ...staffRow, user_id: 42 }],
     }))
-    await expect(listOwnSignups(42, 'test-token')).rejects.toThrow('invalid-signup-list')
+    await expect(listOwnRegistrations(42, 'test-token')).rejects.toThrow('invalid-registration-list')
   })
 })

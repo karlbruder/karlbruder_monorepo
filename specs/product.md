@@ -1,7 +1,7 @@
 # Karlbrüder product
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -33,7 +33,7 @@ The initial application roles are regular user, guild member, and guild staff (a
 - **PROD-005:** Monthly association membership is a separate relationship from tournament participation. Payment and confirmation of one do not establish the other.
 - **PROD-006:** Results of non-internal tournaments may be made publicly available without sign-in. Internal tournament results are restricted to guild members, including guild staff. This does not make publication mandatory for every non-internal tournament. Results delivery follows the first release.
 - **PROD-007:** Users register only themselves. An account cannot register another athlete, including a minor.
-- **PROD-008:** A minor registering themselves uploads a scanned parental responsibility term through the platform and may participate only with parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff verification. The uploaded signed term, in-person check, and parental accompaniment are all required.
+- **PROD-008:** A minor registering themselves uploads a scanned parental consent form through the platform and may participate only with parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff verification. The uploaded signed term, in-person check, and parental accompaniment are all required.
 - **PROD-009:** The initial application roles are regular user, guild member, and guild staff (admin), with cumulative permissions as described above. Guild staff have full application access across all tournaments, without event-specific grants. Regular users manage only their own participant records and profile information. The backend enforces these boundaries; updating a profile must not allow a user to grant themselves membership or admin privileges.
 - **PROD-010:** The application uses `app.karlbruder.com`. The public website uses `karlbruder.com`. Prod also accepts `app-prod.karlbruder.com` and `prod.karlbruder.com`. Dev uses `app-dev.karlbruder.com` and `dev.karlbruder.com`. Public event registration links open the frontend route `/tournaments/registration`, whose form submits a POST request to the backend tournament sign-up resource. The backend endpoint path and the mechanism for carrying the selected tournament through sign-in belong in the detailed registration and identity specifications.
 - **PROD-011:** The first usable release delivers tournament registration and payment-proof upload/review, with the authentication, access controls, and validation needed to support them. Results and other extensions follow in later releases. A full tournament administration suite, broader automatic messaging, and exports may follow; the initial review flow requires authorized staff decisions, waitlist-entry email when applicable, and rejected-evidence notification with resubmission. Refund confirmation and material event-change notifications are required when their respective workflows are delivered.
@@ -51,7 +51,7 @@ The initial application roles are regular user, guild member, and guild staff (a
 6. Guild staff (admins) validate the registration and payment, subject to capacity.
 7. The user follows the registration's status and confirmation in the application.
 
-Submission and payment-proof upload do not themselves confirm a seat. A minor's participation also requires the signed parental responsibility term and parental accompaniment. Tournament results are a later capability with the visibility rules in PROD-006. Detailed flows are defined in the [tournament specs](tournaments/catalog.md).
+Submission and payment-proof upload do not themselves confirm a seat. A minor's participation also requires the signed parental consent form and parental accompaniment. Tournament results are a later capability with the visibility rules in PROD-006. Detailed flows are defined in the [tournament specs](tournaments/catalog.md).
 
 ## Delivery scope
 
@@ -74,7 +74,7 @@ Privacy, access control, and mandatory event terms apply to any released feature
 - **PROD-AC-004:** Tournament participation does not create association membership or mark monthly dues as paid.
 - **PROD-AC-005:** Results made public for a non-internal tournament can be viewed without signing in. Internal tournament results cannot be viewed by guests or regular users without guild membership.
 - **PROD-AC-006:** A user cannot create a registration for a different athlete through the UI or API.
-- **PROD-AC-007:** A minor without a signed parental responsibility term or parental accompaniment is not permitted to participate.
+- **PROD-AC-007:** A minor without a signed parental consent form or parental accompaniment is not permitted to participate.
 - **PROD-AC-008:** A guest can browse public tournament listings and details, but cannot discover internal tournaments through public listings or retrieve their details through the API. An authenticated regular user also cannot access internal tournaments.
 - **PROD-AC-009:** A guild member receives regular-user access plus member access, and guild staff receive both plus administrative access. Profile editing cannot elevate the caller's role.
 - **PROD-AC-010:** A public event's registration entry opens `/tournaments/registration`, and an authenticated valid submission uses POST to create a sign-up through the backend.

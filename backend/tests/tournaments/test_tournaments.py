@@ -72,15 +72,15 @@ def _event(name="Fixture Tournament", *, internal=False, **overrides):
         "slug": f"fixture-{_slug_serial}",
         "starts_at": "2027-01-17T12:00:00Z",
         "is_internal": internal,
-        "modality": "longsword",
+        "discipline": "longsword",
         **overrides,
     }
 
 
 def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(client):
-    """An admin can create more than one tournament, and the public catalog returns each one with its own fee and modality.
+    """An admin can create more than one tournament, and the public catalog returns each one with its own fee and discipline.
 
-    Signup rows and the next inscription serial stay out of that response.
+    Registration rows and the next inscription serial stay out of that response.
     """
     test_client, key = client
     admin = _headers(key, "admin")
@@ -89,7 +89,9 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     )
     second = test_client.post(
         "/api/tournaments",
-        json=_event("Second Fixture", inscription_fee_amount="75.00", modality="sabre"),
+        json=_event(
+            "Second Fixture", registration_fee_amount="75.00", discipline="sabre"
+        ),
         headers=admin,
     )
     assert first.status_code == second.status_code == 201
@@ -97,11 +99,11 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     assert first_data["id"] != second_data["id"]
     assert first_data["name"] == "Monomachia Fixture"
     assert first_data["slug"].startswith("fixture-")
-    assert first_data["inscription_fee_amount"] is None
-    assert second_data["inscription_fee_amount"] == "75.00"
-    assert second_data["modality"] == "sabre"
-    assert "next_inscription_serial" not in first_data
-    assert "signups" not in first_data
+    assert first_data["registration_fee_amount"] is None
+    assert second_data["registration_fee_amount"] == "75.00"
+    assert second_data["discipline"] == "sabre"
+    assert "next_registration_number" not in first_data
+    assert "registrations" not in first_data
 
     listing = test_client.get("/api/tournaments")
     assert listing.status_code == 200
@@ -113,7 +115,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     assert detail.status_code == 200
     assert detail.json()["name"] == first_data["name"]
     assert detail.json()["slug"] == first_data["slug"]
-    assert detail.json()["inscription_fee_amount"] is None
+    assert detail.json()["registration_fee_amount"] is None
 
 
 def test_internal_event_is_hidden_from_guest_and_regular_user(client):
@@ -121,7 +123,9 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
     test_client, key = client
     admin = _headers(key, "admin")
     public_id = test_client.post(
-        "/api/tournaments", json=_event("Public Fixture", slug="public-fixture"), headers=admin
+        "/api/tournaments",
+        json=_event("Public Fixture", slug="public-fixture"),
+        headers=admin,
     ).json()["id"]
     internal_id = test_client.post(
         "/api/tournaments",
@@ -133,20 +137,32 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
         listing = test_client.get("/api/tournaments", headers=headers)
         assert listing.status_code == 200
         assert [item["id"] for item in listing.json()["items"]] == [public_id]
-        assert test_client.get(
-            f"/api/tournaments/{internal_id}", headers=headers
-        ).status_code == 404
-        assert test_client.get(
-            "/api/tournaments", params={"name": "Internal Fixture"}, headers=headers
-        ).json()["items"] == []
+        assert (
+            test_client.get(
+                f"/api/tournaments/{internal_id}", headers=headers
+            ).status_code
+            == 404
+        )
+        assert (
+            test_client.get(
+                "/api/tournaments", params={"name": "Internal Fixture"}, headers=headers
+            ).json()["items"]
+            == []
+        )
 
     for role in ("guild_member", "admin"):
         headers = _headers(key, role)
         listing = test_client.get("/api/tournaments", headers=headers)
-        assert {item["id"] for item in listing.json()["items"]} == {public_id, internal_id}
-        assert test_client.get(
-            f"/api/tournaments/{internal_id}", headers=headers
-        ).status_code == 200
+        assert {item["id"] for item in listing.json()["items"]} == {
+            public_id,
+            internal_id,
+        }
+        assert (
+            test_client.get(
+                f"/api/tournaments/{internal_id}", headers=headers
+            ).status_code
+            == 200
+        )
         assert [
             event["id"]
             for event in test_client.get(
@@ -165,7 +181,9 @@ def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(clien
     )
     second = test_client.post(
         "/api/tournaments",
-        json=_event("Other Fixture", slug="other-2028", starts_at="2028-03-02T12:00:00Z"),
+        json=_event(
+            "Other Fixture", slug="other-2028", starts_at="2028-03-02T12:00:00Z"
+        ),
         headers=admin,
     )
     assert first.status_code == second.status_code == 201
@@ -181,9 +199,13 @@ def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(clien
     page = test_client.get("/api/tournaments", params={"limit": 1, "offset": 0})
     assert page.json()["total"] == 2
     assert len(page.json()["items"]) == 1
-    assert test_client.get(
-        "/api/tournaments", params={"starts_from": "2028-02-01", "starts_to": "2028-01-01"}
-    ).status_code == 422
+    assert (
+        test_client.get(
+            "/api/tournaments",
+            params={"starts_from": "2028-02-01", "starts_to": "2028-01-01"},
+        ).status_code
+        == 422
+    )
 
     duplicate = test_client.post(
         "/api/tournaments",
@@ -195,22 +217,28 @@ def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(clien
     assert test_client.get("/api/tournaments").json()["total"] == 2
 
 
-@pytest.mark.parametrize("slug", ["Monomachia-2027", "monomachia_2027", "-mono", "mono-", "mono--2027", "a" * 101])
+@pytest.mark.parametrize(
+    "slug",
+    ["Monomachia-2027", "monomachia_2027", "-mono", "mono-", "mono--2027", "a" * 101],
+)
 def test_invalid_slug_is_rejected_on_create(client, slug):
     test_client, key = client
     admin = _headers(key, "admin")
-    assert test_client.post(
-        "/api/tournaments", json=_event(slug=slug), headers=admin
-    ).status_code == 422
+    assert (
+        test_client.post(
+            "/api/tournaments", json=_event(slug=slug), headers=admin
+        ).status_code
+        == 422
+    )
     assert test_client.get("/api/tournaments").json()["items"] == []
 
 
-def test_missing_or_blank_slug_uses_name_modality_and_event_year(client):
+def test_missing_or_blank_slug_uses_name_discipline_and_event_year(client):
     test_client, key = client
     admin = _headers(key, "admin")
-    omitted = _event("Monomachia", modality="longsword")
+    omitted = _event("Monomachia", discipline="longsword")
     del omitted["slug"]
-    blank = _event("Monomachia", modality=None, slug="  ")
+    blank = _event("Monomachia", discipline=None, slug="  ")
     created = test_client.post("/api/tournaments", json=omitted, headers=admin)
     blank_created = test_client.post("/api/tournaments", json=blank, headers=admin)
     assert created.status_code == blank_created.status_code == 201
@@ -231,9 +259,12 @@ def test_only_trusted_admin_claim_can_create(client):
         (_headers(key, "unknown"), 403),
         (forged_profile, 403),
     ):
-        assert test_client.post(
-            "/api/tournaments", json=_event(), headers=headers
-        ).status_code == expected
+        assert (
+            test_client.post(
+                "/api/tournaments", json=_event(), headers=headers
+            ).status_code
+            == expected
+        )
     assert test_client.get("/api/tournaments").json()["items"] == []
 
 
@@ -266,11 +297,11 @@ def test_guest_catalog_does_not_fetch_jwks_and_supplied_token_outage_is_503(
         {"starts_at": "2027-01-17T12:00:00"},
         {"ends_at": "2027-01-16T12:00:00Z"},
         {"registration_opens_on": "2027-02-01", "registration_closes_on": "2027-01-01"},
-        {"max_competitor_capacity": -1},
-        {"inscription_fee_amount": "-0.01"},
-        {"inscription_fee_amount": "1.001"},
+        {"competitor_capacity": -1},
+        {"registration_fee_amount": "-0.01"},
+        {"registration_fee_amount": "1.001"},
         {"id": 999},
-        {"next_inscription_serial": 500},
+        {"next_registration_number": 500},
     ],
 )
 def test_admin_create_rejects_invalid_configuration(client, changes):
@@ -285,9 +316,12 @@ def test_admin_create_rejects_invalid_configuration(client, changes):
 def test_unknown_event_returns_404_for_all_viewers(client):
     test_client, key = client
     assert test_client.get("/api/tournaments/404").status_code == 404
-    assert test_client.get(
-        "/api/tournaments/404", headers=_headers(key, "admin")
-    ).status_code == 404
+    assert (
+        test_client.get(
+            "/api/tournaments/404", headers=_headers(key, "admin")
+        ).status_code
+        == 404
+    )
 
 
 def test_pix_key_can_be_set_on_create_but_never_appears_in_catalog_reads(client):
@@ -326,3 +360,48 @@ def test_catalog_routes_have_explicit_response_contracts(client):
         parameter["name"]
         for parameter in schema["paths"]["/api/tournaments"]["get"]["parameters"]
     } >= {"name", "starts_from", "starts_to", "limit", "offset"}
+
+
+@pytest.mark.parametrize(
+    "policies",
+    [
+        {"rules_text": "Fixture rules", "cancellation_policy_text": "Fixture policy"},
+        {
+            "rules_url": "https://example.test/rules",
+            "cancellation_policy_url": "https://example.test/cancel",
+        },
+        {"rules_text": "Fixture rules", "rules_url": "https://example.test/rules"},
+        {},
+    ],
+)
+def test_catalog_preserves_separate_optional_policy_text_and_urls(client, policies):
+    test_client, key = client
+    created = test_client.post(
+        "/api/tournaments", json=_event(**policies), headers=_headers(key, "admin")
+    )
+    assert created.status_code == 201, created.text
+    for name in (
+        "rules_text",
+        "rules_url",
+        "cancellation_policy_text",
+        "cancellation_policy_url",
+    ):
+        assert created.json()[name] == policies.get(name)
+    public = test_client.get(f"/api/tournaments/{created.json()['id']}")
+    assert public.status_code == 200
+    assert public.json()["rules_url"] == policies.get("rules_url")
+    assert "pix_key" not in public.json()
+
+
+@pytest.mark.parametrize("field", ["rules_url", "cancellation_policy_url"])
+@pytest.mark.parametrize(
+    "value", ["javascript:alert(1)", "file:///etc/passwd", "not a URL"]
+)
+def test_policy_url_rejects_non_web_links(client, field, value):
+    test_client, key = client
+    response = test_client.post(
+        "/api/tournaments",
+        json=_event(**{field: value}),
+        headers=_headers(key, "admin"),
+    )
+    assert response.status_code == 422

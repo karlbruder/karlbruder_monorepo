@@ -8,17 +8,19 @@ const tournament: Tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
   slug: 'monomachia-2027',
-  modality: 'longsword',
+  discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  inscription_fee_amount: null,
+  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
-  new_registrations_closed: false,
-  regulation: 'https://example.test/regulation',
-  regulation_version: 'draft-regulation-v1',
+  is_registration_closed: false,
+  rules_text: null,
+  rules_url: 'https://example.test/rules_text',
+  rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
-  cancellation_policy: 'Policy fixture',
+  cancellation_policy_text: 'Policy fixture',
+  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 
@@ -28,8 +30,8 @@ const session = {
 } as Session
 
 const created = {
-  inscription_number: 'T42-000001-5',
-  status: 'awaiting_payment',
+  registration_number: 'T42-000001-5',
+  registration_status: 'awaiting_payment',
   full_name: 'Ana Teste',
   email: 'athlete@example.test',
   tournament_id: 42,
@@ -95,26 +97,26 @@ function pdfFile(name = 'term.pdf') {
   return file
 }
 
-function mockPresignedSignupFlow(createStatus = 201, createBody: unknown = created) {
+function mockPresignedRegistrationFlow(createStatus = 201, createBody: unknown = created) {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
-    if (url.includes('/parental-term/upload-url')) {
+    if (url.includes('/parental-consent-form/upload-url')) {
       return response(200, {
-        storage_key: 'tournaments/42/staging/user/parental_term/staged',
+        storage_key: 'tournaments/42/staging/user/parental_consent_form/staged',
         upload_url: 'https://upload.example.test/put',
         expires_in_seconds: 900,
         required_headers: { 'Content-Type': 'application/pdf' },
       })
     }
     if (init?.method === 'PUT') return { ok: true, status: 200 }
-    if (url.endsWith('/signups') && init?.method === 'POST') {
+    if (url.endsWith('/registrations') && init?.method === 'POST') {
       return response(createStatus, createBody)
     }
     return response(404, { detail: 'unexpected' })
   })
 }
 
-function attachParentalTerm(file: File) {
+function attachParentalConsentForm(file: File) {
   const input = screen.getByLabelText(/Termo de responsabilidade assinado/) as HTMLInputElement
   Object.defineProperty(input, 'files', { configurable: true, value: [file] })
   fireEvent.change(input, { target: { files: [file] } })
@@ -143,11 +145,11 @@ describe('Athlete submits their own registration and sees the result', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     const [, options] = request.mock.calls[0]
     const payload = JSON.parse(options.body as string)
-    expect(payload.image_use_authorized).toBe(false)
-    expect(payload.accepts_regulation).toBe(true)
+    expect(payload.authorizes_image_use).toBe(false)
+    expect(payload.accepts_rules).toBe(true)
     expect(payload.accepts_data_processing).toBe(true)
     expect(payload.full_name).toBe('Fixture Athlete')
-    expect(payload.document_type).toBe('passport')
+    expect(payload.identity_document_type).toBe('passport')
     expect(await screen.findByText('T42-000001-5')).toBeInTheDocument()
     expect(screen.getByText('Awaiting payment')).toBeInTheDocument()
     expect(screen.getByText(/not yet confirmed or reserved/)).toBeInTheDocument()
@@ -199,7 +201,7 @@ describe('Athlete submits their own registration and sees the result', () => {
 
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     const [url, options] = request.mock.calls[0]
-    expect(url).toBe('/api/tournaments/42/signups')
+    expect(url).toBe('/api/tournaments/42/registrations')
     expect(options.method).toBe('POST')
     expect(options.headers).toEqual({
       Authorization: 'Bearer test-access-token',
@@ -207,19 +209,19 @@ describe('Athlete submits their own registration and sees the result', () => {
     })
     expect(JSON.parse(options.body as string)).toEqual({
       full_name: 'Ana Teste', social_name: 'Ana', birth_date: '2000-01-01',
-      document_type: 'passport', document_id: 'AB-123', email: 'athlete@example.test',
-      phone: '+55 11 0000-0000', city: 'São Carlos', state: 'SP', country: 'Brasil',
-      school_name: 'Escola Teste', responsible_instructor_name: 'Instrutor Teste',
-      hema_practice_duration: '2 anos', hema_practice_start_year: null,
-      prior_tournaments_count: 0, hema_ratings_ref: 'profile-123', handedness: 'left',
-      special_category_note: 'Categoria iniciante', emergency_contact_name: 'Contato Teste',
+      identity_document_type: 'passport', identity_document_number: 'AB-123', email: 'athlete@example.test',
+      phone: '+55 11 0000-0000', city: 'São Carlos', state_or_province: 'SP', country: 'Brasil',
+      school_or_team_name: 'Escola Teste', instructor_name: 'Instrutor Teste',
+      hema_experience_description: '2 anos', hema_started_year: null,
+      previous_tournament_count: 0, hema_ratings_reference: 'profile-123', handedness: 'left',
+      category_or_eligibility_note: 'Categoria iniciante', emergency_contact_name: 'Contato Teste',
       emergency_contact_phone: '+55 11 0000-0001',
-      declares_truthful_information: true, declares_required_equipment: true,
-      declares_physically_fit: true, accepts_regulation: true, accepts_data_processing: true,
+      declares_truthful_information: true, declares_has_required_equipment: true,
+      declares_physically_fit: true, accepts_rules: true, accepts_data_processing: true,
       acknowledges_inherent_risks: true, accepts_cancellation_policy: true,
-      image_use_authorized: false,
+      authorizes_image_use: false,
     })
-    expect(await screen.findByText(created.inscription_number)).toBeInTheDocument()
+    expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
     expect(screen.getByText('Aguardando pagamento')).toBeInTheDocument()
     expect(screen.getByText(/vaga ainda não está confirmada nem reservada/)).toBeInTheDocument()
   })
@@ -255,9 +257,9 @@ describe('Athlete submits their own registration and sees the result', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     const [, options] = request.mock.calls[0]
     const payload = JSON.parse(options.body as string)
-    expect(payload.hema_practice_duration).toBeNull()
-    expect(payload.hema_practice_start_year).toBe(2022)
-    expect(payload.image_use_authorized).toBe(true)
+    expect(payload.hema_experience_description).toBeNull()
+    expect(payload.hema_started_year).toBe(2022)
+    expect(payload.authorizes_image_use).toBe(true)
   })
 
   it('sends only once while a request is pending', async () => {
@@ -271,7 +273,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(request).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'Enviando inscrição...' })).toBeDisabled()
     finish?.(response(201, created))
-    expect(await screen.findByText(created.inscription_number)).toBeInTheDocument()
+    expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
   })
 
   it.each([
@@ -297,17 +299,17 @@ describe('Athlete submits their own registration and sees the result', () => {
     fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar a inscrição agora.')
-    expect(screen.queryByText(created.inscription_number)).not.toBeInTheDocument()
+    expect(screen.queryByText(created.registration_number)).not.toBeInTheDocument()
   })
 
-  it('does not show the parental term field for an adult birth date', () => {
+  it('does not show the parental consent form field for an adult birth date', () => {
     vi.stubGlobal('fetch', vi.fn())
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired()
     expect(screen.queryByLabelText(/Termo de responsabilidade assinado/)).not.toBeInTheDocument()
   })
 
-  it('shows the parental term field for a minor and blocks submit without a file', () => {
+  it('shows the parental consent form field for a minor and blocks submit without a file', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
@@ -318,22 +320,22 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByText(/Envie o termo de responsabilidade assinado/)).toBeInTheDocument()
   })
 
-  it('presigns, uploads, and creates signup with storage key fields for a minor', async () => {
-    const request = mockPresignedSignupFlow()
+  it('presigns, uploads, and creates registration with storage key fields for a minor', async () => {
+    const request = mockPresignedRegistrationFlow()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired({ birthDate: '2010-06-01' })
-    attachParentalTerm(pdfFile())
+    attachParentalConsentForm(pdfFile())
     submit()
     await waitFor(() => expect(request).toHaveBeenCalledTimes(3))
     const createCall = request.mock.calls.find(
-      ([url, options]) => String(url).endsWith('/signups') && options?.method === 'POST',
+      ([url, options]) => String(url).endsWith('/registrations') && options?.method === 'POST',
     )
     expect(createCall).toBeDefined()
     const payload = JSON.parse(createCall![1]!.body as string)
-    expect(payload.parental_term_storage_key).toContain('parental_term')
-    expect(payload.parental_term_original_file_name).toBe('term.pdf')
-    expect(await screen.findByText(created.inscription_number)).toBeInTheDocument()
+    expect(payload.parental_consent_form_storage_key).toContain('parental_consent_form')
+    expect(payload.parental_consent_form_original_file_name).toBe('term.pdf')
+    expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
   })
 
   it('rejects a disallowed file type before calling the API', async () => {
@@ -347,20 +349,41 @@ describe('Athlete submits their own registration and sees the result', () => {
       configurable: true,
       value: () => Promise.resolve(bytes.slice().buffer),
     })
-    attachParentalTerm(htmlAsPdf)
+    attachParentalConsentForm(htmlAsPdf)
     submit()
     await waitFor(() => expect(screen.getByText(/PDF, JPEG ou PNG/)).toBeInTheDocument())
     expect(request).not.toHaveBeenCalled()
   })
 
-  it('maps a backend parental term type rejection after upload', async () => {
-    const request = mockPresignedSignupFlow(415, { detail: 'Parental term file type is not allowed' })
+  it('maps a backend parental consent form type rejection after upload', async () => {
+    const request = mockPresignedRegistrationFlow(415, { detail: 'Parental consent form file type is not allowed' })
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fillRequired({ birthDate: '2010-06-01' })
-    attachParentalTerm(pdfFile())
+    attachParentalConsentForm(pdfFile())
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent(/servidor recusou o termo de responsabilidade/)
     expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
+
+  it.each(['pt', 'en'] as const)('renders separate policy text and URL in %s without turning text into a link', (language) => {
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null }} session={session} language={language} />)
+    expect(screen.getByText('Fixture rules text')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', 'https://example.test/rules')
+    expect(screen.getByText(/conteúdo ainda não configurado|content has not been configured/i)).toBeInTheDocument()
+  })
+
+  it('renders URL-like policy text as text when no policy URL is configured', () => {
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null }} session={session} />)
+    expect(screen.getByText('https://example.test/plain-text')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Consultar regulamento/ })).not.toBeInTheDocument()
+  })
+
+
+  it('labels the minor document as a parental consent form in English', () => {
+    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    fireEvent.change(screen.getByLabelText(/Date of birth/), { target: { value: '2010-06-01' } })
+    expect(screen.getByLabelText(/Signed parental consent form/)).toBeInTheDocument()
+  })
+
 })

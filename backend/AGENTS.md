@@ -13,7 +13,6 @@ Existing code is not proof that a boundary is correct. Known migration gaps:
 - Auth still lives in `app/auth.py`, with identity types in `app/models.py` and settings in `config/`. Its tests live in `tests/test_auth.py`. Move these coherently when auth restructuring is in scope. Do not add an `app/auth/` package alongside `app/auth.py` and rely on import resolution to choose one.
 - Tournament routers still contain queries, writes, and record-access decisions. Some tournament services still raise `HTTPException`. Those are legacy boundaries, not examples for new workflows.
 - Root `app/exceptions.py` still contains auth HTTP errors. Move domain errors to their owner when that work is in scope.
-- Storage currently lives under `app/core/services/storage/`, with upload validation in another `services/` folder. Its tests mirror that path. The shallower example below is a direction for scoped restructuring, not a reason to move storage during an unrelated fix.
 - `config/env.py` still supplies an AWS region fallback. That does not fulfill the explicit-region requirement below. A settings change must reconcile that behavior and its tests, not silently treat the fallback as the intended rule.
 
 ## Design principles
@@ -24,7 +23,7 @@ Before editing a module, identify its role, its callers, and the data it owns. K
 
 Use the smallest design that makes a change easy to understand. Keep a short helper beside its only caller. Extract a module when it has a distinct responsibility, meaningful reuse outside one workflow, or behavior that benefits from focused tests. Do not create a file for every function. Do not impose a line-count limit or split every service into a package on sight.
 
-Cross-domain infrastructure belongs in `app/core/`. Domain rules stay in the domain package. Storage can own bounded reads and file-signature detection. The capability that accepts an upload owns its allowed types and size policy, unless the same policy is explicitly shared. Do not make one feature's policy universal merely by putting it in core. Tournament registration windows and minor eligibility belong in `tournaments/`.
+Cross-domain infrastructure belongs in `app/core/`. `app/core/files/` owns StoredFile metadata and shared storage operations. Domain-specific document associations, access decisions, file-type allowlists and size limits stay with the consuming domain. Domain rules stay in the domain package. Storage can own bounded reads and file-signature detection. The capability that accepts an upload owns its allowed types and size policy, unless the same policy is explicitly shared. Do not make one feature's policy universal merely by putting it in core. Tournament registration windows and minor eligibility belong in `tournaments/`.
 
 ## Structure
 
@@ -36,11 +35,10 @@ backend/
     main.py
     database.py
     core/
-      storage/
-        client.py
-        file_storage.py
-        upload_validation.py
-        exceptions.py
+      files/
+        models.py
+        storage.py
+        content_types.py
     tournaments/
       models/
         tournament.py
@@ -58,9 +56,9 @@ backend/
     aws.py
   tests/
     core/
-      storage/
-        test_file_storage.py
-        test_upload_validation.py
+      files/
+        test_models.py
+        test_storage.py
     tournaments/
       models/
         test_tournament_signup.py
@@ -234,7 +232,7 @@ Tests live in `backend/tests/`, separate from production code. Mirror the owners
 | `app/tournaments/router.py` | `tests/tournaments/test_router.py` |
 | `config/aws.py` | `tests/config/test_aws_settings.py` |
 
-Apply the same mapping to core modules. Existing storage tests mirror the current `core/services/storage/` path until source and tests move together. Do not create tests under a proposed future path while their source remains elsewhere.
+Apply the same mapping to core modules. Shared file tests live in `tests/core/files/`. Registration upload-policy tests live in `tests/tournaments/services/test_registration_uploads.py`. Move source and meaningful tests together.
 
 The mirror does not require one test file for every source file. A workflow integration test can stay at the domain test root, such as `tests/tournaments/test_tournament_signups.py`, when it exercises several modules through the API. Direct service tests belong under `tests/tournaments/services/`. Preserve established descriptive test filenames when their scope is accurate.
 

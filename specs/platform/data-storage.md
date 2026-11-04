@@ -24,7 +24,7 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 - **DATA-006:** Persist unique inscription numbers and prevent non-cancelled registrations from sharing the same tournament plus user UUID, normalized email, or normalized document. Cancelled participation is excluded from those duplicate checks even while a refund awaits processing. Follow REG-012's comparison normalization and retain the original registration email for display/history. Send notifications to the current account email under COM-008. Coordinate confirmation and capacity assignment transactionally. Admin-only manual Supabase reopening must preserve these invariants.
 - **DATA-007:** Registration ownership directly uses the existing Supabase `auth.users.id` UUID from the verified token subject. Users already have that identity before tournament registration. An account email change leaves ownership and registration validity unchanged. No separate user identity or intermediate owner mapping is required. Do not duplicate Supabase passwords, create a second authentication store, or modify managed Auth objects.
 - **DATA-008:** Credentials are supplied through environment/secrets configuration. No private database URI belongs in browser bundles or source. Diagnostic responses must not expose passwords or raw internal errors.
-- **DATA-009:** Private uploaded files, including all payment-proof versions and scanned parental terms, use Amazon S3 in production and Ministack S3 emulation locally. Backend authorization applies in both environments. Participants see only their latest proof; authorized staff can audit all submissions. PRIV-011 establishes interim indefinite retention for covered records. Backup/recovery and deletion-request procedures remain separate work. Private object storage is separate from public landing-site assets.
+- **DATA-009:** Private uploaded files, including all payment-proof versions and scanned parental consent forms, use Amazon S3 in production and Ministack S3 emulation locally. Backend authorization applies in both environments. Participants see only their latest proof; authorized staff can audit all submissions. PRIV-011 establishes interim indefinite retention for covered records. Backup/recovery and deletion-request procedures remain separate work. Private object storage is separate from public landing-site assets.
 
 ## Storage by environment
 
@@ -35,6 +35,21 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 | Private uploaded files | Ministack S3 emulation | Amazon S3 |
 
 The backend uses the same domain migrations and S3-facing storage logic across environments. Configuration selects endpoints, credentials, bucket, and database destination. The optional hosted Auth database diagnostic connection is distinct from the local domain connection; it is not a reason to run a second local Auth database.
+
+## File metadata ownership
+
+`StoredFile` in `app/core/files/models.py` stores metadata for one object in
+`public.stored_files`. It has a unique storage key, original file name, content
+type, nonnegative size, and creation time. It has no tournament reference or
+domain-specific file type or size limit. `app/core/files/storage.py` owns the
+shared S3 operations without depending on domain modules.
+
+Each consuming domain owns the file's meaning, permissions, validation policy
+and lifecycle. `TournamentRegistrationDocument` links a registration and a
+StoredFile through real foreign keys. It owns the document type and submission
+time. Its workflows enforce the tournament upload rules and preserve every
+proof submission. A file identifier alone never authorizes access. The shared
+metadata model does not introduce membership, inventory, or generic file APIs.
 
 ## Observed configuration
 

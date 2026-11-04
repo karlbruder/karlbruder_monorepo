@@ -1,7 +1,7 @@
 # Tournament capacity and waitlist
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Keep confirmed participation within event limits and provide an explicit path fo
 
 ## Rules
 
-- **CAP-001:** Guild staff (admins) configure the tournament's total competitor capacity and registration/payment dates. A null `max_competitor_capacity` means unlimited capacity until staff sets a limit. Initial capacity is tournament-level in the single-modality model. Registration runs from opening day through closing day in GMT-3. Per-category capacity is a future extension.
+- **CAP-001:** Guild staff (admins) configure the tournament's total competitor capacity and registration/payment dates. A null `competitor_capacity` means unlimited capacity until staff sets a limit. Initial capacity is tournament-level in the single-modality model. Registration runs from opening day through closing day in GMT-3. Per-category capacity is a future extension.
 - **CAP-002:** New registrations start as `awaiting_payment` and do not reserve a seat, even when the tournament is full. `waitlist` is assigned after staff approves payment when no seat is available, not when the form is first submitted. A waitlist entry is not a confirmed seat.
 - **CAP-003:** Every staff confirmation checks and assigns capacity transactionally, whether it follows payment approval or selection from the paid waitlist. Concurrent confirmations must not exceed configured capacity. Repeating confirmation must not allocate the same registration a second seat.
 - **CAP-004:** Cancellation immediately releases any occupied seat, independently of refund progress. Repeating cancellation must not release the same seat twice. There is no pre-approval review reservation to expire.

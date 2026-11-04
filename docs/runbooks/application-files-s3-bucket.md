@@ -3,7 +3,7 @@
 **Created**: 2026-11-02
 **Last updated**: 2026-11-03
 
-This runbook covers the private Amazon S3 bucket that stores tournament uploads such as payment proofs and scanned parental terms. Local development uses Ministack instead. See [data storage](../../specs/platform/data-storage.md) for the environment split.
+This runbook covers the private Amazon S3 bucket that stores tournament uploads such as payment proofs and scanned parental consent forms. Local development uses Ministack instead. See [data storage](../../specs/platform/data-storage.md) for the environment split.
 
 ## What Terraform creates
 
@@ -40,4 +40,4 @@ Redeploy or restart the backend container after the secret change so production 
 
 ## Verify
 
-After deploy, exercise a presigned upload through the private application (parental term or payment proof). A 403 or missing bucket error usually means the secret name does not match the applied bucket or the host role policy was not applied in that workspace.
+After deploy, exercise a presigned upload through the private application (parental consent form or payment proof). A 403 or missing bucket error usually means the secret name does not match the applied bucket or the host role policy was not applied in that workspace.

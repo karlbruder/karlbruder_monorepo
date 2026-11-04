@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -58,7 +58,7 @@ The application navigation does not advertise future capabilities in the first-r
 1. **Visitor to payment review:** WF-01 → WF-02 → WF-03 → WF-04 → WF-05 → WF-06. The selected tournament survives the illustrated sign-in handoff. Successful signup produces an example inscription number and no reserved seat. Authentication buttons and submission simulate navigation only.
 2. **Full event:** WF-02/full → WF-04/full → WF-05 → WF-10/full → WF-06/waitlist. A warning precedes submission. Registration and file upload do not consume capacity; staff-approved payment can produce paid waiting status. Select alternate states in the toolbar to review these branches.
 3. **Evidence rejected:** WF-10/reject → WF-05/rejected → WF-06/review. Require a reason, explain notification, show resubmission, and do not imply participation cancellation. The staff document history and participant's latest-only view stay distinct. WF-06 → WF-05/replace illustrates replacing existing evidence without requesting a second payment or inventing a participation-status transition.
-4. **Minor:** WF-04/minor and WF-10/minor show the private scanned parental term. WF-06/confirmed retains the event-day obligation for accompaniment and in-person document checks. No extra identity-document upload is invented.
+4. **Minor:** WF-04/minor and WF-10/minor show the private scanned parental consent form. WF-06/confirmed retains the event-day obligation for accompaniment and in-person document checks. No extra identity-document upload is invented.
 5. **Correction and concurrency:** WF-04/duplicate, WF-04/closed, WF-08/conflict, and WF-10/race show failures without claiming success. A displayed capacity count never replaces the backend transaction.
 6. **Paid waitlist:** WF-11 confirms an eligible selected person only with an available seat. No queue position, automatic promotion, invitation expiration, or second approval of payment.
 7. **Cancellation:** WF-13 distinguishes cancelled participation from refund progress, releases capacity immediately, retains the received-amount/10-business-day rule, and offers no reopening control.

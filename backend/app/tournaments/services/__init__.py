@@ -3,10 +3,10 @@
 Import from this package so callers stay stable while modules split by topic.
 """
 
-from app.tournaments.services.tournament_inscriptions import (
-    MAX_TOURNAMENT_INSCRIPTION_SERIAL,
-    format_tournament_inscription_number,
-    is_valid_tournament_inscription_number,
+from app.tournaments.services.registration_numbers import (
+    MAX_TOURNAMENT_REGISTRATION_NUMBER,
+    format_tournament_registration_number,
+    is_valid_tournament_registration_number,
 )
 from app.tournaments.services.tournament_local_dates import (
     TOURNAMENT_LOCAL_TIMEZONE,
@@ -15,17 +15,17 @@ from app.tournaments.services.tournament_local_dates import (
     is_minor_at_tournament_start,
     local_calendar_date,
 )
-from app.tournaments.services.tournament_signup_payment import (
-    create_tournament_signup_payment_proof_upload_url,
-    read_tournament_signup_payment_instructions,
-    read_tournament_signup_payment_proof_download,
-    submit_tournament_signup_payment_proof,
+from app.tournaments.services.registration_payment_instructions import (
+    create_registration_payment_proof_upload_url,
+    read_registration_payment_instructions,
+    read_registration_payment_proof_download,
+    submit_registration_payment_proof,
 )
-from app.tournaments.services.tournament_signups import (
-    create_tournament_signup,
-    is_duplicate_tournament_signup,
+from app.tournaments.services.tournament_registrations import (
+    create_tournament_registration,
+    is_duplicate_tournament_registration,
     normalize_tournament_registration_identity,
-    read_tournament_signup_parental_term_download,
+    read_tournament_registration_parental_consent_form_download,
     visible_tournament,
 )
 from app.tournaments.services.tournament_slugs import (
@@ -35,24 +35,24 @@ from app.tournaments.services.tournament_slugs import (
 )
 
 __all__ = [
-    "MAX_TOURNAMENT_INSCRIPTION_SERIAL",
+    "MAX_TOURNAMENT_REGISTRATION_NUMBER",
     "TOURNAMENT_LOCAL_TIMEZONE",
     "TOURNAMENT_SLUG_PATTERN",
     "build_tournament_slug",
-    "create_tournament_signup",
-    "create_tournament_signup_payment_proof_upload_url",
+    "create_tournament_registration",
+    "create_registration_payment_proof_upload_url",
     "current_local_calendar_date",
     "eighteenth_birthday",
-    "format_tournament_inscription_number",
-    "is_duplicate_tournament_signup",
+    "format_tournament_registration_number",
+    "is_duplicate_tournament_registration",
     "is_minor_at_tournament_start",
-    "is_valid_tournament_inscription_number",
+    "is_valid_tournament_registration_number",
     "local_calendar_date",
     "normalize_tournament_registration_identity",
-    "read_tournament_signup_parental_term_download",
-    "read_tournament_signup_payment_instructions",
-    "read_tournament_signup_payment_proof_download",
+    "read_tournament_registration_parental_consent_form_download",
+    "read_registration_payment_instructions",
+    "read_registration_payment_proof_download",
     "resolve_tournament_slug",
-    "submit_tournament_signup_payment_proof",
+    "submit_registration_payment_proof",
     "visible_tournament",
 ]

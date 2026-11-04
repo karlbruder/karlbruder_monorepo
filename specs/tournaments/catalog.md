@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-03
 
 | Field | Value |
 | --- | --- |
@@ -16,8 +16,8 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 ## Rules
 
-- **CAT-001:** The catalog supports multiple tournaments with stable identifiers. Each tournament has a required unique slug. When staff omit the slug, it is derived from the display name, modality, and the year of `starts_at`. The list is paginated and can be filtered by display name and by the event start date. `starts_at` and `ends_at` are the event dates. The registration window is separate. Selecting an event scopes its information, registration, and results to that event.
-- **CAT-002:** A tournament can describe name, description, modality, start/end date and time, location, schedule, fee, registration window, payment deadline, capacity, rules, equipment requirements, and cancellation policy.
+- **CAT-001:** The catalog supports multiple tournaments with stable identifiers. Each tournament has a required unique slug. When staff omit the slug, it is derived from the display name, discipline, and the year of `starts_at`. The list is paginated and can be filtered by display name and by the event start date. `starts_at` and `ends_at` are the event dates. The registration window is separate. Selecting an event scopes its information, registration, and results to that event.
+- **CAT-002:** A tournament can describe name, description, discipline, start/end date and time, location, schedule, fee, registration window, payment deadline, capacity, rules, equipment requirements, and cancellation policy.
 - **CAT-003:** Event details communicate the registration date range and capacity status. When capacity is full, the registration page warns that approved payment will lead to the waitlist unless a seat becomes available. Being full does not itself prevent submission or proof upload. Staff may explicitly close new registrations; the backend enforces that closure. Submission never guarantees a seat.
 - **CAT-004:** Published information must distinguish confirmed facts from unknown details. Unknown fees, dates, policies, or locations are not presented as final values.
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
@@ -25,6 +25,8 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 modality is `longsword`, following issue #20's single-modality starting model.
 - **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Notify registered participants when event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, or cancellation policy change. Other fact changes do not require notification. Preserve earlier regulation acceptances when text changes.
 - **CAT-009:** The catalog is the listing and detail experience for `Tournament` resources, not a separate domain object. Fees, dates, venue, schedule, equipment, regulation, and capacity are staff-managed configuration. Currency is BRL. Pix destination and receiving-account details are payment configuration, not fixed product-spec values.
+
+Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
 
 ## User flow
 

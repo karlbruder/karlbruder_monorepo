@@ -6,6 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
+from app.core.files import models as file_models  # noqa: F401 - register shared file metadata
 from app.database import Base
 from config import settings
 from app.payments import models as payment_models  # noqa: F401 - register domain metadata

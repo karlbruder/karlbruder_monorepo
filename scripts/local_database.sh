@@ -53,13 +53,13 @@ seed_monomachia() {
 INSERT INTO public.tournaments (
     name,
     slug,
-    modality,
+    discipline,
     starts_at,
     location,
     registration_opens_on,
     registration_closes_on,
     terms_version,
-    regulation_version
+    rules_version
 )
 SELECT
     'Monomachia',

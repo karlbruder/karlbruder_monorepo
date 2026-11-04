@@ -12,23 +12,25 @@ _SLUG_MAX_LENGTH = 100
 
 def resolve_tournament_slug(
     name: str,
-    modality: str | None,
+    discipline: str | None,
     starts_at: datetime,
     requested_slug: str | None,
 ) -> str:
-    """Return the admin-provided slug or derive one from name, modality, and event year."""
+    """Return the admin-provided slug or derive one from name, discipline, and event year."""
 
     if requested_slug:
         return requested_slug
-    return build_tournament_slug(name, modality, starts_at)
+    return build_tournament_slug(name, discipline, starts_at)
 
 
-def build_tournament_slug(name: str, modality: str | None, starts_at: datetime) -> str:
-    """Build a URL-safe slug from the display name, optional modality, and event year."""
+def build_tournament_slug(
+    name: str, discipline: str | None, starts_at: datetime
+) -> str:
+    """Build a URL-safe slug from the display name, optional discipline, and event year."""
 
     parts = [_normalize_text_to_kebab_case(name)]
-    if modality and modality.strip():
-        parts.append(_normalize_text_to_kebab_case(modality))
+    if discipline and discipline.strip():
+        parts.append(_normalize_text_to_kebab_case(discipline))
     parts.append(str(starts_at.astimezone(TOURNAMENT_LOCAL_TIMEZONE).year))
     slug = "-".join(part for part in parts if part)
     if not re.fullmatch(TOURNAMENT_SLUG_PATTERN, slug) or len(slug) > _SLUG_MAX_LENGTH:
@@ -37,5 +39,7 @@ def build_tournament_slug(name: str, modality: str | None, starts_at: datetime) 
 
 
 def _normalize_text_to_kebab_case(value: str) -> str:
-    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    ascii_value = (
+        unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    )
     return "-".join(re.findall(r"[a-z0-9]+", ascii_value.lower()))
