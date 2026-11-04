@@ -1,7 +1,7 @@
 # Authentication and access
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -29,7 +29,7 @@ Identify participants reliably and restrict personal records and administrative 
 
 - **AUTH-007:** The verified subject identifies the caller. User-editable metadata must not grant admin, membership-management, or inventory permissions.
 - **AUTH-008:** Guild staff (admins) have full application access across all tournaments. No event-specific grants or additional administrative role is required. Authentication alone does not confer admin access; the backend enforces the trusted admin role and existing regular-user/member boundaries.
-- **AUTH-009:** Users can access their authorized registrations and proofs. An inscription number, email address, or guessed object identifier must not bypass those checks. Authenticated callers lacking the required permission cannot obtain private data; select and document the exact 403/404 response policy in the API implementation contract.
+- **AUTH-009:** Users can access their authorized registrations and proofs. A registration number, email address, or guessed object identifier must not bypass those checks. Authenticated callers lacking the required permission cannot obtain private data; select and document the exact 403/404 response policy in the API implementation contract.
 - **AUTH-010:** AWS access through Auth0 and IAM Identity Center is a separate team system. It does not sign users into the application or assign application permissions.
 
 The initial `/api/users/me` verification endpoint does not need a local users table. Registration ownership directly uses the existing Supabase `auth.users.id` UUID from the verified token subject. Users sign up to the application first and register only themselves; there is no separate tournament user identity or delegated registration workflow. The trusted representation of the admin role is an implementation detail and must not be user-editable.

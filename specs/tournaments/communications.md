@@ -1,7 +1,7 @@
 # Tournament communications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -31,6 +31,15 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 - **COM-007:** The backend sends application emails through AWS SES using SMTP. SMTP credentials and connection settings are backend configuration. Local SMTP setup is deferred, likely real SES with real AWS/SES credentials. No local mail emulator is chosen by the S3/Ministack decision.
 - **COM-008:** Send application email in Portuguese from `Suporte Karlbrüder <no-reply@karlbruder.com.br>`. Use the user's current account email at delivery time, not a stale registration email or stripped comparison value. Ownership remains the Supabase UUID after an email change.
 - **COM-009:** Rejected payment evidence notifies the participant with the rejection message and a resubmission path. Tournament date, schedule, location, regulation, equipment-requirement, and cancellation-policy changes notify affected registrants under CAT-008. Ordinary staff corrections to registration fields do not require notifications; required workflow notices still apply.
+
+## Persisted outcome references
+
+Message workflows use `registration_number` as the participant reference.
+PaymentProofReview records evidence decisions. RegistrationPayment records the
+actual verified receipt. RegistrationRefund records the obligation and actual
+completion separately from cancelled participation. Notify from the committed
+workflow outcome, rather than treating the presence of a proof or record as a
+new trigger. Issue #60 and later refund work own those commands and notifications.
 
 ## Acceptance criteria
 

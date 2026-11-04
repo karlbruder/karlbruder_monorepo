@@ -1,7 +1,7 @@
 # Karlbrüder product
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -35,18 +35,18 @@ The initial application roles are regular user, guild member, and guild staff (a
 - **PROD-007:** Users register only themselves. An account cannot register another athlete, including a minor.
 - **PROD-008:** A minor registering themselves uploads a scanned parental consent form through the platform and may participate only with parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff verification. The uploaded signed term, in-person check, and parental accompaniment are all required.
 - **PROD-009:** The initial application roles are regular user, guild member, and guild staff (admin), with cumulative permissions as described above. Guild staff have full application access across all tournaments, without event-specific grants. Regular users manage only their own participant records and profile information. The backend enforces these boundaries; updating a profile must not allow a user to grant themselves membership or admin privileges.
-- **PROD-010:** The application uses `app.karlbruder.com`. The public website uses `karlbruder.com`. Prod also accepts `app-prod.karlbruder.com` and `prod.karlbruder.com`. Dev uses `app-dev.karlbruder.com` and `dev.karlbruder.com`. Public event registration links open the frontend route `/tournaments/registration`, whose form submits a POST request to the backend tournament sign-up resource. The backend endpoint path and the mechanism for carrying the selected tournament through sign-in belong in the detailed registration and identity specifications.
+- **PROD-010:** The application uses `app.karlbruder.com`. The public website uses `karlbruder.com`. Prod also accepts `app-prod.karlbruder.com` and `prod.karlbruder.com`. Dev uses `app-dev.karlbruder.com` and `dev.karlbruder.com`. Public event registration links open the frontend route `/tournaments/registration`, whose form submits a POST request to the backend tournament registration resource. The backend endpoint path and the mechanism for carrying the selected tournament through sign-in belong in the detailed registration and identity specifications.
 - **PROD-011:** The first usable release delivers tournament registration and payment-proof upload/review, with the authentication, access controls, and validation needed to support them. Results and other extensions follow in later releases. A full tournament administration suite, broader automatic messaging, and exports may follow; the initial review flow requires authorized staff decisions, waitlist-entry email when applicable, and rejected-evidence notification with resubmission. Refund confirmation and material event-change notifications are required when their respective workflows are delivered.
 - **PROD-012:** Regular users can register only for public, non-internal tournaments. Internal tournament access and participation are limited to guild members, including guild staff, and remain subject to the event's other eligibility rules.
 - **PROD-013:** Initial tournament payments accept Pix only, in BRL, until an official gateway is implemented. Amount, destination, dates, venue, and event rules are Tournament/payment configuration, not hardcoded product values.
-- **PROD-014:** Terms disclose participant-directory and results visibility to authorized platform users; there is no participant-list opt-out. Shared views use limited display fields and preserve internal-event and private-data restrictions. Participants may edit their own permitted signup fields; staff-only notes and system-managed fields remain protected.
+- **PROD-014:** Terms disclose participant-directory and results visibility to authorized platform users; there is no participant-list opt-out. Shared views use limited display fields and preserve internal-event and private-data restrictions. Participants may edit their own permitted registration fields; staff-only notes and system-managed fields remain protected.
 
 ## First-release tournament experience
 
 1. A visitor discovers Karlbrüder or an event through the public website or social media.
 2. The visitor enters the application at `app.karlbruder.com`, browses public tournaments, and reviews an event's rules and registration conditions without needing to sign in. Internal tournaments require guild-member access.
 3. The visitor follows the registration entry point to `/tournaments/registration` and signs in to submit a registration.
-4. The user submits a valid registration for themselves and receives an inscription number.
+4. The user submits a valid registration for themselves and receives a registration number.
 5. The user follows payment instructions and uploads payment proof.
 6. Guild staff (admins) validate the registration and payment, subject to capacity.
 7. The user follows the registration's status and confirmation in the application.
@@ -77,7 +77,7 @@ Privacy, access control, and mandatory event terms apply to any released feature
 - **PROD-AC-007:** A minor without a signed parental consent form or parental accompaniment is not permitted to participate.
 - **PROD-AC-008:** A guest can browse public tournament listings and details, but cannot discover internal tournaments through public listings or retrieve their details through the API. An authenticated regular user also cannot access internal tournaments.
 - **PROD-AC-009:** A guild member receives regular-user access plus member access, and guild staff receive both plus administrative access. Profile editing cannot elevate the caller's role.
-- **PROD-AC-010:** A public event's registration entry opens `/tournaments/registration`, and an authenticated valid submission uses POST to create a sign-up through the backend.
+- **PROD-AC-010:** A public event's registration entry opens `/tournaments/registration`, and an authenticated valid submission uses POST to create a registration through the backend.
 - **PROD-AC-011:** The first release supports registration, proof upload, authorized proof review, waitlist-entry email when applicable, and rejected-evidence notification/resubmission without requiring results, a full administration suite, the broader messaging suite, or exports to be delivered first.
 
 ## Follow-up ownership

@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 | --- | --- |
 | Name | Monomachia Karlbrüder 2027 |
 | Event date | Sunday, 17 January 2027, as supplied in the source requirements; final schedule not confirmed here |
-| Modality | Longsword (`longsword` in the initial tournament model) |
+| Discipline | Longsword (`longsword` in the initial tournament model) |
 | Internal event | `false` in issue #20's initial setup example |
 | Instagram | [monomachia.karlbruder](https://www.instagram.com/monomachia.karlbruder) |
 | Public presentation | Existing `/monomachia` page in `landing/` |
@@ -62,7 +62,7 @@ None specific to Monomachia product behavior. Shared unresolved policies remain 
 
 - **MONO-AC-001:** The public event page presents confirmed event facts and directs registration into the application.
 - **MONO-AC-002:** A signed-in user registers for Monomachia through the same domain capabilities used by another configured tournament.
-- **MONO-AC-003:** Submission produces an inscription number and the correct non-confirmed initial status.
+- **MONO-AC-003:** Submission produces a registration number and the correct non-confirmed initial status.
 - **MONO-AC-004:** Event-specific eligibility and terms use the final configured versions and preserve acceptance evidence.
 
 ## Source conflicts and baseline

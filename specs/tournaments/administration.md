@@ -1,7 +1,7 @@
 # Tournament administration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -17,27 +17,34 @@ Give guild staff (admins) control over tournament participation, payment review,
 ## Rules
 
 - **ADM-001:** Authenticated guild staff (admins) have full application access across all tournaments, including event editing, payment review, private proofs and safety data, exports, and results management when delivered. There are no event-specific admin grants. Domain constraints still apply to administrative actions.
-- **ADM-002:** Guild staff can view registrations, search by name, school, city, or inscription number, and filter by supported status and category.
+- **ADM-002:** Guild staff can view registrations, search by name, school, city, or registration number, and filter by supported status and category.
 - **ADM-003:** Authorized staff may correct any registration field at any time, including after confirmation, without a participant-notification requirement for the correction itself. They may review eligibility, record internal notes, and review payments. All corrections remain subject to ownership, uniqueness, capacity, and lifecycle constraints.
 - **ADM-004:** Status changes obey the [registration lifecycle](registration.md#lifecycle-boundary), manual staff approval, and capacity rules. A generic status-edit field must not bypass those constraints. Rejected evidence records a reason, notifies the participant, and permits resubmission under PAY-004. The absence of a correction notification does not suppress required workflow notifications.
 - **ADM-005:** Changes to registration, payment, capacity, and sensitive operational data are attributable to an actor and timestamp. Keep the admin audit history under PRIV-011's interim indefinite-retention policy. Exact audit fields and storage are implementation choices.
 - **ADM-006:** Staff chooses whom to select and confirm from the paid waitlist under CAP-005; no queue priority or automatic invitation deadline constrains that judgment. Confirmation still requires eligibility and available capacity. Staff also manages cancellations and refunds. Cancellation immediately releases any occupied seat. Unpaid cancellation produces `cancelled` without a refund; paid cancellation shows `awaiting_refund`. Staff records the actual completed refund before refund confirmation is emailed to the user. A refund record does not mean money has automatically moved through a provider.
 - **ADM-007:** Planned exports include CSV/Excel, attendance lists, bracket-preparation lists, and HEMA Ratings data. Each export needs a defined purpose and field projection. Safety notes and payment proofs are excluded from general exports.
 - **ADM-008:** Event rules, payment instructions, and communication templates should be maintainable by authorized staff where the relevant capability is delivered. Their editing and versioning rules must preserve prior acceptance records.
-- **ADM-009:** Cancelled registrations may be reopened only by admins manually in the Supabase UI. Reopening is not an application control and must preserve the non-cancelled uniqueness and confirmed-capacity invariants. A cancelled registration otherwise permits a new signup for the same tournament.
+- **ADM-009:** Cancelled registrations may be reopened only by admins manually in the Supabase UI. Reopening is not an application control and must preserve the non-cancelled uniqueness and confirmed-capacity invariants. A cancelled registration otherwise permits a new registration for the same tournament.
 - **ADM-010:** Staff may close new registrations even while the registration window is open. Staff cannot reduce configured capacity below confirmed participation; no admin override or automatic cancellation bypasses that invariant. Tournament-fact changes notify registrants only for the fields specified by CAT-008.
 - **ADM-011:** Staff decides whether to accept a late Pix transfer or decline participation and arrange a refund. Staff may explicitly increase capacity before confirming additional participants. The deadline does not force a decision, and admin discretion does not bypass the configured capacity limit or refund-recording requirements.
 
 ## Lifecycle boundary
 
-The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. The latest registration answers add the displayed `awaiting_refund` status for cancelled participation after payment. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new signup. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
+The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund separately records `awaiting_refund` or `completed`. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
 
 Confirmation allocates a seat after the requirements applicable at that stage are met. Event-day checks remain separate: confirming a minor's registration does not waive the identity-document check and parental accompaniment required at the event by PRIV-010.
+
+The payments domain retains PaymentProofReview, RegistrationPayment and
+RegistrationRefund separately from TournamentRegistration. Staff decisions must
+identify the exact proof, actual received amount and attributable actor/time.
+No review, receipt or refund row changes capacity or participation by itself.
+The review commands in #60 apply the relevant facts and participation outcome
+atomically. Refund commands remain later work.
 
 ## Acceptance criteria
 
 - **ADM-AC-001:** A non-admin participant cannot list complete private registration records, access staff notes, or change another participant's status. The limited participant directory under PRIV-006 is a separate permitted projection.
-- **ADM-AC-002:** Authorized staff can find a registration by inscription number and review the permitted data and evidence.
+- **ADM-AC-002:** Authorized staff can find a registration by registration number and review the permitted data and evidence.
 - **ADM-AC-003:** A confirmation request failing payment, eligibility, documentation, or capacity requirements does not confirm a seat.
 - **ADM-AC-004:** A staff administrative change records the actor and time without copying private proof contents into general logs.
 - **ADM-AC-005:** An export contains only its agreed fields and excludes restricted safety notes and payment proofs.

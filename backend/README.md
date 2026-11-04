@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -64,8 +64,10 @@ poetry run alembic upgrade head
 poetry run alembic current
 ```
 
-Local Compose and production deployment details, including a migration that
-needs special care for existing signups, are in the [migration notes](docs/migrations.md).
+The pre-data refactor uses the clean initial revision `20261103_0001`.
+It replaces the old history and has no old-schema upgrade path. A user-managed
+development reset must include `public.alembic_version` and leave Supabase-managed
+`auth` objects intact. See the [migration notes](docs/migrations.md).
 
 From the repository root, these commands manage only the Compose database `postgres`.
 They stop if the backend database host is not `db` or the database name is not `postgres`.
@@ -80,14 +82,14 @@ Those targets run `scripts/local_database.sh`. The same script can be called dir
 
 `reset` drops the `public` schema, applies Alembic head, and inserts Monomachia
 when that slug is missing. The seeded event starts on 17 January 2027. Its
-registration window is already open, and the local terms and regulation version
+registration window is already open, and the local terms and rules version
 is `dev-local`. `drop` leaves the schema empty at head. `seed` inserts the same
 event without deleting existing rows. The Compose `db` and `backend` services
 need to be running.
 
 ## Tournament module
 
-The [tournament guide](app/tournaments/README.md) explains the catalog and signup
+The [tournament guide](app/tournaments/README.md) explains the catalog and registration
 APIs, access rules, registration behavior, and current release dependencies.
 
 ## Tests and lint

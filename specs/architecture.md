@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -102,7 +102,7 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 - **ARCH-001:** The backend owns domain validation, authorization, and domain database access. UI validation improves usability but is not authoritative.
 - **ARCH-002:** The frontend uses Supabase Auth for identity and sends the session access token to protected backend endpoints. Browser code does not access domain PostgreSQL directly.
 - **ARCH-003:** Supabase owns authentication records. Karlbrüder owns tournament and association records in `public`. Application authorization is distinct from successful authentication.
-- **ARCH-004:** Users register only themselves. A registration references the existing Supabase `auth.users.id` UUID from the verified token subject, not email or a new tournament-specific user identity. An inscription number is a reference, not an access credential.
+- **ARCH-004:** Users register only themselves. A registration references the existing Supabase `auth.users.id` UUID from the verified token subject, not email or a new tournament-specific user identity. A registration number is a reference, not an access credential.
 - **ARCH-005:** Payment proofs and other private uploaded files use Amazon S3 in production and Ministack S3 emulation locally. All access remains authorization-controlled. Private files are not public landing assets or Supabase Storage objects.
 - **ARCH-006:** Tournament rules and data are event-scoped. Monomachia branding and configuration do not define the behavior of every tournament.
 - **ARCH-007:** Local and deployed configurations use the same domain logic. Environment settings choose database and integration destinations.
@@ -121,12 +121,20 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 | --- | --- |
 | Authenticated identity | Supabase subject identifying the caller |
 | Tournament | Event information, registration windows, and capacity configuration |
-| Registration | Athlete information for a tournament, inscription number, owner, and lifecycle |
+| Registration | Athlete information for a tournament, registration number, owner, and lifecycle |
 | Payment evidence and review | Restricted proof and guild staff payment decision associated with a registration |
 | Consent record | Versioned terms and explicit participant choices |
 | Results | Tournament outcomes available to authorized viewers after publication |
 | Membership, future | Association membership and monthly dues, independent of tournaments |
 | Equipment, future | Admin-only guild inventory of equipment, type, quantity, and condition; no loans or tournament reservations |
+
+Current shared file metadata lives in `app/core/files/` as StoredFile.
+Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
+RegistrationAcceptance and PolicyArchive. Payments owns TournamentPaymentSettings,
+PaymentProofReview, RegistrationPayment and RegistrationRefund. Domain associations
+control file purpose and access. Generic file metadata grants no access by itself.
+Settings, submitted proof, evidence decision, actual receipt, participation and
+refund progress remain separate facts. See the [tournament API guide](../backend/app/tournaments/README.md).
 
 These concepts do not prescribe one table per concept. Issue #20 provides a starting schema, not a complete schema for every future workflow.
 

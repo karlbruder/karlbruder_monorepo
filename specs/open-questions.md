@@ -1,7 +1,7 @@
 # Open-question index
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
@@ -43,7 +43,7 @@ The cleanup did not resolve or discard remaining technical work. These topics ar
 | [Local development](platform/local-development.md#implementation-decisions) | Existing port/proxy/health-check alignment, test tooling, optional landing Compose integration |
 | [AWS team access](platform/team-access.md#implementation-and-operations-decisions) | Verify deployed grants; onboarding/removal procedures; emergency access and automation credentials |
 | [Communications](tournaments/communications.md#implementation-decisions) | SES SMTP configuration, delivery tracking, retries, duplicate-send handling |
-| [Registration](tournaments/registration.md#implementation-decisions) | Inscription formatting, API naming, selected-tournament handoff, persistence details |
+| [Registration](tournaments/registration.md#implementation-decisions) | Registration-number formatting, API naming, selected-tournament handoff, persistence details |
 | [Capacity](tournaments/capacity-and-waitlist.md#implementation-decisions) | Persistence for staff closure of new registrations; authorized staff waitlist selection and transactional confirmation |
 | [Inventory](inventory/overview.md#implementation-decisions) | Admin account mapping, field validation, archival/deletion representation |
 

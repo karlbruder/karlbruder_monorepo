@@ -11,7 +11,7 @@ New code follows this file. Leave existing code that still breaks these rules in
 Existing code is not proof that a boundary is correct. Known migration gaps:
 
 - Auth still lives in `app/auth.py`, with identity types in `app/models.py` and settings in `config/`. Its tests live in `tests/test_auth.py`. Move these coherently when auth restructuring is in scope. Do not add an `app/auth/` package alongside `app/auth.py` and rely on import resolution to choose one.
-- Tournament routers still contain queries, writes, and record-access decisions. Some tournament services still raise `HTTPException`. Those are legacy boundaries, not examples for new workflows.
+- Tournament routers still contain catalog/registration queries and record-access decisions. Those are legacy boundaries, not examples for new workflows.
 - Root `app/exceptions.py` still contains auth HTTP errors. Move domain errors to their owner when that work is in scope.
 - `config/env.py` still supplies an AWS region fallback. That does not fulfill the explicit-region requirement below. A settings change must reconcile that behavior and its tests, not silently treat the fallback as the intended rule.
 
@@ -42,9 +42,10 @@ backend/
     tournaments/
       models/
         tournament.py
-        tournament_signup.py
+        tournament_registration.py
       services/
-        tournament_signups.py
+        tournament_registrations.py
+        registration_uploads.py
         tournament_local_dates.py
       router.py
       schemas.py
@@ -61,10 +62,11 @@ backend/
         test_storage.py
     tournaments/
       models/
-        test_tournament_signup.py
+        test_tournament_registration_document.py
       services/
-        test_tournament_signups.py
+        test_registration_uploads.py
         test_tournament_local_dates.py
+      test_tournament_registrations.py
       test_router.py
       test_schemas.py
     config/
@@ -73,11 +75,11 @@ backend/
 
 Create a folder when the first file needs it. A small domain can use `models.py` and `services.py`. Split them into packages when separate table concepts or service topics make navigation clearer. Never keep both `services.py` and `services/` for the same import path. The same rule applies to `models`.
 
-Module and package names use snake_case. Within a `models/` package, use one mapped model class per module and name it after the table concept, such as `tournament_signup.py` and `TournamentSignup`.
+Module and package names use snake_case. Within a `models/` package, use one mapped model class per module and name it after the table concept, such as `tournament_registration.py` and `TournamentRegistration`.
 
 Within `services/`, group one workflow or related rule family per module. Avoid nesting another `services/` inside an infrastructure capability. A folder name should identify an owner or useful grouping, not repeat a layer name.
 
-Use names that distinguish account sign-up from tournament registration. `create_tournament_signup` states the action and subject. Do not repeat the domain prefix in every private helper when the module already makes it clear. Name predicates as questions, such as `is_minor_at_tournament_start`.
+Use names that distinguish account sign-up from tournament registration. `create_tournament_registration` states the action and subject. Do not repeat the domain prefix in every private helper when the module already makes it clear. Name predicates as questions, such as `is_minor_at_tournament_start`.
 
 Import a submodule directly when that makes ownership clearer. A package `__init__.py` may expose a small, intentional API, such as model classes or public service entry points. Keep business logic out of it. Do not automatically re-export every helper or use exports to hide circular imports. Python packages do not inherit the frontend's no-barrel rule.
 
@@ -126,7 +128,7 @@ Business logic lives in the domain service layer, whether it is one module or a 
 
 - A service does not accept a FastAPI `Request` or `Response`, use `Depends`, or raise an HTTP exception. Accept explicit inputs and return domain results or raise domain errors.
 - Query code stays in the service. Avoid automatic repository, selector, manager, or service-class layers. Add one only when an actual workflow needs that boundary.
-- Name service functions for their action or result. `create_tournament_signup` tells the reader what happens. `signup` does not. Plain functions are sufficient unless a class has meaningful state or dependencies to own.
+- Name service functions for their action or result. `create_tournament_registration` tells the reader what happens. `register` does not. Plain functions are sufficient unless a class has meaningful state or dependencies to own.
 - Keep each service module focused on one workflow or one rule family. Add a type hint where it makes the contract obvious.
 - Group related constants and functions together in the same module. Revise docstrings when responsibility moves.
 - The workflow service owns domain authorization and invariants. Calling it outside HTTP must not bypass record ownership, visibility, or eligibility rules.
@@ -148,18 +150,18 @@ Use these local conventions consistently.
 | Role | Example | Responsibility |
 | --- | --- | --- |
 | Route module | `router.py` | HTTP entry for the domain |
-| Request model | `SignupCreate` in `schemas.py` | Validated input shape |
-| Service module | `tournament_signups.py` | One registration or catalog workflow |
+| Request model | `RegistrationCreate` in `schemas.py` | Validated input shape |
+| Service module | `tournament_registrations.py` | One registration or catalog workflow |
 | Date and timezone rules | `tournament_local_dates.py` | Calendar dates in tournament local time |
-| Model module | `tournament_signup_file.py` | One table mapping |
-| Core storage helper | `upload_validation.py` | Reusable upload checks, not tournament rules |
+| Model module | `tournament_registration_document.py` | One table mapping |
+| Core file helper | `content_types.py` | Reusable file-signature detection, not tournament upload policy |
 
 Prefer a concrete name over `Manager`, `Handler`, or `Utils` when those names hide the responsibility.
 
 ## Shared code
 
 - Application code lives in `backend/app`, including `main.py` and `database.py`.
-- `app/core/` holds infrastructure other domains share, such as file storage clients and upload validation. Core exceptions describe storage and transport failures. Domain exceptions describe business rejection.
+- `app/core/` holds infrastructure other domains share, such as file metadata, storage clients and file-signature detection. Core exceptions describe storage and transport failures. Domain exceptions describe business rejection.
 - Shared process and infrastructure settings live in `backend/config`. Domain-only settings belong to their owner, as described below. Alembic, tests, and the Dockerfile stay at the backend root.
 - New domain tables go in the domain package. They do not go in `app/models.py`.
 - Fix circular runtime dependencies by clarifying ownership. `TYPE_CHECKING` and deferred annotations help with type-only references. They do not repair a runtime cycle. A pure constant or value type used by schemas and services can live in a small module within the same domain.
@@ -228,13 +230,13 @@ Tests live in `backend/tests/`, separate from production code. Mirror the owners
 | Source | Test location |
 | --- | --- |
 | `app/tournaments/services/tournament_local_dates.py` | `tests/tournaments/services/test_tournament_local_dates.py` |
-| `app/tournaments/models/tournament_signup.py` | `tests/tournaments/models/test_tournament_signup.py` |
+| `app/tournaments/models/tournament_registration_document.py` | `tests/tournaments/models/test_tournament_registration_document.py` |
 | `app/tournaments/router.py` | `tests/tournaments/test_router.py` |
 | `config/aws.py` | `tests/config/test_aws_settings.py` |
 
 Apply the same mapping to core modules. Shared file tests live in `tests/core/files/`. Registration upload-policy tests live in `tests/tournaments/services/test_registration_uploads.py`. Move source and meaningful tests together.
 
-The mirror does not require one test file for every source file. A workflow integration test can stay at the domain test root, such as `tests/tournaments/test_tournament_signups.py`, when it exercises several modules through the API. Direct service tests belong under `tests/tournaments/services/`. Preserve established descriptive test filenames when their scope is accurate.
+The mirror does not require one test file for every source file. A workflow integration test can stay at the domain test root, such as `tests/tournaments/test_tournament_registrations.py`, when it exercises several modules through the API. Direct service tests belong under `tests/tournaments/services/`. Preserve established descriptive test filenames when their scope is accurate.
 
 Shared fixtures belong in the narrowest applicable `conftest.py`. Keep a helper inside its test module when only that module needs it. Move relevant tests with a service or model extraction in the same change. Do not duplicate the same assertions in every new file merely to populate the tree.
 

@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -22,7 +22,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-004:** Published information must distinguish confirmed facts from unknown details. Unknown fees, dates, policies, or locations are not presented as final values.
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
-- **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 modality is `longsword`, following issue #20's single-modality starting model.
+- **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
 - **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Notify registered participants when event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, or cancellation policy change. Other fact changes do not require notification. Preserve earlier regulation acceptances when text changes.
 - **CAT-009:** The catalog is the listing and detail experience for `Tournament` resources, not a separate domain object. Fees, dates, venue, schedule, equipment, regulation, and capacity are staff-managed configuration. Currency is BRL. Pix destination and receiving-account details are payment configuration, not fixed product-spec values.
 
@@ -60,7 +60,7 @@ None. Tournament listing uses the existing resource, and editing/notification ru
 
 ## Deferred questions
 
-- **CAT-Q3:** Beyond the initial single-modality model, how should tournament categories and multi-modality participation work?
+- **CAT-Q3:** Beyond the initial single-discipline model, how should tournament categories and multi-discipline participation work?
 
 Future category-specific capacity belongs in [CAP-Q5](capacity-and-waitlist.md#deferred-questions). Internal-event eligibility and guest visibility are already decided.
 
