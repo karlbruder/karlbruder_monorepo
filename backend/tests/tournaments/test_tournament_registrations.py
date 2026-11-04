@@ -874,6 +874,14 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         .order_by(TournamentRegistrationDocument.id)
     ).all()
     assert len(proof_rows) == 2
+    from app.payments.models import (
+        PaymentProofReview,
+        RegistrationPayment,
+        RegistrationRefund,
+    )
+
+    for model in (PaymentProofReview, RegistrationPayment, RegistrationRefund):
+        assert db_session.scalar(select(func.count()).select_from(model)) == 0
 
     payment = client.get(
         f"/api/tournaments/{event_id}/registrations/{number}/payment",
@@ -1539,12 +1547,14 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
             raise SQLAlchemyError("Fixture commit failure")
 
         monkeypatch.setattr(session, "commit", fail_commit)
+
     def request():
         return client.post(
             "/api/tournaments",
             headers=_headers(key, role="admin"),
             json=_event(rules_url="https://policies.example.test/new"),
         )
+
     if failure == "database":
         with pytest.raises(SQLAlchemyError, match="Fixture commit failure"):
             request()
@@ -1556,3 +1566,74 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
     assert existing_key in storage.objects
     assert existing_key not in storage.deleted_keys
     assert set(storage.objects) == {existing_key}
+
+
+@pytest.mark.parametrize("refund_status", ["awaiting_refund", "completed"])
+def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
+    setup, refund_status
+):
+    """REG-004 and PAY-009: stored refund facts never reactivate cancelled participation."""
+    from decimal import Decimal
+    from app.payments.models import (
+        PaymentProofReview,
+        RegistrationPayment,
+        RegistrationRefund,
+    )
+
+    client, key, session, _storage = setup
+    event_id = _create_event(client, key, registration_fee_amount="100.00")
+    owner = _headers(key)
+    first = _post_registration(client, event_id, owner).json()
+    original = session.scalar(select(TournamentRegistration))
+    document = TournamentRegistrationDocument(
+        registration_id=original.id,
+        document_type="payment_proof",
+        file=StoredFile(
+            storage_key=f"fixture/{uuid4()}",
+            original_file_name="proof.pdf",
+            content_type="application/pdf",
+            size_bytes=128,
+        ),
+    )
+    session.add(document)
+    session.flush()
+    now = datetime.now(UTC)
+    review = PaymentProofReview(
+        document_id=document.id,
+        decision="approved",
+        reviewed_by_user_id=uuid4(),
+        reviewed_at=now,
+    )
+    session.add(review)
+    session.flush()
+    payment = RegistrationPayment(
+        registration_id=original.id,
+        proof_review_id=review.id,
+        amount_received=Decimal("125.50"),
+        verified_by_user_id=uuid4(),
+        verified_at=now,
+    )
+    session.add(payment)
+    session.flush()
+    original.registration_status = "cancelled"
+    refund = RegistrationRefund(
+        payment_id=payment.id,
+        amount_owed=payment.amount_received,
+        refund_status=refund_status,
+        obligated_at=now,
+        due_on=now.date() + timedelta(days=14),
+        completed_at=now if refund_status == "completed" else None,
+        completed_by_user_id=uuid4() if refund_status == "completed" else None,
+    )
+    session.add(refund)
+    session.commit()
+    replacement = _post_registration(client, event_id, owner)
+    assert replacement.status_code == 201, replacement.text
+    assert replacement.json()["registration_number"] != first["registration_number"]
+    assert replacement.json()["registration_status"] == "awaiting_payment"
+    assert (
+        session.get(TournamentRegistration, original.id).registration_status
+        == "cancelled"
+    )
+    assert session.get(RegistrationRefund, refund.id).refund_status == refund_status
+    assert refund.amount_owed == Decimal("125.50")

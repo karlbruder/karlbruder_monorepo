@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
@@ -180,9 +180,41 @@ Replacement is allowed while `awaiting_payment` or `payment_in_review`.
 Every submitted proof is retained. The owner retrieves only the latest through
 `GET .../payment-proof`. Staff review of the history remains #60.
 
-A proof is evidence, not a verified receipt or a transfer. Financial records
-remain the next #69 checkpoint. Payment decisions, refunds and notifications
-remain later workflows. The frontend entry remains `/tournaments/registration`.
+A proof is evidence, not a verified receipt or a transfer. Payments owns
+PaymentProofReview, RegistrationPayment and RegistrationRefund. These persistence
+records do not change registration status or capacity by themselves.
+Payment decisions, refund actions and notifications remain later workflows. The frontend entry remains `/tournaments/registration`.
+
+## Financial evidence records
+
+PaymentProofReview references one exact TournamentRegistrationDocument through
+`document_id`. Only a `payment_proof` document is reviewable. It records
+`decision` (`approved` or `rejected`), `reviewed_by_user_id`, `reviewed_at` and
+`rejection_reason`. A rejected decision requires a nonblank reason. Each decision
+is retained rather than overwritten. Recording a decision creates no receipt.
+
+RegistrationPayment references the registration and its approved `proof_review_id`.
+It stores `amount_received` as a BRL decimal, `verified_by_user_id` and `verified_at`.
+The amount is independent of the advertised fee. The current schema allows one
+verified receipt per registration and per review. It introduces no installments.
+Database guards reject a rejected review or a proof from another registration.
+Review and receipt records cannot be updated or deleted. A reviewed document's
+association cannot be reassigned or rewritten.
+
+RegistrationRefund references that receipt through unique `payment_id`. It stores
+`amount_owed`, `obligated_at`, `due_on`, `refund_status`, `completed_at` and
+`completed_by_user_id`. The amount must equal the verified amount received.
+No row means no recorded obligation. `awaiting_refund` has no completion evidence.
+`completed` requires both the actual completion time and recording admin UUID.
+Completion cannot precede the obligation. Updating these fields does not transfer
+funds or change the registration's cancelled state.
+
+Issue #60 must verify the admin, reviewability and concurrent command state.
+Its approval transaction must write the review and receipt together with the
+confirmed or paid-waitlist outcome. Later cancellation/refund work calculates the
+10-business-day deadline, records the exact amount owed and actual completion,
+and sends the required notifications. No new command or endpoint writes these
+financial records in this checkpoint. Fixture rows in tests verify persistence.
 
 ## Migration boundary
 

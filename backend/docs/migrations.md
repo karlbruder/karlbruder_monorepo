@@ -1,7 +1,7 @@
 # Domain migration notes
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 Alembic manages application domain tables in PostgreSQL `public`.
 Connection settings select the target database through `DB_HOST`, `DB_PORT`,
@@ -15,7 +15,8 @@ The product owner authorized replacing the old migration chain during issue #69
 because there is no participant data to preserve. Revision `20261103_0001` is the
 new initial migration. It creates the current tournament, registration, shared
 file, registration-document, policy-archive, acceptance-history and payment-settings
-tables directly. It has no parent revision.
+tables directly. It also creates proof-review, verified-payment and refund
+records. It has no parent revision.
 The old revisions and the intermediate rename migration are removed.
 
 This is a deliberate pre-data reset. It does not provide an upgrade from the
@@ -39,6 +40,12 @@ and deletes. StoredFile metadata referenced by an archive is protected too.
 Downgrade removes those triggers/functions with the evidence tables.
 Schema comparison alone does not verify triggers. The backend suite exercises
 attempted ORM and SQL mutations as well as clean rebuilds.
+
+Payment guards validate proof purpose, same-registration approved evidence and
+refund equality with the received amount. Review and receipt rows are immutable.
+Reviewed document associations are protected. Refund status/completion fields
+remain separate from registration status. Downgrade drops financial dependants
+and their guard functions before dropping the registration/file schema.
 
 ## Applying migrations
 

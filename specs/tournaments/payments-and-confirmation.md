@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -29,6 +29,38 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-011:** Participants may replace submitted proof. Keep every submitted proof in restricted object storage for staff audit; the participant sees only the latest submission. Each replacement is new evidence requiring review, not proof of approval. Proof retention follows the privacy policy.
 - **PAY-012:** Refund the exact amount the guild received, within 10 business days of paid-registration cancellation. Staff records actual refund completion; cancellation alone does not fulfill the deadline or mark funds returned.
 - **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a paid waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses the paid cancellation/refund workflow; rejecting proof alone is a different evidence-review action.
+
+## Persistence contract
+
+These records keep distinct facts. Their presence alone does not change
+participation, consume capacity, send a message or move money.
+
+| Record | Evidence retained |
+| --- | --- |
+| TournamentRegistrationDocument | One exact submitted proof and its StoredFile reference. |
+| PaymentProofReview | `document_id`, approved/rejected `decision`, `reviewed_by_user_id`, `reviewed_at` and a nonblank `rejection_reason` when rejected. |
+| RegistrationPayment | `registration_id`, approved `proof_review_id`, actual BRL `amount_received`, `verified_by_user_id` and `verified_at`. |
+| RegistrationRefund | `payment_id`, exact `amount_owed`, `obligated_at`, deadline `due_on`, independent `refund_status` and actual `completed_at` / `completed_by_user_id`. |
+
+The database accepts reviews only for payment-proof documents. A verified receipt
+must reference an approved review of the same registration. Review decisions and
+verified receipts are retained as immutable facts. The reviewed document's
+association is protected too. The current non-installment schema permits one
+verified receipt per registration and per review, and one refund obligation per
+receipt. Received and owed amounts are finite, nonnegative BRL decimals.
+A refund's amount equals the receipt, even when that amount differs from the fee.
+
+An absent refund row means no recorded obligation. `awaiting_refund` and
+`completed` represent separate refund states. Pending refunds have no completion evidence. Completed refunds require both the actual time and
+recording admin UUID. They do not reactivate cancelled participation or prevent
+an otherwise valid replacement registration. These constraints also apply to
+direct database writes.
+
+Issue #60 owns trusted-admin authorization, reviewability, concurrent decisions
+and atomic review/receipt/participation changes. Later refund work owns paid
+cancellation, calculating the deadline under PAY-012, recording actual completion
+and notifications. Deadline values in persistence tests are explicit fixtures.
+This schema introduces no review/refund command or automatic deadline calculation.
 
 ## Initial journey
 

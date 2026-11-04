@@ -352,7 +352,7 @@ def upgrade() -> None:
         """
         CREATE FUNCTION public.reject_evidence_mutation() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
-            RAISE EXCEPTION 'Acceptance and policy evidence is immutable' USING ERRCODE = '23514';
+            RAISE EXCEPTION 'Recorded evidence is immutable' USING ERRCODE = '23514';
         END $$
     """
     )
@@ -376,8 +376,181 @@ def upgrade() -> None:
         "CREATE TRIGGER immutable_archived_file BEFORE UPDATE OR DELETE ON public.stored_files FOR EACH ROW EXECUTE FUNCTION public.protect_archived_file_metadata()"
     )
 
+    op.create_table(
+        "payment_proof_reviews",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "document_id",
+            sa.Integer(),
+            sa.ForeignKey(
+                "public.tournament_registration_documents.id", ondelete="RESTRICT"
+            ),
+            nullable=False,
+        ),
+        sa.Column("decision", sa.String(16), nullable=False),
+        sa.Column("reviewed_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("rejection_reason", sa.Text()),
+        sa.CheckConstraint(
+            "decision IN ('approved', 'rejected')",
+            name="ck_payment_proof_reviews_decision",
+        ),
+        sa.CheckConstraint(
+            "decision <> 'rejected' OR (rejection_reason IS NOT NULL AND rejection_reason ~ '[^[:space:]]')",
+            name="ck_payment_proof_reviews_rejection_reason",
+        ),
+        schema="public",
+    )
+    op.create_table(
+        "registration_payments",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "registration_id",
+            sa.Integer(),
+            sa.ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column(
+            "proof_review_id",
+            sa.Integer(),
+            sa.ForeignKey("public.payment_proof_reviews.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column("amount_received", sa.Numeric(12, 2), nullable=False),
+        sa.Column("verified_by_user_id", sa.Uuid(), nullable=False),
+        sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
+        sa.CheckConstraint(
+            "amount_received >= 0 AND amount_received <> 'NaN'::numeric",
+            name="ck_registration_payments_amount_nonnegative",
+        ),
+        sa.UniqueConstraint("proof_review_id", name="uq_registration_payments_review"),
+        sa.UniqueConstraint(
+            "registration_id", name="uq_registration_payments_registration"
+        ),
+        schema="public",
+    )
+    op.create_table(
+        "registration_refunds",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column(
+            "payment_id",
+            sa.Integer(),
+            sa.ForeignKey("public.registration_payments.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column("amount_owed", sa.Numeric(12, 2), nullable=False),
+        sa.Column(
+            "refund_status",
+            sa.String(32),
+            nullable=False,
+            server_default=sa.text("'awaiting_refund'"),
+        ),
+        sa.Column("obligated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("due_on", sa.Date(), nullable=False),
+        sa.Column("completed_at", sa.DateTime(timezone=True)),
+        sa.Column("completed_by_user_id", sa.Uuid()),
+        sa.UniqueConstraint("payment_id", name="uq_registration_refunds_payment"),
+        sa.CheckConstraint(
+            "amount_owed >= 0 AND amount_owed <> 'NaN'::numeric",
+            name="ck_registration_refunds_amount_nonnegative",
+        ),
+        sa.CheckConstraint(
+            "refund_status IN ('awaiting_refund', 'completed')",
+            name="ck_registration_refunds_status",
+        ),
+        sa.CheckConstraint(
+            "(refund_status = 'awaiting_refund' AND completed_at IS NULL AND completed_by_user_id IS NULL) OR (refund_status = 'completed' AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL)",
+            name="ck_registration_refunds_completion_evidence",
+        ),
+        sa.CheckConstraint(
+            "completed_at IS NULL OR completed_at >= obligated_at",
+            name="ck_registration_refunds_completion_order",
+        ),
+        schema="public",
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.validate_payment_proof_review() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            PERFORM 1 FROM public.tournament_registration_documents
+                WHERE id = NEW.document_id AND document_type = 'payment_proof' FOR SHARE;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Review must identify a submitted payment proof' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER valid_proof_review BEFORE INSERT ON public.payment_proof_reviews FOR EACH ROW EXECUTE FUNCTION public.validate_payment_proof_review()"
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.validate_registration_payment() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            PERFORM 1 FROM public.payment_proof_reviews r
+                JOIN public.tournament_registration_documents d ON d.id = r.document_id
+                WHERE r.id = NEW.proof_review_id AND r.decision = 'approved'
+                    AND d.registration_id = NEW.registration_id AND d.document_type = 'payment_proof'
+                FOR SHARE OF r, d;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Payment requires an approved proof review for the same registration' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER valid_payment_review BEFORE INSERT ON public.registration_payments FOR EACH ROW EXECUTE FUNCTION public.validate_registration_payment()"
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.validate_registration_refund() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            PERFORM 1 FROM public.registration_payments
+                WHERE id = NEW.payment_id AND amount_received = NEW.amount_owed FOR SHARE;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Refund must equal the verified amount received' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER valid_refund_amount BEFORE INSERT OR UPDATE ON public.registration_refunds FOR EACH ROW EXECUTE FUNCTION public.validate_registration_refund()"
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.protect_reviewed_document() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF EXISTS (SELECT 1 FROM public.payment_proof_reviews WHERE document_id = OLD.id) THEN
+                RAISE EXCEPTION 'Reviewed proof evidence is immutable' USING ERRCODE = '23514';
+            END IF;
+            IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER immutable_reviewed_document BEFORE UPDATE OR DELETE ON public.tournament_registration_documents FOR EACH ROW EXECUTE FUNCTION public.protect_reviewed_document()"
+    )
+    for table in ("payment_proof_reviews", "registration_payments"):
+        op.execute(
+            f"CREATE TRIGGER immutable_evidence BEFORE UPDATE OR DELETE ON public.{table} FOR EACH ROW EXECUTE FUNCTION public.reject_evidence_mutation()"
+        )
+
 
 def downgrade() -> None:
+    op.execute(
+        "DROP TRIGGER immutable_reviewed_document ON public.tournament_registration_documents"
+    )
+    op.execute("DROP FUNCTION public.protect_reviewed_document()")
+    op.drop_table("registration_refunds", schema="public")
+    op.drop_table("registration_payments", schema="public")
+    op.drop_table("payment_proof_reviews", schema="public")
+    op.execute("DROP FUNCTION public.validate_registration_refund()")
+    op.execute("DROP FUNCTION public.validate_registration_payment()")
+    op.execute("DROP FUNCTION public.validate_payment_proof_review()")
     op.execute("DROP TRIGGER immutable_archived_file ON public.stored_files")
     op.execute("DROP FUNCTION public.protect_archived_file_metadata()")
     op.drop_table("registration_acceptances", schema="public")
