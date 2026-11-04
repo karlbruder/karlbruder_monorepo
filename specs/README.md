@@ -1,7 +1,7 @@
 # Specifications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
 These living specifications describe the intended Karlbrüder product and platform. The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the Monomachia source notes, and a read-only inspection of this checkout. Those source notes now live in the Monomachia event specification.
 
@@ -10,7 +10,7 @@ These living specifications describe the intended Karlbrüder product and platfo
 | Document | Purpose |
 | --- | --- |
 | [Product](product.md) | Users, application boundaries, initial scope, and future capabilities |
-| [Taxonomy](taxonomy.md) | Modes, local work, and the `dev` and `prod` cloud environments |
+| [Taxonomy](taxonomy.md) | Application vocabulary, shared-capability ownership, modes, and cloud environments |
 | [Architecture](architecture.md) | Service responsibilities, data flow, integrations, and observed implementation gaps |
 | [Open-question index](open-questions.md) | Deduplicated current-scope questions, deferred questions, and technical follow-up owners |
 | [Decisions](decisions/README.md) | Significant choices and superseded directions |
@@ -62,7 +62,7 @@ Code establishes the observed implementation baseline. It does not redefine desi
 
 ## Project source map
 
-This maps every item returned by the Website project inventory. Issue descriptions and project status were read earlier in this conversation. Comments and linked PRs were not audited. The table is provenance, not a replacement project board.
+This historical map records the Website project inventory used for the 17 October 2026 baseline. Comments and linked PRs were not audited. Its status descriptions are historical provenance, not current implementation or project status.
 
 | Source | Specification destination | Treatment |
 | --- | --- | --- |

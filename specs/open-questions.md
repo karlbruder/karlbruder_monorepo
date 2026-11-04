@@ -37,14 +37,14 @@ The cleanup did not resolve or discard remaining technical work. These topics ar
 
 | Owner | Topics |
 | --- | --- |
-| [Identity](identity/authentication-and-access.md#implementation-decisions) | Callback/recovery paths, session handling, trusted role representation, response conventions |
+| [Identity](identity/authentication-and-access.md#implementation-decisions) | Verify hosted redirects and provider configuration. Preserve established account routes, session handling, and trusted role checks in future workflows |
 | [Storage](platform/data-storage.md#implementation-and-operations-decisions) | S3/Ministack configuration and health-diagnostic exposure |
 | [Deployment](platform/deployment.md#implementation-and-operations-decisions) | Verify live rollout state; workflow configuration; migrations, backups, recovery; Session Manager; DNS cutover |
-| [Local development](platform/local-development.md#implementation-decisions) | Existing port/proxy/health-check alignment, test tooling, optional landing Compose integration |
+| [Local development](platform/local-development.md#implementation-decisions) | Verify browser flows and integrations using the configured ports, API forwarding, and test tooling |
 | [AWS team access](platform/team-access.md#implementation-and-operations-decisions) | Verify deployed grants; onboarding/removal procedures; emergency access and automation credentials |
 | [Communications](tournaments/communications.md#implementation-decisions) | SES SMTP configuration, delivery tracking, retries, duplicate-send handling |
-| [Registration](tournaments/registration.md#implementation-decisions) | Registration-number formatting, API naming, selected-tournament handoff, persistence details |
-| [Capacity](tournaments/capacity-and-waitlist.md#implementation-decisions) | Persistence for staff closure of new registrations; authorized staff waitlist selection and transactional confirmation |
+| [Registration](tournaments/registration.md#implementation-decisions) | Preserve established registration numbers, API paths, acceptance evidence, and selected-tournament handoff in later workflows |
+| [Capacity](tournaments/capacity-and-waitlist.md#implementation-decisions) | Staff editing of the existing closure flag. Authorized waitlist selection and transactional confirmation |
 | [Inventory](inventory/overview.md#implementation-decisions) | Admin account mapping, field validation, archival/deletion representation |
 
 Local SMTP setup is explicitly deferred, likely real SES with real AWS/SES credentials. That does not reopen the chosen production email service or require a local mail emulator.

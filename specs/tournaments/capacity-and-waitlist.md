@@ -53,7 +53,9 @@ Actual event capacity is [Tournament configuration](events/monomachia-2027.md#to
 
 ## Implementation decisions
 
-Choose how to persist staff closure of new registrations; the supplied Tournament starting model has date windows but no explicit closure flag. Closure is an independent business control and must not be inferred from full capacity. Implement waitlist selection as a staff action with authorization, actor/time audit evidence, and transactional capacity checks. Automatic participant selection, promotion, and invitation expiry are outside the agreed policy.
+`Tournament.is_registration_closed` stores staff closure independently of the date window and capacity. Registration creation enforces it. There is no tournament-editing or staff-confirmation endpoint in the current API.
+
+Future staff confirmation and waitlist-selection commands must enforce authorization, actor/time audit evidence, and transactional capacity checks. Automatic participant selection, promotion, and invitation expiry remain outside the agreed policy.
 
 ## Deferred questions
 

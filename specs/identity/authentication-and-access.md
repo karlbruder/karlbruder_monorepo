@@ -47,7 +47,9 @@ The initial `/api/users/me` verification endpoint does not need a local users ta
 
 ## Implementation baseline
 
-Source inspection on 17 October 2026 found Google sign-in/session handling in `frontend/src/App.tsx` and backend JWT verification with an ES256/RS256 allowlist and JWKS. The backend exposes `/api/users/me` and auth tests in `backend/tests/test_auth.py`. This inspection did not run those tests or verify provider configuration. Email/password and recovery screens were not present in the inspected frontend entry point despite issue #18 being marked Done.
+Source inspection on 4 November 2026 found Google and email/password authentication, session restoration, sign-out, and account recovery/password routes under `frontend/src/features/auth/` and `frontend/src/app/`. Supabase calls retain provider names such as `signUp`. The backend verifies JWTs in `backend/app/auth.py` using an ES256/RS256 allowlist and JWKS, and exposes `/api/users/me`. It reads the application role from verified `app_metadata.karlbruder_role`.
+
+The 17 October inspection found only Google sign-in in the old frontend entry point despite issue #18 being marked Done. That historical observation no longer describes the current account screens. Neither inspection establishes hosted provider configuration or live email delivery.
 
 ## Open questions
 
@@ -55,7 +57,7 @@ None for the agreed authentication and role boundaries. The association membersh
 
 ## Implementation decisions
 
-Choose callback/recovery route names, session-expiry handling, and forbidden/not-found response conventions in the delivery plan. Configure callbacks for the decided application domain and existing local development ports. Preserve the selected tournament through sign-in, enforce the existing 401 contract, and store the global admin role in a trusted representation. These technical choices do not reopen self-registration, Supabase UUID ownership, or the three-role policy.
+Account routes and session-expiry behavior are defined by AUTH-003 and AUTH-004. Use the [frontend configuration guide](../../frontend/README.md#account-routes-and-supabase-redirect-urls) for hosted redirect setup and the [tournament API guide](../../backend/app/tournaments/README.md) for current resource-access responses. Future workflows must preserve the selected tournament through sign-in, the existing 401 contract, and trusted role checks. Self-registration, Supabase UUID ownership, and the three-role policy remain requirements.
 
 When the product adds multi-language Auth email, keep one Supabase template per message type. Branch inside each template with Supabase Go template conditionals on `user_metadata` exposed as `{{ .Data.* }}`, as in [Customizing emails by language](https://supabase.com/docs/guides/troubleshooting/customizing-emails-by-language-KZ_38Q). Persist the person's language preference in `user_metadata` on sign-up and when they change language in the app. Do not adopt a separate Send Email Hook for Auth mail unless a later decision requires it.
 

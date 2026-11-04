@@ -39,8 +39,9 @@ RegistrationRefund associations separately from TournamentRegistration. Payments
 retains shared Payment and Refund financial facts. Staff decisions must
 identify the exact proof, actual received amount and attributable actor/time.
 No review, receipt or refund row changes capacity or participation by itself.
-The review commands in #60 apply the relevant facts and participation outcome
-atomically. Refund commands remain later work.
+Future review commands must apply the relevant facts and participation outcome
+atomically. Staff review, confirmation, cancellation, and refund commands are not
+implemented. The records alone do not fulfill the administration requirements above.
 
 ## Acceptance criteria
 

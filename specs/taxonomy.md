@@ -1,13 +1,37 @@
 # Taxonomy
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
 These names are the shared vocabulary for the rest of the specifications.
 
+## Application vocabulary
+
+| Term | Meaning and implemented names |
+| --- | --- |
+| Account sign-up | Create a Supabase Auth account. Keep provider identifiers such as `signUp` and the `/account/sign-up` route |
+| Tournament registration | Participate in an event through `TournamentRegistration`, `registration_number`, and `/api/tournaments/{tournament_id}/registrations`. The frontend entry is `/tournaments/registration` |
+| Discipline | The tournament's sporting discipline, such as `longsword`. Keep the `discipline` field |
+| Parental consent form | The minor's signed document. Use `parental_consent_form` in fields and document purpose, and `parental-consent-form` in routes |
+| Stored file | `StoredFile` identifies a stored object. Shared metadata and storage operations belong to `app/core/files/` |
+| Archived file | `ArchivedFile` preserves a captured content version. `archive_file` belongs to `app/core/files/`. The consuming domain owns purpose, validation, access, retention, and current-version selection |
+| Registration document | `TournamentRegistrationDocument` associates a submitted file with a registration and its purpose |
+| Acceptance | `RegistrationAcceptance` retains exact content and separate choices. Inline policies remain text. Linked documents use archived copies |
+| Payment and refund | Payments owns generic `Payment` and `Refund` facts. Tournaments owns settings, proof reviews, and `RegistrationPayment` / `RegistrationRefund` associations |
+
+Dependencies run from consuming domains to shared capabilities. Future membership
+and legal-policy examples explain reuse. They do not establish implemented features.
+See [decision 0008](decisions/0008-shared-files-and-archives.md) for file ownership
+and [decision 0009](decisions/0009-shared-payments-and-domain-associations.md) for
+financial ownership. [Decision 0010](decisions/0010-database-evidence-guards.md)
+explains the specific database guards and their limits.
+
+Use registration in active tournament guidance. Preserve old names when explicitly
+describing historical material. Account sign-up remains a separate operation.
+
 ## Local and cloud
 
-Local enviroment uses the development mode. The software runs on a laptop through `compose.yml`, with development servers with hot-reload and a local PostgreSQL container.
+Local environment uses development mode. The software runs on a laptop through `compose.yml`, with development servers with hot-reload and a local PostgreSQL container.
 
 A cloud environment uses production builds and configuration. The software runs on an EC2 host through `compose.production.yml`, with built images, Nginx, and hosted Supabase.
 

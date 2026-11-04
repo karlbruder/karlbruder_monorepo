@@ -52,7 +52,7 @@ Event values are staff-managed Tournament configuration, not product questions. 
 
 No concrete fee, Pix destination, registration dates, capacity, venue, schedule, or final regulation is asserted here. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
 
-The supplied model is a starting domain shape. Staff closure of new registrations and versioned acceptance evidence may require supporting fields or records chosen during implementation. Do not assume the listed fields already implement every agreed workflow.
+The table lists event configuration, not the full schema. `Tournament.is_registration_closed` and `RegistrationAcceptance` already support staff closure and versioned acceptance evidence. Their presence does not implement staff editing, confirmation, or refund workflows. See the [registration baseline](../registration.md#implementation-baseline).
 
 ## Open questions
 

@@ -17,7 +17,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 ## Rules
 
 - **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Fees are configured through Tournament `registration_fee_amount`, always in BRL. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
-- **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally once file storage is implemented; they are not public site files.
+- **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally. They are not public site files.
 - **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `payment_in_review` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
 - **PAY-004:** Guild staff (admins) review payment evidence and record decisions. Rejection records a reason, shows a rejected-evidence outcome and message to the participant, and notifies them. The participant may submit another proof for review. Rejection does not confirm a seat or cancel participation by itself. Representing the review outcome separately from registration status is an implementation decision.
 - **PAY-005:** Guild staff manually approves payment. If the registration meets participation requirements and a seat is available, approval confirms the registration and assigns that seat atomically. If the tournament is full, the registration becomes `waitlist` and the user is notified by email. There is no seat reservation before confirmation.
@@ -69,11 +69,13 @@ recording admin UUID. They do not reactivate cancelled participation or prevent
 an otherwise valid replacement registration. These constraints also apply to
 direct database writes.
 
-Issue #60 owns trusted-admin authorization, reviewability, concurrent decisions
-and atomic review/receipt/participation changes. Later refund work owns paid
-cancellation, calculating the deadline under PAY-012, recording actual completion
-and notifications. Deadline values in persistence tests are explicit fixtures.
-This schema introduces no review/refund command or automatic deadline calculation.
+The current API supports proof submission and authorized retrieval. Staff review,
+confirmation, cancellation, and refund commands are not implemented. Future review
+commands must verify trusted-admin access, reviewability, and concurrent decisions,
+then commit the review, receipt, and participation outcome atomically. Refund
+workflows must calculate the deadline under PAY-012, record actual completion,
+and send the required notifications. Persistence records and database guards do
+not implement those workflows or authorize their actors.
 
 ## Initial journey
 
