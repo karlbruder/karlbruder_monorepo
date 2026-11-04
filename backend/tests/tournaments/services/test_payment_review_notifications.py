@@ -58,3 +58,18 @@ def test_delivery_failure_returns_result_without_retries_or_private_logs(failure
     assert sender.send.call_count == (0 if result == "lookup_failed" else 1)
     assert "private" not in caplog.text
     assert caplog.records[-1].delivery_result == result
+
+
+
+def test_missing_application_url_skips_delivery_and_logs_unavailable(caplog):
+    accounts, sender = Mock(), Mock()
+    notice = PaymentReviewNotice(42, uuid4(), 7, "T7", "waitlist")
+    with caplog.at_level(logging.INFO):
+        result = send_payment_review_notice(
+            notice, accounts=accounts, sender=sender,
+            application_base_url=None, from_address="support@example.test",
+        )
+    assert result == "unavailable"
+    accounts.read_email.assert_not_called()
+    sender.send.assert_not_called()
+    assert caplog.records[-1].delivery_result == "unavailable"

@@ -31,7 +31,7 @@ def staff_review_setup(monkeypatch, db_session):
     yield from registration_setup.__wrapped__(monkeypatch, db_session)
 
 
-BASE = "/api/tournaments/staff/payment-reviews"
+BASE = "/api/staff/tournaments/payment-reviews"
 
 
 def _pending(setup, *, internal=False):

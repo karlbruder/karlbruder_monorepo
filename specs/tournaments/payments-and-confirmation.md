@@ -69,10 +69,11 @@ recording admin UUID. They do not reactivate cancelled participation or prevent
 an otherwise valid replacement registration. These constraints also apply to
 direct database writes.
 
-The current API supports proof submission and authorized retrieval. Staff review,
-confirmation, cancellation, and refund commands are not implemented. Future review
-commands must verify trusted-admin access, reviewability, and concurrent decisions,
-then commit the review, receipt, and participation outcome atomically. Refund
+The API supports proof submission, authorized retrieval, and exact-proof staff
+approval/rejection. Approval atomically saves the review, shared receipt, association,
+and confirmed or paid-waitlist outcome. Rejection returns to `awaiting_payment`
+with a separate current-proof review and reason. Only a new proof can be reviewed
+after rejection. Cancellation and refund commands remain unimplemented. Refund
 workflows must calculate the deadline under PAY-012, record actual completion,
 and send the required notifications. Persistence records and database guards do
 not implement those workflows or authorize their actors.

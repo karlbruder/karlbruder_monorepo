@@ -37,6 +37,9 @@ def require_authenticated_user(
     return current_user
 
 
+AuthenticatedUser = Annotated[User, Depends(require_authenticated_user)]
+
+
 def require_admin(
     current_user: Annotated[User, Depends(require_authenticated_user)],
 ) -> User:

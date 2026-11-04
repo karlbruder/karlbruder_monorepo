@@ -124,6 +124,12 @@ make lint-backend TEST_PROJECT=kb-test-your-name
 
 Rebuild after dependency changes. The test stack does not establish live Supabase or storage integration health.
 
+## API route conventions
+
+Follow the [HTTP route design guideline](AGENTS.md#http-route-design) for resource
+URLs, router-owned prefixes, staff paths, HTTP methods, and workflow actions.
+Existing endpoints are migrated only through an explicitly scoped API change.
+
 ## Further reading
 
 [Repository setup](../README.md) · [Specifications](../specs/README.md)
@@ -159,6 +165,13 @@ They attempt delivery once and return `sent`, `lookup_failed`, `unavailable`, or
 `send_failed`. Logs include only review ID, notice type, and result. There are no
 attachments, automatic retries, or durable outbox. The decision workflow must
 call the helper after commit and after releasing locks. An application crash
-between commit and delivery can lose a notice. Decision integration is a later
-checkpoint. Real SES delivery, sender verification, credentials, and hosted Auth
+between commit and delivery can lose a notice. The payment-review decision command invokes these helpers after commit. Real SES delivery, sender verification, credentials, and hosted Auth
 read privileges remain deployment checks. Tests mock lookup and SMTP.
+
+
+## Deferred concurrency test methodology
+
+A future issue will introduce a `concurrency` pytest marker and a shared race-test
+methodology. See the [testing specification](../specs/platform/testing.md).
+The dedicated payment-review concurrency suite is deferred. Existing tests remain.
+Transaction locks and atomic payment/capacity behavior remain in the implementation.

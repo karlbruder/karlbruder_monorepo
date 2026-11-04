@@ -22,6 +22,11 @@ def test_openapi_includes_health_metadata_and_domain_routes_with_bearer_security
     paths = response.json()["paths"]
     assert {"/api/health", "/api/metadata", "/api/health/db", "/api/health/auth"} <= paths.keys()
     assert "/api/tournaments" in paths
+    assert "get" in paths["/api/tournaments"]
+    assert "post" not in paths["/api/tournaments"]
+    assert paths["/api/staff/tournaments"]["post"]["security"] == [{"HTTPBearer": []}]
+    assert "/api/staff/tournaments/payment-reviews" in paths
+    assert not any(path.startswith("/api/tournaments/staff/") for path in paths)
     assert paths["/api/users/me"]["get"]["security"] == [{"HTTPBearer": []}]
 
 

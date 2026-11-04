@@ -63,6 +63,64 @@ Use explicit response schemas to prevent private-field leaks. Preserve routes, s
 
 Schemas validate types, required fields, formats, and consistency between submitted values, such as rejecting an end date before the start date. Services decide registration windows and actor permissions. Validators do not query databases, fetch settings, or authorize. Services may accept schemas without a duplicate DTO.
 
+## HTTP route design
+
+Prefer resource URLs and standard HTTP methods. Use lowercase, hyphenated segments,
+plural collections, and identifiers after collections. Use query parameters for
+filtering and pagination. Preserve established lookup identifiers.
+
+Paths express public domain concepts, not package structure. A domain namespace
+groups collections. A parent ID scopes them to one record:
+
+- `/api/staff/tournaments/payment-reviews`: reviews across tournaments.
+- `/api/staff/tournaments/{tournament_id}/payment-reviews`: reviews for one tournament.
+
+Nest only when the parent defines scope. Keep nesting shallow. Do not repeat the
+domain when it already names the resource, as in `/api/tournaments/{tournament_id}`.
+
+Use `/api/staff/` for staff-only endpoints, with visible `require_admin` on each.
+Guest-accessible and signed-in endpoints use `/api/` with explicit auth dependencies.
+Prefixes do not authorize callers. Do not duplicate a method/path by role.
+Shared endpoints may return the caller's permitted projection.
+
+Assembly routers only include child routers, without endpoints or prefixes.
+Endpoint-owning routers declare their full `/api/` or `/api/staff/` prefix and use
+relative decorator paths. Group routes in `routers/anonymous.py`,
+`routers/authenticated.py`, and `routers/staff.py` as needed. Anonymous allows both
+guests and signed-in users.
+
+| Method | Use | Idempotent by method semantics |
+| --- | --- | --- |
+| GET | Read a resource or collection | Yes |
+| POST | Create a resource or execute a custom action | No guarantee |
+| PATCH | Update supplied fields | No guarantee |
+| PUT | Replace the complete representation | Yes |
+| DELETE | Remove a resource | Yes |
+
+GET has no request body or domain side effects. Logging and metrics are allowed.
+Prefer PATCH for partial updates. Idempotence concerns repeated effects, not
+identical responses. See [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2)
+and [PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html#section-2).
+
+Prefer resource operations over verbs such as `/createRegistration`. Model workflows
+as resources when clients need their identity, state, or history. Do not invent a
+resource solely to avoid a verb. Validation and side effects alone do not require
+an action route.
+
+When standard resource operations do not express the intent, use a custom action.
+State-changing actions use POST to `<resource-path>/<action>`, with identifiers
+before a short verb phrase. For example, a resend command could use
+`POST <registration-path>/resend-confirmation`. Use a collection path only for
+collection-wide actions. Document inputs, results, and retry behavior.
+
+Services enforce lifecycle rules, capacity, authorization, and required notifications
+for both resource operations and actions. Field updates must not bypass these rules.
+
+Apply these rules to new or explicitly redesigned routes. Preserve existing paths,
+identifiers, and trailing slashes until migration is scoped. Update callers, tests,
+and owning API documentation together. Routing cleanup does not authorize database
+identity changes or API versioning.
+
 ## Services and transactions
 
 - Use functions unless a class owns meaningful state or dependencies. Group related workflows or rules, such as `tournament_registrations.py` and `tournament_local_dates.py`.
@@ -86,7 +144,14 @@ Keep errors with their owner, without FastAPI types or HTTP codes. Core errors d
 
 `app/auth/` owns identity types, token verification, roles, route dependencies, and `GET /api/users/me`. Its `User` and `AnonymousUser` are identity values, not database tables. Supabase owns account creation and credentials.
 
-Attach one visible auth dependency to each domain route:
+Declare access dependencies on the endpoint or on its router. An authenticated
+router can use `dependencies=[Depends(require_authenticated_user)]` to protect all
+its endpoints. Handlers needing the verified identity use the `AuthenticatedUser`
+type alias. Router-level dependencies enforce access but do not pass their return
+values to handlers. FastAPI reuses the dependency result within the request.
+Keep `require_admin` explicit on staff endpoints.
+
+Choose the dependency for the required access:
 
 | Dependency | Access |
 | --- | --- |
@@ -137,7 +202,7 @@ Tests live under `backend/tests/`, mirroring source ownership:
 | --- | --- |
 | `app/tournaments/services/tournament_local_dates.py` | `tests/tournaments/services/test_tournament_local_dates.py` |
 | `app/tournaments/models/tournament_registration_document.py` | `tests/tournaments/models/test_tournament_registration_document.py` |
-| `app/tournaments/router.py` | `tests/tournaments/test_router.py` |
+| `app/tournaments/routers/staff.py` | `tests/tournaments/test_payment_proof_reviews.py` |
 | `config/aws.py` | `tests/config/test_aws_settings.py` |
 
 Core file tests belong in `tests/core/files/`. Tournament upload-policy tests belong in `tests/tournaments/services/test_registration_uploads.py`. Move source and meaningful tests together.

@@ -28,46 +28,50 @@ def send_payment_review_notice(
     *,
     accounts: AccountEmailReader,
     sender: MailSender,
-    application_base_url: str,
+    application_base_url: str | None,
     from_address: str,
 ) -> DeliveryResult:
     """Attempt once after commit. Log identifiers and result, never delivery content."""
-    query = urlencode(
-        {
-            "tournament_id": notice.tournament_id,
-            "registration_number": notice.registration_number,
-        }
-    )
-    link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
-    if notice.outcome == "waitlist":
-        subject = f"Inscrição {notice.registration_number}: lista de espera"
-        body = (
-            f"Inscrição {notice.registration_number}\n\n"
-            "Seu pagamento foi aprovado. Sua inscrição está na lista de espera. "
-            "Você não tem uma vaga confirmada. Não é necessário pagar novamente.\n\n"
-            f"Consulte sua inscrição no aplicativo: {link}\n"
-        )
-    else:
-        if not notice.rejection_reason or not notice.rejection_reason.strip():
-            raise ValueError("Rejected evidence requires a reason")
-        subject = f"Inscrição {notice.registration_number}: comprovante rejeitado"
-        body = (
-            f"Inscrição {notice.registration_number}\n\n"
-            f"Seu comprovante foi rejeitado. Motivo: {notice.rejection_reason}\n\n"
-            "Sua inscrição não foi cancelada e não tem uma vaga confirmada. "
-            "Entre no aplicativo para enviar um novo comprovante: "
-            f"{link}\n"
-        )
-    try:
-        recipient = accounts.read_email(notice.user_id)
-        sender.send(from_address=from_address, recipient=recipient, subject=subject, body=body)
-        result: DeliveryResult = "sent"
-    except AccountEmailReadError:
-        result = "lookup_failed"
-    except MailUnavailableError:
-        result = "unavailable"
-    except MailDeliveryError:
-        result = "send_failed"
+    result: DeliveryResult = "unavailable"
+    if application_base_url is not None:
+        try:
+            query = urlencode(
+                {
+                    "tournament_id": notice.tournament_id,
+                    "registration_number": notice.registration_number,
+                }
+            )
+            link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
+            if notice.outcome == "waitlist":
+                subject = f"Inscrição {notice.registration_number}: lista de espera"
+                body = (
+                    f"Inscrição {notice.registration_number}\n\n"
+                    "Seu pagamento foi aprovado. Sua inscrição está na lista de espera. "
+                    "Você não tem uma vaga confirmada. Não é necessário pagar novamente.\n\n"
+                    f"Consulte sua inscrição no aplicativo: {link}\n"
+                )
+            else:
+                if not notice.rejection_reason or not notice.rejection_reason.strip():
+                    raise ValueError("Rejected evidence requires a reason")
+                subject = f"Inscrição {notice.registration_number}: comprovante rejeitado"
+                body = (
+                    f"Inscrição {notice.registration_number}\n\n"
+                    f"Seu comprovante foi rejeitado. Motivo: {notice.rejection_reason}\n\n"
+                    "Sua inscrição não foi cancelada e não tem uma vaga confirmada. "
+                    "Entre no aplicativo para enviar um novo comprovante: "
+                    f"{link}\n"
+                )
+            recipient = accounts.read_email(notice.user_id)
+            sender.send(
+                from_address=from_address, recipient=recipient, subject=subject, body=body
+            )
+            result = "sent"
+        except AccountEmailReadError:
+            result = "lookup_failed"
+        except MailUnavailableError:
+            result = "unavailable"
+        except MailDeliveryError:
+            result = "send_failed"
     logger.info(
         "payment_review_notification",
         extra={

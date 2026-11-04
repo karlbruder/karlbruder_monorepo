@@ -205,7 +205,7 @@ def setup(monkeypatch, db_session):
 
 def _create_event(client, key, **changes):
     response = client.post(
-        "/api/tournaments", json=_event(**changes), headers=_headers(key, role="admin")
+        "/api/staff/tournaments", json=_event(**changes), headers=_headers(key, role="admin")
     )
     assert response.status_code == 201, response.text
     return response.json()["id"]
@@ -1509,7 +1509,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
 
     monkeypatch.setattr(PolicyFetcher, "fetch", fetch)
     response = client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         headers=_headers(key, role="admin"),
         json=_event(
             rules_url="https://policies.example.test/rules",
@@ -1561,7 +1561,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
 
     def request():
         return client.post(
-            "/api/tournaments",
+            "/api/staff/tournaments",
             headers=_headers(key, role="admin"),
             json=_event(rules_url="https://policies.example.test/new"),
         )

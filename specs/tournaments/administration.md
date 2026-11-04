@@ -39,9 +39,10 @@ RegistrationRefund associations separately from TournamentRegistration. Payments
 retains shared Payment and Refund financial facts. Staff decisions must
 identify the exact proof, actual received amount and attributable actor/time.
 No review, receipt or refund row changes capacity or participation by itself.
-Future review commands must apply the relevant facts and participation outcome
-atomically. Staff review, confirmation, cancellation, and refund commands are not
-implemented. The records alone do not fulfill the administration requirements above.
+The payment-review command applies those facts and participation atomically.
+It confirms when capacity permits and records paid waitlist otherwise. Rejection
+records its reason and returns to awaiting payment without cancelling participation.
+Waitlist selection, cancellation, and refund commands remain unimplemented. The records alone do not fulfill the administration requirements above.
 
 ## Acceptance criteria
 
@@ -70,17 +71,17 @@ Audit-record retention follows [privacy rules](consent-and-privacy.md#rules). Au
 ## Staff payment-review evidence
 
 Admins can read pending work across all tournaments with
-`GET /api/tournaments/staff/payment-reviews`. The queue supports `limit` (1–100),
+`GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
 `offset`, and an optional exact `registration_number`. It includes only registrations
 in `payment_in_review` whose latest proof has no decision. Results are ordered by
 current proof ID. The queue excludes contact, identity, safety, and storage fields.
 
-`GET /api/tournaments/staff/payment-reviews/{registration_number}` returns the staff
+`GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
 registration projection, fee, deadline, equipment requirements, capacity, confirmed
 count, proof versions, parental form metadata, and review history. Decided records
 remain readable. Reads do not allocate seats or record decisions.
 
-`GET /api/tournaments/staff/payment-reviews/{registration_number}/documents/{document_id}/download-url`
+`GET /api/staff/tournaments/payment-reviews/{registration_number}/documents/{document_id}/download-url`
 issues a short-lived URL only for a proof or parental form belonging to that
 registration. Metadata reads do not call storage. Unknown registrations and mismatched
 documents return 404. Storage failures return 503. Guests receive 401 and authenticated

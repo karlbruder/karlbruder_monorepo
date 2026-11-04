@@ -39,9 +39,9 @@ PaymentProofReview records evidence decisions. RegistrationPayment links the
 actual verified Payment. RegistrationRefund links the shared Refund and its
 completion evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
-new trigger. Staff review/refund commands are not implemented. Payment-review
-notification helpers and their SMTP/account-email clients exist, but are not yet
-called by a decision command.
+new trigger. Payment-review decisions now invoke the notification helper after
+commit for rejection or paid waitlist. Confirmed approval sends no email in this
+scope. Refund commands and their notices remain unimplemented.
 
 ## Acceptance criteria
 
@@ -71,7 +71,7 @@ workflow commits and releases its database locks. It returns a typed delivery
 result and logs only the review ID, notification type, and result. Lookup or SMTP
 failure does not change the decision. Duplicate decisions must not replay delivery.
 There is no automatic retry or durable outbox. A crash between commit and send can
-lose the notice. The helper is infrastructure until the decision command calls it.
+lose the notice. The decision command calls the helper after commit.
 Waitlist and rejection messages contain the registration number and an authenticated
 application link. They are addressed to the tournament registrant, using their current account
 address and Portuguese copy. The workflow passes the configured sender explicitly

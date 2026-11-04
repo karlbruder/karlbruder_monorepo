@@ -123,7 +123,9 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 
 ## Implementation baseline
 
-Source inspection on 4 November 2026 found tournament catalog and registration routes, acceptance snapshots, private parental-consent-form and payment-proof uploads, and Alembic migrations. Financial evidence records exist. Staff payment review, confirmation, waitlist selection, registration corrections, cancellation, and refund commands are not implemented. The rules and acceptance criteria above describe intended behavior across those workflows. See the [tournament API guide](../../backend/app/tournaments/README.md) for implemented routes.
+Source inspection on 4 November 2026 found tournament catalog and registration routes, acceptance snapshots, private parental-consent-form and payment-proof uploads, and Alembic migrations. Financial evidence records exist. Staff payment review now approves or rejects exact proofs, with atomic confirmation
+or paid waitlist and owner-visible rejection reasons. Waitlist selection, registration
+corrections, cancellation, and refund commands remain unimplemented. The rules and acceptance criteria above describe intended behavior across those workflows. See the [tournament API guide](../../backend/app/tournaments/README.md) for implemented routes.
 
 Historical context: the 17 October inspection predated the tournament routes, models, and migration tree. Issue #21's public form placement remains superseded by [decision 0001](../decisions/0001-public-website-and-application.md).
 

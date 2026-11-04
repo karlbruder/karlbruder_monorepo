@@ -53,9 +53,20 @@ Actual event capacity is [Tournament configuration](events/monomachia-2027.md#to
 
 ## Implementation decisions
 
-`Tournament.is_registration_closed` stores staff closure independently of the date window and capacity. Registration creation enforces it. There is no tournament-editing or staff-confirmation endpoint in the current API.
+`Tournament.is_registration_closed` stores staff closure independently of the date window and capacity. Registration creation enforces it. Payment-review approval can confirm participation. Tournament editing and
+confirmation of selected paid-waitlist participants remain unimplemented.
 
-Future staff confirmation and waitlist-selection commands must enforce authorization, actor/time audit evidence, and transactional capacity checks. Automatic participant selection, promotion, and invitation expiry remain outside the agreed policy.
+Payment review locks the tournament before the registration and counts only
+confirmed registrations while holding those locks. Null capacity permits confirmation.
+A full tournament produces paid waitlist, with no automatic promotion. Future
+waitlist-selection commands must use the same lock order and capacity check. Automatic participant selection, promotion, and invitation expiry remain outside the agreed policy.
+
+### Deferred concurrency verification
+
+The dedicated payment-review race tests and shared pytest methodology are deferred
+to a [separate testing issue](../platform/testing.md). CAP-003 and CAP-AC-002 remain
+required behavior. Transaction locks remain implemented. Ordinary capacity tests
+do not replace verification with overlapping requests.
 
 ## Deferred questions
 

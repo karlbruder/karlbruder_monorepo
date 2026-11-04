@@ -101,10 +101,10 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     test_client, key = client
     admin = _headers(key, "admin")
     first = test_client.post(
-        "/api/tournaments", json=_event("Monomachia Fixture"), headers=admin
+        "/api/staff/tournaments", json=_event("Monomachia Fixture"), headers=admin
     )
     second = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event(
             "Second Fixture", registration_fee_amount="75.00", discipline="sabre"
         ),
@@ -139,12 +139,12 @@ def test_internal_event_is_hidden_from_guest_and_regular_user(client):
     test_client, key = client
     admin = _headers(key, "admin")
     public_id = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event("Public Fixture", slug="public-fixture"),
         headers=admin,
     ).json()["id"]
     internal_id = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event("Internal Fixture", internal=True, slug="internal-fixture"),
         headers=admin,
     ).json()["id"]
@@ -191,12 +191,12 @@ def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(clien
     test_client, key = client
     admin = _headers(key, "admin")
     first = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event("Monomachia Fixture", slug="monomachia-2027"),
         headers=admin,
     )
     second = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event(
             "Other Fixture", slug="other-2028", starts_at="2028-03-02T12:00:00Z"
         ),
@@ -224,7 +224,7 @@ def test_list_filters_by_name_and_event_dates_and_duplicate_slug_conflicts(clien
     )
 
     duplicate = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event("Another Fixture", slug="monomachia-2027"),
         headers=admin,
     )
@@ -242,7 +242,7 @@ def test_invalid_slug_is_rejected_on_create(client, slug):
     admin = _headers(key, "admin")
     assert (
         test_client.post(
-            "/api/tournaments", json=_event(slug=slug), headers=admin
+            "/api/staff/tournaments", json=_event(slug=slug), headers=admin
         ).status_code
         == 422
     )
@@ -255,8 +255,8 @@ def test_missing_or_blank_slug_uses_name_discipline_and_event_year(client):
     omitted = _event("Monomachia", discipline="longsword")
     del omitted["slug"]
     blank = _event("Monomachia", discipline=None, slug="  ")
-    created = test_client.post("/api/tournaments", json=omitted, headers=admin)
-    blank_created = test_client.post("/api/tournaments", json=blank, headers=admin)
+    created = test_client.post("/api/staff/tournaments", json=omitted, headers=admin)
+    blank_created = test_client.post("/api/staff/tournaments", json=blank, headers=admin)
     assert created.status_code == blank_created.status_code == 201
     assert created.json()["slug"] == "monomachia-longsword-2027"
     assert blank_created.json()["slug"] == "monomachia-2027"
@@ -277,7 +277,7 @@ def test_only_trusted_admin_claim_can_create(client):
     ):
         assert (
             test_client.post(
-                "/api/tournaments", json=_event(), headers=headers
+                "/api/staff/tournaments", json=_event(), headers=headers
             ).status_code
             == expected
         )
@@ -323,7 +323,7 @@ def test_guest_catalog_does_not_fetch_jwks_and_supplied_token_outage_is_503(
 def test_admin_create_rejects_invalid_configuration(client, changes):
     test_client, key = client
     response = test_client.post(
-        "/api/tournaments", json=_event(**changes), headers=_headers(key, "admin")
+        "/api/staff/tournaments", json=_event(**changes), headers=_headers(key, "admin")
     )
     assert response.status_code == 422
     assert test_client.get("/api/tournaments").json()["items"] == []
@@ -344,7 +344,7 @@ def test_pix_key_can_be_set_on_create_but_never_appears_in_catalog_reads(client)
     test_client, key = client
     admin = _headers(key, "admin")
     created = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event(
             "Pix Fixture",
             pix_key="EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY",
@@ -370,7 +370,7 @@ def test_catalog_routes_have_explicit_response_contracts(client):
     assert "/api/tournaments" in schema["paths"]
     assert "/api/tournaments/{tournament_id}" in schema["paths"]
     assert "/api/tournaments/by-slug/{slug}" not in schema["paths"]
-    assert "201" in schema["paths"]["/api/tournaments"]["post"]["responses"]
+    assert "201" in schema["paths"]["/api/staff/tournaments"]["post"]["responses"]
     assert "200" in schema["paths"]["/api/tournaments"]["get"]["responses"]
     assert {
         parameter["name"]
@@ -393,7 +393,7 @@ def test_catalog_routes_have_explicit_response_contracts(client):
 def test_catalog_preserves_separate_optional_policy_text_and_urls(client, policies):
     test_client, key = client
     created = test_client.post(
-        "/api/tournaments", json=_event(**policies), headers=_headers(key, "admin")
+        "/api/staff/tournaments", json=_event(**policies), headers=_headers(key, "admin")
     )
     assert created.status_code == 201, created.text
     for name in (
@@ -416,7 +416,7 @@ def test_catalog_preserves_separate_optional_policy_text_and_urls(client, polici
 def test_policy_url_rejects_non_web_links(client, field, value):
     test_client, key = client
     response = test_client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         json=_event(**{field: value}),
         headers=_headers(key, "admin"),
     )
