@@ -127,3 +127,38 @@ Rebuild after dependency changes. The test stack does not establish live Supabas
 ## Further reading
 
 [Repository setup](../README.md) · [Specifications](../specs/README.md)
+
+## Application mail configuration
+
+Application mail uses AWS SES SMTP with authenticated STARTTLS and certificate
+verification. Set `SMTP_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT` (normally 587),
+`SMTP_USERNAME`, `SMTP_PASSWORD`, and `APP_BASE_URL`. Credentials belong in backend
+environment configuration or Secrets Manager. Do not put them in browser settings.
+`APP_BASE_URL` is the browser application origin without a path, credentials, query,
+or fragment. Links open `/tournaments/registration` with `tournament_id` and
+`registration_number`. The application still enforces ownership after sign-in.
+
+`SMTP_TIMEOUT_SECONDS` defaults to 5 and must be greater than 0 and at most 30.
+Each SMTP network operation uses that timeout. Port 465 is rejected because this
+client uses STARTTLS rather than implicit TLS. Enabled delivery requires all
+connection fields and the application origin at startup. Local and test delivery
+are disabled by default. No mail emulator is included.
+
+Current recipients come from a parameterized read of `auth.users.email` by UUID,
+using `AUTH_DB_*`. The lifespan-owned lookup engine uses a 5-second pool wait,
+connection timeout, and PostgreSQL statement timeout. Startup constructs clients
+without opening external connections. The Auth database role needs SELECT access
+to the required fields. The backend does not modify managed Auth tables.
+
+Portuguese waitlist and rejected-proof helpers receive the sender as an explicit
+`from_address` parameter. The workflow supplies `SMTP_FROM`, which defaults to
+`Suporte Karlbrüder <no-reply@karlbruder.com.br>` and may be overridden in backend
+configuration. The recipient is the tournament registrant, using their current
+account address. The deciding admin does not receive these notices.
+They attempt delivery once and return `sent`, `lookup_failed`, `unavailable`, or
+`send_failed`. Logs include only review ID, notice type, and result. There are no
+attachments, automatic retries, or durable outbox. The decision workflow must
+call the helper after commit and after releasing locks. An application crash
+between commit and delivery can lose a notice. Decision integration is a later
+checkpoint. Real SES delivery, sender verification, credentials, and hosted Auth
+read privileges remain deployment checks. Tests mock lookup and SMTP.

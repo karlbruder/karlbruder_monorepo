@@ -1,3 +1,5 @@
+from pydantic import AnyHttpUrl
+
 from .base import Settings
 
 
@@ -12,3 +14,6 @@ class LocalSettings(Settings):
     S3_BUCKET_NAME: str = "kb-local-bucket"
     S3_ENDPOINT_URL: str = "http://ministack:4566"
     S3_BROWSER_ENDPOINT_URL: str = "http://localhost:4566"
+
+    SMTP_ENABLED: bool = False
+    APP_BASE_URL: AnyHttpUrl = "http://localhost:5173"

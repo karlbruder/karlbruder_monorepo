@@ -58,17 +58,24 @@ def test_lifespan_initializes_and_disposes_sync_and_async_resources(monkeypatch,
     from app.main import lifespan
 
     sync_engine = Mock()
+    auth_engine = Mock()
     async_engine = Mock()
     async_engine.dispose = AsyncMock()
     sync_maker = Mock()
     async_maker = Mock()
-    monkeypatch.setattr(db, "create_sync_engine", Mock(return_value=sync_engine))
+    monkeypatch.setattr(db, "create_sync_engine", Mock(side_effect=[sync_engine, auth_engine]))
     monkeypatch.setattr(db, "create_async_engine_instance", Mock(return_value=async_engine))
     monkeypatch.setattr(db, "create_sync_session_maker", Mock(return_value=sync_maker))
     monkeypatch.setattr(db, "create_async_session_maker", Mock(return_value=async_maker))
 
     async def run():
         async with lifespan(karlbruder_app):
+            assert db.create_sync_engine.call_args.kwargs == {
+                "pool_timeout": 5,
+                "connect_args": {"connect_timeout": 5, "options": "-c statement_timeout=5000"},
+            }
+            assert karlbruder_app.state.account_email_reader.engine is auth_engine
+            assert karlbruder_app.state.mail_sender.enabled is False
             assert db.sync_engine is sync_engine
             assert db.async_engine is async_engine
             assert db.sync_session_maker is sync_maker
@@ -82,6 +89,9 @@ def test_lifespan_initializes_and_disposes_sync_and_async_resources(monkeypatch,
     else:
         asyncio.run(run())
 
+    auth_engine.dispose.assert_called_once()
+    assert karlbruder_app.state.account_email_reader is None
+    assert karlbruder_app.state.mail_sender is None
     sync_engine.dispose.assert_called_once()
     async_engine.dispose.assert_awaited_once()
     assert db.sync_engine is None and db.async_engine is None
@@ -108,3 +118,29 @@ def test_lifespan_disposes_sync_engine_if_async_initialization_fails(monkeypatch
 
     sync_engine.dispose.assert_called_once()
     assert db.sync_engine is None and db.async_engine is None
+
+
+def test_lifespan_cleans_domain_resources_if_account_lookup_initialization_fails(monkeypatch):
+    import asyncio
+    from unittest.mock import AsyncMock, Mock
+
+    from app.core import db
+    from app.main import lifespan
+
+    sync_engine = Mock()
+    async_engine = Mock(dispose=AsyncMock())
+    monkeypatch.setattr(db, "create_sync_engine", Mock(side_effect=[sync_engine, ValueError("invalid auth config")]))
+    monkeypatch.setattr(db, "create_async_engine_instance", Mock(return_value=async_engine))
+    monkeypatch.setattr(db, "create_sync_session_maker", Mock())
+    monkeypatch.setattr(db, "create_async_session_maker", Mock())
+
+    async def run():
+        async with lifespan(karlbruder_app):
+            pytest.fail("Startup must fail before serving requests")
+
+    with pytest.raises(ValueError, match="invalid auth config"):
+        asyncio.run(run())
+    sync_engine.dispose.assert_called_once()
+    async_engine.dispose.assert_awaited_once()
+    assert db.sync_engine is None and db.async_engine is None
+    assert karlbruder_app.state.account_email_reader is None

@@ -167,7 +167,7 @@ Source inspection on 4 November 2026 established the following implementation ba
 - Health and metadata endpoints are documented in the [backend README](../backend/README.md#diagnostics). Frontend production build configuration is documented in the [frontend README](../frontend/README.md#configuration).
 - Tournament registration, private uploads, preserved policies, acceptance snapshots, and financial evidence records are implemented. Staff payment-review and refund commands remain future work. The [tournament API guide](../backend/app/tournaments/README.md) describes the implemented routes and persistence boundaries.
 - The payment-instructions read currently returns 404 to an admin who does not own the registration. This differs from the global admin-access requirement in ARCH-014 and AUTH-008. The API guide describes the implemented restriction. It does not establish a product-policy exception.
-- Application CI runs in Docker. The deployment workflow targets `dev` on qualifying pushes to `master`. Workflow and rollout details belong in the [deployment guide](../docs/deployment.md). Backend application email through SES SMTP remains intended architecture.
+- Application CI runs in Docker. The deployment workflow targets `dev` on qualifying pushes to `master`. Workflow and rollout details belong in the [deployment guide](../docs/deployment.md). Backend SMTP and current-account email lookup clients now exist. Lifespan owns their resources. The Portuguese payment-review notice helpers are not yet wired to a decision command. Real SES delivery and hosted Auth read privileges remain unverified.
 
 ## Acceptance criteria
 

@@ -29,7 +29,7 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 - **COM-005:** Waitlist contact follows staff judgment under CAP-005. Messages do not select a participant, reserve a seat, or impose a system-defined invitation expiry. Do not automate waitlist ordering or promotion. Automatic payment-reminder scheduling remains deferred under COM-Q3.
 - **COM-006:** Send refund confirmation only after guild staff records the completed refund, not when the user first cancels. Cancellation without payment does not trigger refund confirmation. When staff approves payment but the tournament is full, email the user that they are waitlisted and have no confirmed seat.
 - **COM-007:** The backend sends application emails through AWS SES using SMTP. SMTP credentials and connection settings are backend configuration. Local SMTP setup is deferred, likely real SES with real AWS/SES credentials. No local mail emulator is chosen by the S3/Ministack decision.
-- **COM-008:** Send application email in Portuguese from `Suporte Karlbrüder <no-reply@karlbruder.com.br>`. Use the user's current account email at delivery time, not a stale registration email or stripped comparison value. Ownership remains the Supabase UUID after an email change.
+- **COM-008:** Send application email in Portuguese. The sender is backend configuration (`SMTP_FROM`), defaulting to `Suporte Karlbrüder <no-reply@karlbruder.com.br>`. Use the user's current account email at delivery time, not a stale registration email or stripped comparison value. Ownership remains the Supabase UUID after an email change.
 - **COM-009:** Rejected payment evidence notifies the participant with the rejection message and a resubmission path. Tournament date, schedule, location, regulation, equipment-requirement, and cancellation-policy changes notify affected registrants under CAT-008. Ordinary staff corrections to registration fields do not require notifications; required workflow notices still apply.
 
 ## Persisted outcome references
@@ -39,7 +39,9 @@ PaymentProofReview records evidence decisions. RegistrationPayment links the
 actual verified Payment. RegistrationRefund links the shared Refund and its
 completion evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
-new trigger. Staff review/refund commands and their notifications are not implemented.
+new trigger. Staff review/refund commands are not implemented. Payment-review
+notification helpers and their SMTP/account-email clients exist, but are not yet
+called by a decision command.
 
 ## Acceptance criteria
 
@@ -64,7 +66,19 @@ None for sender, language, recipient selection, required triggers, or waitlist h
 
 ## Implementation decisions
 
-Select SES region/SMTP settings and implement delivery-attempt tracking, failure handling, retries, and duplicate-send control in the delivery plan. These are engineering choices, not additional product questions. Local SMTP configuration remains explicitly deferred, likely real SES with real credentials; do not re-ask it during unrelated feature work.
+The payment-review helper makes one bounded delivery attempt after the calling
+workflow commits and releases its database locks. It returns a typed delivery
+result and logs only the review ID, notification type, and result. Lookup or SMTP
+failure does not change the decision. Duplicate decisions must not replay delivery.
+There is no automatic retry or durable outbox. A crash between commit and send can
+lose the notice. The helper is infrastructure until the decision command calls it.
+Waitlist and rejection messages contain the registration number and an authenticated
+application link. They are addressed to the tournament registrant, using their current account
+address and Portuguese copy. The workflow passes the configured sender explicitly
+to the mail adapter. The deciding admin is not a recipient.
+SMTP uses authenticated STARTTLS with certificate verification and finite operation
+timeouts. Configuration and Auth lookup bounds are documented in the
+[backend guide](../../backend/README.md#application-mail-configuration). Local SMTP configuration remains explicitly deferred, likely real SES with real credentials; do not re-ask it during unrelated feature work.
 
 ## Related specifications
 
