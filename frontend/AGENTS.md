@@ -2,11 +2,13 @@
 
 These instructions add to the root [AGENTS.md](../AGENTS.md) for `frontend/` and its descendants. [Decision 0006](../specs/decisions/0006-frontend-application-structure.md) records the rationale. Open it when that rationale affects the task.
 
+Use the [README](README.md) for setup and check commands as needed. Account creation is sign-up. Tournament participation is registration. Preserve SDK identifiers such as `signUp`.
+
 ## Design and ownership
 
-Organize code by capability and reason for change. Before editing a module, identify its responsibility, callers, and state owner. Moving files alone does not resolve mixed responsibilities.
+Organize by capability. Before editing, identify responsibility, callers, and state ownership. Check boundaries as well as file placement.
 
-Keep short helpers beside their only caller. Extract a module for a distinct responsibility, demonstrated reuse, or behavior that benefits from focused tests. Do not split by line count or create a hook, provider, type file, or component for every function or JSX section. Similar markup alone does not justify sharing. Prefer concrete feature components over generic components with many mode flags.
+Keep short helpers beside their only caller. Extract for distinct responsibility, demonstrated reuse, or focused testing. Do not split by line count or create a module per JSX section. Similar markup alone does not justify sharing. Prefer concrete components over generic ones with many mode flags.
 
 Local state belongs with the component's job. Pass specific values and callbacks rather than a whole application context. Use `children` or slots for composition across features.
 
@@ -58,7 +60,7 @@ Keep React Router in library mode (`react-router-dom`). Do not add file-based ro
 | Feature panel | `password-reset-panel.tsx`, `PasswordResetPanel` | Related loading, error, and form states |
 | Provider | `auth-session-provider.tsx`, `AuthSessionProvider` | One named state scope |
 
-Names describe responsibilities and agree with filenames. Follow the [application vocabulary](../specs/taxonomy.md#application-vocabulary), including `TournamentRegistrationForm`. Prefer concrete names over `Manager`, `Container`, or `Content`. Keep useful React names such as `AppProvider` and `AppRouter`.
+Names agree with filenames and describe responsibility. Follow the [application vocabulary](../specs/taxonomy.md#application-vocabulary), including `TournamentRegistrationForm`. Prefer concrete names over `Manager`, `Container`, or `Content`. Keep `AppProvider` and `AppRouter`.
 
 A route may consume a feature query hook. Requests, form state, and validation stay in the feature. A small route composing `AuthPageFrame` and `SignInForm` is useful. Do not add a forwarding `SignInPage` with the same props. Simple screens may own their presentation without a separate feature.
 
@@ -74,7 +76,7 @@ Mount providers at the lowest common ancestor of their consumers. Global mountin
 
 `features/<name>/api/` owns request functions and query or mutation hooks. It is the service layer. Do not add `services/` or a repository layer that only forwards arguments. Feature endpoints stay here, outside shared clients in `src/lib`.
 
-API modules may adapt the configured Supabase client. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
+Auth API modules adapt the configured Supabase client. Domain API modules call FastAPI through `apiFetch` and `apiBaseUrl`. Private uploads use the backend-issued presigned URL and required headers. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
 
 Keep controlled fields and submission feedback near the form. Separate meaningful notices, summaries, and panels when that improves readability. For large forms, extract payload parsing, validation, or request-error mapping into feature utilities before introducing a universal form framework. Preserve input values, duplicate-submit protection, errors, translations, and success behavior.
 
@@ -89,15 +91,19 @@ Add a library only for an existing need. Do not add related packages automatical
 | React Hook Form | A form whose own state is difficult to follow |
 | Zod | Helpful client checks, added with React Hook Form. Examples include required fields, email shape, and matching passwords |
 
+TanStack Query is installed. Zustand, React Hook Form, and Zod are options for a demonstrated need, not existing application dependencies.
+
 Keep local fields in the form and Supabase session state in auth hooks. Do not duplicate Query data in Zustand. Store an ID and let Query load its record. The backend owns tournament rules, capacity, dates, registration eligibility, and final validation.
 
 Do not add Axios, Yup, or Tamagui. Query can use `fetch`, and this application is web only. Add Tailwind, shadcn, or another component kit only in a visual-system task.
 
 ## Tests and review
 
+Run `make test-frontend` from the repository root. It uses the development Compose service. There is no frontend service in `compose.test.yml`. See [build and checks](README.md#build-and-checks) for lint and build commands.
+
 - Colocate tests with source and move them together. Use `.test.ts` or `.test.tsx`, without `__tests__/`, a mirrored `frontend/tests/` tree, or `.spec` suffixes.
 - Put routing integration tests beside the route or router, rather than feature components that cannot import `src/app`.
 - Test visible form behavior and submitted payloads. Test guards for loading, guest redirects, session loss, and preserved destinations. Do not test component names or every extracted helper's existence.
 - Retain meaningful regression coverage during refactors. Add coverage for changed or previously uncovered boundaries.
 
-Review responsibilities, naming, dependency direction, and state ownership as well as file placement. A passing suite or directory migration alone does not establish a complete refactor. Report changes and remaining work. Follow root verification rules, suggest a Conventional Commit message at each completed checkpoint, and leave staging and committing to the developer.
+Report changes, verification, and remaining work. Suggest a Conventional Commit message at each checkpoint. Leave staging and committing to the developer.

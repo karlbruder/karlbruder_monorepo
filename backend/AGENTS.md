@@ -1,18 +1,18 @@
 # Backend
 
-These instructions add to the root [AGENTS.md](../AGENTS.md) for `backend/` and its descendants. New code follows these boundaries. Refactor existing code only when requested or when a small local cleanup fits the task. Leave unrelated code in place.
+These instructions extend root [AGENTS.md](../AGENTS.md). Follow these boundaries for new code. Refactor existing code only when requested or as a small local cleanup. Use the [README](README.md) for setup and diagnostics.
 
 Read [authentication and access](../specs/identity/authentication-and-access.md) when changing who may call a route or see a record. Other spec reading follows the root instructions.
 
 ## Ownership and structure
 
-Before editing, identify the module's responsibility, callers, and data owner. Preserve working behavior as a regression baseline, while checking whether its boundaries are correct. Moving files or renaming functions alone does not finish a refactor.
+Before editing, identify responsibility, callers, and data ownership. Preserve behavior during structural refactors and check boundaries as well as file placement.
 
-Keep short helpers beside their only caller. Extract a module for a distinct responsibility, meaningful reuse, or behavior that benefits from focused tests. Do not create a file per function, impose line-count limits, or split every service into a package.
+Keep short helpers beside their only caller. Extract for distinct responsibility, meaningful reuse, or focused testing. Do not split by line count or create a file per function.
 
 | Location | Owns |
 | --- | --- |
-| `app/main.py` | FastAPI creation, middleware, and documentation configuration |
+| `app/main.py` | FastAPI creation, database lifespan, middleware, and documentation configuration |
 | `app/api/` | Router assembly, exception handlers, health checks, metadata, and shared HTTP helpers |
 | `app/core/db/` | Shared model base, engine factories, and session scopes |
 | `app/<domain>/` | Domain rules, data access, errors, and models |
@@ -20,7 +20,7 @@ Keep short helpers beside their only caller. Extract a module for a distinct res
 | `config/` | Shared process and infrastructure settings |
 | `tests/` | Tests mirroring source ownership |
 
-Alembic and the Dockerfile stay at the backend root. Domain tables belong to their owning domain. Future membership and inventory get their own domain packages when that work is in scope.
+Alembic and the Dockerfile stay at the backend root. Each domain owns its tables. Add membership and inventory packages only when that work is in scope.
 
 Each domain uses these modules as needed:
 
@@ -32,17 +32,17 @@ Each domain uses these modules as needed:
 | `models.py` or `models/` | Tables, relationships, and constraints |
 | `exceptions.py` | Domain errors |
 
-Create folders with their first file. Split models or services into packages when separate table concepts or workflow topics improve navigation. Never keep both `services.py` and `services/`, or both `models.py` and `models/`, at the same import path. Avoid another `services/` layer inside an infrastructure capability.
+Create folders with their first file. Split models or services when separate concepts improve navigation. Never keep a module and package at the same import path. Avoid another `services/` layer inside infrastructure.
 
 Use snake_case modules and packages. A `models/` package has one mapped class per module, such as `tournament_registration.py` exporting `TournamentRegistration`. Follow the [application vocabulary](../specs/taxonomy.md#application-vocabulary).
 
 Name functions by action and subject, such as `create_tournament_registration`, and predicates as questions, such as `is_minor_at_tournament_start`. Private helpers need not repeat the domain prefix. Prefer concrete names over `Manager`, `Handler`, or `Utils`.
 
-Import submodules directly when that clarifies ownership. `__init__.py` may expose a small intentional API, including mapped classes and public service entry points. Keep business logic out of it. Do not re-export every helper or hide circular imports. Python does not inherit the frontend's no-barrel rule.
+`__init__.py` may expose a small public API, including mapped classes and service entry points. Keep business logic out. Do not re-export every helper or hide cycles. Prefer direct submodule imports when they clarify ownership.
 
 ## Dependency direction and shared capabilities
 
-- `app/api/` assembles domain routers and maps domain errors to HTTP. It owns no business rules, domain models, or persistence workflows. Domain services and models do not import API assembly. Routers call services. Services do not import routers.
+- `app/api/` assembles routers and maps domain errors to HTTP. It owns no business rules, domain models, or persistence workflows. Domain services and models do not import API assembly. Routers call services. Services do not import routers.
 - Services may use their domain's schemas, models, and helpers, plus auth identity types and core infrastructure.
 - Core does not import domain services, models, or routers. Pass required values into it.
 - For another domain's behavior, use a deliberate public service contract. Do not call its router or scatter writes to its tables. Keep the dependency one-way.
@@ -55,38 +55,38 @@ Payments owns generic `Payment` and `Refund` facts and exposes persistence servi
 
 ## HTTP and schemas
 
-Routers declare paths, methods, auth and session dependencies, request/response schemas, and status codes. They extract transport context, call services, and map results or domain errors to the established API contract.
+Routers declare paths, methods, auth and session dependencies, request/response schemas, and status codes. They extract transport context, call services, and map results to response schemas. Shared exception handlers map domain errors to HTTP.
 
-Keep queries, commits, record-access decisions, and domain calculations in services. Pass the verified actor and explicit values, such as a client address rather than a FastAPI `Request`. A domain may split routes by API area while keeping one assembly router.
+Keep queries, commits, record access, and calculations in services. Pass the verified actor and explicit values, such as a client address rather than `Request`. Split routes by API area when useful, with one assembly router.
 
 Use explicit response schemas to prevent private-field leaks. Preserve routes, status codes, error shapes, and pagination during structural refactors. Do not introduce response envelopes as a side effect.
 
-Schemas validate types, required fields, formats, and consistency within submitted values. An end date before a submitted start date is a schema check. Whether registration is open or an actor may change a record is a service decision. Validators do not query databases, fetch remote settings, or authorize callers. Services may accept validated schemas without an identical intermediate DTO.
+Schemas validate types, required fields, formats, and consistency between submitted values, such as rejecting an end date before the start date. Services decide registration windows and actor permissions. Validators do not query databases, fetch settings, or authorize. Services may accept schemas without a duplicate DTO.
 
 ## Services and transactions
 
-- Use plain functions unless a class owns meaningful state or dependencies. Focus each module on one workflow or related rule family. For example, `tournament_registrations.py` owns registration workflows and `tournament_local_dates.py` owns tournament-local calendar rules.
+- Use functions unless a class owns meaningful state or dependencies. Group related workflows or rules, such as `tournament_registrations.py` and `tournament_local_dates.py`.
 - Accept explicit inputs and return domain results or raise domain errors. Do not accept FastAPI `Request` or `Response`, use `Depends`, or raise HTTP exceptions.
 - Keep queries in services. Add repository, selector, manager, or service-class layers only for an actual workflow need.
 - Enforce record ownership, visibility, eligibility, and other invariants in the workflow service, including calls outside HTTP.
-- FastAPI lifespan creates and disposes sync and async database resources. Domain workflows currently use sync sessions. Import factories and session helpers from `app/core/db/`. Do not initialize engines on import.
-- The top-level workflow owns commit and rollback. Helpers use its session without creating another session or committing partway through. Preserve locking and atomicity.
+- FastAPI lifespan creates and disposes sync and async database resources. Domain workflows currently use sync sessions through `app.core.db.get_session`. Scripts own their engines and session scopes. Do not initialize engines on import or copy lifespan-owned resources into module-level aliases.
+- The top-level workflow owns commit and rollback. Session scopes close without committing. Helpers use the caller's session without creating another session or committing partway through. Preserve locking and atomicity.
 - Translate known database conflicts into domain errors. Do not treat every `IntegrityError` as a duplicate. Unexpected failures remain visible.
 - Group related constants and functions. Use type hints to clarify contracts and update docstrings when responsibilities move.
 
 ## Models and errors
 
-Models define tables, constraints, and small derived properties. Cross-table decisions belong in services. Prefer `UniqueConstraint` and `CheckConstraint` where applicable. Service checks provide useful rejection reasons but do not replace constraints protecting concurrent writes.
+Models define tables, constraints, and small derived properties. Services own cross-table decisions. Use `UniqueConstraint` and `CheckConstraint` where applicable. Service checks do not replace constraints protecting concurrent writes.
 
-Mapped domain models inherit `app.core.db.base.BaseModel`, with integer primary keys and shared timestamps. Keep columns ordered `id`, `created_at`, `updated_at`, then domain fields in both metadata and migrations. A Supabase user ID is a reference column, not a local user table. Do not add UUID identity columns or soft deletion by default. Export mapped classes through `models/__init__.py` so Alembic can register them. File moves do not justify changing table names, columns, or constraints.
+Mapped domain models inherit `app.core.db.base.BaseModel`, with integer primary keys and shared timestamps. Keep columns ordered `id`, `created_at`, `updated_at`, then domain fields in both metadata and migrations. SQLAlchemy updates `updated_at`. Direct SQL writers must maintain it themselves. A Supabase user ID is a reference column, not a local user table. Do not add UUID identity columns or soft deletion by default. Export mapped classes from a `models/` package through its `__init__.py` and keep Alembic model imports complete. File moves do not justify schema changes.
 
-Services raise domain errors without FastAPI types or HTTP codes. Keep exception definitions with their owner. Map them to HTTP in `app/api/exception_handlers.py` and register handlers in `app/main.py`. Core errors describe storage or transport failures. Domain errors describe business rejection. Do not expose raw database or storage exceptions to clients.
+Keep errors with their owner, without FastAPI types or HTTP codes. Core errors describe infrastructure failures. Domain errors describe business rejection. Map errors in `app/api/exception_handlers.py` and register handlers in `app/main.py`. Never expose raw database or storage exceptions.
 
 ## Route access
 
-`app/auth/` owns identity types in `models.py`, token and role services in `services.py`, FastAPI dependencies in `dependencies.py`, auth routes in `router.py`, and domain errors in `exceptions.py`. HTTP mappings belong to `app/api/exception_handlers.py`. Health routes and connectivity checks belong to `app/api/health/`. Auth tests live in `tests/auth/`.
+`app/auth/` owns identity types, token verification, roles, route dependencies, and `GET /api/users/me`. Its `User` and `AnonymousUser` are identity values, not database tables. Supabase owns account creation and credentials.
 
-Attach one visible auth dependency to each route:
+Attach one visible auth dependency to each domain route:
 
 | Dependency | Access |
 | --- | --- |
@@ -96,14 +96,16 @@ Attach one visible auth dependency to each route:
 
 Read roles only from verified Auth-managed `app_metadata.karlbruder_role`. Keep `regular_user`, `guild_member`, and `admin`. Root instructions define staff scope. A valid token proves identity. Services still enforce record-level access and eligibility.
 
+Health, metadata, and generated documentation endpoints are public and have no auth dependency. Preserve those contracts during structural changes. See the [README](README.md#diagnostics) for diagnostic routes and limits.
+
 Throttling is not implemented. Do not add it during unrelated work. When introduced, put shared HTTP throttling helpers in `app/api/` and use a dependency attached to every route, including open routes, rather than a limiter inside one handler.
 
 ## Configuration
 
-Read environment variables through settings, not `os.getenv` calls in routers or services. Keep environment selection in bootstrap configuration and secrets out of source. Read [local development](../specs/platform/local-development.md) for local/test settings beyond these rules, or [data storage](../specs/platform/data-storage.md) when changing where domain rows live.
+Use settings, not `os.getenv` in routers or services. Bootstrap selects the environment. Read [local development](../specs/platform/local-development.md) for local/test settings or [data storage](../specs/platform/data-storage.md) when changing data placement.
 
 - Shared process, database, and infrastructure settings belong in `config/`, even with one current consumer. Domain-only behavior settings belong to their domain.
-- Required settings fail validation at startup, including domain-local settings. Moving settings must not defer failures until a request.
+- Validate required settings at startup, including domain-local settings. Do not defer failure until a request.
 - `config/base.py` has no defaults for required deployment values. Required Pydantic fields already reject missing values. Validators enforce additional value constraints, such as Supabase URL shape. Do not repeat validation in services or routes.
 - Fixed technical defaults, such as the driver and PostgreSQL port 5432, may live on the base class. Deployment-specific hosts, database names, users, passwords, and buckets do not get shared production defaults.
 - `LocalSettings` may default the Compose domain database, but not the hosted Supabase Auth database. `TestSettings` may use the test database for the Auth diagnostic because that stack has no hosted Supabase.
@@ -142,18 +144,18 @@ Core file tests belong in `tests/core/files/`. Tournament upload-policy tests be
 
 This does not require a test file per module. Workflow integration tests may stay at the domain test root, such as `tests/tournaments/test_tournament_registrations.py`. Direct service tests belong under `services/`. Preserve accurate descriptive filenames.
 
-- Put detailed business cases in service tests. Route tests cover HTTP contracts, auth dependencies, error mapping, and field visibility. Schema tests cover input shape. Keep meaningful integration coverage. A mocked route-to-service call alone does not establish correct API behavior.
-- Cover changed branches, edge cases, and failures, especially auth, registration, payment proofs, and safety-note visibility. Remove obsolete tests while preserving coverage for retained behavior.
+- Service tests cover business cases. Route tests cover HTTP contracts, auth dependencies, error mapping, and field visibility. Schema tests cover input shape. Preserve integration coverage. A mocked service call alone does not verify API behavior.
+- Cover changed branches, edge cases, and failures, especially auth, registration, proofs, and safety-note visibility. Remove obsolete tests without losing retained-behavior coverage.
 - Put fixtures in the narrowest applicable `conftest.py`. Keep single-module helpers local. Do not duplicate assertions just to populate extracted test files.
-- `db_session` runs automatically. Request it explicitly only for tests that read or write rows. Routes already receive it. Do not add engines, SQLite databases, or replacement session fixtures.
+- `db_session` runs automatically and routes receive it through a dependency override. Request the fixture explicitly when a test uses its session. Reuse this setup for domain tests. Do not add SQLite databases or replacement session fixtures. Database lifecycle and factory tests may create resources to test their behavior, using the same Compose database and disposing resources afterward.
 - The pytest session creates its test engine and migrates the Compose database to head. Each test uses a transaction that rolls back afterward. Do not create another database from tests.
 - Mock calls leaving the process, including Supabase key fetches, S3, and future backend SES calls. Follow root naming and docstring rules.
 
 Run from the repository root with a unique Compose project name:
 
 ```sh
-docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
-docker compose -f compose.test.yml -p kb-test-<name> down -v
+docker compose -f compose.test.yml -p kb-test-your-name run --rm backend pytest -x
+docker compose -f compose.test.yml -p kb-test-your-name down -v
 ```
 
 The stack publishes no host ports. Use a narrower pytest selection when appropriate, keeping `-x`. Fix the first failure before continuing. Rebuild when dependencies change. Run Ruff in the same stack by replacing `pytest -x` with `ruff check .`. See the [backend README](README.md#tests-and-lint) for make targets.
@@ -166,4 +168,4 @@ The stack publishes no host ports. Use a narrower pytest selection when appropri
 - Keep related behavior together. Write a flow once and pass what differs. Use one name per concept. Extract a local helper when reuse or a clarifying name improves readability.
 - Give a short reason beside any Ruff rule suppression.
 
-Review responsibilities, naming, dependency direction, and rule ownership alongside file placement. Report changes and remaining work. Follow root verification rules, suggest a Conventional Commit message at each completed checkpoint, and leave staging and committing to the developer.
+Report changes, verification, and remaining work. Suggest a Conventional Commit message at each checkpoint. Leave staging and committing to the developer.

@@ -3,7 +3,21 @@
 **Created**: 2026-01-11
 **Last updated**: 2026-11-04
 
-React and TypeScript application built with Vite. This is the user-facing frontend of the Karlbrüder platform.
+React and TypeScript application built with Vite. Supabase owns authentication.
+FastAPI owns domain rules and data. The public website lives in `landing/`.
+
+## Source map
+
+| Location | Responsibility |
+| --- | --- |
+| `src/main.tsx` | Browser entry point and `BrowserRouter` |
+| `src/app/provider.tsx` | Query, auth-session, and language provider composition |
+| `src/app/router.tsx` | URL-to-route mapping |
+| `src/app/routes/` | Screens, navigation, and feature composition |
+| `src/features/` | Auth, tournament registration/payment proofs, and diagnostics |
+| `src/lib/` | Supabase, Query, and request helpers |
+
+[AGENTS.md](AGENTS.md) owns the full layout, dependency, and editing rules.
 
 ## Requirements
 
@@ -25,11 +39,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
 VITE_API_BASE_URL=/api
 ```
 
-Allow your development origin in the project's authentication redirect settings and configure its Google provider. Use only a publishable key beginning with `sb_publishable_`. `VITE_*` values are included in the browser bundle.
+Use a publishable key beginning with `sb_publishable_`. All `VITE_*` values enter the browser bundle.
 
 ### Account routes and Supabase redirect URLs
-
-Email sign-up, sign-in, confirmation, recovery, and signed-in password change use these application paths:
 
 | Path | Use |
 | --- | --- |
@@ -40,37 +52,43 @@ Email sign-up, sign-in, confirmation, recovery, and signed-in password change us
 | `/account/new-password` | Set a new password from a recovery link |
 | `/account/password` | Change password while already signed in |
 
-In each Supabase project that matches your local `VITE_SUPABASE_URL` and the `dev` and `prod` deployment variables, allow these redirect URLs:
+Allow these three redirect paths on every applicable origin:
+`/account/sign-in`, `/account/new-password`, and `/tournaments/registration`.
 
-- `http://localhost:5173/account/sign-in`
-- `http://localhost:5173/account/new-password`
-- `http://localhost:5173/tournaments/registration`
-- `https://app-dev.karlbruder.com/account/sign-in`
-- `https://app-dev.karlbruder.com/account/new-password`
-- `https://app-dev.karlbruder.com/tournaments/registration`
-- `https://app.karlbruder.com/account/sign-in`
-- `https://app.karlbruder.com/account/new-password`
-- `https://app.karlbruder.com/tournaments/registration`
-- `https://app-prod.karlbruder.com/account/sign-in`
-- `https://app-prod.karlbruder.com/account/new-password`
-- `https://app-prod.karlbruder.com/tournaments/registration`
+| Environment | Origins |
+| --- | --- |
+| Local | `http://localhost:5173` |
+| Dev | `https://app-dev.karlbruder.com` |
+| Prod | `https://app.karlbruder.com`, `https://app-prod.karlbruder.com` |
 
-Keep the existing Google redirect for `/tournaments/registration` on each origin above. Email sign-up uses confirmation with `emailRedirectTo` pointing at `/account/sign-in`. Recovery uses `redirectTo` pointing at `/account/new-password`, optionally with a validated `returnTo` query parameter when recovery started from a deep link. If a hosted project is shared between environments, configure the allow-list once.
+Use the Supabase project matching that environment's `VITE_SUPABASE_URL`.
+Configure shared projects once. Keep the Google redirect to
+`/tournaments/registration`. Email confirmation uses `emailRedirectTo` with
+`/account/sign-in`. Recovery uses `redirectTo` with `/account/new-password`,
+optionally carrying a validated `returnTo` for a deep link.
 
 Enable the email provider and confirmation in each Supabase project. Configure Portuguese templates for every enabled Auth message type under [AUTH-011](../specs/identity/authentication-and-access.md#authentication-rules). Auth email remains Portuguese even when the interface is English.
 
 ### Auth email through SES (Supabase custom SMTP)
 
-Configure Supabase custom SMTP with SES and an SES-verified From address using the
-[auth email runbook](../docs/runbooks/supabase-auth-email-ses.md). Keep SMTP credentials
-in the Supabase dashboard or secret store, never in frontend code, `VITE_*`,
-READMEs, or env examples. The browser uses only the publishable key.
+Follow the [auth email runbook](../docs/runbooks/supabase-auth-email-ses.md) for
+Supabase custom SMTP through SES. Keep SMTP credentials in the dashboard or secret
+store, never in frontend code, `VITE_*`, READMEs, or env examples.
 
 ### Tournament requests
 
-The registration page finds Monomachia through `GET /api/tournaments`, filtered by display name and the 2027 event-date range. It uses the returned ID or shows an unavailable state when no event matches. No frontend tournament ID is configured.
+The registration page finds Monomachia through `GET /api/tournaments`, filtered by name and the 2027 date range. It requires one matching event and uses its returned ID. No match shows an unavailable state. Multiple matches are an error. No tournament ID is configured in the frontend.
 
-Keep `VITE_API_BASE_URL=/api`. Local Vite preserves `/api` when forwarding to `API_PROXY_TARGET`, which defaults to `http://localhost:8000`. Compose sets it to `http://backend:8000`. Production's separate Nginx service sends `/api` directly to the backend with the same prefix.
+Keep `VITE_API_BASE_URL=/api`.
+
+| Stack | API forwarding |
+| --- | --- |
+| Host development | Vite to `API_PROXY_TARGET`, default `http://localhost:8000` |
+| Local Compose | Vite to `http://backend:8000`. No Nginx service |
+| Production Compose | Separate Nginx service to the backend. The frontend image's Nginx serves static assets |
+
+All three preserve `/api`. Domain requests use `src/lib/api-fetch.ts` and feature
+API modules. Private uploads send bytes directly to a backend-issued presigned URL.
 
 Follow the [tournament API guide](../backend/app/tournaments/README.md) for registration,
 parental-consent-form and proof routes, acceptance tokens, and access restrictions.
@@ -84,11 +102,13 @@ changing it. Builds require `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_K
 `VITE_API_BASE_URL` defaults to `/api`. Validation reports missing names without
 printing values and rejects legacy JWT or server-only keys.
 
-The production image takes the project URL as a build argument and the publishable
-key through a BuildKit secret mount. The deploy workflow reads the matching GitHub
-variable and secret for the selected `dev` or `prod` environment.
+Production builds take the project URL as an argument and the publishable key
+through a BuildKit secret. Deployment reads the matching GitHub variable and secret
+for `dev` or `prod`.
 
-For existing setups, replace `VITE_SUPABASE_ANON_KEY` in your local `.env` with `VITE_SUPABASE_PUBLISHABLE_KEY` and a new publishable key from Supabase. Set the new secret name in both GitHub environments before deploying. Renaming the old key does not migrate it.
+Legacy setups must replace `VITE_SUPABASE_ANON_KEY` with
+`VITE_SUPABASE_PUBLISHABLE_KEY` locally and in both GitHub environments. Use a new
+publishable key from Supabase. Renaming the old value is insufficient.
 
 For a production Docker build, export the publishable key in your shell and run:
 
@@ -98,11 +118,11 @@ docker build --target production --no-cache-filter builder \
   --secret id=VITE_SUPABASE_PUBLISHABLE_KEY,env=VITE_SUPABASE_PUBLISHABLE_KEY .
 ```
 
-The pipeline rebuilds the frontend builder stage because changes to mounted secrets do not invalidate Docker's cache. The mount avoids passing the key through Docker arguments. Vite still includes this public key in the browser bundle.
+The pipeline rebuilds the builder stage because secret changes do not invalidate the build cache. Vite includes the publishable key in the browser bundle.
 
-Supabase supplies Auth only to the browser. Domain requests go through FastAPI. Disable the hosted Data API in both cloud environments and review existing and default grants on domain tables. A publishable key does not replace database access controls. Keep legacy keys active until any remaining consumers have migrated, then disable them separately.
+Use Supabase Auth only, with domain requests through FastAPI. Disable the hosted Data API in both cloud environments and review existing and default grants on domain tables. Retire legacy keys only after their remaining consumers migrate.
 
-The production image stores `GIT_SHA` and `RELEASED_AT` as container environment variables. The pipeline supplies the commit and a UTC build timestamp. These describe the image build and do not change when the container restarts. They are not browser runtime configuration.
+`GIT_SHA` and `RELEASED_AT` describe the production image build. They are container metadata, not browser runtime configuration.
 
 ## Development
 
