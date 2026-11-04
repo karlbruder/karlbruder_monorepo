@@ -346,6 +346,61 @@ def test_recorded_review_and_receipt_evidence_cannot_be_rewritten(
             db_session.execute(text(statement))
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("storage_key", "fixture/replacement.pdf"),
+        ("original_file_name", "replacement.pdf"),
+        ("content_type", "text/plain"),
+        ("size_bytes", 256),
+        ("created_at", NOW + timedelta(days=1)),
+    ],
+)
+def test_reviewed_proof_file_metadata_cannot_be_changed_through_orm(
+    db_session, evidence, field, value
+):
+    document = evidence[2]
+    review = _review(db_session, document)
+    original_key = document.file.storage_key
+    with pytest.raises(
+        IntegrityError, match="Reviewed proof file metadata is immutable"
+    ):
+        with db_session.begin_nested():
+            setattr(document.file, field, value)
+            db_session.flush()
+    db_session.expire_all()
+    assert review.document.file.storage_key == original_key
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "UPDATE public.stored_files SET storage_key='fixture/replacement.pdf' WHERE id=:id",
+        "DELETE FROM public.stored_files WHERE id=:id",
+    ],
+)
+def test_reviewed_proof_file_cannot_be_redirected_or_deleted_through_sql(
+    db_session, evidence, statement
+):
+    document = evidence[2]
+    _review(db_session, document)
+    with pytest.raises(
+        IntegrityError, match="Reviewed proof file metadata is immutable"
+    ):
+        with db_session.begin_nested():
+            db_session.execute(text(statement), {"id": document.file_id})
+
+
+def test_file_metadata_without_a_review_or_archive_remains_mutable(
+    db_session, evidence
+):
+    document = evidence[2]
+    document.file.original_file_name = "corrected-name.pdf"
+    db_session.flush()
+    db_session.expire_all()
+    assert document.file.original_file_name == "corrected-name.pdf"
+
+
 def test_tournament_refund_cannot_link_another_shared_payment(db_session, evidence):
     registration_payment = _payment(
         db_session, evidence[1], _review(db_session, evidence[2])

@@ -380,9 +380,10 @@ describe('Athlete submits their own registration and sees the result', () => {
   })
 
   it('renders URL-like policy text as text when no policy URL is configured', () => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null, rules_archive_url: null }} session={session} />)
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null, rules_archive_url: null, cancellation_policy_archive_url: null }} session={session} />)
     expect(screen.getByText('https://example.test/plain-text')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Consultar regulamento/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Renovar links dos documentos' })).not.toBeInTheDocument()
   })
 
 
@@ -425,4 +426,98 @@ it('refreshes changed terms, preserves personal fields and requires new choices 
   expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
   expect(JSON.parse(request.mock.calls[2][1].body).acceptance_token).toBe('c'.repeat(64))
   expect(request.mock.calls[1][0]).toBe('/api/tournaments/42')
+})
+
+it.each(['pt', 'en'] as const)('renews expiring document links in %s without losing answers or changing acceptance', async language => {
+  const refreshed = {
+    ...tournament,
+    rules_archive_url: 'https://archive.example.test/rules?signature=renewed',
+    cancellation_policy_archive_url: 'https://archive.example.test/cancel?signature=renewed',
+  }
+  const request = vi.fn()
+    .mockResolvedValueOnce(response(200, refreshed))
+    .mockResolvedValueOnce(response(201, created))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournament} session={session} language={language} />)
+  if (language === 'pt') fillRequired()
+  else fillRequiredEnglish()
+  fireEvent.click(screen.getByRole('button', { name: /Renovar links dos documentos|Renew document links/ }))
+  await waitFor(() => expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', refreshed.rules_archive_url))
+  expect(screen.getByRole('link', { name: /Consultar política de cancelamento|View cancellation policy/ })).toHaveAttribute('href', refreshed.cancellation_policy_archive_url)
+  expect(screen.getByLabelText(/Nome completo|Full name/)).toHaveValue(language === 'pt' ? ' Ana Teste ' : 'Fixture Athlete')
+  expect(screen.getAllByRole('checkbox').every(input => (input as HTMLInputElement).checked)).toBe(true)
+  expect(screen.getByRole('radio', { name: /Não autorizo|I do not authorize/ })).toBeChecked()
+  expect(request.mock.calls[0][0]).toBe('/api/tournaments/42')
+  expect(new Headers(request.mock.calls[0][1].headers).get('Authorization')).toBe('Bearer test-access-token')
+  fireEvent.submit(screen.getByRole('form', { name: /Formulário de inscrição|Registration form/ }))
+  expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
+  expect(JSON.parse(request.mock.calls[1][1].body).acceptance_token).toBe(tournament.acceptance_tokens[language])
+})
+
+it('requires new acceptance when document-link renewal discovers changed content', async () => {
+  const refreshed = {
+    ...tournament,
+    rules_text: 'Revised policy content',
+    rules_archive_url: 'https://archive.example.test/revised-rules',
+    acceptance_tokens: { ...tournament.acceptance_tokens, pt: 'd'.repeat(64) },
+  }
+  const request = vi.fn()
+    .mockResolvedValueOnce(response(200, refreshed))
+    .mockResolvedValueOnce(response(201, created))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+  fillRequired()
+  fireEvent.click(screen.getByRole('button', { name: 'Renovar links dos documentos' }))
+  expect(await screen.findByText('Revised policy content')).toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent(/Os termos mudaram/)
+  expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
+  expect(screen.getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true)
+  expect(screen.getAllByRole('radio').every(input => !(input as HTMLInputElement).checked)).toBe(true)
+  submit()
+  expect(request).toHaveBeenCalledTimes(1)
+  for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
+  fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
+  submit()
+  expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
+  expect(JSON.parse(request.mock.calls[1][1].body).acceptance_token).toBe('d'.repeat(64))
+})
+
+it('retains the selected parental form and answers after failed renewal and a successful retry', async () => {
+  const request = vi.fn()
+    .mockRejectedValueOnce(new Error('Network unavailable'))
+    .mockResolvedValueOnce(response(200, { ...tournament, rules_archive_url: 'https://archive.example.test/renewed' }))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+  fillRequired({ birthDate: '2012-01-01' })
+  const parentalForm = pdfFile()
+  attachParentalConsentForm(parentalForm)
+  fireEvent.click(screen.getByRole('button', { name: 'Renovar links dos documentos' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(/Não foi possível renovar os links/)
+  expect(screen.getByRole('link', { name: /Consultar regulamento/ })).toHaveAttribute('href', tournament.rules_archive_url)
+  fireEvent.click(screen.getByRole('button', { name: 'Renovar links dos documentos' }))
+  await waitFor(() => expect(screen.getByRole('link', { name: /Consultar regulamento/ })).toHaveAttribute('href', 'https://archive.example.test/renewed'))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
+  expect((screen.getByLabelText(/Termo de responsabilidade assinado/) as HTMLInputElement).files?.[0]).toBe(parentalForm)
+  expect(screen.getAllByRole('checkbox').every(input => (input as HTMLInputElement).checked)).toBe(true)
+  expect(screen.getByRole('radio', { name: /Não autorizo/ })).toBeChecked()
+})
+
+it('prevents duplicate renewals and registration submission while document links are renewing', async () => {
+  let resolve: (value: ReturnType<typeof response>) => void = () => {}
+  const request = vi.fn(() => new Promise<ReturnType<typeof response>>(done => { resolve = done }))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+  fillRequired()
+  fireEvent.click(screen.getByRole('button', { name: 'Renovar links dos documentos' }))
+  const renewing = screen.getByRole('button', { name: 'Renovando links...' })
+  expect(renewing).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Enviar minha inscrição' })).toBeDisabled()
+  fireEvent.click(renewing)
+  submit()
+  expect(request).toHaveBeenCalledTimes(1)
+  resolve(response(200, tournament))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Renovar links dos documentos' })).toBeEnabled())
+  expect(screen.getByRole('button', { name: 'Enviar minha inscrição' })).toBeEnabled()
+  expect(request).toHaveBeenCalledTimes(1)
 })

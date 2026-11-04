@@ -48,7 +48,10 @@ TournamentPaymentSettings and PaymentProofReview belong to tournaments. A review
 must identify an exact payment-proof document. Its RegistrationPayment association
 must reference an approved review of the same registration and a shared Payment.
 Reviews, verified receipts and domain associations are immutable. Reviewed document
-associations are protected too. The current tournament schema permits one receipt
+associations and their referenced StoredFile metadata are protected too. A review
+cannot be redirected to different evidence by changing a storage key or other file
+metadata. Tournament-owned persistence guards enforce this without adding domain
+dependencies to shared file code. The current tournament schema permits one receipt
 per registration/review and one refund association per receipt. Received and owed
 amounts are finite, nonnegative BRL decimals.
 

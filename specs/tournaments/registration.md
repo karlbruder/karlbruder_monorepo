@@ -72,7 +72,12 @@ parental document are saved in the registration transaction. Choices, versions,
 content, source IP and time live in immutable acceptance history.
 Participant and staff reads project the latest permitted acceptance fields.
 Linked rules and cancellation policies are read from shared ArchivedFile
-copies. Each tournament owns its policy purpose and access rules. Uploaded
+copies. The form offers in-place renewal of expiring document links through the
+authorized tournament read. Renewal preserves participant fields and selected
+files. If the accepted content digest is unchanged, choices remain selected.
+Changed content clears declaration and image-use choices and requires explicit
+acceptance again. Failed renewal allows a retry without discarding answers.
+Each tournament owns its policy purpose and access rules. Uploaded
 archives can also be reused by future legal-policy capabilities without creating
 a tournament registration document.
 

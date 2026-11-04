@@ -237,12 +237,39 @@ export default function TournamentRegistrationForm({
   const [errors, setErrors] = useState<Errors>({});
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
+  const [renewingPolicyLinks, setRenewingPolicyLinks] = useState(false);
   const [result, setResult] = useState<RegistrationCreated | null>(null);
   const [birthDateForDisplay, setBirthDateForDisplay] = useState("");
   const requestPending = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const showParentalConsentFormField = Boolean(birthDateForDisplay)
     && isMinorAtTournamentStart(birthDateForDisplay, tournament.starts_at);
+
+  const refreshPolicies = async (form: HTMLFormElement, requireAcceptance = false) => {
+    const refreshed = await getTournament(tournament.id, session.access_token);
+    setTournament(refreshed);
+    if (requireAcceptance || refreshed.acceptance_tokens[language] !== tournament.acceptance_tokens[language]) {
+      form.querySelectorAll<HTMLInputElement>('.registration-declarations input, .registration-image-choice input').forEach(input => { input.checked = false; });
+      setRequestError("Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.");
+    }
+  };
+
+  const renewPolicyLinks = async () => {
+    const form = formRef.current;
+    if (!form || requestPending.current) return;
+    requestPending.current = true;
+    setRenewingPolicyLinks(true);
+    setRequestError(null);
+    try {
+      await refreshPolicies(form);
+    } catch {
+      setRequestError("Não foi possível renovar os links. Tente novamente.");
+    } finally {
+      requestPending.current = false;
+      setRenewingPolicyLinks(false);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -294,10 +321,7 @@ export default function TournamentRegistrationForm({
     } catch (error) {
       if (error instanceof RegistrationRequestError && error.status === 409 && error.detail === "Registration terms changed; refresh before accepting") {
         try {
-          const refreshed = await getTournament(tournament.id, session.access_token);
-          setTournament(refreshed);
-          form.querySelectorAll<HTMLInputElement>('.registration-declarations input, .registration-image-choice input').forEach(input => { input.checked = false; });
-          setRequestError("Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.");
+          await refreshPolicies(form, true);
         } catch {
           setRequestError("Não foi possível atualizar os termos. Tente enviar novamente para atualizar.");
         }
@@ -317,7 +341,7 @@ export default function TournamentRegistrationForm({
   if (result) return <Success result={result} tournament={tournament} language={language} />;
 
   return (
-    <form className="registration-form" aria-label={t("Formulário de inscrição")} onSubmit={submit} noValidate>
+    <form ref={formRef} className="registration-form" aria-label={t("Formulário de inscrição")} onSubmit={submit} noValidate>
       <div className="registration-card registration-draft-notice">
         <p className="registration-eyebrow">{t("Conteúdo em preparação")}</p>
         <p>{t("Os textos finais das declarações e da privacidade ainda precisam de aprovação. Este formulário não está pronto para inscrições reais.")}</p>
@@ -325,7 +349,7 @@ export default function TournamentRegistrationForm({
       {Object.keys(errors).length > 0 && <p className="registration-error-summary" role="alert">{t("Revise os campos indicados antes de enviar.")}</p>}
       {requestError && <p className="registration-error-summary" role="alert">{t(requestError)}</p>}
 
-      <fieldset className="registration-fieldset" disabled={pending}>
+      <fieldset className="registration-fieldset" disabled={pending || renewingPolicyLinks}>
         <section className="registration-card registration-section" aria-labelledby="registration-personal-title">
           <h2 id="registration-personal-title"><span>01</span> {t("Dados pessoais")}</h2>
           <div className="registration-grid">
@@ -429,6 +453,14 @@ export default function TournamentRegistrationForm({
             <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_archive_url} language={language} />
             {tournament.equipment_requirements && <PolicyContent label={t("Equipamento obrigatório")} text={tournament.equipment_requirements} language={language} />}
           </div>
+          {(tournament.rules_archive_url || tournament.cancellation_policy_archive_url) && (
+            <div>
+              <p className="registration-help">{t("O link do documento expirou? Renove os links sem perder suas respostas.")}</p>
+              <button className="registration-policy-renewal" type="button" onClick={renewPolicyLinks} disabled={pending || renewingPolicyLinks}>
+                {t(renewingPolicyLinks ? "Renovando links..." : "Renovar links dos documentos")}
+              </button>
+            </div>
+          )}
           <p className="registration-help">{t("Os termos e o regulamento são registrados pelas versões configuradas para este torneio.")}</p>
           <div className="registration-declarations">
             {requiredDeclarations.map(([name]) => (
@@ -450,7 +482,7 @@ export default function TournamentRegistrationForm({
         </section>
 
         <div className="registration-submit-row">
-          <button className="registration-submit" type="submit" disabled={pending}>{t(pending ? "Enviando inscrição..." : "Enviar minha inscrição")}</button>
+          <button className="registration-submit" type="submit" disabled={pending || renewingPolicyLinks}>{t(pending ? "Enviando inscrição..." : "Enviar minha inscrição")}</button>
           <p>{t("Ao enviar, você ainda não terá uma vaga confirmada ou reservada.")}</p>
         </div>
       </fieldset>

@@ -346,6 +346,21 @@
   gap: 1rem;
 }
 
+.registration-policy-renewal {
+  background: transparent;
+  border: 1px solid #642226;
+  border-radius: 6px;
+  color: #642226;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+}
+
+.registration-policy-renewal:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .registration-submit-row p {
   color: #615b55;
   flex: 1 1 210px;

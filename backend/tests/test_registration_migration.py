@@ -7,7 +7,9 @@ from alembic.config import Config
 from sqlalchemy import inspect
 
 
-def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_session):
+def test_clean_baseline_rebuilds_registration_tables_and_separate_file_metadata(
+    db_session,
+):
     config = Config()
     config.set_main_option(
         "script_location", str(Path(__file__).resolve().parents[1] / "alembic")
@@ -35,22 +37,11 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
         "registration_refunds",
         "tournament_payment_settings",
     } <= tables
-    assert tables.isdisjoint(
-        {
-            "tournament_signups",
-            "tournament_signup_files",
-            "registration_documents",
-            "policy_archives",
-            "pix_recipients",
-            "tournament_inscription_payment_configs",
-        }
-    )
     tournament_columns = {
         column["name"]
         for column in inspector.get_columns("tournaments", schema="public")
     }
     assert "discipline" in tournament_columns
-    assert tournament_columns.isdisjoint({"modality", "weapon_category"})
     document_columns = {
         column["name"]
         for column in inspector.get_columns(
@@ -65,9 +56,6 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
     } <= document_columns
     assert document_columns.isdisjoint(
         {
-            "signup_id",
-            "kind",
-            "created_at",
             "storage_key",
             "original_file_name",
             "content_type",

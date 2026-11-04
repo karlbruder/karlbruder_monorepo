@@ -3,76 +3,40 @@
 **Created**: 2026-10-26
 **Last updated**: 2026-11-04
 
-Alembic manages application domain tables in PostgreSQL `public`.
-Connection settings select the target database through `DB_HOST`, `DB_PORT`,
+Alembic manages application domain tables and its version marker in PostgreSQL
+`public`. Connection settings select the database through `DB_HOST`, `DB_PORT`,
 `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Supabase-managed `auth` objects are
-outside this migration history. Domain tables and `alembic_version` are explicitly
-qualified as `public`, even when another schema comes first in `search_path`.
+outside this history.
 
-## Clean initial schema
+## Initial schema and reset prerequisite
 
-The product owner authorized replacing the old migration chain during issue #69
-because there is no participant data to preserve. Revision `20261103_0001` is the
-new initial migration. It creates the current tournament, registration, shared
-file, registration-document, shared document-archive, acceptance-history and payment-settings
-tables directly. It also creates tournament proof reviews, domain payment/refund associations
-and shared Payment / Refund records. It has no parent revision.
-The old revisions and the intermediate rename migration are removed.
+Revision `20261103_0001` is the parentless initial schema. It replaces the removed
+pre-data history under the issue #69 reset authorization. It has no upgrade path
+from that history.
 
-This is a deliberate pre-data reset. It does not provide an upgrade from the
-removed history. A database still marked with an old revision cannot apply this
-new history until its old domain schema and migration marker are cleared.
-
-The product owner will remove the development domain tables. Include
-`public.alembic_version` in that reset so Alembic can start from the new baseline.
-Leave Supabase-managed `auth` objects intact. This repository change does not
-perform that development reset. A database with data that must be retained needs
-a separately reviewed conversion before adopting the new history.
-
-The initial schema retains the unique tournament slug, separate declaration
-choices, private document metadata, and optional Pix configuration. Event timestamps
-are `starts_at` and `ends_at`. Registration windows use inclusive calendar dates
-`registration_opens_on` and `registration_closes_on`. The local seed is a draft
-fixture with placeholder terms/rules versions.
-
-The baseline includes database triggers that reject acceptance/archive updates
-and deletes. StoredFile metadata referenced by an archive is protected too.
-Downgrade removes those triggers/functions with the evidence tables.
-Schema comparison alone does not verify triggers. The backend suite exercises
-attempted ORM and SQL mutations as well as clean rebuilds.
-
-Payment guards validate proof purpose, same-registration approved evidence and
-refund equality with the received amount. Review and receipt rows are immutable.
-Reviewed document associations are protected. Shared Refund status/completion fields
-remain separate from registration status. Tournament-specific proof/refund guards
-live on tournament associations. Shared payment/refund schemas have no domain IDs. Downgrade drops financial dependants
-and their guard functions before dropping the registration/file schema.
+Before adopting this baseline, the user must remove the old development domain
+tables and `public.alembic_version`. Leave Supabase-managed `auth` objects intact.
+This repository change does not reset a developer or production database.
+Future revisions published on `master` remain immutable.
 
 ## Applying migrations
 
-Verify the target database before applying changes. From `backend/`, run
-`poetry run alembic upgrade head`, then `poetry run alembic current`.
-A running local backend container can use
+Verify the target database. From `backend/`, run `poetry run alembic upgrade head`,
+then `poetry run alembic current`. A running local backend container can use
 `docker compose exec -T backend alembic upgrade head` from the repository root.
 
-Production uses the intended Supabase PostgreSQL database. The production
-entrypoint runs `alembic upgrade head` before starting Gunicorn. A migration
-failure exits without starting the API. Production data must never be reset
-merely to make that startup pass.
-
-Future revisions already published on `master` remain immutable. The issue #69
-reset is an explicit one-time exception authorized by the product owner.
-While the new baseline exists only on the issue branch, later #69 model
-checkpoints may extend it before publication.
+Production uses Supabase PostgreSQL. Its entrypoint applies migrations before
+starting Gunicorn. A migration failure prevents API startup. Never reset
+production data to make startup pass.
 
 ## Verification
 
-Use the isolated root `compose.test.yml` database with a unique project name.
-Run `alembic upgrade head`, `alembic check`, `alembic downgrade base`, and
-`alembic upgrade head` there. Remove the disposable project with `down -v`,
-including after a failure. The backend suite also tests rebuilding the schema
-with the existing PostgreSQL fixture and exercises the resulting constraints.
+Use root `compose.test.yml` with a unique disposable project name. Run
+`alembic upgrade head`, `alembic check`, `alembic downgrade base`,
+`alembic upgrade head`, and `alembic check`. Always remove the test project with
+`down -v`. Do not use `make db-reset` to verify migrations.
 
-No #59 upgrade rehearsal is required after this approved reset. Do not run
-`make db-reset` against the development database merely to verify migrations.
-The local reset helper remains available for a separately authorized local reset.
+Schema comparison does not verify triggers. The backend suite also checks
+immutable acceptance/archive evidence, archived file metadata, reviewed proof
+associations and their file metadata, verified receipts, and payment/refund
+consistency. Downgrade removes the evidence guards with their tables.

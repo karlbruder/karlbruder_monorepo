@@ -502,8 +502,10 @@ def upgrade() -> None:
         """
         CREATE FUNCTION public.validate_payment_proof_review() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
-            PERFORM 1 FROM public.tournament_registration_documents
-                WHERE id = NEW.document_id AND document_type = 'payment_proof' FOR SHARE;
+            PERFORM 1 FROM public.tournament_registration_documents d
+                JOIN public.stored_files f ON f.id = d.file_id
+                WHERE d.id = NEW.document_id AND d.document_type = 'payment_proof'
+                FOR SHARE OF d, f;
             IF NOT FOUND THEN
                 RAISE EXCEPTION 'Review must identify a submitted payment proof' USING ERRCODE = '23514';
             END IF;
@@ -567,6 +569,25 @@ def upgrade() -> None:
     )
     op.execute(
         "CREATE TRIGGER immutable_reviewed_document BEFORE UPDATE OR DELETE ON public.tournament_registration_documents FOR EACH ROW EXECUTE FUNCTION public.protect_reviewed_document()"
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.protect_reviewed_proof_file() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF EXISTS (
+                SELECT 1 FROM public.tournament_registration_documents d
+                JOIN public.payment_proof_reviews r ON r.document_id = d.id
+                WHERE d.file_id = OLD.id
+            ) THEN
+                RAISE EXCEPTION 'Reviewed proof file metadata is immutable' USING ERRCODE = '23514';
+            END IF;
+            IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        "CREATE TRIGGER immutable_reviewed_proof_file BEFORE UPDATE OR DELETE ON public.stored_files FOR EACH ROW EXECUTE FUNCTION public.protect_reviewed_proof_file()"
     )
     for table in (
         "payment_proof_reviews",
@@ -650,4 +671,5 @@ def downgrade() -> None:
     op.execute("DROP FUNCTION public.validate_registration_payment()")
     op.execute("DROP FUNCTION public.validate_registration_refund()")
     op.execute("DROP FUNCTION public.protect_reviewed_document()")
+    op.execute("DROP FUNCTION public.protect_reviewed_proof_file()")
     op.execute("DROP FUNCTION public.protect_refund_obligation()")
