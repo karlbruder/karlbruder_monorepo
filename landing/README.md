@@ -1,70 +1,113 @@
 # Karlbrüder public website
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-04
 
-Public React single-page website for `karlbruder.com`, built with Create React App (`react-scripts`). It introduces the group and presents Monomachia. Authenticated tournament workflows belong in [frontend](../frontend/README.md) and [backend](../backend/README.md).
+Public React website for `karlbruder.com`, built with Create React App
+(`react-scripts`). It introduces the group and presents Monomachia. Sign-in and
+tournament registration belong in the [application](../frontend/README.md).
+Public pages do not fetch event facts from the backend.
 
 ## Pages and content
 
-| Route | Current content |
+| Route | Content |
 | --- | --- |
-| `/` | Group presentation, training, weapons, gallery, partners, and contact sections |
-| `/monomachia` | Event presentation, Portuguese/English language selection, sponsors, the official Instagram link, and registration handoff to the private application |
+| `/` | Group, training, weapons, gallery, partners, and contact |
+| `/monomachia` | Event, Portuguese/English selection, sponsors, Instagram, and registration link |
 | Other paths | Client-side redirect to `/` |
 
-`src/App.js` defines routes; pages live in `src/pages/`, shared content/components in `src/components/`, and partner data in `src/data/partners.js`. Public assets live in `public/` and source assets alongside the components.
+| Location | Responsibility |
+| --- | --- |
+| `src/App.js` | Routes and language provider composition |
+| `src/pages/` | Home and Monomachia pages |
+| `src/components/` | Shared content and components |
+| `src/data/partners.js` | Partner data |
+| `public/` and component asset folders | Public and bundled assets |
 
-The Monomachia registration link opens `https://app.karlbruder.com/tournaments/registration` under the [website specification](../specs/public-website/presentation-and-navigation.md). Registration and sign-in happen in the private application. Public-site content is maintained separately and does not fetch event facts from the backend.
+## Configuration
+
+From `landing/`:
+
+```sh
+cp .env.example .env
+```
+
+`REACT_APP_APPLICATION_URL` sets the registration link's application origin.
+Use `http://localhost:5173` locally and the environment's HTTPS application origin
+for deployment. Unset or blank values fall back to `https://app.karlbruder.com`.
+A trailing slash is accepted.
+
+The link targets `/tournaments/registration` and passes the selected language as
+`?lang=pt` or `?lang=en`. The site submits no registration data and needs no backend,
+database, or Supabase credentials to display its pages.
 
 ## Local development
 
-Copy `.env.example` to `.env` in this directory. `REACT_APP_APPLICATION_URL` sets the registration link's application origin. Local development uses `http://localhost:5173`. A trailing slash is accepted. When the variable is unset, the link uses `https://app.karlbruder.com`. The link always targets `/tournaments/registration` on that origin. Do not put the localhost value in a deployed environment. The landing site does not submit registration data and does not need backend, database, or Supabase credentials to display its pages.
+For Compose environment files and the full stack, follow the
+[root setup](../README.md#local-setup-with-docker-compose). From the repository root,
+start only this site with:
 
-Install Node.js and npm compatible with the checked-in lockfile when running on the host. From `landing/`:
+```sh
+docker compose up --build landing
+```
+
+Open `http://localhost:3000`. The application frontend uses port 5173.
+
+For host development, install Node.js and npm compatible with the lockfile.
+The Dockerfile uses Node 20. From `landing/`:
 
 ```sh
 npm ci
 npm start
 ```
 
-Local Compose runs this development server at `http://localhost:3000`. The application frontend stays on 5173. From the repository root:
-
-```sh
-docker compose up --build landing
-```
-
-Production runs this site as the landing container in `compose.production.yml`. Nginx sends the landing hostnames to that container.
-
-To run the existing React tests in that same image:
-
-```sh
-make test-landing
-```
-
-Those tests do not use `compose.test.yml`. They do not need PostgreSQL. Host `npm start` and `npm test` remain available from this directory.
+Restart after changing `.env`. For Compose dependency or environment changes,
+run `make recreate-landing` from the repository root.
 
 ## Build and tests
 
-From `landing/`:
+From the repository root:
 
 ```sh
-npm run build
-npm test -- --watchAll=false
+make test-landing
+make build-landing
 ```
 
-The static build is written to `build/`. The existing `src/App.test.js` checks Monomachia content and language switching. There is no separate lint script; use the package's build/test commands. The production landing image serves `index.html` for a direct visit or a refresh on `/monomachia`. Nginx must not treat that path as a directory. `public/monomachia/` holds static files such as `logo.svg`, and a directory match returns 403 before the page fallback.
+Tests use the development Compose image with `CI=true`, without PostgreSQL or
+`compose.test.yml`. Local Compose environment files must exist.
+`make build-landing` builds the production image with the placeholder application
+origin `https://app.example.test`. That image is for checks, not deployment.
+
+For a host build, run `npm run build` from `landing/`. Assets go to `build/`.
+There is no separate lint script. The Create React App build includes lint checks.
+`src/App.test.js` covers event content, language switching, and registration links.
+
+The production Nginx configuration uses `try_files $uri /index.html` so direct
+visits and refreshes on `/monomachia` reach the page. Do not add a directory match
+such as `$uri/`. The asset directory `public/monomachia/` would match first and
+return 403 instead of the page.
 
 ## Continuous integration and deployment
 
-The existing GitHub Actions workflows are:
+[Landing CI](../.github/workflows/ci-landing.yml) runs on relevant pull requests to
+`master` and on manual dispatch. It tests and builds inside Docker, without a
+developer `.env` file, production secrets, or live Supabase. Its production build
+uses `https://app.example.test` and is not deployed.
 
-- [Landing CI](../.github/workflows/ci-landing.yml): on pull requests to `master` that change landing files or this workflow, and on manual runs. It runs the tests and the production image build inside Docker. The production build is the lint check, because Create React App has no separate lint script. The image build uses `https://app.example.test` as `REACT_APP_APPLICATION_URL`. That image is not deployed.
-- [Frontend CI](../.github/workflows/ci-frontend.yml) and [backend CI](../.github/workflows/ci-backend.yml) follow the same Docker requirement. Backend pytest and Ruff use `compose.test.yml`. None of these checks read a developer `.env` file, a production secret, or a live Supabase project. New application CI should run in Docker the same way.
-- [Deploy](../.github/workflows/deploy-application.yml): builds the landing image when landing files change, pushes it to ECR, and replaces the landing container. The build embeds `APPLICATION_BASE_URL` from the selected GitHub environment as `REACT_APP_APPLICATION_URL`. That must be the real application origin for that environment, not `http://localhost:5173`. Changing the variable requires a new landing image.
+The [deployment workflow](../.github/workflows/deploy-application.yml) builds landing
+when selected or changed. It embeds `APPLICATION_BASE_URL` as
+`REACT_APP_APPLICATION_URL`. Changing that value requires rebuilding and deploying
+the image. The cloud edge Nginx routes landing hostnames to this container.
 
-The workflow files do not verify that Cloudflare routing or HTTPS is configured. Organizational hosting and cutover requirements live in the [deployment spec](../specs/platform/deployment.md#public-website).
+Deployment checks the public landing, application, and API endpoints. Those checks
+do not verify every Cloudflare or HTTPS setting. See the
+[deployment guide](../docs/deployment.md) for release mechanics and verification
+limits, and the [deployment spec](../specs/platform/deployment.md#public-website)
+for hosting and cutover requirements.
 
 ## Related documentation
 
-[Root README](../README.md), [public website spec](../specs/public-website/presentation-and-navigation.md), [Monomachia configuration](../specs/tournaments/events/monomachia-2027.md), [deployment](../specs/platform/deployment.md).
+[Root setup](../README.md) ·
+[Website requirements](../specs/public-website/presentation-and-navigation.md) ·
+[Monomachia configuration](../specs/tournaments/events/monomachia-2027.md) ·
+[Documentation index](../docs/README.md)
