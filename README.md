@@ -3,78 +3,39 @@
 **Created**: 2023-03-24
 **Last updated**: 2026-11-04
 
-Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
+Monorepo for the Karlbrüder public website and tournament application.
+Association membership and equipment inventory are future capabilities.
 
 ## Repository map
 
-| Directory or file | Responsibility | Setup |
+| Location | Responsibility | Guide |
 | --- | --- | --- |
-| `landing/` | Public React website at `karlbruder.com` | [Landing README](landing/README.md) |
-| `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
-| `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
-| `compose.yml` | Local landing, frontend, backend, PostgreSQL, and Ministack for private files. Backend source reloads on change | Local setup below |
-| `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
-| `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
-| `compose.production.yml` | Production mode on the `dev` and `prod` hosts: Nginx, landing, frontend, and backend | Production direction below |
-| `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
-| `docs/aws-team-access.md` | How the team signs in to the AWS account | [AWS team access](docs/aws-team-access.md) |
-| `docs/` | Current-system guides and operational procedures | [Documentation index](docs/README.md) |
-| `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
+| `landing/` | Public React website | [Landing README](landing/README.md) |
+| `frontend/` | React/TypeScript/Vite application | [Frontend README](frontend/README.md) |
+| `backend/` | FastAPI, token verification, domain rules, and database access | [Backend README](backend/README.md) |
+| `compose.yml` | Local website, application, PostgreSQL, and Ministack | [Local setup](#local-setup-with-docker-compose) |
+| `compose.test.yml` | Isolated backend tests without host ports | [Backend checks](backend/README.md#tests-and-lint) |
+| `compose.production.yml` | Cloud stack on both dev and prod hosts | [Deployment guide](docs/deployment.md) |
+| `Makefile` | Local service, database, and check commands | `make help` |
+| `specs/` | Requirements, architecture, ADRs, and open questions | [Specification index](specs/README.md) |
+| `docs/` | Current implementation guides and operational runbooks | [Documentation index](docs/README.md) |
 
-Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior. The application implements Google and email/password authentication, backend identity verification, health checks, tournament registration, and private document uploads. Financial evidence models support later staff payment-review and refund workflows. Those commands, results, membership, and inventory are not implemented. Source inspection does not establish live browser or deployment acceptance. See the [tournament API guide](backend/app/tournaments/README.md) for current routes and access rules.
+The application implements Google and email/password authentication, tournament
+registration, private uploads, and retained acceptance/financial evidence.
+Staff payment-review and refund commands, results, membership, and inventory are
+not implemented. See the [tournament API guide](backend/app/tournaments/README.md)
+for current contracts and access restrictions.
 
-## Agentic development
-
-Start from [specifications](specs/README.md) or pick an existing GitHub issue. Invoke the linked skills in your agent chat using `$skill-name` in Codex or `/skill-name` in Claude Code and Cursor. GitHub actions use your own authenticated GitHub CLI account.
-
-### 1. Pick an issue and plan it
-
-The tech lead or developer can use [create-issue](.agents/skills/create-issue/SKILL.md) to clarify a delivery slice from the specs and publish it after approval. **If the issue already exists, pick it from GitHub and start with [plan-issue](.agents/skills/plan-issue/SKILL.md)**, for example `$plan-issue 123`. Review the saved plan before implementation.
-
-```mermaid
-flowchart LR
-    New[New work from specs] --> Create[1a. create-issue]
-    Create --> Issue[GitHub issue]
-    Existing[Pick an existing issue] --> Issue
-    Issue --> Plan[1b. plan-issue]
-```
-
-### 2. Implement, review, and address findings
-
-Run [implement-issue](.agents/skills/implement-issue/SKILL.md), for example `$implement-issue 123`. It creates or resumes the issue branch and moves the Project item to **In Progress** when work starts. Each step includes its tests. **You review, stage, and commit**; the agent suggests a message and waits for your permission before the next step.
-
-```mermaid
-flowchart LR
-    Implement[2a. implement-issue: code and tests] --> Human[2b. Developer reviews and commits]
-    Human -->|All steps complete| Review[2c. review-issue]
-    Review --> Debate[2d. debate-review]
-```
-
-Repeat 2a–2b for every planned step. Then run [review-issue](.agents/skills/review-issue/SKILL.md) to produce findings and runnable probes, and [debate-review](.agents/skills/debate-review/SKILL.md) to assess them skeptically. Pass the review path to the debating agent. You choose which fixes matter; return to 2a–2b for those fixes and recheck the affected findings.
-
-### 3. Open the PR and finish
-
-Run [open-pr](.agents/skills/open-pr/SKILL.md), for example `$open-pr 123`. It publishes the committed branch, opens the PR, and moves the linked issue's Project item to **In Review**, whether it was To Do or In Progress. Branch-only PRs without an associated issue skip the Project update.
-
-```mermaid
-flowchart LR
-    PR[3a. open-pr] --> Lead[3b. Tech lead approves and merges]
-    Lead --> Done[3c. Verify issue closed and Project Done]
-```
-
-Tech-lead change requests return to step 2. For completed issue scope, the PR includes `Closes #123`, which [closes the issue when merged into the default branch](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue). After merge into `master`, verify closure and mark the Project item Done if automation has not done so. Failed Project updates are reported for manual follow-up.
-
-Issue numbers can be replaced with URLs. Review, debate, and PR skills also accept `--source feature/example --target master` without an issue or plan; debate still needs review feedback. Creation, planning, and implementation stay issue-driven.
-
-Plans, checkpoint state, reviews, and probes are saved under Git-ignored `.local/`. Plans are versioned; review/debate folders use `issue-<number>/` or `<target>__<source>/`. Pass the saved paths to resume in a new chat. Local files are not shared through GitHub, so keep issues and PRs self-contained.
+Agents follow [AGENTS.md](AGENTS.md) and applicable child instructions. Read only
+the specifications and guides needed for the task.
 
 ## Local setup with Docker Compose
 
-Install Git and Docker with Docker Compose. Host Python, Poetry, Node.js, and PostgreSQL are unnecessary for the containerized services.
+Install Git and Docker with Compose. Container development does not require host
+Python, Poetry, Node.js, or PostgreSQL. Each application has its own environment
+file. There is no application environment file at the repository root.
 
-Each application has its own environment file. Compose reads that file for the matching service. There is no application environment file at the repository root.
-
-From the repository root, create the local files:
+From the repository root:
 
 ```sh
 cp backend/.env.example backend/.env
@@ -82,43 +43,56 @@ cp frontend/.env.example frontend/.env
 cp landing/.env.example landing/.env
 ```
 
-On PowerShell, use `Copy-Item` in place of `cp` if needed. Fill in:
+On PowerShell, use `Copy-Item` instead of `cp` if needed. Configure these values:
 
-| File | Variable | Use |
+| File | Settings | Local use |
 | --- | --- | --- |
-| `backend/.env` | `ENV_NAME` | `local` for Compose. Any other name uses AWS settings from the environment and the env file. |
-| `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Local Compose uses host `db`, database `postgres`, user `postgres`, and password `postgres`. A host-run backend uses `localhost` instead of `db`. |
-| `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for backend token verification. |
-| `backend/.env` | `AUTH_DB_*` | PostgreSQL connection used by `/api/health/auth`. Sign-in and token verification use `SUPABASE_URL` instead. |
-| `frontend/.env` | `VITE_SUPABASE_URL` | The same hosted Supabase project root. |
-| `frontend/.env` | `VITE_SUPABASE_PUBLISHABLE_KEY` | The project's public `sb_publishable_...` key. Never use a secret or service-role key. |
-| `landing/.env` | `REACT_APP_APPLICATION_URL` | Origin of the private application. Local development uses `http://localhost:5173`. |
+| `backend/.env` | `ENV_NAME` | `local` |
+| `backend/.env` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | `db`, `5432`, `postgres`, `postgres`, `postgres` |
+| `backend/.env` | `SUPABASE_URL` | Hosted Supabase HTTPS project root for token verification |
+| `backend/.env` | `AUTH_DB_*` | Separate PostgreSQL connection for the Auth diagnostic, not token verification |
+| `frontend/.env` | `VITE_SUPABASE_URL` | Same hosted Supabase project |
+| `frontend/.env` | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public `sb_publishable_...` key. Never a secret or service-role key |
+| `landing/.env` | `REACT_APP_APPLICATION_URL` | `http://localhost:5173` |
 
-`compose.production.yml` reads `/opt/karlbruder/backend.env` on the application host. It also runs the landing container. Configure the hosted project's Google sign-in and allowed frontend origin for `http://localhost:5173`.
+Configure hosted sign-in providers and redirect URLs using the
+[frontend guide](frontend/README.md#account-routes-and-supabase-redirect-urls).
+Local domain data lives in Compose PostgreSQL. Auth remains hosted in Supabase.
+The environment examples contain local defaults, not production credentials.
 
-Start the local services:
+Start services:
 
 ```sh
 make up
 ```
 
-`make help` lists the other local commands. `make up` runs `docker compose up --build`.
+This builds images and starts Compose in the background. `make help` lists the
+available commands.
 
-| Service | Address or connection |
+| Service | Local address |
 | --- | --- |
 | Public website | `http://localhost:3000` |
-| Frontend development server | `http://localhost:5173` |
-| Backend API and Swagger UI | `http://localhost:8000/api/docs` |
+| Application frontend | `http://localhost:5173` |
+| Backend Swagger UI | `http://localhost:8000/api/docs` |
 | Backend liveness | `http://localhost:8000/api/health` |
-| Release metadata | `http://localhost:8000/api/metadata` |
 | Domain database diagnostic | `http://localhost:8000/api/health/db` |
-| Optional Auth database diagnostic | `http://localhost:8000/api/health/auth` |
-| Protected identity endpoint | `http://localhost:8000/api/users/me` with a Bearer access token |
-| Local PostgreSQL | `localhost:5432`, database `postgres`, user `postgres`, password `postgres` |
+| PostgreSQL | `localhost:5432`, database/user/password `postgres` |
+| Ministack S3 | `http://localhost:4566` |
 
-The sample database credentials are local development defaults. `backend/.env` points Compose at host `db`, database `postgres`, user `postgres`, and password `postgres`. The hostname `db` works inside Compose. Host-run tools use `localhost`. Local domain data is independent from hosted Supabase data. Authentication uses hosted Supabase in either environment.
+Inside Compose, the backend reaches PostgreSQL at `db:5432` and Ministack at
+`ministack:4566`. Host tools use `localhost`. Browser upload URLs use
+`localhost:4566`.
 
-Backend source is bind-mounted, and Uvicorn reloads when those files change. Frontend and landing mount their source trees, so edits there reload as well. `node_modules` and the Python packages stay in the image. Rebuild and recreate a service after a dependency change, or after that service's environment file changes:
+Before using domain APIs, apply migrations using the
+[migration guide](docs/database-migrations.md). Its clean-baseline reset
+prerequisite applies to older development schemas. Leave Supabase-managed `auth`
+objects intact. Local reset/seed commands are documented in the
+[backend guide](backend/README.md#domain-migrations).
+
+### Reload, rebuild, and stop
+
+Application source is mounted for reload. Dependencies stay in the images.
+After changing dependencies or an environment file, rebuild the relevant service:
 
 ```sh
 make recreate-backend
@@ -126,39 +100,86 @@ make recreate-frontend
 make recreate-landing
 ```
 
-Stop services and remove the local network with:
-
-```sh
-make down
-```
-
-The PostgreSQL volume is retained. `make down-volumes` deletes that local database volume.
+`make down` stops services and removes the network while retaining PostgreSQL data.
+`make down-volumes` also deletes the local database volume.
 
 ## Current local integration notes and gaps
 
-The Compose frontend health check probes Vite at `localhost:5173`. Browser requests to `/api` on the frontend origin use Vite's proxy to reach the backend with the `/api` prefix intact. The frontend image's Nginx configuration also preserves that prefix when the image is used; local Compose uses Vite instead of that Nginx image stage.
+Local Vite forwards same-origin `/api` requests to the backend without changing
+the prefix. Local Compose runs no Nginx service. Use this proxy for browser API
+calls. Direct calls from port 5173 to port 8000 fall outside the backend's current
+CORS allowlist, which names only `http://localhost:3000`.
 
-These source-observed limitations remain, without changing the working same-origin `/api` path:
+The backend container health check tests domain database connectivity. It does
+not verify migrations. Liveness alone does not verify connectivity. The separately
+configured Auth diagnostic can fail without disabling JWT verification.
+See [backend diagnostics](backend/README.md#diagnostics) for metadata, Auth, and
+identity endpoints. The frontend currently has no diagnostics route.
 
-- Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
-- Diagnostic components exist under `src/features/diagnostics/`, but `src/app/router.tsx` does not mount a diagnostics route. Use the direct backend endpoints above.
-
-Backend container health checks exercise the domain database via `/api/health/db`. Liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/api/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
+Source inspection does not establish live integration health. Remaining platform
+constraints and gaps belong to [local development](specs/platform/local-development.md).
 
 ## Application development and checks
 
-Run commands in the relevant application's directory. Each application has its own lockfile. This repository is not an npm workspace.
+Each application has its own lockfile. This repository is not an npm workspace.
+Run these targets from the repository root:
 
-- [Backend](backend/README.md): host configuration, authentication smoke test, pytest, and Ruff.
-- [Frontend](frontend/README.md): Supabase settings, Vite, build, and ESLint scripts.
-- [Landing](landing/README.md): public routes, content, build, and React tests.
+| Command | Checks |
+| --- | --- |
+| `make test-backend TEST_PROJECT=kb-test-your-name` | Pytest in isolated Compose. Choose a unique project name |
+| `make lint-backend TEST_PROJECT=kb-test-your-name` | Ruff in isolated Compose |
+| `make test-frontend` | Vitest in the frontend development image |
+| `make test-landing` | React tests in the landing development image |
+| `make ci TEST_PROJECT=kb-test-your-name` | All application tests, lint where configured, and production image builds |
+
+Backend targets clean up their test project. Frontend and landing test targets
+use local Compose and require its environment files. `make ci` uses CI placeholders
+without developer environment files or live Supabase. See each application README
+for focused checks and host development.
+
+## Agentic development
+
+The linked skills own the procedure. Invoke them with `$skill-name` in Codex or
+`/skill-name` in Claude Code and Cursor. GitHub operations use the developer's
+CLI account and require approval before each `gh` command.
+
+| Step | Skill and example |
+| --- | --- |
+| Define a new issue | [create-issue](.agents/skills/create-issue/SKILL.md), `$create-issue` |
+| Plan an existing issue | [plan-issue](.agents/skills/plan-issue/SKILL.md), `$plan-issue 123` |
+| Implement one checkpoint | [implement-issue](.agents/skills/implement-issue/SKILL.md), `$implement-issue 123` |
+| Review committed work | [review-issue](.agents/skills/review-issue/SKILL.md), `$review-issue 123` |
+| Assess review findings | [debate-issue-review](.agents/skills/debate-issue-review/SKILL.md), `$debate-issue-review 123 <review-path>` |
+| Publish committed work | [open-pr](.agents/skills/open-pr/SKILL.md), `$open-pr 123` |
+
+Review the saved plan before implementation. Each checkpoint includes its checks.
+The developer reviews, stages, and commits. The agent suggests a message and waits
+for authorization before the next checkpoint. Reviews produce findings for the
+developer to assess before fixes. The tech lead approves and merges the PR.
+
+Creation, planning, and implementation require an issue. Review, debate, and PR
+skills also accept `--source feature/example --target master`. Debate requires
+review feedback. Issue URLs may replace numbers.
+
+Plans and review evidence live under Git-ignored `.local/`. Pass their saved paths
+to resume in a fresh chat. Keep issues and PRs self-contained because local files
+are not shared. Follow the skills for Project status updates and verify issue
+closure and Project completion after merge.
 
 ## Production direction
 
-Production mode is `compose.production.yml`. The `dev` and `prod` hosts both use it. It runs Nginx, the landing site, the built frontend, and the backend. Nginx publishes port 443 and creates a self-signed certificate on first start. The other services stay on the Compose network. Putting that stack on EC2 and pointing Cloudflare at it is still separate work.
+Both cloud environments use `compose.production.yml` with edge Nginx, landing,
+frontend, and backend. Only Nginx publishes port 443. Cloudflare supplies public
+TLS and reaches the self-signed origin using Full mode. Application `/api`
+requests go directly to the backend. Other application requests go to the frontend.
+Landing hostnames go to the landing container.
 
-Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing and application names are proxied A records to that environment's Elastic IP. Cloudflare uses Full mode to reach the self-signed Nginx origin over HTTPS 443. DNS only, Flexible, and Full (strict) do not fit this origin. Only Nginx publishes a host port. A landing hostname goes to the landing container. An application hostname preserves `/api` when forwarding to the backend and sends other requests to the frontend. The Monomachia registration link is baked into the landing image from `APPLICATION_BASE_URL`.
+Domain data uses hosted Supabase PostgreSQL `public`. There is no production
+PostgreSQL or Ministack container. Private files use S3. Supabase Auth mail uses
+SES custom SMTP. Backend application notifications through SES remain future work.
 
-Domain records use hosted Supabase PostgreSQL's `public` schema, with no production PostgreSQL container; Supabase manages `auth`. Private files use S3 in production and Ministack S3 emulation in local Compose. Application email will use AWS SES via SMTP; local SMTP setup remains deferred. Credentials belong in environment/secrets configuration, never frontend bundles.
-
-The public landing site is its own container in that Compose project. Application CI runs in Docker, and future application CI should do the same. The workflows are [backend](.github/workflows/ci-backend.yml), [frontend](.github/workflows/ci-frontend.yml), and [landing](.github/workflows/ci-landing.yml). They do not read developer env files, production secrets, or a live Supabase project. Backend pytest and Ruff use `compose.test.yml`. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), the [deployment requirements](specs/platform/deployment.md), the [deployment guide](docs/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).
+The [deployment guide](docs/deployment.md) owns current infrastructure, workflow,
+build inputs, and release checks. The [deployment spec](specs/platform/deployment.md)
+owns requirements and unresolved operational concerns. Workflow presence alone
+does not establish live deployment or recovery health. Use the
+[documentation index](docs/README.md) for AWS team access and operational runbooks.
