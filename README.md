@@ -17,7 +17,8 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
 | `compose.production.yml` | Production mode on the `dev` and `prod` hosts: Nginx, landing, frontend, and backend | Production direction below |
 | `specs/` | Intended product behavior, architecture, decisions, and open questions | [Specification index](specs/README.md) |
-| `docs/aws.md` | How the team signs in to the AWS account | [AWS](docs/aws.md) |
+| `docs/aws-team-access.md` | How the team signs in to the AWS account | [AWS team access](docs/aws-team-access.md) |
+| `docs/` | Current-system guides and operational procedures | [Documentation index](docs/README.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
 
 Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior. The application implements Google and email/password authentication, backend identity verification, health checks, tournament registration, and private document uploads. Financial evidence models support later staff payment-review and refund workflows. Those commands, results, membership, and inventory are not implemented. Source inspection does not establish live browser or deployment acceptance. See the [tournament API guide](backend/app/tournaments/README.md) for current routes and access rules.
@@ -140,7 +141,7 @@ The Compose frontend health check probes Vite at `localhost:5173`. Browser reque
 These source-observed limitations remain, without changing the working same-origin `/api` path:
 
 - Backend CORS currently allows `http://localhost:3000` as its explicit origin. Direct browser requests from `http://localhost:5173` to `http://localhost:8000` are outside that allowlist; use the frontend's same-origin `/api` path for local application calls.
-- `Home.tsx` and `Health.tsx` exist, but `App.tsx` does not mount their routes. `/health` on the frontend is not a working diagnostics screen; use the direct backend endpoints above.
+- Diagnostic components exist under `src/features/diagnostics/`, but `src/app/router.tsx` does not mount a diagnostics route. Use the direct backend endpoints above.
 
 Backend container health checks exercise the domain database via `/api/health/db`. Liveness alone does not verify connectivity or application schema migrations. A failed Auth database connection makes `/api/health/auth` return 503 without disabling token verification. See [local development](specs/platform/local-development.md) for the remaining platform gaps.
 
@@ -160,4 +161,4 @@ Cloudflare provides DNS, public TLS, and the HTTP-to-HTTPS redirect. The landing
 
 Domain records use hosted Supabase PostgreSQL's `public` schema, with no production PostgreSQL container; Supabase manages `auth`. Private files use S3 in production and Ministack S3 emulation in local Compose. Application email will use AWS SES via SMTP; local SMTP setup remains deferred. Credentials belong in environment/secrets configuration, never frontend bundles.
 
-The public landing site is its own container in that Compose project. Application CI runs in Docker, and future application CI should do the same. The workflows are [backend](.github/workflows/ci-backend.yml), [frontend](.github/workflows/ci-frontend.yml), and [landing](.github/workflows/ci-landing.yml). They do not read developer env files, production secrets, or a live Supabase project. Backend pytest and Ruff use `compose.test.yml`. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), [deployment](specs/platform/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).
+The public landing site is its own container in that Compose project. Application CI runs in Docker, and future application CI should do the same. The workflows are [backend](.github/workflows/ci-backend.yml), [frontend](.github/workflows/ci-frontend.yml), and [landing](.github/workflows/ci-landing.yml). They do not read developer env files, production secrets, or a live Supabase project. Backend pytest and Ruff use `compose.test.yml`. The deploy workflow builds only the services that changed. That workflow's existence does not verify live DNS or deployment health. See [architecture](specs/architecture.md), the [deployment requirements](specs/platform/deployment.md), the [deployment guide](docs/deployment.md), and the [landing workflow documentation](landing/README.md#continuous-integration-and-deployment).

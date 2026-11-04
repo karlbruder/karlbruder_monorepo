@@ -1,7 +1,7 @@
 # Team access to AWS
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -30,6 +30,8 @@ Give the team access to the Karlbrüder AWS account without sharing standing IAM
 - **TEAM-AC-004:** AWS access does not confer application admin permissions.
 
 ## Implementation baseline
+
+The [AWS team-access guide](../../docs/aws-team-access.md) explains the federation and sign-in flow. Workflow identity setup belongs to the [GitHub Actions access runbook](../../docs/runbooks/github-actions-access.md). Neither guide establishes live assignments.
 
 Issue #19 was marked Done in the fetched project inventory, while its body still contains unchecked tasks. No cloud configuration or account grants were inspected during this specification pass. Do not infer live authorization from the board status.
 

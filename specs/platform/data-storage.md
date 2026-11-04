@@ -50,10 +50,8 @@ updates. Direct SQL writers remain responsible for update timestamps. These fiel
 do not replace domain evidence times, such as acceptance, review, or payment time.
 They do not introduce UUID identity columns, soft deletion, or weaker evidence guards.
 
-The initial revision `20261103_0001` includes these timestamp columns. Adopting
-this revised baseline requires the authorized fresh-database reset described in
-the [migration notes](../../docs/database-migrations.md). There is no upgrade path
-from an earlier version of the initial schema.
+The [migration guide](../../docs/database-migrations.md) owns the initial-schema
+reset prerequisite and verification procedure.
 
 ## File metadata ownership
 
@@ -109,24 +107,19 @@ Future membership can add its own associations without inheriting tournament rul
 
 ## Observed configuration
 
-The backend has SQLAlchemy connection helpers and separate domain/Auth diagnostic paths. `/api/health/db` queries domain connectivity and `public`. `/api/health/auth` queries the configured Auth database and `auth`. The latter is created on demand. `/api/users/me` verifies JWTs without requiring a local users table or Auth database query.
+Use the [backend setup guide](../../backend/README.md#setup-and-development)
+for database and storage settings, and [diagnostics](../../backend/README.md#diagnostics)
+for connectivity responses. Auth diagnostics use a separate connection created on
+demand. JWT verification does not query an Auth database or a local users table.
 
-File storage uses `S3_BUCKET_NAME` and optional endpoint overrides:
+The [S3 runbook](../../docs/runbooks/application-files-s3-bucket.md) owns cloud bucket
+configuration and host permissions. The [environment example](../../backend/.env.example)
+and [local setup](../../README.md#local-setup-with-docker-compose) own local endpoints.
+Tests mock storage calls instead of starting Ministack.
 
-| Setting | Local Compose | Cloud configuration |
-| --- | --- | --- |
-| `S3_BUCKET_NAME` | `kb-local-bucket` | Exact `application_files_bucket_name` Terraform output, stored in the backend secret |
-| `S3_ENDPOINT_URL` | `http://ministack:4566` for backend calls | Unset to use Amazon S3 |
-| `S3_BROWSER_ENDPOINT_URL` | `http://localhost:4566` for presigned browser URLs | Unset to use Amazon S3 |
-
-Local Compose creates its bucket through `ministack/bootstrap-ministack.sh` and
-allows browser `PUT` from `http://localhost:5173`. Terraform allows cloud `PUT`
-from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and
-`https://app-dev.karlbruder.com`. CORS does not grant public reads. Tests mock the
-storage client without starting Ministack. See [deployment](deployment.md#application-files-bucket)
-for bucket provisioning and host permissions.
-
-The source inspection on 17 October 2026 did not establish a live connection, migration application, backup schedule, or recovery test. Health responses expose configured destinations with passwords redacted; visibility of diagnostics to public callers needs an agreed deployment policy.
+Source inspection does not establish live connectivity, migration application,
+backups, or recovery. Public diagnostic responses redact passwords but expose
+configured destinations. Their public-field policy remains unresolved below.
 
 ## Acceptance criteria
 
@@ -143,7 +136,7 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 
 ## Implementation and operations decisions
 
-- Bucket and endpoint configuration are described above. Backup, recovery, and deletion-request procedures remain separate operational work. Apply PRIV-011's interim indefinite retention and keep PRIV-Q4 unresolved until its policy is decided.
+- Bucket and endpoint configuration are owned by the linked guides. Backup, recovery, and deletion-request procedures remain separate operational work. Apply PRIV-011's interim indefinite retention and keep PRIV-Q4 unresolved until its policy is decided.
 - Define which health-diagnostic fields are exposed to public callers versus protected access, while preserving DATA-008's ban on credential disclosure. This is an operational/API design decision, not another application-role hierarchy.
 
 ## Related specifications

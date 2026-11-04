@@ -69,7 +69,7 @@ flowchart LR
     Backend -->|SMTP| Email["AWS SES"]
 ```
 
-A cloud host runs Nginx, landing, frontend, and backend with `compose.production.yml`. Both `dev` and `prod` are a copy of this diagram. Each copy has its own Elastic IP and its own hostnames, listed in the [taxonomy](taxonomy.md). Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container on a cloud host. How an image reaches the host is described in the [deployment spec](platform/deployment.md).
+A cloud host runs Nginx, landing, frontend, and backend with `compose.production.yml`. Both `dev` and `prod` are a copy of this diagram. Each copy has its own Elastic IP and its own hostnames, listed in the [taxonomy](taxonomy.md). Supabase supplies hosted PostgreSQL and Auth. S3 and SES are external AWS services for private files and email. There is no PostgreSQL or Ministack container on a cloud host. Release mechanics are described in the [deployment guide](../docs/deployment.md). Required deployment behavior stays in the [deployment spec](platform/deployment.md).
 
 ## DNS and HTTPS
 
@@ -167,7 +167,7 @@ Source inspection on 4 November 2026 established the following implementation ba
 - Health and metadata endpoints are documented in the [backend README](../backend/README.md#diagnostics). Frontend production build configuration is documented in the [frontend README](../frontend/README.md#configuration).
 - Tournament registration, private uploads, preserved policies, acceptance snapshots, and financial evidence records are implemented. Staff payment-review and refund commands remain future work. The [tournament API guide](../backend/app/tournaments/README.md) describes the implemented routes and persistence boundaries.
 - The payment-instructions read currently returns 404 to an admin who does not own the registration. This differs from the global admin-access requirement in ARCH-014 and AUTH-008. The API guide describes the implemented restriction. It does not establish a product-policy exception.
-- Application CI runs in Docker. The deployment workflow targets `dev` on qualifying pushes to `master`. Workflow and rollout details belong in the [deployment spec](platform/deployment.md). Backend application email through SES SMTP remains intended architecture.
+- Application CI runs in Docker. The deployment workflow targets `dev` on qualifying pushes to `master`. Workflow and rollout details belong in the [deployment guide](../docs/deployment.md). Backend application email through SES SMTP remains intended architecture.
 
 ## Acceptance criteria
 

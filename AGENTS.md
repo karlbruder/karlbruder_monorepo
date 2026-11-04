@@ -22,7 +22,7 @@ Use these entry points when the task needs them:
 | Application boundaries or future capabilities | [Product](specs/product.md) |
 | Deployment or stack composition | Relevant sections of [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) |
 | Local Compose, ports, or database | [Local development](specs/platform/local-development.md) |
-| Team access to AWS | [Team access](specs/platform/team-access.md) and [AWS](docs/aws.md) |
+| Team access to AWS | [Team access](specs/platform/team-access.md) and [AWS team access](docs/aws-team-access.md) |
 | An operational procedure | The relevant [runbook](docs/runbooks/README.md) |
 
 ## Boundaries

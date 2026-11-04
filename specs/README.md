@@ -3,7 +3,7 @@
 **Created**: 2026-10-17
 **Last updated**: 2026-11-04
 
-These living specifications describe the intended Karlbrüder product and platform. The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the Monomachia source notes, and a read-only inspection of this checkout. Those source notes now live in the Monomachia event specification.
+These living specifications describe required product behavior, architecture, and platform constraints. [Documentation](../docs/README.md) explains current implementation and operational procedures. [Decisions](decisions/README.md) retain significant choices and their rationale. Read only the relevant sections and decisions.
 
 ## Start here
 
@@ -58,9 +58,11 @@ Use **guild staff (admin)** for the administrative role. In legacy material, "or
 4. Verify the criteria and update affected specs in the same PR when behavior changes.
 5. Report gaps honestly. Code inspection, board status, and a successful runtime test are different forms of evidence.
 
-Code establishes the observed implementation baseline. It does not redefine desired behavior automatically. READMEs explain setup. [Runbooks](../docs/runbooks/README.md) explain operational procedures. Avoid copying those procedures into every spec.
+Code establishes observed implementation, not required behavior. READMEs own setup. [Guides and runbooks](../docs/README.md) own current mechanics and procedures. Keep only a brief implementation gap when it helps interpret a requirement. Link to the owning guide instead of copying commands or configuration inventories.
 
 ## Project source map
+
+The first baseline was assembled on 17 October 2026 from the product owner's overview, all 20 items in the [Website project](https://github.com/orgs/karlbruder/projects/1), the Monomachia source notes, and a read-only inspection of this checkout. Those source notes now live in the Monomachia event specification.
 
 This historical map records the Website project inventory used for the 17 October 2026 baseline. Comments and linked PRs were not audited. Its status descriptions are historical provenance, not current implementation or project status.
 

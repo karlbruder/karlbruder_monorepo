@@ -1,13 +1,13 @@
-# AWS
+# AWS team access
 
 **Created**: 2026-10-31
-**Last updated**: 2026-10-31
+**Last updated**: 2026-11-04
 
 Team access to the Karlbrüder AWS account is workforce SSO through IAM Identity Center. The access portal is the service-provider entry point.
 
 https://karlbruder.awsapps.com/start/#/
 
-Application users authenticate with Supabase. That identity domain is separate from this federation.
+Application users authenticate with Supabase. That identity domain is separate from this federation. Required team-access policy lives in the [team-access spec](../specs/platform/team-access.md). GitHub deployment credentials are covered by the [access runbook](runbooks/github-actions-access.md).
 
 ## Federation
 

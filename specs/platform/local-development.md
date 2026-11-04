@@ -43,23 +43,16 @@ Production mode uses `compose.production.yml` with Nginx, landing, frontend, and
 
 ## Observed configuration and gaps
 
-Source inspection on 4 November 2026 found:
+Local Compose uses Vite for frontend serving and `/api` forwarding. It runs no
+Nginx service. Production uses a separate edge Nginx and the frontend's static
+Nginx image. Both preserve the API prefix.
 
-| Area | Observed baseline |
-| --- | --- |
-| Domain PostgreSQL | Compose service `db`, container `kb-db`, PostgreSQL 17, published port 5432, persistent volume |
-| Backend | Port 8000, `/api/health`, `/api/metadata`, `/api/health/db`, `/api/health/auth`, `/api/users/me` |
-| Frontend | Compose starts and health-checks Vite on 5173. Same-origin `/api` requests are proxied to `http://backend:8000` without removing the prefix |
-| Public website | Compose development server on port 3000. Production serves the built site from the landing container |
-| Auth | Hosted Supabase selected by configuration. Google and email/password account flows are mounted in `frontend/src/app/router.tsx`. The backend verifies access tokens |
-
-Compose responsibilities:
-
-- Local `compose.yml` runs landing, frontend, backend, PostgreSQL, and Ministack. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
-- `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
-- `compose.production.yml` is production mode. The `dev` and `prod` hosts both use it. It runs Nginx, landing, frontend, and backend. Nginx publishes 443 with a self-signed certificate.
-
-Local Compose builds the frontend's `development` target, which runs Vite. Nginx is used in production mode. The separate `nginx` service sends application `/api` requests directly to the backend and other application requests to the frontend image. That image uses its own Nginx to serve built assets. See the [frontend README](../../frontend/README.md#configuration) for production build configuration.
+Use the [root setup guide](../../README.md#local-setup-with-docker-compose) for
+service addresses, environment files, source mounts, and rebuild commands.
+Application READMEs own [backend checks](../../backend/README.md#tests-and-lint)
+and [frontend checks](../../frontend/README.md#build-and-checks). Backend tests use
+an isolated Compose database with no published ports. Frontend checks use the
+development image.
 
 Remaining gap:
 

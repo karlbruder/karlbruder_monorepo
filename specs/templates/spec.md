@@ -1,7 +1,7 @@
 # <Capability name>
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -32,7 +32,7 @@
 
 ## Implementation baseline
 
-<Only observed facts, evidence location, inspection date, and verification limits. Omit if unknown. Never infer delivery from issue closure.>
+<Keep a brief observed gap or delivery boundary needed to interpret the rules. Link to current implementation guides instead of copying file, setting, or endpoint inventories. State evidence location, inspection date, and verification limits. Omit if unknown. Never infer delivery from issue closure.>
 
 ## Open questions
 
@@ -48,7 +48,7 @@
 
 ## Implementation decisions
 
-<Preserve technical design choices, operational checks, and delivery details here. Do not turn routine implementation choices into product-owner questions. Link to the canonical deployment/storage policy instead of copying it. Omit this section if not needed.>
+<Link significant design choices to ADRs under specs/decisions/. Link procedures and current mechanics to docs/. Keep delivery tasks in issues and implementation history in local plans. Retain unresolved engineering concerns that affect the contract, without turning them into product-owner questions. Omit this section if not needed.>
 
 ## Related specifications
 

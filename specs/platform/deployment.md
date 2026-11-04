@@ -12,7 +12,9 @@
 
 ## Goal
 
-Host the public website and application through clear, verifiable deployment paths while keeping temporary setup stages distinct from the intended later architecture.
+Host the public website and application through verifiable deployment paths.
+This specification owns requirements. The [deployment guide](../../docs/deployment.md)
+owns current infrastructure details and release mechanics.
 
 ## Shared rules
 
@@ -40,206 +42,72 @@ The complete application stack is defined by `compose.production.yml`:
 | AWS SES SMTP | Application notification delivery |
 | Cloudflare | Authoritative DNS, proxied A records for the landing and application names to that environment's Elastic IP, edge TLS certificate, and HTTP-to-HTTPS redirect |
 
-Landing, Nginx, frontend, and backend are the Compose services. Cloudflare terminates browser TLS and opens a separate HTTPS connection to Nginx. For the specified self-signed origin certificate, use [Cloudflare Full mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) with the [edge HTTPS redirect](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/). This keeps EC2 ingress on 443 only.
-
-Keep each public name **proxied**. DNS only sends the browser straight to the self-signed Nginx certificate, so the browser reports the connection as not secure. Flexible mode makes Cloudflare call the origin on port 80, and that port is closed, so the site looks down. Full (strict) rejects the self-signed origin certificate. Full is the mode that encrypts the origin connection and still accepts that certificate.
-
-`compose.production.yml` is in the repository. Nginx publishes 443, generates a self-signed origin certificate on first start, and keeps the other services on the Compose network. The edge container reads `LANDING_HOSTNAMES` and `APPLICATION_HOSTNAMES` when it starts and writes those hostnames into its config. Each value is a space-separated list for one Nginx `server_name`. `APPLICATION_BASE_URL` and `LANDING_BASE_URL` are single HTTPS URLs, not lists. The workflow reads all four from repository variables in its top-level `env` block. Cloudflare routing for those names is still separate work. The deploy workflow requests them after the host is up.
+The origin uses the self-signed certificate and Cloudflare Full mode required by
+DEP-005. Keep public names proxied and enable the edge HTTPS redirect.
 
 ## Public website
 
-The public site is the landing container on the same host. A landing-only change builds that image and replaces that container. The edge Nginx container is started again so it looks up the new container address. Landing CI still builds relevant pull requests. A live DNS check is not claimed by this description.
-
-The Monomachia registration link is fixed when the landing image is built. The workflow passes `APPLICATION_BASE_URL` into the image as `REACT_APP_APPLICATION_URL`. That value is one HTTPS origin, such as `https://app-dev.karlbruder.com` or `https://app.karlbruder.com`, with no path. `http://localhost:5173` is only for local development. An empty value falls back to `https://app.karlbruder.com` inside the page. Changing the GitHub variable does not change a site that is already built. The landing image has to be built and deployed again.
-
-Issue #11 still covers moving Cloudflare routing onto the Karlbrüder account and retiring the old public host. The landing files themselves are no longer a separate bucket. Issue #12 has no body, so requirements beyond its title are not reconstructed from it.
+The public site is the landing container on the shared application host.
+Registration links target the application. Account/DNS cutover must be verified
+before retiring the old host. Build-time link configuration is documented in
+[build inputs](../../docs/deployment.md#build-inputs).
 
 ## Terraform workspaces
 
-Workload Terraform lives in `infra/`. It accepts the `dev` and `prod` workspaces only. Any other workspace, including `default`, fails the plan. The region is `us-east-2`.
-
-The project name is `karlbruder`. The project slug is `kb`. Both are locals, because they stay the same in every environment. The workspace name is the environment. Workload resource names use `<project-slug>-<env>-<component>`.
-
-Each workload resource carries these tags. There is no `environment` tag. `env` already says `dev` or `prod`. A second tag named `environment` would read as the development or production mode and mix the two words.
-
-| Tag | Value |
-| --- | --- |
-| `author` | `Terraform` |
-| `scope` | `regional` |
-| `env` | `dev` or `prod` |
-| `project-name` | `karlbruder` |
-| `project-slug` | `kb` |
-| `repo` | `karlbruder/karlbruder_monorepo` |
-
-Remote state for this root is `kb-terraform-976083331699-us-east-2-an` in `us-east-2`. The state key is `monorepo.tfstate`. `dev` state is `dev/monorepo.tfstate`. `prod` state is `prod/monorepo.tfstate`. Locking uses the S3 lock file. Both workspaces share this bucket, because the backend block cannot select a different bucket per workspace.
+Keep cloud environments separate through `dev` and `prod` workspaces. Workload
+Terraform rejects other workspaces. See the [deployment guide](../../docs/deployment.md#terraform-workspaces)
+for current naming, tags, state, and infrastructure settings.
 
 ## Supabase auth email identity
 
-Supabase Auth sends sign-up confirmation and password recovery for the private application. That mail path uses one account-level SES domain identity for `karlbruder.com`, not one identity per Terraform workspace. Terraform creates the domain identity, Easy DKIM, and a dedicated IAM SMTP user only in the `prod` workspace. A `dev` workspace apply does not create a second copy. Region is `us-east-2`. The intended From address is `noreply@karlbruder.com` after verification.
-
-Cloudflare DNS for verification and DKIM is outside this Terraform root. Operators follow [Supabase auth email through SES](../../docs/runbooks/supabase-auth-email-ses.md) for DNS records, SES sandbox exit, and Supabase custom SMTP. Auth template subjects and bodies in the Supabase dashboard use Portuguese copy under [AUTH-011](../identity/authentication-and-access.md#authentication-rules). DEP-007 still covers backend application mail through SES. That path is separate from this Supabase custom SMTP identity.
+Supabase Auth mail uses the shared SES identity for `karlbruder.com`. It is separate
+from backend application notifications under DEP-007. Auth templates use Portuguese
+under AUTH-011. Follow the [SES runbook](../../docs/runbooks/supabase-auth-email-ses.md)
+for provisioning, DNS, and SMTP configuration.
 
 ## Application host
 
-Each workspace has one EC2 instance in the account default VPC, on the first default subnet, with an Elastic IP. The image is the latest Ubuntu 24.04 LTS build for x86_64 from Canonical. `dev` uses `t3a.micro`. `prod` uses `t3a.small`. The instance name is `kb-<env>-application-host`.
-
-The root volume is encrypted gp3, 30 GiB, 3000 IOPS, and 125 MiB/s. The volume stays if the instance is terminated. AWS Backup is not configured for this host.
-
-Inbound traffic is TCP 443 from the Cloudflare IPv4 ranges in `infra/main.ec2.application-host.tf`. Port 22 and port 80 stay closed. There is no SSH key pair. Day to day access is Session Manager. The instance profile attaches `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy`. Instance metadata requires IMDSv2 with a response hop limit of 2 so the backend can obtain instance role credentials across the Docker bridge and read Secrets Manager. This also makes the host role available to other containers that can reach metadata. [Decision 0005](../decisions/0005-container-access-to-instance-role.md) records the owner's acceptance of that shared authority in both cloud environments.
-
-Outbound traffic is DNS on UDP and TCP 53, HTTP on TCP 80 for Ubuntu package mirrors, HTTPS on TCP 443, Supabase Postgres on TCP 5432 and 6543, SES SMTP on TCP 587, and NTP on UDP 123.
-
-First boot installs the CloudWatch agent, Docker Engine, and the Compose plugin. It creates `/opt/karlbruder`. CloudWatch alarms cover high and critical CPU, memory, and root disk usage, plus a failed status check. The agent publishes CPU, memory, and disk every 60 seconds, and those alarms use that interval. The status check also uses a one minute period. Basic EC2 monitoring still publishes hypervisor CPU every five minutes. These alarms do not use that metric. Those alarms do not notify an SNS topic yet. Refresh the Cloudflare IPv4 list in `infra/main.ec2.application-host.tf` from [Cloudflare's IPv4 list](https://www.cloudflare.com/ips-v4) when Cloudflare publishes a change.
-
-A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a running instance. Replacing the image or the script is a deliberate change.
+Use Session Manager for routine host access. Keep SSH and origin HTTP closed.
+Require IMDSv2 with hop limit 2 for container access to the instance role.
+[Decision 0005](../decisions/0005-container-access-to-instance-role.md) records the
+accepted shared authority and safeguards. The [deployment guide](../../docs/deployment.md#application-host)
+records current sizing, networking, bootstrap, and monitoring.
 
 ## Application files bucket
 
-Each workspace has a private Amazon S3 bucket for application uploads such as payment proofs and scanned parental consent forms. Terraform defines it in `infra/main.s3.files.tf` through the shared `s3-bucket` module. The name prefix is `kb-<env>-bucket` with the account-regional suffix the module appends. Public read stays off. The bucket policy denies insecure transport. Object versioning stays on.
-
-The application host instance role can call `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on objects in that bucket only. It does not receive a blanket `s3:ListBucket` grant on the bucket ARN. The bucket CORS rule allows `PUT` with `Content-Type` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. Public read stays off.
-
-After apply, copy `application_files_bucket_name` from Terraform output into the workspace backend secret as `S3_BUCKET_NAME`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in cloud secrets. Operators follow [Application files S3 bucket](../../docs/runbooks/application-files-s3-bucket.md) for apply order and verification. Deployed presigned uploads require the bucket and host permissions to exist first.
+Keep application uploads private, require HTTPS, and retain bucket versioning.
+Limit the host's object permissions to its environment's bucket. Browser CORS
+does not grant public reads. Provisioning, secret values, and verification belong
+to the [S3 runbook](../../docs/runbooks/application-files-s3-bucket.md).
+Versioning does not establish a tested recovery process or prevent byte replacement.
 
 ## Application image deploy
 
-The backend production image includes the Secrets Manager dependencies required by `pydantic-settings`. On every production container startup, its entrypoint runs `alembic upgrade head` against the configured domain database before starting Gunicorn. A failed migration exits the container without starting the API. A successful migration replaces the entrypoint process with Gunicorn so it receives container shutdown signals. Migrations run once per container startup, before workers start, and manage domain objects in `public` only. Development and test image startup commands do not run this entrypoint.
+Release images through ECR and update the selected host through Session Manager.
+Apply domain migrations before API workers start. A migration failure prevents API
+startup. Keep managed Supabase `auth` objects outside application migrations.
 
-Each workspace has four ECR repositories: `kb-<env>/landing`, `kb-<env>/frontend`, `kb-<env>/backend`, and `kb-<env>/nginx`. The instance role can pull only those repositories. `compose.production.yml` names the images with `AWS_ACCOUNT_ID`, `AWS_REGION`, `NAMESPACE`, and `IMAGE_TAG`. `IMAGE_TAG` is the git SHA of the release. The workflow also moves the `dev` or `prod` tag on each image it builds. That moving tag is only the last build of that service. The host runs the SHA. For a service this run did not build, the workflow copies the moving tag onto the release SHA before the host pulls. The host script writes `/opt/karlbruder/backend.env` on each deploy. That file sets `ENV_NAME` to the selected environment, `SECRET_NAME` to `kb-<env>/backend`, and `AWS_REGION` to the workflow region. Cloud startup reads that secret and fails when `SECRET_NAME` or `AWS_REGION` is missing. The secret holds the database and Supabase settings. It does not replace those three values. Terraform creates the secret and lets the instance role call `secretsmanager:GetSecretValue` on it. Terraform does not write the secret value. Put the backend settings JSON in that secret after apply. The secret uses the AWS managed key, so the role does not need a separate decrypt permission.
+One GitHub OIDC role covers build, publication, and deployment in both cloud
+environments under [decision 0004](../decisions/0004-shared-github-actions-role.md).
+Preserve its safeguards and accepted authority. Operator policies belong in the
+[access runbook](../../docs/runbooks/github-actions-access.md).
 
-GitHub Actions assumes one role, `KbGithubActionsRole`, through GitHub OIDC. Terraform does not create that role or the account OIDC provider. Create the provider once, at `https://token.actions.githubusercontent.com`, with audience `sts.amazonaws.com`. Then create the role. Build, stamp, and deploy all use it, for both `dev` and `prod`.
-
-[Decision 0004](../decisions/0004-shared-github-actions-role.md) records the owner's acceptance of this combined authority at the current application scale. Separate build and deployment roles are not required by the current direction. The decision also records the safeguards and conditions for reconsideration.
-
-A token carries one `sub` value. The jobs in this workflow set a GitHub environment, so the token subject is `environment:dev` or `environment:prod`. The trust policy allows both.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::976083331699:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": [
-            "repo:karlbruder/karlbruder_monorepo:environment:dev",
-            "repo:karlbruder/karlbruder_monorepo:environment:prod"
-          ]
-        }
-      }
-    }
-  ]
-}
-```
-
-The same role pushes images and sends the deploy command. It can push to the eight application repositories, describe instances, send `AWS-RunShellScript` to `kb-dev-application-host` and `kb-prod-application-host`, and read that command result.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "EcrGetAuthorizationToken",
-      "Effect": "Allow",
-      "Action": ["ecr:GetAuthorizationToken"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "EcrPush",
-      "Effect": "Allow",
-      "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:BatchGetImage",
-        "ecr:CompleteLayerUpload",
-        "ecr:DescribeImages",
-        "ecr:DescribeRepositories",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:InitiateLayerUpload",
-        "ecr:PutImage",
-        "ecr:UploadLayerPart"
-      ],
-      "Resource": [
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/landing",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/frontend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/backend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-dev/nginx",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/landing",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/frontend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/backend",
-        "arn:aws:ecr:us-east-2:976083331699:repository/kb-prod/nginx"
-      ]
-    },
-    {
-      "Sid": "DescribeApplicationHost",
-      "Effect": "Allow",
-      "Action": ["ec2:DescribeInstances"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "SendCommandToApplicationHost",
-      "Effect": "Allow",
-      "Action": ["ssm:SendCommand"],
-      "Resource": "arn:aws:ec2:us-east-2:976083331699:instance/*",
-      "Condition": {
-        "StringEquals": {
-          "ssm:resourceTag/Name": [
-            "kb-dev-application-host",
-            "kb-prod-application-host"
-          ]
-        }
-      }
-    },
-    {
-      "Sid": "UseRunShellScriptDocument",
-      "Effect": "Allow",
-      "Action": ["ssm:SendCommand"],
-      "Resource": "arn:aws:ssm:us-east-2::document/AWS-RunShellScript"
-    },
-    {
-      "Sid": "ReadCommandResult",
-      "Effect": "Allow",
-      "Action": ["ssm:GetCommandInvocation"],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-A push to `master` deploys the `dev` environment. It does not deploy `prod`. The workflow uses `dorny/paths-filter` v4 and builds the services whose files changed. A change to `compose.production.yml`, the deploy workflow, or `scripts/deploy/` builds all four. The workflow uses readable major-version action tags. Image retagging, Session Manager deployment, host updates, and release verification are standalone Python scripts in `scripts/deploy/`: `tag_unchanged_images.py`, `deploy_application.py`, `update_application_host.py`, and `verify_application_release.py`. The scripts take deployment inputs as required command line options. Release verification also reads `CLOUDFLARE_HEALTH_CHECK_SECRET` from the process environment. The workflow supplies it from the selected GitHub environment's secret of the same name. Verification requires a nonempty value and sends it in the `x-health-check` header on every public check, including retries. Cloudflare uses that header for the configured CI security bypass. Keep the value out of command line arguments and logs. The host script still places the parsed values in the Compose process environment, because `compose.production.yml` interpolates them. Shared command runners live in `scripts/deploy/common.py` and travel with the host script in the Session Manager payload. The workflow supplies routing hostnames, and the scripts do not select them by environment. The scripts use only the Python standard library, so the GitHub runner does not need a Python dependency installation step. The Ubuntu 24.04 GitHub runner image already includes Python 3 and the AWS CLI. `aws-actions/configure-aws-credentials` supplies credentials to the existing CLI. The application host must have Python 3, the AWS CLI, and Docker with Compose. Session Manager launches the Python host script through its shell document. Run `python3 -m unittest discover -s scripts/tests -v` from the repository root to check deployment behavior with mocked external calls. A manual run can deploy `dev` or `prod`, for one service or for all of them. The landing image is built with the selected environment's `APPLICATION_BASE_URL`. The dev frontend image is built with the `dev` GitHub environment variable `VITE_SUPABASE_URL` and secret `VITE_SUPABASE_PUBLISHABLE_KEY`. The prod frontend image uses the same names on the `prod` environment. The URL is a Docker build argument. The publishable key is passed through a BuildKit secret mount and is still public in the browser bundle. The workflow rebuilds the frontend builder stage so key rotation cannot reuse an old bundle from cache. Vite rejects legacy JWT keys and server-only secret keys. Vite owns the required frontend variable check for both direct and Docker builds. It fails with the missing variable names when either value is empty or whitespace. `VITE_API_BASE_URL` remains optional and defaults to `/api`. The pipeline generates one UTC `RELEASED_AT` timestamp per run. Backend, frontend, and landing production stages store that timestamp and `GIT_SHA` in the image environment. Reused images retain their original build metadata when retagged for another deployment. A container restart does not change the embedded build timestamp. The host pulls the release SHA for every service, replaces the stack, and starts the edge Nginx container again. Both hosts run production mode from `compose.production.yml`. There is no zip or SCP deploy path. The selected GitHub environment defines `APPLICATION_BASE_URL` and `LANDING_BASE_URL` as complete HTTPS URLs. It passes `APPLICATION_BASE_URL` to the landing build as `REACT_APP_APPLICATION_URL`. After the host reports success, the workflow requests `LANDING_BASE_URL`, `APPLICATION_BASE_URL`, and `/api/health` under `APPLICATION_BASE_URL`. That health request must return 200. It also requests `/api/metadata`. When the run built the backend, `git_sha` on that response must equal the commit and `released_at` must equal the pipeline build timestamp. This check follows the public Cloudflare names, so it fails until those names resolve.
-
-```mermaid
-flowchart LR
-    Master["Push to master"] --> DevDeploy["Build changed images and deploy to dev"]
-    Manual["Manual workflow run"] --> Chosen["Build the selected services and deploy to dev or prod"]
-```
+The [deployment guide](../../docs/deployment.md#workflow-and-image-selection)
+describes triggers, image selection, build inputs, host updates, and public release
+checks. Source configuration alone does not establish live deployment health.
 
 ## Supabase browser access
 
-Use `sb_publishable_...` keys for browser Auth. Configure `VITE_SUPABASE_PUBLISHABLE_KEY` in the local frontend environment and in each GitHub deployment environment. Never supply `sb_secret_...` or legacy `service_role` keys to the frontend.
-
-The application accesses domain data through FastAPI and its direct PostgreSQL connection. Disable the Supabase Data API in both cloud environments. Review existing and default grants on domain tables for `anon` and `authenticated`. Any deliberately exposed data requires explicit grants and appropriate Row Level Security policies. These hosted settings require live verification and are not applied by this workflow.
-
-Issue a publishable key before deploying the renamed setting. After all consumers migrate, disable legacy API keys separately. Disabling the Data API does not mean disabling the publishable key used for Auth.
+Browser code uses publishable keys for Auth, never server-only credentials.
+Domain access goes through FastAPI. Disable the hosted Data API in both cloud
+environments. Any deliberately exposed data needs explicit grants and appropriate
+Row Level Security. Verify hosted configuration separately from deployment.
 
 ## Earlier deployment issues and reconciliation
 
-The earlier issues describe deployment transport evolution. Their backend-only topology and older Compose filename are historical inputs superseded by decision 0003. These issue bodies have not been changed, and their deployed state has not been verified.
-
-| Source | Earlier delivery plan | Reconciliation needed |
-| --- | --- | --- |
-| #25 | Initial EC2 host with zip/SCP, interactive access, and build/start on host | Deploy the Nginx, landing, frontend, and backend stack in `compose.production.yml` rather than a backend-only service |
-| #13, depends on #25 | Session Manager replaces day-to-day inbound SSH; zip/build-on-host remains | Verify managed file transfer and remote execution for the combined stack |
-| #23, depends on #13 | Build/push backend image to ECR; host pulls and restarts through Session Manager | The deploy workflow builds the changed images among landing, frontend, backend, and Nginx, then replaces those containers through Session Manager. A live run is still unverified |
-| Private frontend hosting draft | S3 hosting versus hosting beside the backend | Resolved in favor of the frontend container behind the application Nginx proxy |
-
-Issue #23's image deploy is the workflow in this spec. It replaces the zip and build-on-host path. Migration and failed-release recovery are still open. The workflow now requests the public names after deploy, and that request still needs DNS and Cloudflare to be in place. Earlier HTTP-only host setup is not the finished HTTPS application deployment. Host egress includes SES SMTP on TCP 587 and Ubuntu package mirrors on TCP 80.
+Earlier issues describe superseded zip/SCP and build-on-host stages. Their
+historical mapping is retained in the [deployment guide](../../docs/deployment.md#earlier-deployment-issues-and-reconciliation).
+They do not override decision 0003 or establish the live rollout state.
 
 ## Acceptance criteria
 
@@ -258,11 +126,14 @@ None about the selected stack, domains, application routing, DNS, or TLS. The re
 
 ## Implementation and operations decisions
 
-- Verify which rollout stage is actually deployed. Source inspection and historical issue status are not evidence of the live AWS configuration.
-- Define workflow credentials, triggers, environment separation, artifact delivery, and production configuration in the deployment plan, following the [team-access credential policy](team-access.md#implementation-and-operations-decisions).
-- Production backend startup applies domain migrations before serving requests. Define release verification, failed-release recovery, and database/object backup-and-restore procedures. Apply PRIV-011's interim indefinite-retention policy rather than defining another period here.
-- Verify the concrete Session Manager file-transfer, remote-execution, and networking setup for the selected combined stack.
-- Define and verify the landing account/DNS cutover and rollback procedure before retiring the old hosting.
+- Verify live rollout state, IAM grants, GitHub environment protections, Session
+  Manager access, networking, and hosted Supabase settings. Source configuration
+  and historical issue status do not establish them.
+- Define and verify failed-release recovery, database/object backup-and-restore,
+  and landing account/DNS cutover and rollback procedures. Apply PRIV-011's interim
+  indefinite retention. Do not retire the old hosting before cutover verification.
+- Keep workflow credential policy aligned with [team access](team-access.md#implementation-and-operations-decisions)
+  and decisions 0004 and 0005. Existing release checks are described in the guide.
 
 ## Related specifications
 
