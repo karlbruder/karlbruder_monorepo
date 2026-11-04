@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-04
 
 Monorepo for the Karlbrüder public website and tournament platform. Association membership and equipment inventory are future capabilities.
 
@@ -12,7 +12,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `landing/` | Public React website at `karlbruder.com` | [Landing README](landing/README.md) |
 | `frontend/` | React/TypeScript/Vite application, intended for `app.karlbruder.com` | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI API, Supabase token verification, and domain PostgreSQL access | [Backend README](backend/README.md) |
-| `compose.yml` | Local landing, frontend, backend, and PostgreSQL. Backend source reloads on change | Local setup below |
+| `compose.yml` | Local landing, frontend, backend, PostgreSQL, and Ministack for private files. Backend source reloads on change | Local setup below |
 | `Makefile` | Short commands for local Compose, the database script, and checks | `make help` |
 | `compose.test.yml` | Isolated backend tests. No published ports | [Backend tests](backend/README.md#tests-and-lint) |
 | `compose.production.yml` | Production mode on the `dev` and `prod` hosts: Nginx, landing, frontend, and backend | Production direction below |
@@ -20,7 +20,7 @@ Monorepo for the Karlbrüder public website and tournament platform. Association
 | `docs/aws.md` | How the team signs in to the AWS account | [AWS](docs/aws.md) |
 | `docs/runbooks/` | Operational procedures as they are implemented and verified | [Runbook index](docs/runbooks/README.md) |
 
-Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior. The current application includes Google sign-in/session handling, backend identity verification, health checks, a Monomachia registration route, and a tournament sign-up API. The registration flow still needs live browser acceptance; payment proofs, results, membership, and inventory are not implemented yet.
+Coding agents must follow [AGENTS.md](AGENTS.md) and applicable nested instructions. Specifications describe intended behavior. The application implements Google and email/password authentication, backend identity verification, health checks, tournament registration, and private document uploads. Financial evidence models support later staff payment-review and refund workflows. Those commands, results, membership, and inventory are not implemented. Source inspection does not establish live browser or deployment acceptance. See the [tournament API guide](backend/app/tournaments/README.md) for current routes and access rules.
 
 ## Agentic development
 

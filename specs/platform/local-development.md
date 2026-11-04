@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -39,42 +39,33 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 | Hosted Supabase Auth | Application sign-in and verified user identity; still external in local development |
 | Ministack | Local S3 on port 4566. The backend calls `http://ministack:4566`. Presigned URLs use `http://localhost:4566`. `ministack/bootstrap-ministack.sh` creates `kb-local-bucket` and allows browser `PUT` from `http://localhost:5173`. |
 
-Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [mode comparison and diagrams](../architecture.md#mode-comparison).
+Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [stack comparison and diagrams](../architecture.md#stack-comparison).
 
 ## Observed configuration and gaps
 
-Source inspection on 17 October 2026 found:
+Source inspection on 4 November 2026 found:
 
 | Area | Observed baseline |
 | --- | --- |
 | Domain PostgreSQL | Compose service `db`, container `kb-db`, PostgreSQL 17, published port 5432, persistent volume |
 | Backend | Port 8000, `/api/health`, `/api/metadata`, `/api/health/db`, `/api/health/auth`, `/api/users/me` |
-| Frontend | Compose development target starts Vite on 5173 and publishes 5173 |
+| Frontend | Compose starts and health-checks Vite on 5173. Same-origin `/api` requests are proxied to `http://backend:8000` without removing the prefix |
 | Public website | Compose development server on port 3000. Production serves the built site from the landing container |
-| Auth | Hosted project selected by configuration; frontend has Google SDK sign-in and backend token verification |
+| Auth | Hosted Supabase selected by configuration. Google and email/password account flows are mounted in `frontend/src/app/router.tsx`. The backend verifies access tokens |
 
-Changes since the 17 October baseline, confirmed by source inspection on 29 October 2026:
-
-- The frontend development container health check now probes Vite at `localhost:5173`.
-- `frontend/vite.config.ts` now proxies same-origin `/api` requests to the backend without removing the prefix. This is the local Compose route for application API calls.
-- `frontend/nginx.conf` now preserves `/api` when forwarding to the backend. Local Compose uses Vite, not the frontend image's Nginx stage.
-
-Compose files as of 31 October 2026:
+Compose responsibilities:
 
 - Local `compose.yml` runs landing, frontend, backend, PostgreSQL, and Ministack. It bind-mounts application source. Frontend and landing keep `node_modules` in the image. The backend starts Uvicorn with reload, and its packages stay in the image.
 - `compose.test.yml` runs backend tests against a private PostgreSQL service and publishes no host ports. Concurrent runs need distinct Compose project names (`-p`).
 - `compose.production.yml` is production mode. The `dev` and `prod` hosts both use it. It runs Nginx, landing, frontend, and backend. Nginx publishes 443 with a self-signed certificate.
 
-Remaining inconsistencies and implementation gaps:
+Local Compose builds the frontend's `development` target, which runs Vite. Nginx is used in production mode. The separate `nginx` service sends application `/api` requests directly to the backend and other application requests to the frontend image. That image uses its own Nginx to serve built assets. See the [frontend README](../../frontend/README.md#configuration) for production build configuration.
 
-- The backend CORS allowlist still names only `http://localhost:3000`. Direct cross-origin browser calls from the Vite origin at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist; the normal same-origin `/api` proxy path does not depend on it.
-- `src/pages/Home.tsx` and `src/pages/Health.tsx` are not mounted by the current frontend app.
-- The unused Home page describes authentication as absent, while the current application entry point has Google sign-in. Separate email/password/recovery flows remain unverified.
-- The frontend production build excludes `.env` and defines no explicit Supabase build arguments. Build-time browser configuration needs implementation before that image is treated as a working production deployment.
+Remaining gap:
 
-The README review on 17 October 2026 corrected the root port/routing instructions, replaced frontend template documentation, added landing setup documentation, and removed nonexistent backend integration-test instructions. Environment examples now match the frontend client's `VITE_SUPABASE_PUBLISHABLE_KEY` name and default Compose domain data to local PostgreSQL. The later forwarding and health-check fixes resolve those specific configuration gaps; the remaining items above still need separate work.
+- The backend CORS allowlist names only `http://localhost:3000`. Direct cross-origin browser calls from Vite at `http://localhost:5173` to the backend at `http://localhost:8000` are outside that allowlist. The normal same-origin `/api` proxy path does not depend on it.
 
-The 17 October specification pass did not run services or application tests to establish runtime health. The 29 October update above reflects source inspection, not a new end-to-end runtime check.
+Historical context: the 17 October 2026 README review corrected setup instructions. The 29 October inspection recorded forwarding and health-check fixes, and the 31 October update recorded the Compose stacks. Those inspections and the current baseline describe source configuration. They do not establish runtime health, hosted provider configuration, or end-to-end browser acceptance.
 
 ## Acceptance criteria
 

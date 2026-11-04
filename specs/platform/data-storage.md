@@ -20,7 +20,7 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 - **DATA-002:** Domain tables, indexes, and migrations belong in `public`. Supabase-managed `auth` objects must not be modified by application migrations.
 - **DATA-003:** `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, and `AUTH_DB_PASSWORD` are required. They form a separate connection used by the current Auth database diagnostic. They are not the settings for verifying access tokens. Token verification uses the public project root `SUPABASE_URL` and public signing keys.
 - **DATA-004:** Local and deployed domain data are independent. Reusing migration history aligns schema, not data. No automatic local/remote synchronization is assumed.
-- **DATA-005:** Schema changes use versioned migrations. Issue #20 calls for Alembic, which is already a backend dependency but has no migration tree in the inspected checkout. Apply the same domain migration history to supported environments.
+- **DATA-005:** Schema changes use Alembic migrations in `backend/alembic/`. Apply the same domain migration history to supported environments. Follow the [migration notes](../../backend/docs/migrations.md) for the clean-baseline reset prerequisite and application procedure.
 - **DATA-006:** Persist unique registration numbers and prevent non-cancelled registrations from sharing the same tournament plus user UUID, normalized email, or normalized document. Cancelled participation is excluded from those duplicate checks even while a refund awaits processing. Follow REG-012's comparison normalization and retain the original registration email for display/history. Send notifications to the current account email under COM-008. Coordinate confirmation and capacity assignment transactionally. Admin-only manual Supabase reopening must preserve these invariants.
 - **DATA-007:** Registration ownership directly uses the existing Supabase `auth.users.id` UUID from the verified token subject. Users already have that identity before tournament registration. An account email change leaves ownership and registration validity unchanged. No separate user identity or intermediate owner mapping is required. Do not duplicate Supabase passwords, create a second authentication store, or modify managed Auth objects.
 - **DATA-008:** Credentials are supplied through environment/secrets configuration. No private database URI belongs in browser bundles or source. Diagnostic responses must not expose passwords or raw internal errors.
@@ -68,7 +68,7 @@ The source inspection on 17 October 2026 did not establish a live connection, mi
 - **DATA-AC-002:** Application migrations create or alter only their authorized domain objects, leaving managed Auth objects unchanged.
 - **DATA-AC-003:** Duplicate concurrent registration attempts cannot bypass the agreed database uniqueness constraints.
 - **DATA-AC-004:** Domain diagnostics and Auth diagnostics report their own connection failures independently and do not expose credentials.
-- **DATA-AC-005:** A fresh supported domain database can reach the required schema using the versioned migrations once they are delivered.
+- **DATA-AC-005:** A fresh supported domain database can reach the required schema using the versioned migrations.
 - **DATA-AC-006:** The backend can store and retrieve an authorized proof through Ministack locally and S3 in production without changing the storage business rules.
 
 ## Open questions
