@@ -7,15 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import (
-    get_application_role,
+from app.auth.dependencies import (
     get_current_user,
     require_admin,
     require_authenticated_user,
 )
+from app.auth.models import AnonymousUser, User
+from app.auth.services import get_application_role
 from app.core.files import FileStorage, get_file_storage
 from app.database import get_session
-from app.models import AnonymousUser, User
 from app.tournaments.models import Tournament, TournamentRegistration
 from app.tournaments.schemas import (
     ParentalConsentFormDownloadUrlRead,

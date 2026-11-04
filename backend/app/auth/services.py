@@ -1,9 +1,6 @@
 import logging
-from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from jwt.exceptions import (
     InvalidTokenError,
@@ -12,11 +9,11 @@ from jwt.exceptions import (
 )
 from pydantic import ValidationError
 
-from app.exceptions import (
+from app.auth.exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
-from app.models import AnonymousUser, User
+from app.auth.models import AnonymousUser, User
 from config import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
@@ -28,12 +25,6 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
-bearer_scheme = HTTPBearer(
-    auto_error=False,
-    bearerFormat="JWT",
-    description="Supabase access token",
-)
-
 
 def get_jwks_client() -> PyJWKClient:
     return PyJWKClient(
@@ -44,15 +35,11 @@ def get_jwks_client() -> PyJWKClient:
     )
 
 
-def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
+def verify_user(access_token: str) -> User:
     """Verify a supplied Supabase access token and return its claims."""
 
-    if credentials.scheme.lower() != "bearer":
-        raise InvalidCredentialsException()
     try:
-        signing_key = get_jwks_client().get_signing_key_from_jwt(
-            credentials.credentials
-        )
+        signing_key = get_jwks_client().get_signing_key_from_jwt(access_token)
     except ValidationError as exc:
         logger.error("Supabase authentication configuration is invalid")
         raise AuthenticationUnavailableException() from exc
@@ -64,7 +51,7 @@ def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
 
     try:
         claims = jwt.decode(
-            credentials.credentials,
+            access_token,
             signing_key.key,
             algorithms=ALLOWED_JWT_ALGORITHMS,
             audience=EXPECTED_AUDIENCE,
@@ -83,36 +70,8 @@ def _verify_user(credentials: HTTPAuthorizationCredentials) -> User:
             user_metadata=claims.get("user_metadata") or {},
             app_metadata=claims.get("app_metadata") or {},
         )
-    except HTTPException:
-        raise
     except (InvalidTokenError, KeyError, TypeError, ValidationError) as exc:
         raise InvalidCredentialsException() from exc
-
-
-def get_current_user(
-    request: Request,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(bearer_scheme),
-    ],
-) -> User | AnonymousUser:
-    """Return a verified Supabase user or an explicit guest identity."""
-
-    if credentials is None:
-        if request.headers.get("authorization") is not None:
-            raise InvalidCredentialsException()
-        return AnonymousUser()
-    return _verify_user(credentials)
-
-
-def require_authenticated_user(
-    current_user: Annotated[User | AnonymousUser, Depends(get_current_user)],
-) -> User:
-    """Require a verified identity before entering a protected route."""
-
-    if isinstance(current_user, AnonymousUser):
-        raise InvalidCredentialsException()
-    return current_user
 
 
 def get_application_role(user: User | AnonymousUser) -> str:
@@ -124,12 +83,3 @@ def get_application_role(user: User | AnonymousUser) -> str:
     if role in ("regular_user", "guild_member", "admin"):
         return role
     return "regular_user"
-
-
-def require_admin(current_user: Annotated[User, Depends(require_authenticated_user)]) -> User:
-    if get_application_role(current_user) != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-    return current_user

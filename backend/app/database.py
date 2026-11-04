@@ -19,11 +19,6 @@ def create_database_engine(database_url: str | URL | None = None) -> Engine:
     )
 
 
-def get_auth_database_engine() -> Engine:
-    """Create the Supabase Auth engine only when its health check is requested."""
-    return create_database_engine(settings.get_auth_database_url())
-
-
 engine = create_database_engine()
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 

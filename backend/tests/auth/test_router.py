@@ -15,9 +15,13 @@ from jwt.exceptions import PyJWKClientConnectionError
 SUPABASE_URL = os.environ.get("SUPABASE_URL") or ("https://test-project.supabase.co")
 os.environ["SUPABASE_URL"] = SUPABASE_URL
 
-import app.auth as auth  # noqa: E402
+import app.auth.services as auth  # noqa: E402
 from app.main import karlbruder_app  # noqa: E402
-from app.models import AnonymousUser  # noqa: E402
+from app.auth.dependencies import get_current_user, require_authenticated_user  # noqa: E402
+from app.auth.models import AnonymousUser  # noqa: E402
+from app.auth.exceptions import InvalidCredentialsException  # noqa: E402
+import app.auth.diagnostics as diagnostics  # noqa: E402
+from sqlalchemy.exc import OperationalError  # noqa: E402
 
 ISSUER = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
 
@@ -83,13 +87,13 @@ def make_token(
 def test_get_current_user_returns_explicit_guest_without_credentials():
     request = Request({"type": "http", "headers": []})
 
-    guest = auth.get_current_user(request, None)
+    guest = get_current_user(request, None)
 
     assert isinstance(guest, AnonymousUser)
     assert (guest.id, guest.email, guest.role) == ("", "", "guest")
     assert auth.get_application_role(guest) == "guest"
-    with pytest.raises(auth.InvalidCredentialsException):
-        auth.require_authenticated_user(guest)
+    with pytest.raises(InvalidCredentialsException):
+        require_authenticated_user(guest)
 
 
 def test_users_me_returns_verified_identity(client, signing_key):
@@ -239,3 +243,27 @@ def test_users_me_reports_jwks_outage(monkeypatch, signing_key):
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Authentication service unavailable"}
+
+
+def test_auth_health_reports_connectivity_separately_from_schema_presence(client):
+    response = client.get("/api/health/auth")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["auth"] == "connected"
+    assert body["result"] == 1
+    assert body["schema"] == {"auth": False}
+    assert ":***@" in body["database_url"]
+
+
+def test_auth_health_returns_existing_failure_shape_without_database_details(client, monkeypatch):
+    def unavailable_engine(_database_url):
+        raise OperationalError("SELECT 1", {}, RuntimeError("private database details"))
+
+    monkeypatch.setattr(diagnostics, "create_database_engine", unavailable_engine)
+
+    response = client.get("/api/health/auth")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "error", "auth": "disconnected"}

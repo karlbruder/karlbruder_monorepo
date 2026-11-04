@@ -158,7 +158,7 @@ These concepts do not prescribe one table per concept. Issue #20 provides a star
 
 Source inspection on 4 November 2026 established the following implementation baseline. It does not verify live deployments or runtime integrations.
 
-- `backend/app/auth.py` verifies Supabase JWTs. `backend/app/main.py` provides health endpoints, protected `GET /api/users/me`, and the tournament routes.
+- `backend/app/auth/` owns verified identities, token services, route dependencies, and auth error mapping. Its router exposes `GET /api/users/me` and `/api/health/auth`. `backend/app/main.py` assembles the auth and tournament routers and retains general health and metadata endpoints.
 - `frontend/src/app/router.tsx` mounts account sign-in, sign-up, confirmation, recovery, and password-change routes, the authenticated home, and tournament registration. The auth feature uses Supabase for Google and email/password authentication, session restoration, and sign-out.
 - `landing/src/App.js` serves the homepage and `/monomachia`. Tournament registration and private document handling live in the application.
 - Local Compose runs landing, frontend, backend, PostgreSQL, and Ministack. The frontend uses Vite on 5173 for serving, health checks, and `/api` forwarding to the backend. The API prefix is preserved. Local Compose runs no Nginx service. See [local development](platform/local-development.md#observed-configuration-and-gaps) for configuration details and remaining gaps.

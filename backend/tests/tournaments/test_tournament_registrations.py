@@ -15,7 +15,7 @@ from sqlalchemy import delete, func, select, update
 # Settings are built at import time and need the test project URL first.
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-import app.auth as auth  # noqa: E402
+import app.auth.services as auth  # noqa: E402
 import app.tournaments.services.tournament_local_dates as tournament_local_dates  # noqa: E402
 from app.core.files import FileStorageError, get_file_storage  # noqa: E402
 from app.main import karlbruder_app  # noqa: E402
@@ -1147,7 +1147,7 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
     from sqlalchemy.orm import Session
 
     from app.database import engine
-    from app.models import User
+    from app.auth.models import User
     from app.tournaments.schemas import RegistrationCreate
     from app.tournaments.services.registration_numbers import (
         is_valid_tournament_registration_number,

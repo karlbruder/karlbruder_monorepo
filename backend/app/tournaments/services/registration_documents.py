@@ -22,7 +22,7 @@ from app.tournaments.exceptions import (
     RegistrationDocumentTypeNotAllowedError,
     TournamentError,
 )
-from app.models import User
+from app.auth.models import User
 
 PARENTAL_CONSENT_FORM_URL_EXPIRES_SECONDS = 900
 PARENTAL_CONSENT_FORM_STAGING_PREFIX = (

@@ -1,14 +1,13 @@
 import logging
-from typing import Annotated
 
-from fastapi import Depends, FastAPI, Response, status
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.auth import require_authenticated_user
-from app.database import engine, get_auth_database_engine
-from app.models import User
+from app.auth.error_handlers import register_auth_error_handlers
+from app.auth.router import router as auth_router
+from app.database import engine
 from app.tournaments.error_handlers import register_tournament_error_handlers
 from app.tournaments.router import router as tournaments_router
 from config import settings
@@ -16,7 +15,9 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 karlbruder_app = FastAPI()
+karlbruder_app.include_router(auth_router)
 karlbruder_app.include_router(tournaments_router)
+register_auth_error_handlers(karlbruder_app)
 register_tournament_error_handlers(karlbruder_app)
 
 
@@ -76,45 +77,3 @@ def health_db():
                 "database": "disconnected",
             },
         )
-
-
-@karlbruder_app.get("/api/health/auth")
-def health_auth():
-    try:
-        auth_engine = get_auth_database_engine()
-        with auth_engine.connect() as conn:
-            select_one = conn.execute(text("SELECT 1")).scalar_one()
-            auth_schema = conn.execute(
-                text(
-                    """
-                    SELECT schema_name
-                    FROM information_schema.schemata
-                    WHERE schema_name = 'auth'
-                    """
-                )
-            ).scalar_one_or_none()
-            return {
-                "status": "ok",
-                "auth": "connected",
-                "database_url": auth_engine.url.render_as_string(hide_password=True),
-                "result": select_one,
-                "schema": {
-                    "auth": auth_schema == "auth",
-                },
-            }
-    except Exception:
-        logger.exception("Supabase Auth database connectivity check failed")
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "error",
-                "auth": "disconnected",
-            },
-        )
-
-
-@karlbruder_app.get("/api/users/me", response_model=User)
-def read_current_user(
-    current_user: Annotated[User, Depends(require_authenticated_user)],
-) -> User:
-    return current_user

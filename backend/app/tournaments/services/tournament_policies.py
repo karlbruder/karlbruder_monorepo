@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.files import FileStorage
-from app.models import User
-from app.auth import get_application_role
+from app.auth.models import User
+from app.auth.services import get_application_role
 from app.core.files.archiving import archive_file
 from app.tournaments.services.tournament_payment_settings import (
     create_tournament_payment_settings,

@@ -11,7 +11,7 @@ from app.tournaments.exceptions import (
     RegistrationResourceNotFoundError,
     TournamentError,
 )
-from app.models import User
+from app.auth.models import User
 from app.tournaments.services.tournament_payment_settings import (
     read_registration_pix_key_for_tournament,
 )

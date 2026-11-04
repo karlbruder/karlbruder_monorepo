@@ -47,7 +47,7 @@ The initial `/api/users/me` verification endpoint does not need a local users ta
 
 ## Implementation baseline
 
-Source inspection on 4 November 2026 found Google and email/password authentication, session restoration, sign-out, and account recovery/password routes under `frontend/src/features/auth/` and `frontend/src/app/`. Supabase calls retain provider names such as `signUp`. The backend verifies JWTs in `backend/app/auth.py` using an ES256/RS256 allowlist and JWKS, and exposes `/api/users/me`. It reads the application role from verified `app_metadata.karlbruder_role`.
+Source inspection on 4 November 2026 found Google and email/password authentication, session restoration, sign-out, and account recovery/password routes under `frontend/src/features/auth/` and `frontend/src/app/`. Supabase calls retain provider names such as `signUp`. The backend verifies JWTs in `backend/app/auth/services.py` using an ES256/RS256 allowlist and JWKS, and exposes `/api/users/me`. It reads the application role from verified `app_metadata.karlbruder_role`.
 
 The 17 October inspection found only Google sign-in in the old frontend entry point despite issue #18 being marked Done. That historical observation no longer describes the current account screens. Neither inspection establishes hosted provider configuration or live email delivery.
 

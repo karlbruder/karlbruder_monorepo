@@ -19,7 +19,7 @@ Keep short helpers beside their only caller. Extract a module for a distinct res
 | `config/` | Shared process and infrastructure settings |
 | `tests/` | Tests mirroring source ownership |
 
-Alembic and the Dockerfile stay at the backend root. New domain tables do not go in `app/models.py`. Future membership and inventory get their own domain packages when that work is in scope.
+Alembic and the Dockerfile stay at the backend root. Domain tables belong to their owning domain. Future membership and inventory get their own domain packages when that work is in scope.
 
 Each domain uses these modules as needed:
 
@@ -80,9 +80,9 @@ Inherit from `database.Base` and keep the existing integer primary keys. A Supab
 
 Services raise domain errors without FastAPI types or HTTP codes. Keep HTTP mappings with the domain and register handlers during application setup. Core errors describe storage or transport failures. Domain errors describe business rejection. Do not expose raw database or storage exceptions to clients.
 
-`BaseAPIException` subclasses FastAPI `HTTPException`. It is an HTTP adapter, not a base for new service errors. It may remain in `app/exceptions.py` for transport concerns.
-
 ## Route access
+
+`app/auth/` owns identity types in `models.py`, token and role services in `services.py`, FastAPI dependencies in `dependencies.py`, auth routes in `router.py`, and domain errors with HTTP mappings in `exceptions.py` and `error_handlers.py`. Auth tests live in `tests/auth/`.
 
 Attach one visible auth dependency to each route:
 
@@ -111,7 +111,7 @@ Read environment variables through settings, not `os.getenv` calls in routers or
 
 These existing paths and behaviors are migration gaps, not precedents for new boundaries:
 
-- Auth lives in `app/auth.py`, identity types in `app/models.py`, auth errors in `app/exceptions.py`, and auth settings in `config/`. Tests include `tests/test_auth.py`. Keep additions at the existing auth paths until a coherent auth migration is in scope. Move identity types, token checks, dependencies, errors, settings, imports, and tests together as applicable. Do not create `app/auth/` alongside `app/auth.py`.
+- Auth settings still live in `config/`. Moving them into auth requires preserving startup validation and environment-specific defaults. Leave them there during unrelated work.
 - Tournament routers still contain queries and record-access decisions. New workflows belong in services.
 - `config/env.py` supplies an AWS region fallback. A settings change must reconcile it and its tests with the explicit-region requirement above. Do not silently adopt the fallback as policy.
 

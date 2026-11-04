@@ -9,9 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import get_application_role
+from app.auth.services import get_application_role
 from app.core.files import FileStorage, FileStorageError
-from app.models import User
+from app.auth.models import User
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
     ParentalConsentFormRequiredError,
