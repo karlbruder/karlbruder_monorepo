@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-02
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -102,7 +102,7 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 - **ARCH-001:** The backend owns domain validation, authorization, and domain database access. UI validation improves usability but is not authoritative.
 - **ARCH-002:** The frontend uses Supabase Auth for identity and sends the session access token to protected backend endpoints. Browser code does not access domain PostgreSQL directly.
 - **ARCH-003:** Supabase owns authentication records. Karlbrüder owns tournament and association records in `public`. Application authorization is distinct from successful authentication.
-- **ARCH-004:** Users register only themselves. A registration references the existing Supabase `auth.users.id` UUID from the verified token subject, not email or a new tournament-specific user identity. An inscription number is a reference, not an access credential.
+- **ARCH-004:** Users register only themselves. A registration references the existing Supabase `auth.users.id` UUID from the verified token subject, not email or a new tournament-specific user identity. A registration number is a reference, not an access credential.
 - **ARCH-005:** Payment proofs and other private uploaded files use Amazon S3 in production and Ministack S3 emulation locally. All access remains authorization-controlled. Private files are not public landing assets or Supabase Storage objects.
 - **ARCH-006:** Tournament rules and data are event-scoped. Monomachia branding and configuration do not define the behavior of every tournament.
 - **ARCH-007:** Local and deployed configurations use the same domain logic. Environment settings choose database and integration destinations.
@@ -121,12 +121,36 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 | --- | --- |
 | Authenticated identity | Supabase subject identifying the caller |
 | Tournament | Event information, registration windows, and capacity configuration |
-| Registration | Athlete information for a tournament, inscription number, owner, and lifecycle |
+| Registration | Athlete information for a tournament, registration number, owner, and lifecycle |
 | Payment evidence and review | Restricted proof and guild staff payment decision associated with a registration |
 | Consent record | Versioned terms and explicit participant choices |
 | Results | Tournament outcomes available to authorized viewers after publication |
 | Membership, future | Association membership and monthly dues, independent of tournaments |
 | Equipment, future | Admin-only guild inventory of equipment, type, quantity, and condition; no loans or tournament reservations |
+
+Shared file infrastructure lives in `app/core/files/`: StoredFile owns object
+metadata, and ArchivedFile records immutable captured content. Source URLs are optional
+so a consuming domain can archive an uploaded document too.
+Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
+RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview,
+RegistrationPayment and RegistrationRefund. The last two are associations to
+shared Payment and Refund records owned by payments. Domain associations
+control file purpose and access. Generic file metadata grants no access by itself.
+Settings, submitted proof, evidence decision, actual receipt, participation and
+refund progress remain separate facts. See the [tournament API guide](../backend/app/tournaments/README.md).
+
+Dependency arrows below mean “uses”. Shared code contains no reverse domain
+imports or tournament/member foreign keys. Future membership links are illustrative,
+not an implemented capability.
+
+```mermaid
+flowchart TD
+    T[Tournaments: participation and financial associations] --> P[Payments: Payment and Refund]
+    F[Core files: StoredFile, ArchivedFile and storage]
+    T --> F
+    M[Future membership: dues and its own associations] -.-> P
+    M -.-> F
+```
 
 These concepts do not prescribe one table per concept. Issue #20 provides a starting schema, not a complete schema for every future workflow.
 
@@ -160,6 +184,13 @@ The following observations came from source inspection, not runtime validation:
 The questions from this architecture round are resolved: admins have global access, Cloudflare manages public TLS/DNS, Nginx serves the HTTPS origin, and local development retains its existing default ports. Role storage and forwarding configuration are implementation details rather than additional product questions.
 
 How `frontend/src` is organized is [decision 0006](decisions/0006-frontend-application-structure.md). That decision does not change the service boundaries in this document.
+
+The shared file/archive boundary and future reuse are explained in
+[decision 0008](decisions/0008-shared-files-and-archives.md).
+Shared financial facts and domain associations are explained in
+[decision 0009](decisions/0009-shared-payments-and-domain-associations.md).
+The database evidence guards, their alternatives and their maintenance costs are
+explained in [decision 0010](decisions/0010-database-evidence-guards.md).
 
 Local SMTP setup is explicitly deferred, with real SES as the likely choice. See [identity](identity/authentication-and-access.md), [data storage](platform/data-storage.md), and [deployment](platform/deployment.md) for the related rules.
 

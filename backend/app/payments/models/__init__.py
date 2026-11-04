@@ -1,8 +1,6 @@
-"""Payment domain tables in PostgreSQL public."""
+"""Domain-neutral financial facts."""
 
-from app.payments.models.pix_recipient import PixRecipient
-from app.payments.models.tournament_inscription_payment_config import (
-    TournamentInscriptionPaymentConfig,
-)
+from .payment import Payment
+from .refund import Refund
 
-__all__ = ["PixRecipient", "TournamentInscriptionPaymentConfig"]
+__all__ = ["Payment", "Refund"]

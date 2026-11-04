@@ -1,40 +1,45 @@
 # Domain migration notes
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
-Alembic manages Karlbrüder domain tables in the database selected by
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. The migrations use PostgreSQL's `public` schema and do not create
-or modify Supabase-managed `auth` objects. Tournament table names, their foreign
-key, indexes, and Alembic version state are explicitly qualified as `public`,
-even when another schema comes first in the connection's `search_path`. Verify
-the target database before a controlled deployment, then run
-`poetry run alembic upgrade head` and
-`poetry run alembic current` from `backend/`.
+Alembic manages application domain tables and its version marker in PostgreSQL
+`public`. Connection settings select the database through `DB_HOST`, `DB_PORT`,
+`DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Supabase-managed `auth` objects are
+outside this history.
 
-For local Compose, start PostgreSQL with `docker compose up -d db` from the
-repository root. The backend image also contains Alembic, so a built and running
-backend can apply migrations with `docker compose exec -T backend alembic upgrade head`.
-In production, point `DB_HOST` and `DB_NAME` at the intended Supabase PostgreSQL database.
-The production container entrypoint runs `alembic upgrade head` before starting Gunicorn
-on every startup. If the upgrade fails, the container exits without starting the API.
-Verify the database target before deploying. Development and test images keep their
-existing startup commands.
+## Initial schema and reset prerequisite
 
-If an earlier deployment ran these revisions with a non-`public` schema first
-in `search_path`, stop and inspect the location of its tables and
-`alembic_version` before upgrading. Moving existing registration data requires
-a separately reviewed migration; the current revisions do not move it.
+Revision `20261103_0001` is the parentless initial schema. It replaces the removed
+pre-data history under the issue #69 reset authorization. It has no upgrade path
+from that history.
 
-## Initial schema
+Before adopting this baseline, the user must remove the old development domain
+tables and `public.alembic_version`. Leave Supabase-managed `auth` objects intact.
+This repository change does not reset a developer or production database.
+Future revisions published on `master` remain immutable.
 
-Revision `20261019_0001` creates the tournament and signup tables. `slug` is a
-required unique column. `declares_truthful_information` is a required signup
-column with no server default, created with the table. There is no later
-migration for either column. Drop a local database that was migrated with the
-removed revisions, including `20261019_0002`, before upgrading this chain. From
-the repository root, `make db-reset` does that for the
-Compose database and then seeds a local Monomachia event. `starts_at` and `ends_at` are the
-event dates. `registration_opens_on` and `registration_closes_on` are the
-registration window. When create omits `slug`, the API builds it from the name,
-modality, and the event year of `starts_at` in UTC−3.
+## Applying migrations
+
+Verify the target database. From `backend/`, run `poetry run alembic upgrade head`,
+then `poetry run alembic current`. A running local backend container can use
+`docker compose exec -T backend alembic upgrade head` from the repository root.
+
+Production uses Supabase PostgreSQL. Its entrypoint applies migrations before
+starting Gunicorn. A migration failure prevents API startup. Never reset
+production data to make startup pass.
+
+## Verification
+
+Use root `compose.test.yml` with a unique disposable project name. Run
+`alembic upgrade head`, `alembic check`, `alembic downgrade base`,
+`alembic upgrade head`, and `alembic check`. Always remove the test project with
+`down -v`. Do not use `make db-reset` to verify migrations.
+
+Schema comparison does not verify triggers. The backend suite also checks
+immutable acceptance/archive evidence, archived file metadata, reviewed proof
+associations and their file metadata, verified receipts, and payment/refund
+consistency. Downgrade removes the evidence guards with their tables.
+
+The reasons for using trigger functions, their alternatives and their limits are
+recorded in [decision 0010](../../specs/decisions/0010-database-evidence-guards.md).

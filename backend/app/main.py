@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.auth import require_authenticated_user
 from app.database import engine, get_auth_database_engine
 from app.models import User
+from app.tournaments.error_handlers import register_tournament_error_handlers
 from app.tournaments.router import router as tournaments_router
 from config import settings
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 karlbruder_app = FastAPI()
 karlbruder_app.include_router(tournaments_router)
+register_tournament_error_handlers(karlbruder_app)
 
 
 karlbruder_app.add_middleware(

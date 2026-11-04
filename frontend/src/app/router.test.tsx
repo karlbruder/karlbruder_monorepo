@@ -1,3 +1,4 @@
+import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -37,17 +38,20 @@ const tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
   slug: 'monomachia-2027',
-  modality: 'longsword',
+  discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  inscription_fee_amount: null,
+  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
-  new_registrations_closed: false,
-  regulation: 'https://example.test/rules',
-  regulation_version: 'draft-regulation-v1',
+  is_registration_closed: false,
+  rules_text: null,
+  rules_url: 'https://example.test/rules',
+  ...acceptanceEvidence,
+  rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
-  cancellation_policy: 'Policy fixture',
+  cancellation_policy_text: 'Policy fixture',
+  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 

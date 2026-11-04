@@ -119,6 +119,10 @@ const english = {
   "Não foi possível enviar a inscrição agora. Tente novamente mais tarde.": "We could not submit the registration now. Please try again later.",
   "conteúdo ainda não configurado.": "content has not been configured yet.",
   "Consultar": "View",
+  "O link do documento expirou? Renove os links sem perder suas respostas.": "Document link expired? Renew the links without losing your answers.",
+  "Renovar links dos documentos": "Renew document links",
+  "Renovando links...": "Renewing links...",
+  "Não foi possível renovar os links. Tente novamente.": "We could not renew the links. Please try again.",
   "Inscrição recebida": "Registration received",
   "Guarde seu número de inscrição": "Keep your registration number",
   "Participante": "Participant",
@@ -168,6 +172,8 @@ const english = {
   "Política de cancelamento": "Cancellation policy",
   "Equipamento obrigatório": "Required equipment",
   "Os termos e o regulamento são registrados pelas versões configuradas para este torneio.": "The accepted terms and rules are recorded using the versions configured for this tournament.",
+  "Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.": "The terms changed. Read the updated content and confirm your choices again.",
+  "Não foi possível atualizar os termos. Tente enviar novamente para atualizar.": "The terms could not be refreshed. Submit again to retry the refresh.",
   "Li e aceito o regulamento do torneio.": "I have read and accept the tournament rules.",
   "Li as informações sobre o tratamento dos dados e a visibilidade de participação e resultados.": "I have read the information about data processing and visibility of participation and results.",
   "Declaro que as informações fornecidas são verdadeiras.": "I declare that the information I provided is true.",
@@ -186,17 +192,17 @@ const english = {
     "Upload the term signed by your parent or guardian. At the event you must attend with them and both of you will present identity documents for staff verification.",
   "A idade no dia do torneio orienta este campo. O servidor confirma se o envio é obrigatório.":
     "Age on the tournament day guides this field. The server confirms whether the upload is required.",
-  "Termo de responsabilidade assinado": "Signed parental responsibility term",
+  "Termo de responsabilidade assinado": "Signed parental consent form",
   "Envie o termo de responsabilidade assinado em PDF ou imagem (JPEG ou PNG).":
-    "Upload the signed parental responsibility term as PDF or image (JPEG or PNG).",
+    "Upload the signed parental consent form as PDF or image (JPEG or PNG).",
   "O termo de responsabilidade deve ser PDF, JPEG ou PNG.":
-    "The parental responsibility term must be PDF, JPEG, or PNG.",
+    "The parental consent form must be PDF, JPEG, or PNG.",
   "O termo de responsabilidade deve ter no máximo 10 MB.":
-    "The parental responsibility term must be 10 MB or smaller.",
+    "The parental consent form must be 10 MB or smaller.",
   "Não foi possível enviar o termo de responsabilidade. Tente novamente.":
-    "We could not upload the parental responsibility term. Please try again.",
+    "We could not upload the parental consent form. Please try again.",
   "O servidor recusou o termo de responsabilidade. Envie PDF, JPEG ou PNG de até 10 MB.":
-    "The server rejected the parental responsibility term. Send PDF, JPEG, or PNG up to 10 MB.",
+    "The server rejected the parental consent form. Send PDF, JPEG, or PNG up to 10 MB.",
   "O servidor recusou o termo por tamanho. Use um arquivo de até 10 MB.":
     "The server rejected the term because of size. Use a file up to 10 MB.",
   "Pagamento da inscrição": "Registration payment",

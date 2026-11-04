@@ -1,73 +1,90 @@
 import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
+export type AcceptanceContent = {
+  declarations: {
+    accepts_rules: string; accepts_data_processing: string; declares_truthful_information: string;
+    acknowledges_inherent_risks: string; declares_has_required_equipment: string;
+    declares_physically_fit: string; accepts_cancellation_policy: string;
+    image_use_choices: { yes: string; no: string };
+  };
+};
+
 export type Tournament = {
+  acceptance_content: Record<"pt" | "en", AcceptanceContent>;
+  acceptance_tokens: Record<"pt" | "en", string>;
+  rules_archive_url: string | null;
+  cancellation_policy_archive_url: string | null;
   id: number;
   name: string;
   slug: string;
-  modality: string | null;
+  discipline: string | null;
   starts_at: string;
   location: string | null;
-  inscription_fee_amount: string | number | null;
+  registration_fee_amount: string | number | null;
   registration_opens_on: string | null;
   registration_closes_on: string | null;
-  new_registrations_closed: boolean;
-  regulation: string | null;
-  regulation_version: string | null;
+  is_registration_closed: boolean;
+  rules_text: string | null;
+  rules_url: string | null;
+  rules_version: string | null;
   terms_version: string | null;
-  cancellation_policy: string | null;
+  cancellation_policy_text: string | null;
+  cancellation_policy_url: string | null;
   equipment_requirements: string | null;
 };
 
-export type SignupCreate = {
+export type RegistrationCreate = {
+  acceptance_language: "pt" | "en";
+  acceptance_token: string;
   full_name: string;
   social_name: string | null;
   birth_date: string;
-  document_type: "cpf" | "passport";
-  document_id: string;
+  identity_document_type: "cpf" | "passport";
+  identity_document_number: string;
   email: string;
   phone: string;
   city: string;
-  state: string | null;
+  state_or_province: string | null;
   country: string;
-  school_name: string | null;
-  responsible_instructor_name: string | null;
-  hema_practice_duration: string | null;
-  hema_practice_start_year: number | null;
-  prior_tournaments_count: number;
-  hema_ratings_ref: string | null;
+  school_or_team_name: string | null;
+  instructor_name: string | null;
+  hema_experience_description: string | null;
+  hema_started_year: number | null;
+  previous_tournament_count: number;
+  hema_ratings_reference: string | null;
   handedness: "right" | "left" | "ambidextrous" | null;
-  special_category_note: string | null;
+  category_or_eligibility_note: string | null;
   emergency_contact_name: string;
   emergency_contact_phone: string;
   declares_truthful_information: boolean;
-  declares_required_equipment: boolean;
+  declares_has_required_equipment: boolean;
   declares_physically_fit: boolean;
-  accepts_regulation: boolean;
+  accepts_rules: boolean;
   accepts_data_processing: boolean;
   acknowledges_inherent_risks: boolean;
   accepts_cancellation_policy: boolean;
-  image_use_authorized: boolean;
-  parental_term_storage_key?: string | null;
-  parental_term_original_file_name?: string | null;
+  authorizes_image_use: boolean;
+  parental_consent_form_storage_key?: string | null;
+  parental_consent_form_original_file_name?: string | null;
 };
 
-export type ParentalTermUploadUrl = {
+export type ParentalConsentFormUploadUrl = {
   storage_key: string;
   upload_url: string;
   expires_in_seconds: number;
   required_headers: Record<string, string>;
 };
 
-export type SignupCreated = {
-  inscription_number: string;
-  status: string;
+export type RegistrationCreated = {
+  registration_number: string;
+  registration_status: string;
   full_name: string;
   email: string;
   tournament_id: number;
 };
 
-export type OwnerSignup = SignupCreated & {
+export type OwnerRegistration = RegistrationCreated & {
   user_id?: string;
 };
 
@@ -78,10 +95,10 @@ export type PaymentProofSummary = {
   submitted_at: string;
 };
 
-export type PaymentInstructions = {
-  inscription_number: string;
-  status: string;
-  inscription_fee_amount: string | number | null;
+export type RegistrationPaymentInstructions = {
+  registration_number: string;
+  registration_status: string;
+  registration_fee_amount: string | number | null;
   payment_due_at: string | null;
   payment_options: {
     pix: {
@@ -91,14 +108,14 @@ export type PaymentInstructions = {
   latest_payment_proof: PaymentProofSummary | null;
 };
 
-export type PaymentProofUploadUrl = ParentalTermUploadUrl;
+export type PaymentProofUploadUrl = ParentalConsentFormUploadUrl;
 
-export class SignupRequestError extends Error {
+export class RegistrationRequestError extends Error {
   readonly status: number;
   readonly detail: string | null;
 
   constructor(status: number, detail: string | null) {
-    super(`Signup request failed with HTTP ${status}`);
+    super(`Registration request failed with HTTP ${status}`);
     this.status = status;
     this.detail = detail;
   }
@@ -125,6 +142,26 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
+function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
+  return ["pt", "en"].every(language => {
+    const key = language as "pt" | "en";
+    const declarations = event.acceptance_content?.[key]?.declarations;
+    return typeof event.acceptance_tokens?.[key] === "string"
+      && /^[a-f0-9]{64}$/.test(event.acceptance_tokens[key])
+      && declarations !== undefined
+      && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string")
+      && typeof declarations.image_use_choices?.yes === "string"
+      && typeof declarations.image_use_choices?.no === "string";
+  }) && isNullableString(event.rules_archive_url) && isNullableString(event.cancellation_policy_archive_url);
+}
+
+export async function getTournament(id: number, token: string): Promise<Tournament> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  const body: unknown = await response.json();
+  if (!response.ok || !isTournament(body)) throw new Error("invalid-tournament");
+  return body;
+}
+
 function isTournament(value: unknown): value is Tournament {
   if (value === null || typeof value !== "object") return false;
   const event = value as Record<string, unknown>;
@@ -133,16 +170,19 @@ function isTournament(value: unknown): value is Tournament {
     typeof event.slug === "string" && event.slug.length > 0 &&
     typeof event.name === "string" && event.name.trim().length > 0 &&
     typeof event.starts_at === "string" &&
-    typeof event.new_registrations_closed === "boolean" &&
-    isNullableString(event.modality) &&
+    isAcceptanceEvidence(event) &&
+    typeof event.is_registration_closed === "boolean" &&
+    isNullableString(event.discipline) &&
     isNullableString(event.location) &&
-    (event.inscription_fee_amount === null || typeof event.inscription_fee_amount === "string" || typeof event.inscription_fee_amount === "number") &&
+    (event.registration_fee_amount === null || typeof event.registration_fee_amount === "string" || typeof event.registration_fee_amount === "number") &&
     isNullableString(event.registration_opens_on) &&
     isNullableString(event.registration_closes_on) &&
-    isNullableString(event.regulation) &&
-    isNullableString(event.regulation_version) &&
+    isNullableString(event.rules_text) &&
+    isNullableString(event.rules_url) &&
+    isNullableString(event.rules_version) &&
     isNullableString(event.terms_version) &&
-    isNullableString(event.cancellation_policy) &&
+    isNullableString(event.cancellation_policy_text) &&
+    isNullableString(event.cancellation_policy_url) &&
     isNullableString(event.equipment_requirements)
   );
 }
@@ -173,12 +213,12 @@ export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tour
   return body.items[0];
 }
 
-export async function requestParentalTermUploadUrl(
+export async function requestParentalConsentFormUploadUrl(
   tournamentId: number,
   token: string,
-): Promise<ParentalTermUploadUrl> {
+): Promise<ParentalConsentFormUploadUrl> {
   const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/parental-term/upload-url`,
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/parental-consent-form/upload-url`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -196,9 +236,9 @@ export async function requestParentalTermUploadUrl(
     !record.required_headers ||
     typeof record.required_headers !== "object"
   ) {
-    throw new Error("invalid-parental-term-upload-url");
+    throw new Error("invalid-parental-consent-form-upload-url");
   }
-  return body as ParentalTermUploadUrl;
+  return body as ParentalConsentFormUploadUrl;
 }
 
 export async function uploadFileToPresignedUrl(
@@ -216,12 +256,12 @@ export async function uploadFileToPresignedUrl(
   }
 }
 
-export async function createSignup(
+export async function createRegistration(
   id: number,
   token: string,
-  payload: SignupCreate,
-): Promise<SignupCreated> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/signups`, {
+  payload: RegistrationCreate,
+): Promise<RegistrationCreated> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/registrations`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -234,41 +274,41 @@ export async function createSignup(
     const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
       ? body.detail
       : null;
-    throw new SignupRequestError(response.status, detail);
+    throw new RegistrationRequestError(response.status, detail);
   }
   if (
     response.status !== 201 || !body || typeof body !== "object" ||
-    !("inscription_number" in body) || typeof body.inscription_number !== "string" ||
-    !("status" in body) || typeof body.status !== "string" ||
+    !("registration_number" in body) || typeof body.registration_number !== "string" ||
+    !("registration_status" in body) || typeof body.registration_status !== "string" ||
     !("full_name" in body) || typeof body.full_name !== "string" ||
     !("email" in body) || typeof body.email !== "string" ||
     !("tournament_id" in body) || typeof body.tournament_id !== "number"
   ) {
-    throw new Error("Invalid signup response");
+    throw new Error("Invalid registration response");
   }
-  return body as SignupCreated;
+  return body as RegistrationCreated;
 }
 
-function isOwnerSignup(value: unknown): value is OwnerSignup {
+function isOwnerRegistration(value: unknown): value is OwnerRegistration {
   if (value === null || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   const accountIdIsOptional = !("user_id" in record) || typeof record.user_id === "string";
   return (
     accountIdIsOptional &&
-    typeof record.inscription_number === "string" &&
-    typeof record.status === "string" &&
+    typeof record.registration_number === "string" &&
+    typeof record.registration_status === "string" &&
     typeof record.full_name === "string" &&
     typeof record.email === "string" &&
     typeof record.tournament_id === "number"
   );
 }
 
-export async function listOwnSignups(
+export async function listOwnRegistrations(
   tournamentId: number,
   token: string,
   signal?: AbortSignal,
-): Promise<OwnerSignup[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/signups`, {
+): Promise<OwnerRegistration[]> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations`, {
     headers: { Authorization: `Bearer ${token}` },
     signal,
   });
@@ -276,13 +316,13 @@ export async function listOwnSignups(
   if (!response.ok || !Array.isArray(body)) {
     throw new Error(`http-${response.status}`);
   }
-  if (!body.every(isOwnerSignup)) {
-    throw new Error("invalid-signup-list");
+  if (!body.every(isOwnerRegistration)) {
+    throw new Error("invalid-registration-list");
   }
   return body;
 }
 
-function isPaymentInstructions(value: unknown): value is PaymentInstructions {
+function isPaymentInstructions(value: unknown): value is RegistrationPaymentInstructions {
   if (value === null || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   const paymentOptions = record.payment_options;
@@ -291,11 +331,11 @@ function isPaymentInstructions(value: unknown): value is PaymentInstructions {
   if (pix === null || typeof pix !== "object") return false;
   const pixKey = (pix as Record<string, unknown>).pix_key;
   return (
-    typeof record.inscription_number === "string" &&
-    typeof record.status === "string" &&
-    (record.inscription_fee_amount === null ||
-      typeof record.inscription_fee_amount === "string" ||
-      typeof record.inscription_fee_amount === "number") &&
+    typeof record.registration_number === "string" &&
+    typeof record.registration_status === "string" &&
+    (record.registration_fee_amount === null ||
+      typeof record.registration_fee_amount === "string" ||
+      typeof record.registration_fee_amount === "number") &&
     (record.payment_due_at === null || typeof record.payment_due_at === "string") &&
     (pixKey === null || typeof pixKey === "string") &&
     (record.latest_payment_proof === null ||
@@ -307,12 +347,12 @@ function isPaymentInstructions(value: unknown): value is PaymentInstructions {
 
 export async function getPaymentInstructions(
   tournamentId: number,
-  inscriptionNumber: string,
+  registrationNumber: string,
   token: string,
   signal?: AbortSignal,
-): Promise<PaymentInstructions> {
+): Promise<RegistrationPaymentInstructions> {
   const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment`,
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment`,
     { headers: { Authorization: `Bearer ${token}` }, signal },
   );
   const body: unknown = await response.json().catch(() => null);
@@ -324,11 +364,11 @@ export async function getPaymentInstructions(
 
 export async function requestPaymentProofUploadUrl(
   tournamentId: number,
-  inscriptionNumber: string,
+  registrationNumber: string,
   token: string,
 ): Promise<PaymentProofUploadUrl> {
   const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof/upload-url`,
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof/upload-url`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -353,12 +393,12 @@ export async function requestPaymentProofUploadUrl(
 
 export async function submitPaymentProof(
   tournamentId: number,
-  inscriptionNumber: string,
+  registrationNumber: string,
   token: string,
   payload: { storage_key: string; original_file_name: string },
-): Promise<OwnerSignup> {
+): Promise<OwnerRegistration> {
   const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/signups/${encodeURIComponent(inscriptionNumber)}/payment-proof`,
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof`,
     {
       method: "POST",
       headers: {
@@ -375,7 +415,7 @@ export async function submitPaymentProof(
       : null;
     throw new PaymentProofRequestError(response.status, detail);
   }
-  if (!isOwnerSignup(body)) {
+  if (!isOwnerRegistration(body)) {
     throw new Error("invalid-payment-proof-submit-response");
   }
   return body;

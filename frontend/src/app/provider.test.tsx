@@ -23,7 +23,7 @@ const accountA = {
   user: { id: "account-a", email: "a@example.test", user_metadata: {} },
 } as Session;
 
-const signupKey = ["tournaments", 42, "signups", "own"] as const;
+const registrationKey = ["tournaments", 42, "registrations", "own"] as const;
 const publicCatalogKey = ["tournaments", "monomachia", 2027] as const;
 
 function CacheProbe() {
@@ -32,7 +32,7 @@ function CacheProbe() {
   const [, setCacheVersion] = useState(0);
 
   useEffect(() => {
-    queryClient.setQueryData(signupKey, [{ inscription_number: "A-PRIVATE" }]);
+    queryClient.setQueryData(registrationKey, [{ registration_number: "A-PRIVATE" }]);
     queryClient.setQueryData(publicCatalogKey, "catalog");
   }, [queryClient]);
 
@@ -81,7 +81,7 @@ describe("AppProvider", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }));
     render(
       <AppProvider>
-        <button type="button" onClick={() => void apiFetch("/api/tournaments/42/signups")}>Carregar</button>
+        <button type="button" onClick={() => void apiFetch("/api/tournaments/42/registrations")}>Carregar</button>
       </AppProvider>,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Carregar" }));

@@ -95,7 +95,7 @@ A newer Ubuntu AMI, or an edit to the bootstrap script, does not replace a runni
 
 ## Application files bucket
 
-Each workspace has a private Amazon S3 bucket for application uploads such as payment proofs and scanned parental terms. Terraform defines it in `infra/main.s3.files.tf` through the shared `s3-bucket` module. The name prefix is `kb-<env>-bucket` with the account-regional suffix the module appends. Public read stays off. The bucket policy denies insecure transport. Object versioning stays on.
+Each workspace has a private Amazon S3 bucket for application uploads such as payment proofs and scanned parental consent forms. Terraform defines it in `infra/main.s3.files.tf` through the shared `s3-bucket` module. The name prefix is `kb-<env>-bucket` with the account-regional suffix the module appends. Public read stays off. The bucket policy denies insecure transport. Object versioning stays on.
 
 The application host instance role can call `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on objects in that bucket only. It does not receive a blanket `s3:ListBucket` grant on the bucket ARN. The bucket CORS rule allows `PUT` with `Content-Type` from `https://app.karlbruder.com`, `https://app-prod.karlbruder.com`, and `https://app-dev.karlbruder.com`. Public read stays off.
 

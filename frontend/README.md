@@ -1,7 +1,7 @@
 # Karlbrüder frontend
 
 **Created**: 2026-01-11
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
 React and TypeScript application built with Vite. This is the user-facing frontend of the Karlbrüder platform.
 
@@ -65,7 +65,15 @@ Point Supabase **custom SMTP** at AWS SES for each hosted project. Use a **From*
 
 For DNS in Cloudflare, SES sandbox exit, Terraform outputs, and the Supabase SMTP form, follow [Supabase auth email through SES](../docs/runbooks/supabase-auth-email-ses.md).
 
-The registration page loads Monomachia through `GET /api/tournaments` with the display name and the 2027 event-date range, then uses the returned ID for signup. An empty page shows an unavailable state. No frontend tournament ID is needed. Keep `VITE_API_BASE_URL=/api` for same-origin requests. Local Vite forwards `/api` without removing the prefix: direct Vite uses `API_PROXY_TARGET=http://localhost:8000`, while Compose sets it to `http://backend:8000`. The production application reverse proxy must preserve `/api` as well.
+The registration page loads Monomachia through `GET /api/tournaments` with the display name and the 2027 event-date range, then uses the returned ID for registration. An empty page shows an unavailable state. No frontend tournament ID is needed. Keep `VITE_API_BASE_URL=/api` for same-origin requests. Local Vite forwards `/api` without removing the prefix: direct Vite uses `API_PROXY_TARGET=http://localhost:8000`, while Compose sets it to `http://backend:8000`. The production application reverse proxy must preserve `/api` as well.
+
+Tournament registration uses `POST /api/tournaments/{tournament_id}/registrations`.
+Individual resources use `registration_number`. Parental document routes use
+`parental-consent-form`. The backend provides declaration content and acceptance
+tokens for each interface language, plus preserved-policy download links.
+Changed terms require explicit acceptance again while retaining personal fields.
+Owner payment instructions and latest-proof access keep their existing restrictions.
+See the [tournament API guide](../backend/app/tournaments/README.md).
 
 Vite reads this directory's environment file. Local Compose loads the same file and sets `API_PROXY_TARGET` to `http://backend:8000` so the container can reach the backend service. Restart the development server after changing the file. The required build variables are `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. `VITE_API_BASE_URL` is optional and defaults to `/api`. Vite validates the required values for both `npm run build` and Docker builds, and reports missing names without printing values. The production image build takes `VITE_SUPABASE_URL` as a build argument and `VITE_SUPABASE_PUBLISHABLE_KEY` through a BuildKit secret mount. The build rejects missing values, legacy JWT keys, and server-only secret keys. The deploy workflow reads `VITE_SUPABASE_URL` from the GitHub variable of that name and `VITE_SUPABASE_PUBLISHABLE_KEY` from the secret of that name, for the selected `dev` or `prod` environment.
 

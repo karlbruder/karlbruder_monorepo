@@ -1,7 +1,7 @@
 # Tournament results
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -26,7 +26,7 @@ Allow users to consult results for the Karlbrüder tournaments represented in th
 
 The application needs a way to distinguish results available for consultation from information still being prepared. Staff entry/import methods, publication, and correction workflows still need definition when this later capability is scheduled. This specification does not assume live scoring, automatic bracket generation, match management, HEMA Ratings synchronization, or a particular ranking formula.
 
-Users consult results according to RES-004. Participant-directory and results visibility is disclosed in the terms under PRIV-006, without a `show_on_public_list` opt-out. Only permitted display fields are shared; this does not expose private signup records or weaken internal-event restrictions.
+Users consult results according to RES-004. Participant-directory and results visibility is disclosed in the terms under PRIV-006, without a `show_on_public_list` opt-out. Only permitted display fields are shared; this does not expose private registration records or weaken internal-event restrictions.
 
 ## Acceptance criteria
 

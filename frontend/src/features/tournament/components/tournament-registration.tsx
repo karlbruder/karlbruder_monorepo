@@ -5,8 +5,8 @@ import type { Session } from "@supabase/supabase-js";
 import { accountRoutes } from "@/config/account-routes";
 
 import { useMonomachiaTournament } from "@/features/tournament/api/use-monomachia-tournament";
-import { useOwnTournamentSignups } from "@/features/tournament/api/use-own-tournament-signups";
-import type { OwnerSignup, SignupCreated, Tournament } from "@/features/tournament/api/tournaments";
+import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own-tournament-registrations";
+import type { OwnerRegistration, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
 import { appCopy } from "@/utils/app-copy";
@@ -38,25 +38,25 @@ function calendarDate(value: string, language: AppLanguage): string {
 
 function registrationWindow(tournament: Tournament, language: AppLanguage): string {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
-  if (tournament.new_registrations_closed) return t("Novas inscrições encerradas pela organização.");
+  if (tournament.is_registration_closed) return t("Novas inscrições encerradas pela organização.");
   if (!tournament.registration_opens_on || !tournament.registration_closes_on) {
     return t("Período de inscrição a confirmar.");
   }
   return `${t("De")} ${calendarDate(tournament.registration_opens_on, language)} ${t("a")} ${calendarDate(tournament.registration_closes_on, language)}, ${t("inclusive (GMT-3).")}`;
 }
 
-function fee(value: Tournament["inscription_fee_amount"], language: AppLanguage): string {
+function fee(value: Tournament["registration_fee_amount"], language: AppLanguage): string {
   if (value === null) return appCopy(language, "A confirmar");
   const amount = Number(value);
   return Number.isFinite(amount) ? new Intl.NumberFormat(locale(language), { style: "currency", currency: "BRL" }).format(amount) : appCopy(language, "A confirmar");
 }
 
-function selectOwnActiveSignup(signups: OwnerSignup[] | undefined, accountId: string): OwnerSignup | null {
-  const activeSignups = (signups ?? []).filter((signup) => signup.status !== "cancelled");
-  if (activeSignups.some((signup) => signup.user_id !== undefined)) {
-    return activeSignups.find((signup) => signup.user_id === accountId) ?? null;
+function selectOwnActiveRegistration(registrations: OwnerRegistration[] | undefined, accountId: string): OwnerRegistration | null {
+  const activeRegistrations = (registrations ?? []).filter((registration) => registration.registration_status !== "cancelled");
+  if (activeRegistrations.some((registration) => registration.user_id !== undefined)) {
+    return activeRegistrations.find((registration) => registration.user_id === accountId) ?? null;
   }
-  return activeSignups[0] ?? null;
+  return activeRegistrations[0] ?? null;
 }
 
 function SignedInRegistration({
@@ -69,37 +69,37 @@ function SignedInRegistration({
   language: AppLanguage;
 }) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
-  const ownSignupsQuery = useOwnTournamentSignups(tournament.id, session.access_token);
-  const [createdSignup, setCreatedSignup] = useState<SignupCreated | null>(null);
-  const activeSignup = createdSignup ?? selectOwnActiveSignup(ownSignupsQuery.data, session.user.id);
+  const ownRegistrationsQuery = useOwnTournamentRegistrations(tournament.id, session.access_token);
+  const [createdRegistration, setCreatedRegistration] = useState<RegistrationCreated | null>(null);
+  const activeRegistration = createdRegistration ?? selectOwnActiveRegistration(ownRegistrationsQuery.data, session.user.id);
 
-  const handleSignupCreated = (signup: SignupCreated) => {
-    setCreatedSignup(signup);
-    void ownSignupsQuery.refetch();
+  const handleRegistrationCreated = (registration: RegistrationCreated) => {
+    setCreatedRegistration(registration);
+    void ownRegistrationsQuery.refetch();
   };
 
   return (
     <>
       <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
-      {!createdSignup && ownSignupsQuery.isPending ? (
+      {!createdRegistration && ownRegistrationsQuery.isPending ? (
         <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
-      ) : activeSignup ? (
+      ) : activeRegistration ? (
         <TournamentPaymentPanel
           tournament={tournament}
           session={session}
-          inscriptionNumber={activeSignup.inscription_number}
+          registrationNumber={activeRegistration.registration_number}
           language={language}
         />
-      ) : tournament.new_registrations_closed ? (
+      ) : tournament.is_registration_closed ? (
         <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
-      ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.regulation_version ? (
+      ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.rules_version ? (
         <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
       ) : (
         <TournamentRegistrationForm
           tournament={tournament}
           session={session}
           language={language}
-          onSignupCreated={handleSignupCreated}
+          onRegistrationCreated={handleRegistrationCreated}
         />
       )}
     </>
@@ -178,9 +178,9 @@ export default function TournamentRegistration({
                 <h2 id="event-name">{tournament.name}</h2>
                 <dl className="registration-facts">
                   <div><dt>{t("Data")}</dt><dd>{eventDate(tournament.starts_at, language)}</dd></div>
-                  <div><dt>{t("Modalidade")}</dt><dd>{tournament.modality === "longsword" ? t("Espada longa (longsword)") : tournament.modality || t("A confirmar")}</dd></div>
+                  <div><dt>{t("Modalidade")}</dt><dd>{tournament.discipline === "longsword" ? t("Espada longa (longsword)") : tournament.discipline || t("A confirmar")}</dd></div>
                   <div><dt>{t("Local")}</dt><dd>{tournament.location || t("A confirmar")}</dd></div>
-                  <div><dt>{t("Valor")}</dt><dd>{fee(tournament.inscription_fee_amount, language)}</dd></div>
+                  <div><dt>{t("Valor")}</dt><dd>{fee(tournament.registration_fee_amount, language)}</dd></div>
                   <div><dt>{t("Inscrições")}</dt><dd>{registrationWindow(tournament, language)}</dd></div>
                 </dl>
                 <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>

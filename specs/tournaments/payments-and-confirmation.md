@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-10-17
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 
 ## Rules
 
-- **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Fees are configured through Tournament `inscription_fee_amount`, always in BRL. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
+- **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Fees are configured through Tournament `registration_fee_amount`, always in BRL. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
 - **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally once file storage is implemented; they are not public site files.
 - **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `payment_in_review` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
 - **PAY-004:** Guild staff (admins) review payment evidence and record decisions. Rejection records a reason, shows a rejected-evidence outcome and message to the participant, and notifies them. The participant may submit another proof for review. Rejection does not confirm a seat or cancel participation by itself. Representing the review outcome separately from registration status is an implementation decision.
@@ -29,6 +29,51 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-011:** Participants may replace submitted proof. Keep every submitted proof in restricted object storage for staff audit; the participant sees only the latest submission. Each replacement is new evidence requiring review, not proof of approval. Proof retention follows the privacy policy.
 - **PAY-012:** Refund the exact amount the guild received, within 10 business days of paid-registration cancellation. Staff records actual refund completion; cancellation alone does not fulfill the deadline or mark funds returned.
 - **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a paid waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses the paid cancellation/refund workflow; rejecting proof alone is a different evidence-review action.
+
+## Persistence contract
+
+These records keep distinct facts. Their presence alone does not change
+participation, consume capacity, send a message or move money.
+
+| Record | Evidence retained |
+| --- | --- |
+| TournamentRegistrationDocument | One exact submitted proof and its StoredFile reference. |
+| PaymentProofReview | `document_id`, approved/rejected `decision`, `reviewed_by_user_id`, `reviewed_at` and a nonblank `rejection_reason` when rejected. |
+| RegistrationPayment, tournaments | `registration_id`, approved `proof_review_id`, unique shared `payment_id`. |
+| Payment, payments | Actual BRL `amount_received`, `verified_by_user_id`, `verified_at`. No registration or membership reference. |
+| RegistrationRefund, tournaments | `registration_payment_id`, unique shared `refund_id`, deadline `due_on`. |
+| Refund, payments | `payment_id`, `amount_owed`, `obligated_at`, `refund_status`, `completed_at` / `completed_by_user_id`. |
+
+TournamentPaymentSettings and PaymentProofReview belong to tournaments. A review
+must identify an exact payment-proof document. Its RegistrationPayment association
+must reference an approved review of the same registration and a shared Payment.
+Reviews, verified receipts and domain associations are immutable. Reviewed document
+associations and their referenced StoredFile metadata are protected too. A review
+cannot be redirected to different evidence by changing a storage key or other file
+metadata. Tournament-owned persistence guards enforce this without adding domain
+dependencies to shared file code. The current tournament schema permits one receipt
+per registration/review and one refund association per receipt. Received and owed
+amounts are finite, nonnegative BRL decimals.
+
+Tournament refund associations require the shared Refund to refer to the same
+shared Payment and owe its exact received amount, even when that differs from the
+fee. The full-refund and 10-business-day rules stay in tournaments. Shared refunds
+retain financial facts without imposing tournament policy on future consumers.
+They contain no domain ID, fee/capacity rule or deadline calculation. The financial
+source payment, amount and obligation time cannot be rewritten. No duplicate
+amount, actor or progress columns live on the tournament associations.
+
+An absent RegistrationRefund association means no recorded tournament obligation. `awaiting_refund` and
+`completed` represent separate refund states. Pending refunds have no completion evidence. Completed refunds require both the actual time and
+recording admin UUID. They do not reactivate cancelled participation or prevent
+an otherwise valid replacement registration. These constraints also apply to
+direct database writes.
+
+Issue #60 owns trusted-admin authorization, reviewability, concurrent decisions
+and atomic review/receipt/participation changes. Later refund work owns paid
+cancellation, calculating the deadline under PAY-012, recording actual completion
+and notifications. Deadline values in persistence tests are explicit fixtures.
+This schema introduces no review/refund command or automatic deadline calculation.
 
 ## Initial journey
 

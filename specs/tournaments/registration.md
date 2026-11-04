@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -12,25 +12,25 @@
 
 ## Goal
 
-Allow an authenticated user to register for a tournament, retain an inscription number, and follow their registration through review and confirmation.
+Allow an authenticated user to register for a tournament, retain a registration number, and follow their registration through review and confirmation.
 
 ## Rules
 
-- **REG-001:** Users register only themselves through the frontend route `/tournaments/registration`, which submits a POST request to the backend tournament sign-up resource. The backend derives ownership from verified identity rather than trusting a caller-supplied owner identifier. Public/internal tournament access follows the [product rules](../product.md).
+- **REG-001:** Users register only themselves through the frontend route `/tournaments/registration`, which submits a POST request to `/api/tournaments/{tournament_id}/registrations`. The backend derives ownership from verified identity rather than trusting a caller-supplied owner identifier. Public/internal tournament access follows the [product rules](../product.md).
 - **REG-002:** The backend validates required fields, required declarations including a separate truthful-information choice, the registration window, duplicate rules, and the applicable capacity policy.
-- **REG-003:** Each accepted registration receives a unique, human-friendly `inscription_number` for participant/staff reference, not an access credential. The developer may choose its exact format and sequence semantics. A tournament slug, year, and sequential number, such as `MONO2027001`, is an acceptable example rather than a mandatory format.
+- **REG-003:** Each accepted registration receives a unique, human-friendly `registration_number` for participant/staff reference, not an access credential. The developer may choose its exact format and sequence semantics. A tournament slug, year, and sequential number, such as `MONO2027001`, is an acceptable example rather than a mandatory format.
 - **REG-004:** Within a tournament, a non-cancelled registration blocks another registration for the same user UUID, normalized email, or normalized identity document. Duplicates return HTTP 409, including concurrent submissions. Cancelled registrations do not block a new registration, including while their refund is awaiting processing. Participation cancellation and refund progress must remain distinguishable so a refund does not reactivate a registration.
 - **REG-005:** Registration is available from the configured opening day through the configured closing day, inclusive, in fixed GMT-3 (UTC-03:00). The window is expressed as calendar days, not configurable times within those days. Creation outside the date range returns HTTP 400, following issue #20.
 - **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `payment_in_review` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm an already-paid waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
-- **REG-007:** Successful submission shows the inscription number, registration summary, current status, and applicable next step. A waitlisted participant has already had payment approved but has no confirmed seat. Status messages must reflect that distinction.
-- **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. The tournament signup list returns every registration to admins. Other authenticated callers receive only their own registrations in the owner-safe projection, including cancelled rows. The personal registration page shows only the signed-in account's own non-cancelled registration. An admin still receives the full list, and that page ignores every other row. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. An inscription number is not authorization to retrieve a private record.
-- **REG-009:** Safety notes are staff-only. Participants may retrieve and correct other permitted signup fields, excluding staff/system-managed fields listed in PRIV-005. Public and participant-facing projections omit `safety_note`; edits preserve validation, uniqueness, ownership, and acceptance evidence.
+- **REG-007:** Successful submission shows the registration number, registration summary, current status, and applicable next step. A waitlisted participant has already had payment approved but has no confirmed seat. Status messages must reflect that distinction.
+- **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. The tournament registration list returns every registration to admins. Other authenticated callers receive only their own registrations in the owner-safe projection, including cancelled rows. The personal registration page shows only the signed-in account's own non-cancelled registration. An admin still receives the full list, and that page ignores every other row. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. A registration number is not authorization to retrieve a private record.
+- **REG-009:** Safety notes are staff-only. Participants may retrieve and correct other permitted registration fields, excluding staff/system-managed fields listed in PRIV-005. Public and participant-facing projections omit `staff_safety_note`; edits preserve validation, uniqueness, ownership, and acceptance evidence.
 - **REG-010:** The form works on phones and desktops, with readable labels and validation errors. Saving and resuming an incomplete form is a possible extension, not an established initial requirement.
 - **REG-011:** Users sign up to the application before registering for a tournament. Registration ownership uses their existing Supabase `auth.users.id` UUID, obtained from the verified token subject. No separate user identity is created for tournament registration. On creation, the registration email must match the authenticated account email using REG-012. Changing the account email does not invalidate or transfer an existing registration.
 - **REG-012:** Normalize email and identity-document values for comparison and uniqueness by lowercasing and removing whitespace, dots (`.`), and dashes (`-`). Retain the original registration email for display and history; the stripped comparison value is not a deliverable email address. Notifications use the current account email under COM-008. The same normalization is applied to the account email for the creation-time match.
 - **REG-013:** Cancellation ends participation and immediately releases any occupied seat. Cancellation before payment produces `cancelled` without a refund obligation. Cancellation after payment also shows `awaiting_refund` until guild staff completes the refund. Once staff records the completed refund, the user receives a refund-confirmation email. Cancellation itself does not transfer money or claim a completed refund.
 - **REG-014:** Repeated submissions use the ordinary create rules. If no blocking non-cancelled registration exists, the request attempts creation. Otherwise the duplicate rule applies. No special retry or replay-success behavior is required, including when the client lost the first response.
-- **REG-015:** A minor registers themselves and uploads a scanned signed parental responsibility term through the platform at creation time. The client obtains a presigned upload URL from the backend, sends the file directly to private object storage, then completes JSON registration with the returned storage key. Participation also requires parental accompaniment during the event, where both the minor and parent present identity documents for staff verification under the [consent and privacy rules](consent-and-privacy.md#rules).
+- **REG-015:** A minor registers themselves and uploads a scanned signed parental consent form through the platform at creation time. The client obtains a presigned upload URL from the backend, sends the file directly to private object storage, then completes JSON registration with the returned storage key. Participation also requires parental accompaniment during the event, where both the minor and parent present identity documents for staff verification under the [consent and privacy rules](consent-and-privacy.md#rules).
 - **REG-016:** Cancelled registrations can be reopened only by admins manually through the Supabase UI. The application does not offer participant or admin reopening controls. A manual reopening must preserve non-cancelled uniqueness and any applicable seat limit; it must not coexist with a conflicting replacement registration.
 - **REG-017:** Staff may close new registrations independently of the date window. Full capacity alone does not close registrations; warn applicants about the paid waitlist while creation remains open. Unconfigured capacity means unlimited, and the paid waitlist has no size limit.
 - **REG-018:** The Monomachia private registration route supports Portuguese and English interface copy, including validation, request errors, and the registration result. A language choice on the public Monomachia page carries to the application through the registration URL and survives sign-in; switching languages does not discard entered fields or change API values. Official event terms and regulation remain in their configured source language until approved translations exist.
@@ -48,9 +48,38 @@ The product owner's answers establish the required personal and sporting fields 
 | Safety | Emergency contact name and phone, equipment declaration, physical-fitness declaration | Required |
 | Restricted safety information | Safety note relevant to participation | Optional; collected only when needed and restricted to authorized staff |
 | Choices and evidence | Separate truthful-information declaration and other versioned declarations/consents, including disclosure of participant-directory and results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
-| System | Tournament reference, Supabase user UUID, inscription number, registration status, refund progress when applicable, creation timestamp | System-managed; ownership is not chosen by the caller |
+| System | Tournament reference, Supabase user UUID, registration number, registration status, refund progress when applicable, creation timestamp | System-managed; ownership is not chosen by the caller |
 
-Store previous tournament participation as the required `prior_tournaments_count`, with `0` representing no prior tournaments. Avoid a second competing field for the same count. Beginner eligibility is confirmed by guild staff using the agreed event criteria, not just an athlete's self-selection.
+Store previous tournament participation as the required `previous_tournament_count`, with `0` representing no prior tournaments. Avoid a second competing field for the same count. Beginner eligibility is confirmed by guild staff using the agreed event criteria, not just an athlete's self-selection.
+
+## Registration documents
+
+`TournamentRegistrationDocument` associates one submitted StoredFile with a
+registration and its purpose. The domain record contains `registration_id`,
+`file_id`, `document_type`, and `submitted_at`. The shared StoredFile contains
+storage metadata and does not grant access by itself. Tournament services own
+owner/admin retrieval, accepted types and sizes, proof history and latest-proof
+visibility. Creation saves the registration, any required parental document,
+and its file metadata in one transaction.
+
+## Acceptance submission
+
+Creation requires the displayed `acceptance_language` and `acceptance_token` from
+the tournament read response. The server checks the token against current
+preserved content. A stale form returns 409 and requires explicit acceptance of
+the refreshed content. The initial RegistrationAcceptance and any required
+parental document are saved in the registration transaction. Choices, versions,
+content, source IP and time live in immutable acceptance history.
+Participant and staff reads project the latest permitted acceptance fields.
+Linked rules and cancellation policies are read from shared ArchivedFile
+copies. The form offers in-place renewal of expiring document links through the
+authorized tournament read. Renewal preserves participant fields and selected
+files. If the accepted content digest is unchanged, choices remain selected.
+Changed content clears declaration and image-use choices and requires explicit
+acceptance again. Failed renewal allows a retry without discarding answers.
+Each tournament owns its policy purpose and access rules. Uploaded
+archives can also be reused by future legal-policy capabilities without creating
+a tournament registration document.
 
 ## Lifecycle boundary
 
@@ -70,11 +99,11 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 
 ## Acceptance criteria
 
-- **REG-AC-001:** An authenticated user submitting valid data during an open window, while staff has not closed new registrations, receives a registration, unique inscription number, and `awaiting_payment` status without reserving a seat, including when the tournament is full.
+- **REG-AC-001:** An authenticated user submitting valid data during an open window, while staff has not closed new registrations, receives a registration, unique registration number, and `awaiting_payment` status without reserving a seat, including when the tournament is full.
 - **REG-AC-002:** Missing or invalid authentication rejects creation with 401 and creates no registration.
 - **REG-AC-003:** An existing non-cancelled registration with the same user UUID, normalized email, or normalized document within the tournament causes HTTP 409, including concurrent attempts. A cancelled record alone does not block a new registration.
 - **REG-AC-004:** A request outside the configured registration window returns 400 and creates no registration.
-- **REG-AC-005:** A non-admin participant can retrieve their own registration but cannot retrieve another user's record by inscription number alone. Guild staff retain their global admin access.
+- **REG-AC-005:** A non-admin participant can retrieve their own registration but cannot retrieve another user's record by registration number alone. Guild staff retain their global admin access.
 - **REG-AC-006:** Public responses omit safety notes, identity document numbers, payment proofs, and private contact details.
 - **REG-AC-007:** Missing required personal/sporting information, emergency contact information, or required declarations, including the separate truthful-information choice, rejects submission. HEMA experience accepts duration, start year, or both. Blank school/team, instructor, state/province, handedness, and category/special-case fields are accepted.
 - **REG-AC-008:** A registration email that does not match the normalized account email rejects creation. Changing the account email afterward does not change registration ownership or invalidate the registration.
@@ -86,7 +115,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-014:** A valid request after a previous cancellation can create a new registration; the old record remains cancelled and its refund can be tracked separately. Reopening the old registration is an admin-only manual Supabase operation, not an application feature.
 - **REG-AC-015:** Requests on the opening and closing calendar days are within the window in GMT-3; requests before the opening day or after the closing day are rejected.
 - **REG-AC-016:** The registration owner UUID is the already authenticated Supabase user's ID; changing an account email does not require a new owner mapping or user identity.
-- **REG-AC-017:** A participant can correct their permitted signup fields but cannot edit ownership, identifiers, timestamps, or staff-controlled status, or retrieve staff-only safety notes. Edits cannot bypass duplicate constraints.
+- **REG-AC-017:** A participant can correct their permitted registration fields but cannot edit ownership, identifiers, timestamps, or staff-controlled status, or retrieve staff-only safety notes. Edits cannot bypass duplicate constraints.
 - **REG-AC-018:** A staff-selected paid waitlisted registration can become `confirmed` without a second payment approval, subject to eligibility and available capacity. An available seat alone does not change its status.
 - **REG-AC-019:** An English choice on the Monomachia landing page opens the private registration route in English; the same language survives refresh and Google sign-in return. Both languages offer the same fields, independent declarations, explicit image choice, errors, and no-seat success outcome without changing the submitted payload.
 - **REG-AC-020:** An admin opening the personal registration page sees their own registration, or the creation form when they have none, even when another participant's registration comes first in the staff list.
@@ -98,7 +127,7 @@ No tournament routes, models, or migration tree were found in this checkout duri
 
 ## Implementation decisions
 
-No remaining registration-policy questions from this round. The exact inscription-number format, backend POST path, selected-tournament handoff, and persistence details are implementation design choices within the rules above.
+No remaining registration-policy questions from this round. The implemented registration-number format and current API paths are documented in the [tournament API guide](../../backend/app/tournaments/README.md). Selected-tournament handoff and later persistence extensions must preserve the rules above.
 
 Event dates, fees, and category criteria belong in the [event specification](events/monomachia-2027.md). Refund amounts/deadlines and proof-storage settings belong in [payments](payments-and-confirmation.md). Email recipient/delivery details belong in [communications](communications.md). The parental-signature process belongs in [consent and privacy](consent-and-privacy.md).
 

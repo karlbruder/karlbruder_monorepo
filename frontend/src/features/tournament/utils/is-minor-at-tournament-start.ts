@@ -45,7 +45,7 @@ export function eighteenthBirthday(birthDateIso: string): { year: number; month:
   return { year: targetYear, month: birth.month, day: birth.day };
 }
 
-/** Display-only hint for the parental term field. The backend decides eligibility. */
+/** Display-only hint for the parental consent form field. The backend decides eligibility. */
 export function isMinorAtTournamentStart(birthDateIso: string, tournamentStartsAtIso: string): boolean {
   const birth = parseIsoDateOnly(birthDateIso);
   const eventDay = calendarDateFromUtcInstant(tournamentStartsAtIso);

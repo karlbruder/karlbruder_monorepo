@@ -1,7 +1,21 @@
-"""SQLAlchemy models for tournament data in PostgreSQL public."""
+"""Tournament-owned records and associations in PostgreSQL public."""
 
-from app.tournaments.models.tournament import Tournament
-from app.tournaments.models.tournament_signup import TournamentSignup
-from app.tournaments.models.tournament_signup_file import TournamentSignupFile
+from .tournament import Tournament
+from .tournament_registration import TournamentRegistration
+from .tournament_registration_document import TournamentRegistrationDocument
+from .registration_acceptance import RegistrationAcceptance
+from .tournament_payment_settings import TournamentPaymentSettings
+from .payment_proof_review import PaymentProofReview
+from .registration_payment import RegistrationPayment
+from .registration_refund import RegistrationRefund
 
-__all__ = ["Tournament", "TournamentSignup", "TournamentSignupFile"]
+__all__ = [
+    "Tournament",
+    "TournamentRegistration",
+    "TournamentRegistrationDocument",
+    "RegistrationAcceptance",
+    "TournamentPaymentSettings",
+    "PaymentProofReview",
+    "RegistrationPayment",
+    "RegistrationRefund",
+]

@@ -1,3 +1,4 @@
+import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -25,17 +26,20 @@ const tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
   slug: 'monomachia-2027',
-  modality: 'longsword',
+  discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  inscription_fee_amount: null,
+  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
-  new_registrations_closed: false,
-  regulation: 'https://example.test/rules',
-  regulation_version: 'draft-regulation-v1',
+  is_registration_closed: false,
+  rules_text: null,
+  rules_url: 'https://example.test/rules',
+  ...acceptanceEvidence,
+  rules_version: 'draft-rules_text-v1',
   terms_version: 'draft-terms-v1',
-  cancellation_policy: 'Policy fixture',
+  cancellation_policy_text: 'Policy fixture',
+  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 
@@ -54,7 +58,7 @@ function catalogBody(response: unknown) {
 
 function mockTournament(response: unknown = tournament) {
   const request = vi.fn(async (url: string) => {
-    if (url === '/api/tournaments/42/signups') {
+    if (url === '/api/tournaments/42/registrations') {
       return { ok: true, status: 200, json: async () => [] }
     }
     return {
@@ -103,7 +107,7 @@ describe('Monomachia registration entry', () => {
   it('uses the URL language before the saved preference, localizes facts, and keeps OAuth on that route', async () => {
     window.localStorage.setItem('registrationLanguage', 'pt')
     window.history.replaceState({}, '', '/tournaments/registration?source=landing&lang=en')
-    mockTournament({ ...tournament, inscription_fee_amount: '125.50' })
+    mockTournament({ ...tournament, registration_fee_amount: '125.50' })
     renderApp()
 
     expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
@@ -152,7 +156,7 @@ describe('Monomachia registration entry', () => {
   })
 
   it('formats the fee in Brazilian reais for the default Portuguese route', async () => {
-    mockTournament({ ...tournament, inscription_fee_amount: '125.50' })
+    mockTournament({ ...tournament, registration_fee_amount: '125.50' })
     renderApp()
     expect(await screen.findByText(/17 de janeiro de 2027/)).toBeInTheDocument()
     expect(screen.getByText(/R\$\s?125,50/)).toBeInTheDocument()

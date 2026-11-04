@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-04
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 | --- | --- |
 | Name | Monomachia Karlbrüder 2027 |
 | Event date | Sunday, 17 January 2027, as supplied in the source requirements; final schedule not confirmed here |
-| Modality | Longsword (`longsword` in the initial tournament model) |
+| Discipline | Longsword (`longsword` in the initial tournament model) |
 | Internal event | `false` in issue #20's initial setup example |
 | Instagram | [monomachia.karlbruder](https://www.instagram.com/monomachia.karlbruder) |
 | Public presentation | Existing `/monomachia` page in `landing/` |
@@ -39,20 +39,20 @@ Event values are staff-managed Tournament configuration, not product questions. 
 
 | Configuration | Tournament fields or policy |
 | --- | --- |
-| Identity and description | `id`, `name`, `description`, `modality`, `is_internal` |
+| Identity and description | `id`, `name`, `description`, `discipline`, `is_internal` |
 | Event dates | `starts_at`, `ends_at` |
-| Registration window | `registration_opens_at`, `registration_closes_at`; inclusive GMT-3 calendar days |
-| Payment deadline and fee | `payment_due_at`, `inscription_fee_amount`; currency is always BRL |
-| Capacity | `max_competitor_capacity`; null means unlimited; no waitlist-size limit |
+| Registration window | `registration_opens_on`, `registration_closes_on`. Inclusive GMT-3 calendar days |
+| Payment deadline and fee | `payment_due_at`, `registration_fee_amount`. Currency is always BRL |
+| Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |
-| Regulation | `regulation`, supplied as text or URL; retain versioned acceptance evidence |
-| Equipment and cancellation | `equipment_requirements`, `cancellation_policy` (text or URL) |
+| Regulation | `rules_text` and `rules_url`. Retain versioned acceptance evidence |
+| Equipment and cancellation | `equipment_requirements`, `cancellation_policy_text` and `cancellation_policy_url` (text or URL) |
 | Record creation | `created_at` |
 | Pix destination | Receiving account and Pix key are payment configuration, not fixed product-spec values |
 
-No concrete fee, Pix destination, registration dates, capacity, venue, schedule, or final regulation is asserted here. Populate these values for event rollout; do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
+No concrete fee, Pix destination, registration dates, capacity, venue, schedule, or final regulation is asserted here. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
 
-The supplied model is a starting domain shape. Staff closure of new registrations and versioned acceptance evidence may require supporting fields or records chosen during implementation; do not assume the listed fields already implement every agreed workflow.
+The supplied model is a starting domain shape. Staff closure of new registrations and versioned acceptance evidence may require supporting fields or records chosen during implementation. Do not assume the listed fields already implement every agreed workflow.
 
 ## Open questions
 
@@ -62,7 +62,7 @@ None specific to Monomachia product behavior. Shared unresolved policies remain 
 
 - **MONO-AC-001:** The public event page presents confirmed event facts and directs registration into the application.
 - **MONO-AC-002:** A signed-in user registers for Monomachia through the same domain capabilities used by another configured tournament.
-- **MONO-AC-003:** Submission produces an inscription number and the correct non-confirmed initial status.
+- **MONO-AC-003:** Submission produces a registration number and the correct non-confirmed initial status.
 - **MONO-AC-004:** Event-specific eligibility and terms use the final configured versions and preserve acceptance evidence.
 
 ## Source conflicts and baseline
