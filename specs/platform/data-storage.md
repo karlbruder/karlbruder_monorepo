@@ -83,7 +83,7 @@ No separate product questions. Interim retention is defined by [privacy rules](.
 
 ## Preserved acceptance content
 
-ArchivedDocument lives in core/documents and references StoredFile. It stores
+ArchivedFile lives in core/files and references StoredFile. It stores
 SHA-256, archived_at and optional source/final URLs. Uploaded documents do not
 require a source URL. Fresh immutable captures can represent tournament policies
 or future terms/privacy versions. Each consuming domain owns the logical policy,

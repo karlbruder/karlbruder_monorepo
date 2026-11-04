@@ -35,7 +35,7 @@ accepted versions, exact displayed declaration and policy content, language,
 verified user UUID, server time and source IP. The initial snapshot is atomic
 with registration and any required parental document. Registration does not keep
 a competing mutable copy. Later snapshots preserve earlier evidence.
-Policy captures reference shared ArchivedDocument records in core/documents.
+Policy captures reference shared ArchivedFile records in core/files.
 Their source URLs are optional for uploaded documents. Tournament ownership and
 retrieval remain domain-controlled. Database guards reject updates and deletes,
 including direct ORM writes.

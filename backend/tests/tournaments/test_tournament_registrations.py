@@ -1447,7 +1447,7 @@ def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):
 
 
 def test_archived_policies_survive_source_and_configuration_changes(setup, monkeypatch):
-    from app.core.documents.models import ArchivedDocument
+    from app.core.files.models import ArchivedFile
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
     from app.tournaments.services.tournament_policies import prepare_policy_archives
     from sqlalchemy import text
@@ -1467,7 +1467,7 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     assert _post_registration(client, event_id, owner).status_code == 201
     row = session.scalar(select(TournamentRegistration))
     first = row.acceptances[0]
-    archive = session.get(ArchivedDocument, first.rules_archive_id)
+    archive = session.get(ArchivedFile, first.rules_archive_id)
     original_key = archive.file.storage_key
     assert storage.objects[original_key][0] == source["body"]
     source["body"] = b"<html>Replaced source</html>"
@@ -1481,8 +1481,8 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     assert storage.objects[original_key][0] == b"<html>Original policy</html>"
     assert original_key not in storage.deleted_keys
     for sql in (
-        "UPDATE public.archived_documents SET sha256 = 'tampered'",
-        "DELETE FROM public.archived_documents",
+        "UPDATE public.archived_files SET sha256 = 'tampered'",
+        "DELETE FROM public.archived_files",
         f"UPDATE public.stored_files SET storage_key = 'tampered' WHERE id = {archive.file_id}",
     ):
         with pytest.raises(IntegrityError, match="immutable"):
@@ -1495,7 +1495,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
 ):
     from app.tournaments.exceptions import PolicyArchiveError
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.core.documents.models import ArchivedDocument
+    from app.core.files.models import ArchivedFile
 
     client, key, session, storage = setup
 
@@ -1517,7 +1517,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
     assert storage.objects == {}
     assert len(storage.deleted_keys) == 1
     assert session.scalar(select(func.count()).select_from(Tournament)) == 0
-    assert session.scalar(select(func.count()).select_from(ArchivedDocument)) == 0
+    assert session.scalar(select(func.count()).select_from(ArchivedFile)) == 0
     assert session.scalar(select(func.count()).select_from(StoredFile)) == 0
 
 
@@ -1527,7 +1527,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
 ):
     from sqlalchemy.exc import SQLAlchemyError
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.core.documents.models import ArchivedDocument
+    from app.core.files.models import ArchivedFile
 
     client, key, session, storage = setup
     monkeypatch.setattr(
@@ -1569,7 +1569,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
     else:
         assert request().status_code == 503
     assert session.scalar(select(func.count()).select_from(Tournament)) == 1
-    assert session.scalar(select(func.count()).select_from(ArchivedDocument)) == 1
+    assert session.scalar(select(func.count()).select_from(ArchivedFile)) == 1
     assert session.scalar(select(func.count()).select_from(StoredFile)) == 1
     assert existing_key in storage.objects
     assert existing_key not in storage.deleted_keys

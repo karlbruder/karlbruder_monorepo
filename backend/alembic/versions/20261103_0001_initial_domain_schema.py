@@ -46,7 +46,7 @@ def upgrade() -> None:
         schema="public",
     )
     op.create_table(
-        "archived_documents",
+        "archived_files",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("file_id", sa.Integer(), nullable=False),
         sa.Column("source_url", sa.Text(), nullable=True),
@@ -171,11 +171,11 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["cancellation_policy_archive_id"],
-            ["public.archived_documents.id"],
+            ["public.archived_files.id"],
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["rules_archive_id"], ["public.archived_documents.id"], ondelete="RESTRICT"
+            ["rules_archive_id"], ["public.archived_files.id"], ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("slug", name="uq_tournaments_slug"),
@@ -339,7 +339,7 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["cancellation_policy_archive_id"],
-            ["public.archived_documents.id"],
+            ["public.archived_files.id"],
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
@@ -348,7 +348,7 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
-            ["rules_archive_id"], ["public.archived_documents.id"], ondelete="RESTRICT"
+            ["rules_archive_id"], ["public.archived_files.id"], ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         schema="public",
@@ -479,7 +479,7 @@ def upgrade() -> None:
         END $$
     """
     )
-    for table in ("registration_acceptances", "archived_documents"):
+    for table in ("registration_acceptances", "archived_files"):
         op.execute(
             f"CREATE TRIGGER immutable_evidence BEFORE UPDATE OR DELETE ON public.{table} FOR EACH ROW EXECUTE FUNCTION public.reject_evidence_mutation()"
         )
@@ -487,7 +487,7 @@ def upgrade() -> None:
         """
         CREATE FUNCTION public.protect_archived_file_metadata() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
-            IF EXISTS (SELECT 1 FROM public.archived_documents WHERE file_id = OLD.id) THEN
+            IF EXISTS (SELECT 1 FROM public.archived_files WHERE file_id = OLD.id) THEN
                 RAISE EXCEPTION 'Archived file metadata is immutable' USING ERRCODE = '23514';
             END IF;
             IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
@@ -641,7 +641,7 @@ def downgrade() -> None:
     op.drop_table("tournament_payment_settings", schema="public")
     op.drop_table("tournaments", schema="public")
     op.drop_table("refunds", schema="public")
-    op.drop_table("archived_documents", schema="public")
+    op.drop_table("archived_files", schema="public")
     op.drop_table("stored_files", schema="public")
     op.drop_table("payments", schema="public")
     op.execute("DROP FUNCTION public.reject_evidence_mutation()")

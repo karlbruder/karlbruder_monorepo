@@ -7,7 +7,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 import app.core.files.models  # noqa: F401 - metadata registry
-import app.core.documents.models  # noqa: F401 - metadata registry
 import app.payments.models  # noqa: F401 - metadata registry
 import app.tournaments.models  # noqa: F401 - metadata registry
 from app.database import Base

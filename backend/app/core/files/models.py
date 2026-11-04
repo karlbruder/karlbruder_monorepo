@@ -1,4 +1,4 @@
-"""Metadata for stored files, independent of the domains that use them."""
+"""Shared file metadata and immutable archive records."""
 
 from datetime import datetime
 
@@ -6,11 +6,13 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Integer,
+    ForeignKey,
+    Text,
     String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -31,3 +33,21 @@ class StoredFile(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class ArchivedFile(Base):
+    __tablename__ = "archived_files"
+    __table_args__ = {"schema": "public"}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    file_id: Mapped[int] = mapped_column(
+        ForeignKey("public.stored_files.id", ondelete="RESTRICT"), nullable=False
+    )
+    source_url: Mapped[str | None] = mapped_column(Text)
+    final_url: Mapped[str | None] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    archived_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    file: Mapped[StoredFile] = relationship()

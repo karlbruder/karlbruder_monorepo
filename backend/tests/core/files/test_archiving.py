@@ -7,20 +7,20 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.core.documents.models import ArchivedDocument
-from app.core.documents.services import archive_document
+from app.core.files.models import ArchivedFile
+from app.core.files.archiving import archive_file
 from app.core.files import FileStorageError
 
 
 def test_uploaded_document_versions_need_no_tournament_or_source_url(db_session):
     storage = Mock()
-    first = archive_document(
+    first = archive_file(
         storage,
         body=b"First terms",
         original_file_name="terms.txt",
         content_type="text/plain",
     )
-    second = archive_document(
+    second = archive_file(
         storage,
         body=b"Revised terms",
         original_file_name="terms.txt",
@@ -36,7 +36,7 @@ def test_uploaded_document_versions_need_no_tournament_or_source_url(db_session)
     assert first.file.storage_key != second.file.storage_key
     assert second.sha256 != first.sha256
     assert storage.store_file.call_args_list[0].args[1] == b"First terms"
-    assert len(db_session.scalars(select(ArchivedDocument)).all()) == 2
+    assert len(db_session.scalars(select(ArchivedFile)).all()) == 2
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_uploaded_document_versions_need_no_tournament_or_source_url(db_session)
 def test_persisted_shared_archive_and_its_file_metadata_are_immutable(
     db_session, target
 ):
-    archive = archive_document(
+    archive = archive_file(
         Mock(),
         body=b"Fixture privacy",
         original_file_name="privacy.txt",
@@ -75,7 +75,7 @@ def test_failed_archive_storage_cleans_the_new_key_and_preserves_the_failure():
     storage.store_file.side_effect = FileStorageError("Upload failed")
     storage.delete_file.side_effect = FileStorageError("Cleanup unavailable")
     with pytest.raises(FileStorageError, match="Upload failed"):
-        archive_document(
+        archive_file(
             storage,
             body=b"Fixture",
             original_file_name="fixture.txt",

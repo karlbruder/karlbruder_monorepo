@@ -128,8 +128,8 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 | Membership, future | Association membership and monthly dues, independent of tournaments |
 | Equipment, future | Admin-only guild inventory of equipment, type, quantity, and condition; no loans or tournament reservations |
 
-Shared file metadata lives in `app/core/files/` as StoredFile. Immutable captured
-versions live in `app/core/documents/` as ArchivedDocument. Source URLs are optional
+Shared file infrastructure lives in `app/core/files/`: StoredFile owns object
+metadata, and ArchivedFile records immutable captured content. Source URLs are optional
 so a consuming domain can archive an uploaded document too.
 Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
 RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview,
@@ -146,11 +146,10 @@ not an implemented capability.
 ```mermaid
 flowchart TD
     T[Tournaments: participation and financial associations] --> P[Payments: Payment and Refund]
-    T --> D[Core documents: ArchivedDocument]
-    D --> F[Core files: StoredFile and storage]
+    F[Core files: StoredFile, ArchivedFile and storage]
     T --> F
     M[Future membership: dues and its own associations] -.-> P
-    M -.-> D
+    M -.-> F
 ```
 
 These concepts do not prescribe one table per concept. Issue #20 provides a starting schema, not a complete schema for every future workflow.

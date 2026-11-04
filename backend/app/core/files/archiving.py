@@ -6,10 +6,10 @@ from uuid import uuid4
 
 from app.core.files import FileStorage, FileStorageError
 from app.core.files.models import StoredFile
-from .models import ArchivedDocument
+from .models import ArchivedFile
 
 
-def archive_document(
+def archive_file(
     storage: FileStorage,
     *,
     body: bytes,
@@ -17,8 +17,8 @@ def archive_document(
     content_type: str,
     source_url: str | None = None,
     final_url: str | None = None,
-) -> ArchivedDocument:
-    key = f"documents/archives/{uuid4()}"
+) -> ArchivedFile:
+    key = f"files/archives/{uuid4()}"
     try:
         storage.store_file(key, body, content_type)
     except FileStorageError:
@@ -27,7 +27,7 @@ def archive_document(
         except FileStorageError:
             pass
         raise
-    return ArchivedDocument(
+    return ArchivedFile(
         file=StoredFile(
             storage_key=key,
             original_file_name=original_file_name,

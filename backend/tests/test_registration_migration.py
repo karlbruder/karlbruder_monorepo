@@ -27,7 +27,7 @@ def test_clean_baseline_recreates_registration_schema_without_legacy_tables(db_s
         "tournament_registration_documents",
         "stored_files",
         "registration_acceptances",
-        "archived_documents",
+        "archived_files",
         "payments",
         "refunds",
         "payment_proof_reviews",

@@ -36,7 +36,7 @@ accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
 
 Saving tournament configuration captures each configured policy URL before
 publishing the event. Inline text remains separate and both forms may be present.
-Each URL capture creates a shared ArchivedDocument referencing StoredFile metadata.
+Each URL capture creates a shared ArchivedFile referencing StoredFile metadata.
 The capture retains source/final URLs, SHA-256 and capture time. Private stored
 bytes use a fresh key. Reads do not fetch the source again. Saving a new policy
 configuration captures a new copy even when its source URL is unchanged.
