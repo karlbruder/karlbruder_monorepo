@@ -17,6 +17,18 @@ def upgrade() -> None:
     op.create_table(
         "payments",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("amount_received", sa.Numeric(precision=12, scale=2), nullable=False),
         sa.Column("verified_by_user_id", sa.Uuid(), nullable=False),
         sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
@@ -30,16 +42,22 @@ def upgrade() -> None:
     op.create_table(
         "stored_files",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("storage_key", sa.String(length=512), nullable=False),
-        sa.Column("original_file_name", sa.String(length=255), nullable=False),
-        sa.Column("content_type", sa.String(length=100), nullable=False),
-        sa.Column("size_bytes", sa.Integer(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column("storage_key", sa.String(length=512), nullable=False),
+        sa.Column("original_file_name", sa.String(length=255), nullable=False),
+        sa.Column("content_type", sa.String(length=100), nullable=False),
+        sa.Column("size_bytes", sa.Integer(), nullable=False),
         sa.CheckConstraint("size_bytes >= 0", name="ck_stored_files_size_nonnegative"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("storage_key", name="uq_stored_files_storage_key"),
@@ -48,6 +66,18 @@ def upgrade() -> None:
     op.create_table(
         "archived_files",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("file_id", sa.Integer(), nullable=False),
         sa.Column("source_url", sa.Text(), nullable=True),
         sa.Column("final_url", sa.Text(), nullable=True),
@@ -62,6 +92,18 @@ def upgrade() -> None:
     op.create_table(
         "refunds",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("payment_id", sa.Integer(), nullable=False),
         sa.Column("amount_owed", sa.Numeric(precision=12, scale=2), nullable=False),
         sa.Column(
@@ -98,6 +140,18 @@ def upgrade() -> None:
     op.create_table(
         "tournaments",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("slug", sa.String(length=100), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -137,18 +191,6 @@ def upgrade() -> None:
             server_default=sa.text("1"),
             nullable=False,
         ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
         sa.CheckConstraint(
             "competitor_capacity IS NULL OR competitor_capacity >= 0",
             name="ck_tournaments_capacity_nonnegative",
@@ -184,6 +226,18 @@ def upgrade() -> None:
     op.create_table(
         "tournament_payment_settings",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("tournament_id", sa.Integer(), nullable=False),
         sa.Column("pix_key", sa.String(length=512), nullable=True),
         sa.ForeignKeyConstraint(
@@ -198,6 +252,18 @@ def upgrade() -> None:
     op.create_table(
         "tournament_registrations",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("tournament_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("registration_number", sa.String(length=50), nullable=False),
@@ -232,18 +298,6 @@ def upgrade() -> None:
         sa.Column("emergency_contact_name", sa.String(length=200), nullable=False),
         sa.Column("emergency_contact_phone", sa.String(length=40), nullable=False),
         sa.Column("staff_safety_note", sa.Text(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
         sa.CheckConstraint(
             "handedness IS NULL OR handedness IN ('right', 'left', 'ambidextrous')",
             name="ck_tournament_registrations_handedness",
@@ -311,6 +365,18 @@ def upgrade() -> None:
     op.create_table(
         "registration_acceptances",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("registration_id", sa.Integer(), nullable=False),
         sa.Column("accepted_by_user_id", sa.Uuid(), nullable=False),
         sa.Column("declares_truthful_information", sa.Boolean(), nullable=False),
@@ -356,6 +422,18 @@ def upgrade() -> None:
     op.create_table(
         "tournament_registration_documents",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("registration_id", sa.Integer(), nullable=False),
         sa.Column("file_id", sa.Integer(), nullable=False),
         sa.Column("document_type", sa.String(length=32), nullable=False),
@@ -401,6 +479,18 @@ def upgrade() -> None:
     op.create_table(
         "payment_proof_reviews",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("document_id", sa.Integer(), nullable=False),
         sa.Column("decision", sa.String(length=16), nullable=False),
         sa.Column("reviewed_by_user_id", sa.Uuid(), nullable=False),
@@ -425,6 +515,18 @@ def upgrade() -> None:
     op.create_table(
         "registration_payments",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("registration_id", sa.Integer(), nullable=False),
         sa.Column("proof_review_id", sa.Integer(), nullable=False),
         sa.Column("payment_id", sa.Integer(), nullable=False),
@@ -452,6 +554,18 @@ def upgrade() -> None:
     op.create_table(
         "registration_refunds",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("registration_payment_id", sa.Integer(), nullable=False),
         sa.Column("refund_id", sa.Integer(), nullable=False),
         sa.Column("due_on", sa.Date(), nullable=False),

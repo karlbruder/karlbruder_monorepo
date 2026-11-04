@@ -217,4 +217,4 @@ authorized a clean baseline for this pre-data refactor. The previous revision
 chain and the intermediate rename migration are removed. There is no old-schema
 upgrade or old request-field/route alias. The development reset must include
 `public.alembic_version`, with Supabase-managed `auth` objects left intact.
-See [migration notes](../../docs/migrations.md) for the reset and test boundaries.
+See [migration notes](../../../docs/database-migrations.md) for the reset and test boundaries.

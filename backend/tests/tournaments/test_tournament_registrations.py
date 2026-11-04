@@ -1146,7 +1146,10 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
 
     from sqlalchemy.orm import Session
 
-    from app.database import engine
+    from app.core import db
+
+    engine = db.sync_engine
+    assert engine is not None
     from app.auth.models import User
     from app.tournaments.schemas import RegistrationCreate
     from app.tournaments.services.registration_numbers import (

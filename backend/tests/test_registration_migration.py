@@ -6,6 +6,8 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect
 
+from app.core.db.base import Base
+
 
 def test_clean_baseline_rebuilds_registration_tables_and_separate_file_metadata(
     db_session,
@@ -92,3 +94,12 @@ def test_clean_baseline_rebuilds_registration_tables_and_separate_file_metadata(
         "accepted_from_ip",
         "rules_archive_id",
     } <= acceptance_columns
+
+    for table in tables - {"alembic_version"}:
+        ordered_columns = inspector.get_columns(table, schema="public")
+        assert [column["name"] for column in ordered_columns[:3]] == ["id", "created_at", "updated_at"]
+        assert list(Base.metadata.tables[f"public.{table}"].columns.keys())[:3] == ["id", "created_at", "updated_at"]
+        columns = {column["name"]: column for column in ordered_columns}
+        for name in ("created_at", "updated_at"):
+            assert not columns[name]["nullable"]
+            assert columns[name]["type"].timezone

@@ -1,15 +1,15 @@
 """A registration's approved proof and its verified shared payment."""
 
-from sqlalchemy import ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 from app.payments.models import Payment
 from .payment_proof_review import PaymentProofReview
 from .tournament_registration import TournamentRegistration
 
 
-class RegistrationPayment(Base):
+class RegistrationPayment(BaseModel):
     __tablename__ = "registration_payments"
     __table_args__ = (
         UniqueConstraint(
@@ -19,7 +19,6 @@ class RegistrationPayment(Base):
         UniqueConstraint("payment_id", name="uq_registration_payments_payment"),
         {"schema": "public"},
     )
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     registration_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
         nullable=False,

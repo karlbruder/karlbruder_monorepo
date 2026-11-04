@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
     Date,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -17,12 +16,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 from app.tournaments.models.tournament import Tournament
 
 if TYPE_CHECKING:
@@ -32,7 +30,7 @@ if TYPE_CHECKING:
     )
 
 
-class TournamentRegistration(Base):
+class TournamentRegistration(BaseModel):
     __tablename__ = "tournament_registrations"
     __table_args__ = (
         UniqueConstraint(
@@ -87,7 +85,6 @@ class TournamentRegistration(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tournament_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False
     )
@@ -125,15 +122,6 @@ class TournamentRegistration(Base):
     emergency_contact_phone: Mapped[str] = mapped_column(String(40), nullable=False)
     staff_safety_note: Mapped[str | None] = mapped_column(Text)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
 
     tournament: Mapped[Tournament] = relationship(back_populates="registrations")
     documents: Mapped[list["TournamentRegistrationDocument"]] = relationship(

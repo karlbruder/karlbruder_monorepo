@@ -18,7 +18,7 @@ gunicorn = "^21.2"
 
 # Database
 psycopg = "^3.1"
-sqlalchemy = "^2.0"
+sqlalchemy = { version = "^2.0", extras = ["asyncio"] }
 alembic = "^1.13"
 
 # Config

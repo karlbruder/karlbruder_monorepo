@@ -59,6 +59,17 @@ Swagger UI is at `/api/docs`, with its redirect helper at
 ReDoc is disabled.
 Throttling is not implemented.
 
+## Database lifecycle
+
+`app/core/db/` contains the shared model base, engine factories, and session scopes.
+FastAPI lifespan initializes and disposes sync and async resources. Domain workflows
+continue to use synchronous sessions and own their commit/rollback boundaries.
+Scripts and migrations create and dispose their own engines.
+
+Mapped models share integer IDs and `created_at`/`updated_at` timestamps. There are
+no shared UUID fields or soft-delete behavior. Apply Alembic head before running
+the updated models.
+
 ## Diagnostics
 
 - `/api/health` checks process liveness and returns 200 with no body.
@@ -71,7 +82,7 @@ Database diagnostics report schema presence separately from connectivity; inspec
 ## Domain migrations
 
 Alembic manages domain tables in the database selected by `DB_*`. Follow the
-[migration notes](docs/migrations.md) to apply or verify migrations before starting
+[migration notes](../docs/database-migrations.md) to apply or verify migrations before starting
 an API version that uses new tables.
 
 The pre-data refactor uses the clean initial revision `20261103_0001`.

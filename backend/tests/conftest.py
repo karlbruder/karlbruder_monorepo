@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
 
-from app.database import engine, get_session  # noqa: E402
+from app.core.db import create_sync_engine, get_session  # noqa: E402
+from config import settings  # noqa: E402
 from app.main import karlbruder_app  # noqa: E402
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
@@ -20,12 +21,13 @@ ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
 def migrated_database():
     """Migrate the configured domain database once for this pytest session."""
 
+    engine = create_sync_engine(settings.get_database_url())
     config = Config()
     config.set_main_option("script_location", str(ALEMBIC_DIR))
     with engine.begin() as connection:
         config.attributes["connection"] = connection
         command.upgrade(config, "head")
-    yield
+    yield engine
     engine.dispose()
 
 
@@ -37,7 +39,7 @@ def db_session(migrated_database):
     One transaction per test is what keeps rows from leaking into the next test.
     """
 
-    connection = engine.connect()
+    connection = migrated_database.connect()
     transaction = connection.begin()
     session = Session(
         bind=connection,

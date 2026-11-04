@@ -17,18 +17,17 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 
 if TYPE_CHECKING:
     from app.tournaments.models.tournament_registration import TournamentRegistration
 
 
-class Tournament(Base):
+class Tournament(BaseModel):
     __tablename__ = "tournaments"
     __table_args__ = (
         UniqueConstraint("slug", name="uq_tournaments_slug"),
@@ -56,7 +55,6 @@ class Tournament(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -98,15 +96,6 @@ class Tournament(Base):
 
     next_registration_number: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("1")
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
     )
 
     registrations: Mapped[list["TournamentRegistration"]] = relationship(

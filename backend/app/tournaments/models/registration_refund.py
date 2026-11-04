@@ -1,15 +1,15 @@
 """A tournament refund obligation linked to its shared financial record."""
 
 from datetime import date
-from sqlalchemy import Date, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 from app.payments.models import Refund
 from .registration_payment import RegistrationPayment
 
 
-class RegistrationRefund(Base):
+class RegistrationRefund(BaseModel):
     __tablename__ = "registration_refunds"
     __table_args__ = (
         UniqueConstraint(
@@ -19,7 +19,6 @@ class RegistrationRefund(Base):
         UniqueConstraint("refund_id", name="uq_registration_refunds_refund"),
         {"schema": "public"},
     )
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     registration_payment_id: Mapped[int] = mapped_column(
         ForeignKey("public.registration_payments.id", ondelete="RESTRICT"),
         nullable=False,

@@ -3,7 +3,8 @@
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from app.database import create_database_engine, engine
+from app.core import db
+from app.core.db.engine import create_sync_engine
 from config import settings
 
 
@@ -27,9 +28,14 @@ def _check_database(database_engine: Engine, schema: str, connection_key: str) -
 
 
 def check_domain_database() -> dict:
-    return _check_database(engine, "public", "database")
+    if db.sync_engine is None:
+        raise RuntimeError("Database engine is not initialized.")
+    return _check_database(db.sync_engine, "public", "database")
 
 
 def check_auth_database() -> dict:
-    auth_engine = create_database_engine(settings.get_auth_database_url())
-    return _check_database(auth_engine, "auth", "auth")
+    auth_engine = create_sync_engine(settings.get_auth_database_url())
+    try:
+        return _check_database(auth_engine, "auth", "auth")
+    finally:
+        auth_engine.dispose()

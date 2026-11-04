@@ -1,4 +1,4 @@
-# Domain migration notes
+# Application database migrations
 
 **Created**: 2026-10-26
 **Last updated**: 2026-11-04
@@ -10,9 +10,10 @@ outside this history.
 
 ## Initial schema and reset prerequisite
 
-Revision `20261103_0001` is the parentless initial schema. It replaces the removed
-pre-data history under the issue #69 reset authorization. It has no upgrade path
-from that history.
+Revision `20261103_0001` is the parentless initial schema. It includes shared
+model timestamps, with columns ordered `id`, `created_at`, `updated_at`, then
+domain fields. The owner authorized replacing the earlier development schema
+with this fresh baseline. It has no upgrade path from that schema.
 
 Before adopting this baseline, the user must remove the old development domain
 tables and `public.alembic_version`. Leave Supabase-managed `auth` objects intact.
@@ -42,4 +43,4 @@ associations and their file metadata, verified receipts, and payment/refund
 consistency. Downgrade removes the evidence guards with their tables.
 
 The reasons for using trigger functions, their alternatives and their limits are
-recorded in [decision 0010](../../specs/decisions/0010-database-evidence-guards.md).
+recorded in [decision 0010](../specs/decisions/0010-database-evidence-guards.md).

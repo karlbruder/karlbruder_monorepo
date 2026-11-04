@@ -8,7 +8,7 @@
 | Status | Draft |
 | Scope | Shared platform foundation and tournament persistence |
 | Applications | backend and operational services |
-| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20), `backend/app/database.py`, `backend/config/`, and existing configuration documentation |
+| Sources | [#7](https://github.com/karlbruder/karlbruder_monorepo/issues/7), [#20](https://github.com/karlbruder/karlbruder_monorepo/issues/20), `backend/app/core/db/`, `backend/config/`, and existing configuration documentation |
 
 ## Goal
 
@@ -20,7 +20,7 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 - **DATA-002:** Domain tables, indexes, and migrations belong in `public`. Supabase-managed `auth` objects must not be modified by application migrations.
 - **DATA-003:** `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_NAME`, `AUTH_DB_USER`, and `AUTH_DB_PASSWORD` are required. They form a separate connection used by the current Auth database diagnostic. They are not the settings for verifying access tokens. Token verification uses the public project root `SUPABASE_URL` and public signing keys.
 - **DATA-004:** Local and deployed domain data are independent. Reusing migration history aligns schema, not data. No automatic local/remote synchronization is assumed.
-- **DATA-005:** Schema changes use Alembic migrations in `backend/alembic/`. Apply the same domain migration history to supported environments. Follow the [migration notes](../../backend/docs/migrations.md) for the clean-baseline reset prerequisite and application procedure.
+- **DATA-005:** Schema changes use Alembic migrations in `backend/alembic/`. Apply the same domain migration history to supported environments. Follow the [migration notes](../../docs/database-migrations.md) for the clean-baseline reset prerequisite and application procedure.
 - **DATA-006:** Persist unique registration numbers and prevent non-cancelled registrations from sharing the same tournament plus user UUID, normalized email, or normalized document. Cancelled participation is excluded from those duplicate checks even while a refund awaits processing. Follow REG-012's comparison normalization and retain the original registration email for display/history. Send notifications to the current account email under COM-008. Coordinate confirmation and capacity assignment transactionally. Admin-only manual Supabase reopening must preserve these invariants.
 - **DATA-007:** Registration ownership directly uses the existing Supabase `auth.users.id` UUID from the verified token subject. Users already have that identity before tournament registration. An account email change leaves ownership and registration validity unchanged. No separate user identity or intermediate owner mapping is required. Do not duplicate Supabase passwords, create a second authentication store, or modify managed Auth objects.
 - **DATA-008:** Credentials are supplied through environment/secrets configuration. No private database URI belongs in browser bundles or source. Diagnostic responses must not expose passwords or raw internal errors.
@@ -35,6 +35,25 @@ Persist Karlbrüder domain data consistently across local and deployed environme
 | Private uploaded files | Ministack S3 emulation | Amazon S3 |
 
 The backend uses the same domain migrations and S3-facing storage logic across environments. Configuration selects endpoints, credentials, bucket, and database destination. The optional hosted Auth database diagnostic connection is distinct from the local domain connection; it is not a reason to run a second local Auth database.
+
+## Database resources and model timestamps
+
+`app/core/db/` owns the shared model base, sync/async engine factories, and session
+scopes. FastAPI lifespan initializes both engine/session factories and disposes
+the engines on shutdown. Current domain workflows use synchronous sessions and
+own their commits and rollbacks. Session scopes do not commit implicitly.
+
+Mapped models share integer primary keys and timezone-aware `created_at` and
+`updated_at`. Columns begin with `id`, `created_at`, and `updated_at`, followed
+by domain fields. SQLAlchemy supplies creation defaults and advances `updated_at` on
+updates. Direct SQL writers remain responsible for update timestamps. These fields
+do not replace domain evidence times, such as acceptance, review, or payment time.
+They do not introduce UUID identity columns, soft deletion, or weaker evidence guards.
+
+The initial revision `20261103_0001` includes these timestamp columns. Adopting
+this revised baseline requires the authorized fresh-database reset described in
+the [migration notes](../../docs/database-migrations.md). There is no upgrade path
+from an earlier version of the initial schema.
 
 ## File metadata ownership
 

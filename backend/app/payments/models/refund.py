@@ -8,7 +8,6 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Integer,
     Numeric,
     String,
     Uuid,
@@ -16,11 +15,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 from .payment import Payment
 
 
-class Refund(Base):
+class Refund(BaseModel):
     __tablename__ = "refunds"
     __table_args__ = (
         CheckConstraint(
@@ -42,7 +41,6 @@ class Refund(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     payment_id: Mapped[int] = mapped_column(
         ForeignKey("public.payments.id", ondelete="RESTRICT"),
         nullable=False,

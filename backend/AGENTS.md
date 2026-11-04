@@ -14,7 +14,7 @@ Keep short helpers beside their only caller. Extract a module for a distinct res
 | --- | --- |
 | `app/main.py` | FastAPI creation, middleware, and documentation configuration |
 | `app/api/` | Router assembly, exception handlers, health checks, metadata, and shared HTTP helpers |
-| `app/database.py` | Shared database setup |
+| `app/core/db/` | Shared model base, engine factories, and session scopes |
 | `app/<domain>/` | Domain rules, data access, errors, and models |
 | `app/core/` | Shared infrastructure and mechanisms |
 | `config/` | Shared process and infrastructure settings |
@@ -69,6 +69,7 @@ Schemas validate types, required fields, formats, and consistency within submitt
 - Accept explicit inputs and return domain results or raise domain errors. Do not accept FastAPI `Request` or `Response`, use `Depends`, or raise HTTP exceptions.
 - Keep queries in services. Add repository, selector, manager, or service-class layers only for an actual workflow need.
 - Enforce record ownership, visibility, eligibility, and other invariants in the workflow service, including calls outside HTTP.
+- FastAPI lifespan creates and disposes sync and async database resources. Domain workflows currently use sync sessions. Import factories and session helpers from `app/core/db/`. Do not initialize engines on import.
 - The top-level workflow owns commit and rollback. Helpers use its session without creating another session or committing partway through. Preserve locking and atomicity.
 - Translate known database conflicts into domain errors. Do not treat every `IntegrityError` as a duplicate. Unexpected failures remain visible.
 - Group related constants and functions. Use type hints to clarify contracts and update docstrings when responsibilities move.
@@ -77,7 +78,7 @@ Schemas validate types, required fields, formats, and consistency within submitt
 
 Models define tables, constraints, and small derived properties. Cross-table decisions belong in services. Prefer `UniqueConstraint` and `CheckConstraint` where applicable. Service checks provide useful rejection reasons but do not replace constraints protecting concurrent writes.
 
-Inherit from `database.Base` and keep the existing integer primary keys. A Supabase user ID is a reference column, not a local user table. Do not introduce UUIDs or an audit base class by default. Export mapped classes through `models/__init__.py` so Alembic can register them. File moves do not justify changing table names, columns, or constraints.
+Mapped domain models inherit `app.core.db.base.BaseModel`, with integer primary keys and shared timestamps. Keep columns ordered `id`, `created_at`, `updated_at`, then domain fields in both metadata and migrations. A Supabase user ID is a reference column, not a local user table. Do not add UUID identity columns or soft deletion by default. Export mapped classes through `models/__init__.py` so Alembic can register them. File moves do not justify changing table names, columns, or constraints.
 
 Services raise domain errors without FastAPI types or HTTP codes. Keep exception definitions with their owner. Map them to HTTP in `app/api/exception_handlers.py` and register handlers in `app/main.py`. Core errors describe storage or transport failures. Domain errors describe business rejection. Do not expose raw database or storage exceptions to clients.
 
@@ -118,7 +119,7 @@ These existing paths and behaviors are migration gaps, not precedents for new bo
 
 ## Migrations, queries, and external calls
 
-Alembic owns schema changes. Never edit a revision already on `master`. A branch-only revision may be edited when `git diff master` shows it as added. Read [migration notes](docs/migrations.md) before applying, resetting, or repairing migrations.
+Alembic owns schema changes. Never edit a revision already on `master`. A branch-only revision may be edited when `git diff master` shows it as added. Read [migration notes](../docs/database-migrations.md) before applying, resetting, or repairing migrations.
 
 Keep queries simple. Use service-level `selectinload` or `joinedload` to avoid per-row relationship queries. Preserve tournament-list pagination.
 
@@ -145,7 +146,7 @@ This does not require a test file per module. Workflow integration tests may sta
 - Cover changed branches, edge cases, and failures, especially auth, registration, payment proofs, and safety-note visibility. Remove obsolete tests while preserving coverage for retained behavior.
 - Put fixtures in the narrowest applicable `conftest.py`. Keep single-module helpers local. Do not duplicate assertions just to populate extracted test files.
 - `db_session` runs automatically. Request it explicitly only for tests that read or write rows. Routes already receive it. Do not add engines, SQLite databases, or replacement session fixtures.
-- The pytest session migrates the Compose database to head. Each test uses a transaction that rolls back afterward. Do not create another database from tests.
+- The pytest session creates its test engine and migrates the Compose database to head. Each test uses a transaction that rolls back afterward. Do not create another database from tests.
 - Mock calls leaving the process, including Supabase key fetches, S3, and future backend SES calls. Follow root naming and docstring rules.
 
 Run from the repository root with a unique Compose project name:

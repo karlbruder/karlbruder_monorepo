@@ -10,7 +10,8 @@ from app.main import karlbruder_app
 
 @pytest.fixture
 def client():
-    return TestClient(karlbruder_app)
+    with TestClient(karlbruder_app) as test_client:
+        yield test_client
 
 
 def test_auth_health_reports_connectivity_separately_from_schema_presence(client):
@@ -29,7 +30,7 @@ def test_auth_health_returns_existing_failure_shape_without_database_details(cli
     def unavailable_engine(_database_url):
         raise OperationalError("SELECT 1", {}, RuntimeError("private database details"))
 
-    monkeypatch.setattr(checks, "create_database_engine", unavailable_engine)
+    monkeypatch.setattr(checks, "create_sync_engine", unavailable_engine)
 
     response = client.get("/api/health/auth")
 

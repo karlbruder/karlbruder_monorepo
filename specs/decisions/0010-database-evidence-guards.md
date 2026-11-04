@@ -99,6 +99,6 @@ requires preserving the agreed evidence guarantee through another explicit desig
 [initial migration](../../backend/alembic/versions/20261103_0001_initial_domain_schema.py),
 [financial evidence tests](../../backend/tests/tournaments/models/test_registration_finances.py),
 [archive tests](../../backend/tests/core/files/test_archiving.py),
-[migration verification](../../backend/docs/migrations.md),
+[migration verification](../../docs/database-migrations.md),
 [privacy and consent](../tournaments/consent-and-privacy.md),
 [payments and confirmation](../tournaments/payments-and-confirmation.md).

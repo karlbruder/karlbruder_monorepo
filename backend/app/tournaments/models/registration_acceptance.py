@@ -8,17 +8,16 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Integer,
     JSON,
     String,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 
 
-class RegistrationAcceptance(Base):
+class RegistrationAcceptance(BaseModel):
     __tablename__ = "registration_acceptances"
     __table_args__ = (
         CheckConstraint(
@@ -33,7 +32,6 @@ class RegistrationAcceptance(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     registration_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
         nullable=False,

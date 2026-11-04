@@ -9,7 +9,7 @@ from sqlalchemy.engine import make_url
 import app.core.files.models  # noqa: F401 - metadata registry
 import app.payments.models  # noqa: F401 - metadata registry
 import app.tournaments.models  # noqa: F401 - metadata registry
-from app.database import Base
+from app.core.db.base import Base
 from config import settings
 
 config = context.config

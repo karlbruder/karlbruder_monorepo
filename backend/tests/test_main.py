@@ -47,3 +47,64 @@ def test_swagger_redirect_helper_is_served_under_api_docs():
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_lifespan_initializes_and_disposes_sync_and_async_resources(monkeypatch, fail):
+    import asyncio
+    from unittest.mock import AsyncMock, Mock
+
+    from app.core import db
+    from app.main import lifespan
+
+    sync_engine = Mock()
+    async_engine = Mock()
+    async_engine.dispose = AsyncMock()
+    sync_maker = Mock()
+    async_maker = Mock()
+    monkeypatch.setattr(db, "create_sync_engine", Mock(return_value=sync_engine))
+    monkeypatch.setattr(db, "create_async_engine_instance", Mock(return_value=async_engine))
+    monkeypatch.setattr(db, "create_sync_session_maker", Mock(return_value=sync_maker))
+    monkeypatch.setattr(db, "create_async_session_maker", Mock(return_value=async_maker))
+
+    async def run():
+        async with lifespan(karlbruder_app):
+            assert db.sync_engine is sync_engine
+            assert db.async_engine is async_engine
+            assert db.sync_session_maker is sync_maker
+            assert db.async_session_maker is async_maker
+            if fail:
+                raise ValueError("application failed")
+
+    if fail:
+        with pytest.raises(ValueError, match="application failed"):
+            asyncio.run(run())
+    else:
+        asyncio.run(run())
+
+    sync_engine.dispose.assert_called_once()
+    async_engine.dispose.assert_awaited_once()
+    assert db.sync_engine is None and db.async_engine is None
+    assert db.sync_session_maker is None and db.async_session_maker is None
+
+
+def test_lifespan_disposes_sync_engine_if_async_initialization_fails(monkeypatch):
+    import asyncio
+    from unittest.mock import Mock
+
+    from app.core import db
+    from app.main import lifespan
+
+    sync_engine = Mock()
+    monkeypatch.setattr(db, "create_sync_engine", Mock(return_value=sync_engine))
+    monkeypatch.setattr(db, "create_async_engine_instance", Mock(side_effect=ValueError("invalid async config")))
+
+    async def run():
+        async with lifespan(karlbruder_app):
+            pytest.fail("Startup should fail before serving requests")
+
+    with pytest.raises(ValueError, match="invalid async config"):
+        asyncio.run(run())
+
+    sync_engine.dispose.assert_called_once()
+    assert db.sync_engine is None and db.async_engine is None

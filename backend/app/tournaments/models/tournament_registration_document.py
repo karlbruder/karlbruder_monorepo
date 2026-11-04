@@ -7,7 +7,6 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
-    Integer,
     String,
     UniqueConstraint,
     func,
@@ -16,11 +15,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.files.models import StoredFile
-from app.database import Base
+from app.core.db.base import BaseModel
 from app.tournaments.models.tournament_registration import TournamentRegistration
 
 
-class TournamentRegistrationDocument(Base):
+class TournamentRegistrationDocument(BaseModel):
     __tablename__ = "tournament_registration_documents"
     __table_args__ = (
         CheckConstraint(
@@ -40,7 +39,6 @@ class TournamentRegistrationDocument(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     registration_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournament_registrations.id", ondelete="RESTRICT"),
         nullable=False,

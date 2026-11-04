@@ -8,14 +8,13 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
-    Integer,
     String,
     Text,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.db.base import BaseModel
 
 
 if TYPE_CHECKING:
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-class PaymentProofReview(Base):
+class PaymentProofReview(BaseModel):
     __tablename__ = "payment_proof_reviews"
     __table_args__ = (
         CheckConstraint(
@@ -38,7 +37,6 @@ class PaymentProofReview(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     document_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournament_registration_documents.id", ondelete="RESTRICT"),
         nullable=False,

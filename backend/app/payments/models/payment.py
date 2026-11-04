@@ -9,16 +9,15 @@ from uuid import UUID
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    Integer,
     Numeric,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base
+from app.core.db.base import BaseModel
 
 
-class Payment(Base):
+class Payment(BaseModel):
     __tablename__ = "payments"
     __table_args__ = (
         CheckConstraint(
@@ -28,7 +27,6 @@ class Payment(Base):
         {"schema": "public"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     amount_received: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     verified_by_user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), nullable=False
