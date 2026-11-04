@@ -43,7 +43,21 @@ poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
 
 The sample database settings match the repository's local PostgreSQL service, which must be running first. On PowerShell, use `$env:NAME = 'value'` instead of `export NAME='value'`.
 
-Open `http://localhost:8000/docs` for API documentation and interactive requests. For protected requests, use **Authorize** with a Supabase access token from the configured project.
+Open `http://localhost:8000/api/docs` for API documentation and interactive requests. For protected requests, use **Authorize** with a Supabase access token from the configured project.
+
+## API structure
+
+`app/main.py` creates FastAPI and configures middleware and documentation.
+`app/api/router.py` assembles domain, health, and metadata routes.
+HTTP mappings live in `app/api/exception_handlers.py`. Health routes live in
+`app/api/health/router.py`, connectivity checks in `app/api/health/checks.py`, and release
+metadata directly in `app/api/router.py`.
+Business rules, models, and exception definitions stay with their owning domains.
+
+Swagger UI is at `/api/docs`, with its redirect helper at
+`/api/docs/oauth2-redirect`. The OpenAPI document is at `/api/openapi.json`.
+ReDoc is disabled.
+Throttling is not implemented.
 
 ## Diagnostics
 

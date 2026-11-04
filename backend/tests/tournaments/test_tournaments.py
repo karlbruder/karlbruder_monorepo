@@ -366,7 +366,7 @@ def test_pix_key_can_be_set_on_create_but_never_appears_in_catalog_reads(client)
 def test_catalog_routes_have_explicit_response_contracts(client):
     """OpenAPI publishes the catalog list and detail routes, including the list filters. It does not publish a by-slug route."""
     test_client, _ = client
-    schema = test_client.get("/openapi.json").json()
+    schema = test_client.get("/api/openapi.json").json()
     assert "/api/tournaments" in schema["paths"]
     assert "/api/tournaments/{tournament_id}" in schema["paths"]
     assert "/api/tournaments/by-slug/{slug}" not in schema["paths"]

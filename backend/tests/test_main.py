@@ -1,0 +1,49 @@
+"""API assembly preserves documentation, middleware, and framework error behavior."""
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import karlbruder_app
+
+
+def test_swagger_ui_uses_the_api_schema_and_redirect_urls():
+    response = TestClient(karlbruder_app).get("/api/docs")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "/api/openapi.json" in response.text
+    assert "/api/docs/oauth2-redirect" in response.text
+
+
+def test_openapi_includes_health_metadata_and_domain_routes_with_bearer_security():
+    response = TestClient(karlbruder_app).get("/api/openapi.json")
+
+    assert response.status_code == 200
+    paths = response.json()["paths"]
+    assert {"/api/health", "/api/metadata", "/api/health/db", "/api/health/auth"} <= paths.keys()
+    assert "/api/tournaments" in paths
+    assert paths["/api/users/me"]["get"]["security"] == [{"HTTPBearer": []}]
+
+
+def test_existing_cors_origin_receives_credentialed_response_headers():
+    response = TestClient(karlbruder_app).get(
+        "/api/health", headers={"Origin": "http://localhost:3000"}
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/api/redoc", "/openapi.json", "/docs/oauth2-redirect"])
+def test_old_documentation_paths_and_redoc_are_not_served(path):
+    response = TestClient(karlbruder_app).get(path)
+
+    assert response.status_code == 404
+
+
+def test_swagger_redirect_helper_is_served_under_api_docs():
+    response = TestClient(karlbruder_app).get("/api/docs/oauth2-redirect")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]

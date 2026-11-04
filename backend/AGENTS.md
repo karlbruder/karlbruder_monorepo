@@ -12,7 +12,8 @@ Keep short helpers beside their only caller. Extract a module for a distinct res
 
 | Location | Owns |
 | --- | --- |
-| `app/main.py` | Router and infrastructure assembly |
+| `app/main.py` | FastAPI creation, middleware, and documentation configuration |
+| `app/api/` | Router assembly, exception handlers, health checks, metadata, and shared HTTP helpers |
 | `app/database.py` | Shared database setup |
 | `app/<domain>/` | Domain rules, data access, errors, and models |
 | `app/core/` | Shared infrastructure and mechanisms |
@@ -41,7 +42,7 @@ Import submodules directly when that clarifies ownership. `__init__.py` may expo
 
 ## Dependency direction and shared capabilities
 
-- Domain modules do not import the assembled application. Routers call services. Services do not import routers.
+- `app/api/` assembles domain routers and maps domain errors to HTTP. It owns no business rules, domain models, or persistence workflows. Domain services and models do not import API assembly. Routers call services. Services do not import routers.
 - Services may use their domain's schemas, models, and helpers, plus auth identity types and core infrastructure.
 - Core does not import domain services, models, or routers. Pass required values into it.
 - For another domain's behavior, use a deliberate public service contract. Do not call its router or scatter writes to its tables. Keep the dependency one-way.
@@ -78,11 +79,11 @@ Models define tables, constraints, and small derived properties. Cross-table dec
 
 Inherit from `database.Base` and keep the existing integer primary keys. A Supabase user ID is a reference column, not a local user table. Do not introduce UUIDs or an audit base class by default. Export mapped classes through `models/__init__.py` so Alembic can register them. File moves do not justify changing table names, columns, or constraints.
 
-Services raise domain errors without FastAPI types or HTTP codes. Keep HTTP mappings with the domain and register handlers during application setup. Core errors describe storage or transport failures. Domain errors describe business rejection. Do not expose raw database or storage exceptions to clients.
+Services raise domain errors without FastAPI types or HTTP codes. Keep exception definitions with their owner. Map them to HTTP in `app/api/exception_handlers.py` and register handlers in `app/main.py`. Core errors describe storage or transport failures. Domain errors describe business rejection. Do not expose raw database or storage exceptions to clients.
 
 ## Route access
 
-`app/auth/` owns identity types in `models.py`, token and role services in `services.py`, FastAPI dependencies in `dependencies.py`, auth routes in `router.py`, and domain errors with HTTP mappings in `exceptions.py` and `error_handlers.py`. Auth tests live in `tests/auth/`.
+`app/auth/` owns identity types in `models.py`, token and role services in `services.py`, FastAPI dependencies in `dependencies.py`, auth routes in `router.py`, and domain errors in `exceptions.py`. HTTP mappings belong to `app/api/exception_handlers.py`. Health routes and connectivity checks belong to `app/api/health/`. Auth tests live in `tests/auth/`.
 
 Attach one visible auth dependency to each route:
 
@@ -94,7 +95,7 @@ Attach one visible auth dependency to each route:
 
 Read roles only from verified Auth-managed `app_metadata.karlbruder_role`. Keep `regular_user`, `guild_member`, and `admin`. Root instructions define staff scope. A valid token proves identity. Services still enforce record-level access and eligibility.
 
-Throttling is not implemented. Do not add it during unrelated work. When introduced, use a shared API dependency attached to every route, including open routes, rather than a limiter inside one handler.
+Throttling is not implemented. Do not add it during unrelated work. When introduced, put shared HTTP throttling helpers in `app/api/` and use a dependency attached to every route, including open routes, rather than a limiter inside one handler.
 
 ## Configuration
 

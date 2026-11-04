@@ -1131,7 +1131,7 @@ def test_registration_contract_rejects_old_payload_fields_and_exposes_only_new_p
     assert created.status_code == 201
     assert created.json()["registration_status"] == "awaiting_payment"
     assert "inscription_number" not in created.json()
-    paths = client.get("/openapi.json").json()["paths"]
+    paths = client.get("/api/openapi.json").json()["paths"]
     assert (
         "/api/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form"
         in paths

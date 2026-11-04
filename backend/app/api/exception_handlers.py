@@ -1,12 +1,19 @@
-"""Translate tournament and document errors to the established API response shape."""
+"""Translate known failures into HTTP responses without defining domain rules."""
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.auth.exceptions import (
+    AdminAccessRequiredException,
+    AuthenticationError,
+    AuthenticationUnavailableException,
+    InvalidCredentialsException,
+)
 from app.core.files import FileStorageError
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
     ParentalConsentFormRequiredError,
+    PolicyArchiveError,
     RegistrationConflictError,
     RegistrationDocumentInvalidError,
     RegistrationDocumentTooLargeError,
@@ -14,10 +21,12 @@ from app.tournaments.exceptions import (
     RegistrationNotAllowedError,
     RegistrationResourceNotFoundError,
     TournamentError,
-    PolicyArchiveError,
 )
 
 _ERROR_STATUS = {
+    InvalidCredentialsException: 401,
+    AuthenticationUnavailableException: 503,
+    AdminAccessRequiredException: 403,
     PolicyArchiveError: 422,
     RegistrationNotAllowedError: 400,
     RegistrationResourceNotFoundError: 404,
@@ -30,13 +39,21 @@ _ERROR_STATUS = {
 }
 
 
-def register_tournament_error_handlers(app: FastAPI) -> None:
+def register_api_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(AuthenticationError)
     @app.exception_handler(TournamentError)
-    def handle_tournament_error(
-        _request: Request, error: TournamentError
+    def handle_domain_error(
+        _request: Request, error: AuthenticationError | TournamentError
     ) -> JSONResponse:
+        headers = (
+            {"WWW-Authenticate": "Bearer"}
+            if isinstance(error, InvalidCredentialsException)
+            else None
+        )
         return JSONResponse(
-            status_code=_ERROR_STATUS[type(error)], content={"detail": str(error)}
+            status_code=_ERROR_STATUS[type(error)],
+            content={"detail": str(error)},
+            headers=headers,
         )
 
     @app.exception_handler(FileStorageError)

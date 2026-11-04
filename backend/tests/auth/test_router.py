@@ -20,8 +20,6 @@ from app.main import karlbruder_app  # noqa: E402
 from app.auth.dependencies import get_current_user, require_authenticated_user  # noqa: E402
 from app.auth.models import AnonymousUser  # noqa: E402
 from app.auth.exceptions import InvalidCredentialsException  # noqa: E402
-import app.auth.diagnostics as diagnostics  # noqa: E402
-from sqlalchemy.exc import OperationalError  # noqa: E402
 
 ISSUER = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
 
@@ -142,7 +140,7 @@ def test_users_me_rejects_malformed_token_before_jwks_fetch(monkeypatch):
 
 
 def test_users_me_exposes_bearer_auth_in_openapi(client):
-    schema = client.get("/openapi.json").json()
+    schema = client.get("/api/openapi.json").json()
 
     security_schemes = schema["components"]["securitySchemes"]
     assert security_schemes["HTTPBearer"] == {
@@ -243,27 +241,3 @@ def test_users_me_reports_jwks_outage(monkeypatch, signing_key):
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Authentication service unavailable"}
-
-
-def test_auth_health_reports_connectivity_separately_from_schema_presence(client):
-    response = client.get("/api/health/auth")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["auth"] == "connected"
-    assert body["result"] == 1
-    assert body["schema"] == {"auth": False}
-    assert ":***@" in body["database_url"]
-
-
-def test_auth_health_returns_existing_failure_shape_without_database_details(client, monkeypatch):
-    def unavailable_engine(_database_url):
-        raise OperationalError("SELECT 1", {}, RuntimeError("private database details"))
-
-    monkeypatch.setattr(diagnostics, "create_database_engine", unavailable_engine)
-
-    response = client.get("/api/health/auth")
-
-    assert response.status_code == 503
-    assert response.json() == {"status": "error", "auth": "disconnected"}

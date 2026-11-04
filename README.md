@@ -107,7 +107,7 @@ make up
 | --- | --- |
 | Public website | `http://localhost:3000` |
 | Frontend development server | `http://localhost:5173` |
-| Backend API and Swagger UI | `http://localhost:8000/docs` |
+| Backend API and Swagger UI | `http://localhost:8000/api/docs` |
 | Backend liveness | `http://localhost:8000/api/health` |
 | Release metadata | `http://localhost:8000/api/metadata` |
 | Domain database diagnostic | `http://localhost:8000/api/health/db` |
