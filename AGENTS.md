@@ -70,7 +70,7 @@ Create-issue creates a GitHub issue. Plan-issue and implement-issue require an e
 
 Keep delivery checklists in the issue. Keep decisions, checkpoint state, commit evidence, and verification in the saved plan so a fresh chat can resume.
 
-Ask before each `gh` command, including reads and Project status changes. A skill does not skip that ask. Do not post a progress comment, close an issue, or merge a pull request unless the user asks.
+Read-only `gh` commands, such as viewing, retrieving, and listing, do not require asking. Ask before each `gh` command that creates or modifies anything, including Project status changes. A skill does not skip that ask. Do not post a progress comment, close an issue, or merge a pull request unless the user asks.
 
 ## Implement and verify
 
