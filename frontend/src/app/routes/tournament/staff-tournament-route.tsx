@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
@@ -35,7 +35,9 @@ export function StaffTournamentDetailRoute() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const client = useQueryClient();
-  const query = useStaffTournament(session!.access_token, session!.user.id, tournamentId);
+  const visitId = useId();
+  const query = useStaffTournament(session!.access_token, session!.user.id, tournamentId, visitId);
+  const missing = query.error instanceof StaffTournamentError && query.error.status === 404;
   const [deleting, setDeleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +47,7 @@ export function StaffTournamentDetailRoute() {
     setDeleting(true); setError("");
     try {
       await deleteStaffTournament(session!.access_token, tournamentId);
+      client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" });
       await client.invalidateQueries({ queryKey: ["staff-tournaments"] });
       navigate("/staff/tournaments");
     } catch (caught) {
@@ -54,7 +57,7 @@ export function StaffTournamentDetailRoute() {
   return <section><Link to="/staff/tournaments">← {en ? "Tournaments" : "Torneios"}</Link>
     {query.isLoading && <p role="status">{en ? "Loading tournament..." : "Carregando torneio..."}</p>}
     {query.isError && <p role="alert">{en ? "Could not load this tournament." : "Não foi possível carregar este torneio."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
-    {query.data && <><h1>{query.data.name}</h1><StaffTournamentForm key={query.data.id} token={session!.access_token} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId] }); navigate("/staff/tournaments"); }} />
+    {query.data && !missing && <><h1>{query.data.name}</h1><StaffTournamentForm key={query.data.id} token={session!.access_token} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" }); navigate("/staff/tournaments"); }} />
       {!confirming ? <button onClick={() => setConfirming(true)}>{en ? "Delete tournament" : "Excluir torneio"}</button> : <div><p>{en ? "Delete this tournament? This cannot be undone." : "Excluir este torneio? Esta ação não pode ser desfeita."}</p><button disabled={deleting} onClick={remove}>{en ? "Confirm deletion" : "Confirmar exclusão"}</button>{" "}<button disabled={deleting} onClick={() => setConfirming(false)}>{en ? "Cancel" : "Cancelar"}</button></div>}
       {error && <p role="alert">{error}</p>}</>}
   </section>;

@@ -14,8 +14,8 @@ export type StaffTournament = {
 
 export class StaffTournamentError extends Error {
   readonly status: number;
-  readonly detail: string | null;
-  constructor(status: number, detail: string | null) {
+  readonly detail: unknown;
+  constructor(status: number, detail: unknown) {
     super(`Tournament request failed: ${status}`);
     this.status = status;
     this.detail = detail;
@@ -29,7 +29,7 @@ async function request<T>(token: string, path = "", init: RequestInit = {}): Pro
   });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
-    const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string" ? body.detail : null;
+    const detail = body && typeof body === "object" && "detail" in body ? body.detail : null;
     throw new StaffTournamentError(response.status, detail);
   }
   return response.status === 204 ? undefined as T : response.json();
@@ -38,8 +38,8 @@ async function request<T>(token: string, path = "", init: RequestInit = {}): Pro
 export function useStaffTournaments(token: string, userId: string, offset: number) {
   return useQuery({ queryKey: ["staff-tournaments", userId, offset], queryFn: ({ signal }) => request<{ items: StaffTournament[]; total: number }>(token, `?limit=20&offset=${offset}`, { signal }) });
 }
-export function useStaffTournament(token: string, userId: string, id: string) {
-  return useQuery({ queryKey: ["staff-tournament", userId, id], queryFn: ({ signal }) => request<StaffTournament>(token, `/${encodeURIComponent(id)}`, { signal }) });
+export function useStaffTournament(token: string, userId: string, id: string, visitId: string) {
+  return useQuery({ queryKey: ["staff-tournament", userId, id, visitId], queryFn: ({ signal }) => request<StaffTournament>(token, `/${encodeURIComponent(id)}`, { signal }) });
 }
 export function saveStaffTournament(token: string, values: Record<string, unknown>, id?: string) {
   return request<StaffTournament>(token, id ? `/${encodeURIComponent(id)}` : "", { method: id ? "PUT" : "POST", body: JSON.stringify(values) });

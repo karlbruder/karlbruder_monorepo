@@ -74,6 +74,10 @@ configuration. Deletion is rejected when any registration exists, including a
 cancelled registration or after registrations close. Future match results must also prevent
 deletion. Capacity cannot be reduced below confirmed participation.
 
+The editor loads current configuration when staff open it. A later refresh does not
+erase a draft. Saving preserves unchanged dates and times. The editor identifies
+the time zone used for changed values and explains known validation failures.
+
 ## Staff payment-review evidence
 
 Admins can read pending work across all tournaments with
