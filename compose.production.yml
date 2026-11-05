@@ -1,8 +1,16 @@
+x-logging: &cloudwatch-logging
+  driver: awslogs
+
 services:
   landing:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/landing:${IMAGE_TAG}
 
     restart: unless-stopped
+    logging:
+      <<: *cloudwatch-logging
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /${NAMESPACE}/landing
 
     expose:
       - "80"
@@ -11,6 +19,11 @@ services:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/backend:${IMAGE_TAG}
 
     restart: unless-stopped
+    logging:
+      <<: *cloudwatch-logging
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /${NAMESPACE}/backend
 
     env_file:
       - backend.env
@@ -29,6 +42,11 @@ services:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/frontend:${IMAGE_TAG}
 
     restart: unless-stopped
+    logging:
+      <<: *cloudwatch-logging
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /${NAMESPACE}/frontend
 
     expose:
       - "80"
@@ -37,6 +55,11 @@ services:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${NAMESPACE}/nginx:${IMAGE_TAG}
 
     restart: unless-stopped
+    logging:
+      <<: *cloudwatch-logging
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /${NAMESPACE}/nginx
 
     environment:
       LANDING_HOSTNAMES: ${LANDING_HOSTNAMES}

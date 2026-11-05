@@ -1,7 +1,7 @@
 # Deployment
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -26,6 +26,7 @@ owns current infrastructure details and release mechanics.
 - **DEP-006:** A deploy verification checks the expected application release and relevant API/database behavior. Artifact publication alone does not verify deployment.
 - **DEP-007:** Application file storage uses Amazon S3. Application email uses AWS SES via SMTP. Configure backend access to these services; the local Ministack emulator is not a production service.
 - **DEP-008:** Only Nginx publishes a production application host port: 443. The frontend and backend communicate over the Compose network and do not publish host ports. Port 80 redirection happens at Cloudflare, preserving the HTTPS-only EC2 origin.
+- **DEP-009:** Each cloud environment sends production container standard output and standard error to its service’s Terraform-managed CloudWatch log group. Retain logs indefinitely and protect the group from Terraform destruction.
 
 ## Production Compose topology
 
@@ -119,6 +120,7 @@ They do not override decision 0003 or establish the live rollout state.
 - **DEP-AC-006:** `/api/users/me` reaches the backend with the full path preserved, while a refresh on `/tournaments/registration` reaches the frontend. Unknown API routes are not served as SPA HTML.
 - **DEP-AC-007:** The deployed application uses S3 for its files and AWS SES SMTP for application emails, with the required backend configuration.
 - **DEP-AC-008:** Application HTTP redirects to HTTPS at Cloudflare. The proxied A record's origin target is the EC2 Elastic IP, and Cloudflare reaches the self-signed Nginx origin over HTTPS 443. Production Compose publishes no frontend/backend host ports.
+- **DEP-AC-009:** Each production service sends container logs to its environment and service’s CloudWatch log group. Each group has indefinite retention and Terraform destruction protection.
 
 ## Open questions
 

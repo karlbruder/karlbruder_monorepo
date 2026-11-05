@@ -1,7 +1,7 @@
 # Application deployment
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 This guide explains the deployment implemented by
 [the workflow](../.github/workflows/deploy-application.yml),
@@ -76,6 +76,13 @@ records acceptance and safeguards.
 Egress permits DNS on UDP/TCP 53, Ubuntu package mirrors on TCP 80, HTTPS on TCP
 443, Supabase PostgreSQL on TCP 5432/6543, SES SMTP on TCP 587, and NTP on UDP 123.
 Refresh the configured Cloudflare IPv4 list when its published ranges change.
+
+Terraform manages a CloudWatch log group for each service in each workspace,
+named `/<namespace>/<service>`. The groups retain logs indefinitely and Terraform
+prevents their destruction. Apply Terraform before deploying the Compose logging
+configuration. Docker sends each container’s standard output and standard error to
+its service group. Docker uses the container ID as the default stream name.
+Recreate containers to apply logging changes.
 
 First boot installs the CloudWatch agent, Docker Engine, and Compose, and creates
 `/opt/karlbruder`. CloudWatch alarms cover high/critical CPU, memory, root-disk usage,
