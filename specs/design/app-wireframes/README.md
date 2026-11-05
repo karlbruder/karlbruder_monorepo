@@ -43,10 +43,15 @@ The shared shell is guild-branded. Monomachia remains one event in a reusable ca
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
 | [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
 | [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · proposed | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; preserve acceptance history. PRIV-AC-007, REG-AC-017. |
+| [WF-18 · Staff panel](index.html#WF-18/overview) | Admin · proposed | [AUTH-008](../../identity/authentication-and-access.md), [ADM-001](../../tournaments/administration.md). Shared navigation, loading, error and access restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
+| [WF-19 · Tournament list](index.html#WF-19/list) | Admin · proposed | List, empty, loading, error and restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
+| [WF-20 · Tournament detail and deletion](index.html#WF-20/detail) | Admin · proposed | Confirmation, success and rejection when registrations exist, including after closure. Future match results also prevent deletion. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
+| [WF-21 · Users](index.html#WF-21/list) | Admin · proposed | List, filter, empty, loading, error and restriction. [#74](https://github.com/karlbruder/karlbruder_monorepo/issues/74). |
+| [WF-22 · Change role](index.html#WF-22/choose) | Admin · proposed | Three roles, feedback, self-demotion and last-admin scenarios. [#74](https://github.com/karlbruder/karlbruder_monorepo/issues/74). |
 | [WF-09 · Review queue](index.html#WF-09/queue) | Staff · first release | [ADM-001/002/004](../../tournaments/administration.md): pending proofs and empty queue. ADM-AC-002/006. |
 | [WF-10 · Payment decision](index.html#WF-10/available) | Staff · first release | [PAY-004/005/011/013](../../tournaments/payments-and-confirmation.md), [CAP-003](../../tournaments/capacity-and-waitlist.md): available/full, rejection reason, late Pix, minor evidence, changed capacity. PAY-AC-005/007/011/012, ADM-AC-003/004. |
 | [WF-11 · Paid waitlist selection](index.html#WF-11/seat) | Staff · later operations interface | [CAP-003/005/009](../../tournaments/capacity-and-waitlist.md): staff selection with/without capacity, no payment reapproval. CAP-AC-004/009. |
-| [WF-12 · Tournament settings](index.html#WF-12/edit) | Staff · later full administration | [CAT-008/009](../../tournaments/catalog.md), [CAP-009](../../tournaments/capacity-and-waitlist.md): configuration, closure, rejected capacity reduction. CAT-AC-007, CAP-AC-007/008. |
+| [WF-12 · Tournament settings](index.html#WF-12/edit) | Staff · later full administration | [CAT-008/009](../../tournaments/catalog.md), [CAP-009](../../tournaments/capacity-and-waitlist.md): create/edit, unknown configuration, closure, rejected capacity reduction and policy capture failure. CAT-AC-007, CAP-AC-007/008. |
 | [WF-13 · Cancellation/refund](index.html#WF-13/confirm) | Participant/staff · later workflow | [REG-013/016](../../tournaments/registration.md), [PAY-009/012](../../tournaments/payments-and-confirmation.md): unpaid, paid cancellation, refund pending/completed, staff recording. PAY-AC-008/009/013. |
 | [WF-14 · Results/directory](index.html#WF-14/unavailable) | Audience constrained by event · later concept | [RES-001/003/004](../../tournaments/results.md), [PRIV-006](../../tournaments/consent-and-privacy.md): unavailable/published container, limited authenticated directory, restricted internal event. RES-AC-002/003/004, PRIV-AC-003/004. |
 | [WF-15 · Association](index.html#WF-15/concept) | Member · future concept | [MEM-001–004/006](../../membership/overview.md): reserves space for own membership and dues without inventing financial policy. MEM-AC-001/004. |
@@ -61,6 +66,10 @@ The current home links to password change, Monomachia registration, sign-out and
 The proposed home puts the registration first. Its card combines the event, status, and next step. Account and admin destinations use compact navigation lists with descriptive labels. The current-home states show a proposed layout for the existing application actions. They do not reproduce the current layout. The empty, loading, and error states do not imply that the proposed cross-tournament list is already available.
 
 This is a design judgment informed by the Scottish Government’s [2025 card navigation guidance](https://designsystem.gov.scot/patterns/navigational-pages/card-navigation), which recommends cards for browsing and notes their space cost, and [dashboard text research published in 2025](https://doi.org/10.1109/TVCG.2024.3456601), which describes the role of text in context and navigation. These sources do not validate this particular design with Karlbrüder users. The same approach is used for the proposed personal registration list and the payment-review queue. Forms keep their fields and action buttons, while operational tables retain their columns for comparison. Tournament details and account access retain their existing structures. Keyboard focus and phone layout need interactive review.
+
+The staff panel is a proposal. Follow [panel](index.html#WF-18/overview) → [tournaments](index.html#WF-19/list) → [detail](index.html#WF-20/detail) → [configuration](index.html#WF-12/edit) or [deletion](index.html#WF-20/confirm). Compare deletion [rejection after closure](index.html#WF-20/closed) with [success](index.html#WF-20/deleted). Use [create](index.html#WF-12/create) for unconfigured inputs and [policy failure](index.html#WF-12/policyerror) for rollback. Review [payments](index.html#WF-09/queue) and [users](index.html#WF-21/list) from the same navigation. The role selector illustrates [self-demotion](index.html#WF-22/self), [last-admin demotion](index.html#WF-22/last), success and failure.
+
+Issue [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75) defers tournament-change notifications although CAT-008 and ADM-010 currently describe them. The artifact follows that issue decision and does not claim the specifications have already changed. [#62](https://github.com/karlbruder/karlbruder_monorepo/issues/62) supplies the configuration workflow, with unknown values left unconfigured.
 
 ## Review the important journeys
 
@@ -91,6 +100,8 @@ Changes to behavior belong in the owning specification and all affected screens 
 
 ## Preview snapshots
 
+These snapshots predate the 5 November 2026 changes. They have not been regenerated and do not verify the current artifact.
+
 - [Desktop catalog](previews/catalog-desktop.png)
 - [Staff payment review with full capacity](previews/staff-review-desktop.png)
 - [Mobile proof rejection/resubmission](previews/payment-mobile.png)
@@ -105,3 +116,5 @@ The first-release staff screen presents manual payment review; full CRUD, messag
 ## Design verification
 
 Checked on 18 October 2026 against the specifications in this checkout: 16 screens and 57 states rendered at desktop (1500 px) and phone (390 px) widths, with no horizontal overflow, broken loaded images, or JavaScript runtime errors. The main registration-to-proof journey and staff decision dialog were exercised, local document links and cited rule IDs were checked, and the four preview snapshots were visually inspected. These checks validate the design artifact only; they do not validate application behavior, accessibility conformance, or product acceptance criteria.
+
+On 5 November 2026, source-level checks rendered 95 screen states and checked the 22-screen selector and README links. The revised screens have not been visually inspected at desktop or phone widths, and the preview snapshots have not been regenerated. These checks do not establish accessibility or application behavior.
