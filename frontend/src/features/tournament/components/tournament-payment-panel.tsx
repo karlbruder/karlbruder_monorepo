@@ -51,8 +51,11 @@ function formatDateTime(value: string | null, language: AppLanguage): string {
 
 function statusLabel(registrationStatus: string, language: AppLanguage): string {
   if (registrationStatus === "awaiting_payment") return appCopy(language, "Aguardando pagamento");
-  if (registrationStatus === "payment_in_review") return appCopy(language, "Pagamento em análise");
-  return registrationStatus;
+  if (registrationStatus === "awaiting_payment_confirmation") return appCopy(language, "Aguardando confirmação do pagamento");
+  if (registrationStatus === "confirmed") return appCopy(language, "Confirmada");
+  if (registrationStatus === "waitlist") return appCopy(language, "Lista de espera");
+  if (registrationStatus === "cancelled") return appCopy(language, "Cancelada");
+  return appCopy(language, "Situação indisponível");
 }
 
 function messageForProofRequest(error: unknown): AppCopyKey {
@@ -89,7 +92,7 @@ export default function TournamentPaymentPanel({
   );
 
   const canUpload =
-    payment?.registration_status === "awaiting_payment" || payment?.registration_status === "payment_in_review";
+    payment?.registration_status === "awaiting_payment" || payment?.registration_status === "awaiting_payment_confirmation";
   const showReplaceForm =
     canUpload && (replaceMode || payment?.registration_status === "awaiting_payment" || !payment?.latest_payment_proof);
 
@@ -123,6 +126,7 @@ export default function TournamentPaymentPanel({
       return;
     }
 
+    if (requestPending.current) return;
     requestPending.current = true;
     setPending(true);
     try {
@@ -159,7 +163,7 @@ export default function TournamentPaymentPanel({
     return (
       <section className="registration-card" aria-labelledby="payment-panel-title">
         <p className="registration-notice" role="alert">
-          {t("Não foi possível carregar as instruções de pagamento. Tente novamente.")}
+          {t(error instanceof Error && error.message === "http-404" ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar as instruções de pagamento. Tente novamente.")}
         </p>
         <button type="button" onClick={() => void refetch()}>{t("Tentar novamente")}</button>
       </section>
@@ -167,6 +171,7 @@ export default function TournamentPaymentPanel({
   }
 
   const feeAmount = payment.registration_fee_amount ?? tournament.registration_fee_amount;
+  const amountReceived = payment.amount_received;
 
   return (
     <section className="registration-card registration-payment-panel" aria-labelledby="payment-panel-title">
@@ -174,16 +179,29 @@ export default function TournamentPaymentPanel({
       <h2 id="payment-panel-title">{t("Pagamento da inscrição")}</h2>
       <strong className="registration-number">{payment.registration_number}</strong>
       <dl className="registration-success-facts">
-        <div><dt>{t("Situação")}</dt><dd>{statusLabel(payment.registration_status, language)}</dd></div>
-        <div><dt>{t("Valor da inscrição")}</dt><dd>{formatMoney(feeAmount, language)}</dd></div>
+        <div><dt>{t("Situação")}</dt><dd>{payment.registration_status === "awaiting_payment" && payment.current_review?.decision === "rejected"
+          ? t("Envie um novo comprovante")
+          : statusLabel(payment.registration_status, language)}</dd></div>
+        {(payment.registration_status === "confirmed" || payment.registration_status === "waitlist") && (
+          <div><dt>{t("Pagamento da inscrição")}</dt><dd>{t("Pagamento confirmado")}</dd></div>
+        )}
+        <div><dt>{t(amountReceived == null ? "Valor da inscrição" : "Valor recebido")}</dt><dd>{formatMoney(amountReceived ?? feeAmount, language)}</dd></div>
         <div><dt>{t("Prazo para pagamento")}</dt><dd>{formatDateTime(payment.payment_due_at, language)}</dd></div>
-        <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>
+        {canUpload && <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>}
       </dl>
-      <p className="registration-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>
+      {canUpload && payment.registration_status === "awaiting_payment" && payment.current_review?.decision !== "rejected" && <p className="registration-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>}
+      {payment.registration_status === "awaiting_payment" && payment.current_review?.decision === "rejected" && <div className="registration-notice" role="status">
+        <h3>{t("Comprovante rejeitado")}</h3>
+        <p>{payment.current_review.rejection_reason}</p>
+        <p>{t("Sua inscrição não foi cancelada. Envie um novo comprovante para análise. Nenhuma vaga está reservada.")}</p>
+      </div>}
+      {payment.registration_status === "confirmed" && <p className="registration-notice" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
+      {payment.registration_status === "waitlist" && <p className="registration-notice" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
+      {payment.registration_status === "cancelled" && <p className="registration-notice" role="status">{t("Esta inscrição está cancelada e não permite envio de comprovantes.")}</p>}
 
-      {payment.registration_status === "payment_in_review" && (
+      {payment.registration_status === "awaiting_payment_confirmation" && (
         <p className="registration-notice" role="status">
-          {t("Seu comprovante foi recebido e está aguardando análise da equipe. Nenhuma vaga foi reservada.")}
+          {t("Recebemos seu comprovante. Nossa equipe confere o pagamento manualmente. Essa conferência pode levar de 1 a 2 dias úteis. Nenhuma vaga foi reservada.")}
         </p>
       )}
 
@@ -227,7 +245,8 @@ export default function TournamentPaymentPanel({
         </form>
       )}
 
-      <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>
+      {canUpload && <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>}
+      <button type="button" className="registration-submit" disabled={isFetching || pending} onClick={() => void refetch()}>{t("Atualizar situação")}</button>
     </section>
   );
 }

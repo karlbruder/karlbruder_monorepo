@@ -99,6 +99,7 @@ export type RegistrationPaymentInstructions = {
   registration_number: string;
   registration_status: string;
   registration_fee_amount: string | number | null;
+  amount_received?: string | number | null;
   payment_due_at: string | null;
   payment_options: {
     pix: {
@@ -106,6 +107,7 @@ export type RegistrationPaymentInstructions = {
     };
   };
   latest_payment_proof: PaymentProofSummary | null;
+  current_review?: { document_id: number; decision: "approved" | "rejected"; rejection_reason: string | null; reviewed_at: string } | null;
 };
 
 export type PaymentProofUploadUrl = ParentalConsentFormUploadUrl;
@@ -155,10 +157,11 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
   }) && isNullableString(event.rules_archive_url) && isNullableString(event.cancellation_policy_archive_url);
 }
 
-export async function getTournament(id: number, token: string): Promise<Tournament> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+export async function getTournament(id: number, token?: string, signal?: AbortSignal): Promise<Tournament> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal });
+  if (!response.ok) throw new Error(`http-${response.status}`);
   const body: unknown = await response.json();
-  if (!response.ok || !isTournament(body)) throw new Error("invalid-tournament");
+  if (!isTournament(body) || body.id !== id) throw new Error("invalid-tournament");
   return body;
 }
 
@@ -322,6 +325,18 @@ export async function listOwnRegistrations(
   return body;
 }
 
+function isCurrentReview(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value !== "object") return false;
+  const review = value as Record<string, unknown>;
+  return typeof review.document_id === "number" && Number.isSafeInteger(review.document_id) && review.document_id > 0
+    && (review.decision === "approved" || review.decision === "rejected")
+    && typeof review.reviewed_at === "string"
+    && (review.decision === "rejected"
+      ? typeof review.rejection_reason === "string" && review.rejection_reason.trim().length > 0
+      : review.rejection_reason === null);
+}
+
 function isPaymentInstructions(value: unknown): value is RegistrationPaymentInstructions {
   if (value === null || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
@@ -333,6 +348,10 @@ function isPaymentInstructions(value: unknown): value is RegistrationPaymentInst
   return (
     typeof record.registration_number === "string" &&
     typeof record.registration_status === "string" &&
+    isCurrentReview(record.current_review) &&
+    (record.amount_received == null ||
+      typeof record.amount_received === "string" ||
+      typeof record.amount_received === "number") &&
     (record.registration_fee_amount === null ||
       typeof record.registration_fee_amount === "string" ||
       typeof record.registration_fee_amount === "number") &&
@@ -356,7 +375,7 @@ export async function getPaymentInstructions(
     { headers: { Authorization: `Bearer ${token}` }, signal },
   );
   const body: unknown = await response.json().catch(() => null);
-  if (!response.ok || !isPaymentInstructions(body)) {
+  if (!response.ok || !isPaymentInstructions(body) || body.registration_number !== registrationNumber) {
     throw new Error(`http-${response.status}`);
   }
   return body;

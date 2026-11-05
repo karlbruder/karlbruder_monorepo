@@ -28,3 +28,6 @@ class TestSettings(Settings):
     SUPABASE_URL: AnyHttpUrl = "https://test-project.supabase.co"  # type: ignore[assignment]
 
     S3_BUCKET_NAME: str = "kb-test-bucket"
+
+    SMTP_ENABLED: bool = False
+    APP_BASE_URL: AnyHttpUrl = "https://app.example.test"

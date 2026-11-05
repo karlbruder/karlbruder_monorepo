@@ -1,7 +1,7 @@
 # Tournament administration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -30,7 +30,7 @@ Give guild staff (admins) control over tournament participation, payment review,
 
 ## Lifecycle boundary
 
-The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund links a shared Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
+The initial registration states are `awaiting_payment`, `awaiting_payment_confirmation`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund links a shared Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
 
 Confirmation allocates a seat after the requirements applicable at that stage are met. Event-day checks remain separate: confirming a minor's registration does not waive the identity-document check and parental accompaniment required at the event by PRIV-010.
 
@@ -39,9 +39,10 @@ RegistrationRefund associations separately from TournamentRegistration. Payments
 retains shared Payment and Refund financial facts. Staff decisions must
 identify the exact proof, actual received amount and attributable actor/time.
 No review, receipt or refund row changes capacity or participation by itself.
-Future review commands must apply the relevant facts and participation outcome
-atomically. Staff review, confirmation, cancellation, and refund commands are not
-implemented. The records alone do not fulfill the administration requirements above.
+The payment-review command applies those facts and participation atomically.
+It confirms when capacity permits and records paid waitlist otherwise. Rejection
+records its reason and returns to awaiting payment without cancelling participation.
+Waitlist selection, cancellation, and refund commands remain unimplemented. The records alone do not fulfill the administration requirements above.
 
 ## Acceptance criteria
 
@@ -66,3 +67,49 @@ Audit-record retention follows [privacy rules](consent-and-privacy.md#rules). Au
 ## Related specifications
 
 [Identity](../identity/authentication-and-access.md), [registration](registration.md), [payments](payments-and-confirmation.md), [capacity](capacity-and-waitlist.md), [results](results.md), [privacy](consent-and-privacy.md).
+
+## Staff payment-review evidence
+
+Admins can read pending work across all tournaments with
+`GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
+`offset`, and an optional exact `registration_number`. It includes only registrations
+in `awaiting_payment_confirmation` whose latest proof has no decision. Results are ordered by
+current proof ID. The queue excludes contact, identity, safety, and storage fields.
+
+`GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
+registration projection, fee, deadline, equipment requirements, capacity, confirmed
+count, proof versions, parental form metadata, and review history. Decided records
+remain readable. Reads do not allocate seats or record decisions.
+
+`GET /api/staff/tournaments/payment-reviews/{registration_number}/documents/{document_id}/download-url`
+issues a short-lived URL only for a proof or parental form belonging to that
+registration. Metadata reads do not call storage. Unknown registrations and mismatched
+documents return 404. Storage failures return 503. Guests receive 401 and authenticated
+non-admins receive 403 on all three endpoints. Owner proof access remains latest-only.
+
+
+## Staff payment-review screens
+
+The signed-in staff entry is `/staff/payment-reviews`. It lists pending proofs
+across tournaments, supports exact registration-number search and pagination,
+and links to `/staff/payment-reviews/{registration_number}`. The home screen
+shows this entry for admins. The backend remains the authorization boundary.
+
+The review screen shows the latest proof, earlier versions, parental forms,
+registration eligibility, capacity context, and attributable review history.
+Document links are requested on demand and can be renewed. Staff enters the
+actual BRL amount and acknowledges receipt and applicable requirements before
+approval. Rejection requires a reason, which is shared with the participant.
+
+The screen submits the displayed proof ID. A conflict preserves draft fields
+and blocks submission until staff refreshes and checks the evidence again.
+The saved response determines confirmed participation or paid waitlist.
+Email failure is shown separately from a saved decision. A late deadline does
+not disable review. Portuguese and English interface copy is available.
+
+This screen does not provide cancellation, refunds, waitlist selection, generic
+status editing, registration corrections, or exports.
+
+Selecting and confirming an already-paid participant remains a known gap for a
+future staff administration issue. Payment approval can still add participants
+to the paid waitlist in this release.

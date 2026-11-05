@@ -1,22 +1,16 @@
-"""Tournament catalog routes with server-side guest/member/admin boundaries."""
+"""Registration and document routes requiring a signed-in account."""
 
-from datetime import date, datetime, time, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import (
-    get_current_user,
-    require_admin,
-    require_authenticated_user,
-)
-from app.auth.models import AnonymousUser, User
+from app.auth.dependencies import AuthenticatedUser, require_authenticated_user
 from app.auth.services import get_application_role
-from app.core.files import FileStorage, get_file_storage
 from app.core.db.session import get_session
-from app.tournaments.models import Tournament, TournamentRegistration
+from app.core.files import FileStorage, get_file_storage
+from app.tournaments.models import TournamentRegistration
 from app.tournaments.schemas import (
     ParentalConsentFormDownloadUrlRead,
     ParentalConsentFormUploadUrlRead,
@@ -27,128 +21,24 @@ from app.tournaments.schemas import (
     RegistrationPaymentInstructions,
     RegistrationRead,
     StaffRegistrationRead,
-    TournamentCreate,
-    TournamentList,
-    TournamentRead,
 )
 from app.tournaments.services import (
-    TOURNAMENT_LOCAL_TIMEZONE,
-    create_tournament_registration,
     create_registration_payment_proof_upload_url,
-    read_tournament_registration_parental_consent_form_download,
+    create_tournament_registration,
     read_registration_payment_instructions,
     read_registration_payment_proof_download,
+    read_tournament_registration_parental_consent_form_download,
     submit_registration_payment_proof,
     visible_tournament,
 )
+from app.tournaments.services.registration_acceptances import project_registration
 from app.tournaments.services.registration_documents import (
     create_parental_consent_form_upload_url,
 )
 
-from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
-from app.tournaments.services.tournament_policies import (
-    create_tournament_configuration,
-    project_tournament,
+router = APIRouter(
+    prefix="/api/tournaments", dependencies=[Depends(require_authenticated_user)]
 )
-
-from app.tournaments.services.registration_acceptances import project_registration
-
-router = APIRouter(prefix="/api/tournaments", tags=["tournaments"])
-
-
-def _can_view_internal(user: User | AnonymousUser) -> bool:
-    return get_application_role(user) in ("guild_member", "admin")
-
-
-@router.post("", response_model=TournamentRead, status_code=status.HTTP_201_CREATED)
-def create_tournament(
-    payload: TournamentCreate,
-    admin: Annotated[User, Depends(require_admin)],
-    session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
-    fetcher: Annotated[PolicyFetcher, Depends(get_policy_fetcher)],
-) -> TournamentRead:
-    try:
-        return create_tournament_configuration(
-            session, payload, admin, storage, fetcher
-        )
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
-
-
-def _catalog_filters(
-    user: User | AnonymousUser,
-    name: str | None,
-    starts_from: date | None,
-    starts_to: date | None,
-):
-    if starts_from is not None and starts_to is not None and starts_to < starts_from:
-        raise HTTPException(
-            status_code=422, detail="starts_to must not precede starts_from"
-        )
-    query = select(Tournament)
-    if not _can_view_internal(user):
-        query = query.where(Tournament.is_internal.is_(False))
-    if name is not None:
-        escaped = name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        query = query.where(Tournament.name.ilike(f"%{escaped}%", escape="\\"))
-    if starts_from is not None:
-        query = query.where(
-            Tournament.starts_at
-            >= datetime.combine(starts_from, time.min, TOURNAMENT_LOCAL_TIMEZONE)
-        )
-    if starts_to is not None:
-        query = query.where(
-            Tournament.starts_at
-            < datetime.combine(
-                starts_to + timedelta(days=1), time.min, TOURNAMENT_LOCAL_TIMEZONE
-            )
-        )
-    return query
-
-
-@router.get("", response_model=TournamentList)
-def list_tournaments(
-    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
-    session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
-    name: Annotated[str | None, Query(min_length=1, max_length=200)] = None,
-    starts_from: date | None = None,
-    starts_to: date | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> TournamentList:
-    filtered = _catalog_filters(user, name, starts_from, starts_to)
-    total = session.scalar(select(func.count()).select_from(filtered.subquery())) or 0
-    items = list(
-        session.scalars(
-            filtered.order_by(Tournament.starts_at, Tournament.id)
-            .limit(limit)
-            .offset(offset)
-        )
-    )
-    return TournamentList(
-        items=[project_tournament(item, storage) for item in items],
-        total=total,
-        limit=limit,
-        offset=offset,
-    )
-
-
-@router.get("/{tournament_id}", response_model=TournamentRead)
-def get_tournament(
-    tournament_id: int,
-    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
-    session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
-) -> TournamentRead:
-    query = select(Tournament).where(Tournament.id == tournament_id)
-    if not _can_view_internal(user):
-        query = query.where(Tournament.is_internal.is_(False))
-    tournament = session.scalar(query)
-    if tournament is None:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    return project_tournament(tournament, storage)
 
 
 @router.post(
@@ -157,7 +47,7 @@ def get_tournament(
 )
 def issue_parental_consent_form_upload_url(
     tournament_id: int,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> ParentalConsentFormUploadUrlRead:
@@ -186,7 +76,7 @@ def register_for_tournament(
     tournament_id: int,
     payload: RegistrationCreate,
     request: Request,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> RegistrationRead:
@@ -209,7 +99,7 @@ def register_for_tournament(
 )
 def list_registrations(
     tournament_id: int,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[RegistrationRead | StaffRegistrationRead]:
     visible_tournament(session, tournament_id, user)
@@ -239,7 +129,7 @@ def list_registrations(
 def get_registration(
     tournament_id: int,
     registration_number: str,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> RegistrationRead | StaffRegistrationRead:
     visible_tournament(session, tournament_id, user)
@@ -266,7 +156,7 @@ def get_registration(
 def get_parental_consent_form_download_url(
     tournament_id: int,
     registration_number: str,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> ParentalConsentFormDownloadUrlRead:
@@ -289,7 +179,7 @@ def get_parental_consent_form_download_url(
 def get_registration_payment_instructions(
     tournament_id: int,
     registration_number: str,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> RegistrationPaymentInstructions:
     return read_registration_payment_instructions(
@@ -307,7 +197,7 @@ def get_registration_payment_instructions(
 def create_payment_proof_upload_url_route(
     tournament_id: int,
     registration_number: str,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> PaymentProofUploadUrlRead:
@@ -336,7 +226,7 @@ def submit_payment_proof(
     tournament_id: int,
     registration_number: str,
     payload: PaymentProofSubmitCreate,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> RegistrationRead:
@@ -359,7 +249,7 @@ def submit_payment_proof(
 def get_payment_proof_download_url(
     tournament_id: int,
     registration_number: str,
-    user: Annotated[User, Depends(require_authenticated_user)],
+    user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> PaymentProofDownloadUrlRead:

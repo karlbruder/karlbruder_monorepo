@@ -9,8 +9,18 @@ export default function RegistrationRoute() {
   const { language, changeLanguage } = useLanguage();
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
+  const params = new URLSearchParams(location.search);
+  const id = params.get("tournament_id");
+  const registrationNumber = params.get("registration_number") ?? undefined;
+  const tournamentId = id !== null && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id)) ? Number(id) : undefined;
+  const invalidLink = (id !== null && tournamentId === undefined)
+    || (registrationNumber !== undefined && (!tournamentId || !registrationNumber.trim()))
+    || params.getAll("tournament_id").length > 1 || params.getAll("registration_number").length > 1;
   return (
     <TournamentRegistration
+      tournamentId={tournamentId}
+      registrationNumber={registrationNumber}
+      invalidLink={invalidLink}
       session={auth.session}
       authReady={auth.authReady}
       authError={auth.authError}

@@ -1,7 +1,7 @@
 # Application database migrations
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 Alembic manages application domain tables and its version marker in PostgreSQL
 `public`. Connection settings select the database through `DB_HOST`, `DB_PORT`,
@@ -18,7 +18,10 @@ with this fresh baseline. It has no upgrade path from that schema.
 Before adopting this baseline, the user must remove the old development domain
 tables and `public.alembic_version`. Leave Supabase-managed `auth` objects intact.
 This repository change does not reset a developer or production database.
-Future revisions published on `master` remain immutable.
+The owner approved updating this initial revision before production deployment
+to store `awaiting_payment_confirmation`. Local databases that already applied
+the previous baseline need to be rebuilt before running this version. Future
+revisions published on `master` remain immutable.
 
 ## Applying migrations
 

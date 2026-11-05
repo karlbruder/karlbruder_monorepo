@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
@@ -14,7 +14,7 @@ Account sign-up remains a separate Supabase Auth operation.
 `GET /api/tournaments/{tournament_id}` returns one event. Guests and regular
 users see non-internal events. Guild members and admins also see internal events.
 An inaccessible event returns 404. A supplied invalid token returns 401 even
-on a guest-readable route. Only admins may `POST /api/tournaments`.
+on a guest-readable route. Only admins may `POST /api/staff/tournaments`.
 
 `name` filters display names without case sensitivity. `starts_from` and
 `starts_to` filter the event start by inclusive calendar dates in UTC-03:00.
@@ -106,7 +106,7 @@ a tournament return 409. Cancelled registrations permit replacement.
 
 Every creation starts as `awaiting_payment`. Creation and proof submission consume
 no seat, including when capacity is full or zero. Staff confirmation is a later
-workflow. The existing states remain `awaiting_payment`, `payment_in_review`,
+workflow. The existing states remain `awaiting_payment`, `awaiting_payment_confirmation`,
 `confirmed`, `waitlist`, and `cancelled`.
 
 `registration_number` retains `T<tournament id>-<six-digit serial>-<Luhn digit>`.
@@ -172,13 +172,14 @@ as null and shown as unconfigured. No key is invented or bundled in the frontend
 
 For payment proof, the owner calls `POST .../payment-proof/upload-url`, uploads
 with the required headers, then calls `POST .../payment-proof` with `storage_key`
-and `original_file_name`. The first valid submission sets `payment_in_review`.
-Replacement is allowed while `awaiting_payment` or `payment_in_review`.
+and `original_file_name`. The first valid submission sets `awaiting_payment_confirmation`.
+Replacement is allowed while `awaiting_payment` or `awaiting_payment_confirmation`.
 Every submitted proof is retained. The owner retrieves only the latest through
-`GET .../payment-proof`. Staff review commands are not implemented.
+`GET .../payment-proof`. The staff decision endpoint is documented below.
 
-A proof is evidence, not a verified receipt or a transfer. Payment decisions,
-refund actions, and notifications remain future workflows. The frontend entry
+A proof alone is evidence. Payment verifications now record verified receipts and
+participation outcomes, with rejection and paid-waitlist notices. Refund actions
+remain future work. The frontend entry
 is `/tournaments/registration`.
 
 ## Financial evidence records
@@ -198,11 +199,11 @@ association means no recorded tournament refund obligation. Review, receipt,
 and association history is retained. These records do not change participation,
 reserve a seat, or transfer money.
 
-Future staff workflows must authorize the actor and commit review, receipt,
+The staff payment-review workflow authorizes the actor and commits review, receipt,
 association, and participation changes atomically. Cancellation/refund workflows
 must calculate the 10-business-day deadline, record the exact amount owed and actual
 completion, and send required notifications. Shared persistence helpers use the
-caller's transaction. These commands are not implemented.
+caller's transaction. Payment review is implemented below. Cancellation and refund commands remain unimplemented.
 
 The [payment spec](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract)
 owns the persistence requirements. [Decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
@@ -218,3 +219,76 @@ chain and the intermediate rename migration are removed. There is no old-schema
 upgrade or old request-field/route alias. The development reset must include
 `public.alembic_version`, with Supabase-managed `auth` objects left intact.
 See [migration notes](../../../docs/database-migrations.md) for the reset and test boundaries.
+
+## Staff payment-review evidence
+
+Admins can read pending work across all tournaments with
+`GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
+`offset`, and an optional exact `registration_number`. It includes only registrations
+in `awaiting_payment_confirmation` whose latest proof has no decision. Results are ordered by
+current proof ID. The queue excludes contact, identity, safety, and storage fields.
+
+`GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
+registration projection, fee, deadline, equipment requirements, capacity, confirmed
+count, proof versions, parental form metadata, and review history. Decided records
+remain readable. Reads do not allocate seats or record decisions.
+
+`GET /api/staff/tournaments/payment-reviews/{registration_number}/documents/{document_id}/download-url`
+issues a short-lived URL only for a proof or parental form belonging to that
+registration. Metadata reads do not call storage. Unknown registrations and mismatched
+documents return 404. Storage failures return 503. Guests receive 401 and authenticated
+non-admins receive 403 on all three endpoints. Owner proof access remains latest-only.
+
+
+## Payment review decisions
+
+`routers/staff.py` owns the payment-review HTTP endpoints.
+`services/payment_proof_reviews.py` owns evidence reads and recording staff
+decisions. Its private helpers group lock acquisition, current-proof checks,
+and payment approval. `services/payment_review_notifications.py` owns delivery
+availability, message composition, and delivery-result logging.
+
+`POST /api/staff/tournaments/payment-reviews/{registration_number}/decisions`
+requires an admin and the displayed `document_id`. Use `decision=approved` with an
+explicit nonnegative finite BRL `amount_received` (at most two decimal places,
+Numeric(12,2) range) and `requirements_checked=true`. Received amount is independent
+of the configured fee. Use `decision=rejected` with a nonblank `rejection_reason`
+and no amount. Actors and timestamps are server-owned.
+
+Only the latest undecided payment proof of a registration in `awaiting_payment_confirmation`
+is eligible. Invalid/stale/repeated decisions return 409 without a new review,
+receipt, or notice. Minor approval also requires a stored parental form. Passed
+payment deadlines and closed registration windows do not prevent staff review.
+
+The workflow locks Tournament then TournamentRegistration and reloads locked
+values. Approval saves PaymentProofReview, shared Payment, RegistrationPayment,
+and `confirmed` or `waitlist` in one transaction. Only confirmed rows consume
+capacity. Rejection writes a review, sets `awaiting_payment`, and creates no receipt.
+Its current-proof reason appears in the owner payment response as `current_review`.
+A new valid proof restores `awaiting_payment_confirmation` and clears that projection, while
+retaining older evidence. Confirmed/waitlist owners cannot replace proofs.
+
+The response contains `review`, `registration_status`, and `notification_result`.
+Rejection and paid waitlist attempt one Portuguese notice to the registrant's
+current account email after commit and lock release. Confirmed approval returns
+`not_required`. Delivery failures return the saved outcome with a failure result.
+Unavailable configuration returns `unavailable`. No automatic retry replays a notice.
+
+
+## Router organization
+
+`routers/__init__.py` assembles the tournament API without defining or adding
+prefixes. Each endpoint router declares its full prefix.
+`routers/anonymous.py` contains catalog endpoints that guests may call. Signed-in
+users use the same endpoints with their existing visibility rules.
+`routers/authenticated.py` contains registration and document endpoints requiring
+sign-in, including the existing staff-aware registration reads.
+`routers/staff.py` contains tournament creation and staff payment review under
+`/api/staff/tournaments`. The anonymous and authenticated routers each use
+`/api/tournaments`.
+The authenticated router declares its access guard once. Its handlers receive
+the verified caller through `AuthenticatedUser`. Staff endpoints keep their explicit
+admin dependency. Tournament creation
+is now `POST /api/staff/tournaments`. The former creation path and
+`/api/tournaments/staff/...` payment-review paths are not registered. Catalog,
+owner registration/document URLs, identifiers, and response contracts are preserved.

@@ -205,7 +205,7 @@ def setup(monkeypatch, db_session):
 
 def _create_event(client, key, **changes):
     response = client.post(
-        "/api/tournaments", json=_event(**changes), headers=_headers(key, role="admin")
+        "/api/staff/tournaments", json=_event(**changes), headers=_headers(key, role="admin")
     )
     assert response.status_code == 201, response.text
     return response.json()["id"]
@@ -810,7 +810,7 @@ def test_payment_instructions_return_null_pix_and_latest_proof_metadata(setup):
 
 
 def test_payment_proof_presigned_submit_replace_and_read(setup):
-    """Owner submits proof via staging, moves to payment_in_review, replaces proof, and reads latest only."""
+    """Owner submits proof via staging, moves to awaiting_payment_confirmation, replaces proof, and reads latest only."""
     client, key, db_session, storage = setup
     event_id = _create_event(client, key, competitor_capacity=1)
     owner_id = uuid4()
@@ -844,7 +844,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         json={"storage_key": staged_one, "original_file_name": "proof-one.pdf"},
     )
     assert submit_one.status_code == 200, submit_one.text
-    assert submit_one.json()["registration_status"] == "payment_in_review"
+    assert submit_one.json()["registration_status"] == "awaiting_payment_confirmation"
     assert staged_one not in storage.objects
     proof_rows = db_session.scalars(
         select(TournamentRegistrationDocument).where(
@@ -867,7 +867,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         json={"storage_key": staged_two, "original_file_name": "proof-two.pdf"},
     )
     assert submit_two.status_code == 200
-    assert submit_two.json()["registration_status"] == "payment_in_review"
+    assert submit_two.json()["registration_status"] == "awaiting_payment_confirmation"
     proof_rows = db_session.scalars(
         select(TournamentRegistrationDocument)
         .where(TournamentRegistrationDocument.document_type == "payment_proof")
@@ -1509,7 +1509,7 @@ def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
 
     monkeypatch.setattr(PolicyFetcher, "fetch", fetch)
     response = client.post(
-        "/api/tournaments",
+        "/api/staff/tournaments",
         headers=_headers(key, role="admin"),
         json=_event(
             rules_url="https://policies.example.test/rules",
@@ -1561,7 +1561,7 @@ def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
 
     def request():
         return client.post(
-            "/api/tournaments",
+            "/api/staff/tournaments",
             headers=_headers(key, role="admin"),
             json=_event(rules_url="https://policies.example.test/new"),
         )

@@ -28,7 +28,7 @@ These living specifications describe required product behavior, architecture, an
 | Tournament outputs | [Results](tournaments/results.md), [consent and privacy](tournaments/consent-and-privacy.md), [communications](tournaments/communications.md) | frontend, backend |
 | First major event | [Monomachia 2027](tournaments/events/monomachia-2027.md) | landing, frontend, backend |
 | Future association features | [Membership](membership/overview.md), [equipment inventory](inventory/overview.md) | frontend, backend |
-| Platform | [Local development](platform/local-development.md), [data storage](platform/data-storage.md), [team access](platform/team-access.md), [deployment](platform/deployment.md) | all |
+| Platform | [Local development](platform/local-development.md), [concurrency testing](platform/testing.md), [data storage](platform/data-storage.md), [team access](platform/team-access.md), [deployment](platform/deployment.md) | all |
 
 ## How to read status and rules
 

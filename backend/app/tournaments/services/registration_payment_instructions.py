@@ -16,7 +16,10 @@ from app.tournaments.services.tournament_payment_settings import (
     read_registration_pix_key_for_tournament,
 )
 from app.core.files.models import StoredFile
+from app.payments.models import Payment
 from app.tournaments.models import (
+    PaymentProofReview,
+    RegistrationPayment,
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
@@ -31,7 +34,7 @@ from app.tournaments.services.registration_documents import (
 )
 from app.tournaments.services.tournament_registrations import visible_tournament
 
-_PAYMENT_PROOF_UPLOAD_STATUSES = frozenset({"awaiting_payment", "payment_in_review"})
+_PAYMENT_PROOF_UPLOAD_STATUSES = frozenset({"awaiting_payment", "awaiting_payment_confirmation"})
 
 
 def load_owner_tournament_registration(
@@ -90,6 +93,7 @@ def submit_registration_payment_proof(
             TournamentRegistration.registration_number == registration_number,
         )
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if tournament_registration is None or tournament_registration.user_id != user.id:
         raise RegistrationResourceNotFoundError("Registration not found")
@@ -132,7 +136,7 @@ def submit_registration_payment_proof(
             )
         )
         if tournament_registration.registration_status == "awaiting_payment":
-            tournament_registration.registration_status = "payment_in_review"
+            tournament_registration.registration_status = "awaiting_payment_confirmation"
         session.commit()
     except (FileStorageError, TournamentError, SQLAlchemyError):
         session.rollback()
@@ -185,6 +189,7 @@ def read_registration_payment_instructions(
         RegistrationPaymentInstructions,
         RegistrationPaymentOptions,
         RegistrationPaymentProofSummary,
+        CurrentPaymentProofReview,
     )
 
     visible_tournament(session, tournament_id, user)
@@ -223,13 +228,42 @@ def read_registration_payment_instructions(
     registration_pix_key = read_registration_pix_key_for_tournament(
         session, tournament_id
     )
+    review = None
+    if latest_proof_row is not None:
+        review = session.scalar(
+            select(PaymentProofReview)
+            .where(PaymentProofReview.document_id == latest_proof_row.id)
+            .order_by(PaymentProofReview.id.desc())
+            .limit(1)
+        )
+    amount_received = None
+    if review is not None and review.decision == "approved":
+        amount_received = session.scalar(
+            select(Payment.amount_received)
+            .join(RegistrationPayment, RegistrationPayment.payment_id == Payment.id)
+            .where(
+                RegistrationPayment.registration_id == tournament_registration.id,
+                RegistrationPayment.proof_review_id == review.id,
+            )
+        )
     return RegistrationPaymentInstructions(
         registration_number=tournament_registration.registration_number,
         registration_status=tournament_registration.registration_status,
         registration_fee_amount=tournament.registration_fee_amount,
+        amount_received=amount_received,
         payment_due_at=tournament.payment_due_at,
         payment_options=RegistrationPaymentOptions(
             pix=PixPaymentOptionRead(pix_key=registration_pix_key),
         ),
         latest_payment_proof=latest_payment_proof,
+        current_review=(
+            CurrentPaymentProofReview(
+                document_id=review.document_id,
+                decision=review.decision,
+                rejection_reason=review.rejection_reason,
+                reviewed_at=review.reviewed_at,
+            )
+            if review
+            else None
+        ),
     )

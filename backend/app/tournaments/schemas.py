@@ -278,13 +278,22 @@ class RegistrationPaymentOptions(BaseModel):
     pix: PixPaymentOptionRead
 
 
+class CurrentPaymentProofReview(BaseModel):
+    document_id: int
+    decision: str
+    rejection_reason: str | None
+    reviewed_at: datetime
+
+
 class RegistrationPaymentInstructions(BaseModel):
     registration_number: str
     registration_status: str
     registration_fee_amount: Decimal | None
+    amount_received: Decimal | None = None
     payment_due_at: datetime | None
     payment_options: RegistrationPaymentOptions
     latest_payment_proof: RegistrationPaymentProofSummary | None
+    current_review: CurrentPaymentProofReview | None = None
 
 
 class RegistrationRead(BaseModel):
@@ -339,3 +348,90 @@ class StaffRegistrationRead(RegistrationRead):
     identity_document_number_normalized: str
     accepted_from_ip: str
     staff_safety_note: str | None
+
+
+class StaffPaymentReviewQueueItem(BaseModel):
+    registration_number: str
+    tournament_id: int
+    tournament_name: str
+    full_name: str
+    registration_status: str
+    document_id: int
+    submitted_at: datetime
+
+
+class StaffPaymentReviewQueue(BaseModel):
+    items: list[StaffPaymentReviewQueueItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class PaymentProofReviewRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    document_id: int
+    decision: str
+    reviewed_by_user_id: UUID
+    reviewed_at: datetime
+    rejection_reason: str | None
+
+
+class StaffReviewDocumentRead(BaseModel):
+    id: int
+    document_type: str
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+    submitted_at: datetime
+
+
+class StaffPaymentReviewDetail(BaseModel):
+    registration: StaffRegistrationRead
+    tournament_name: str
+    registration_fee_amount: Decimal | None
+    payment_due_at: datetime | None
+    competitor_capacity: int | None
+    confirmed_count: int
+    equipment_requirements: str | None
+    latest_document_id: int | None
+    documents: list[StaffReviewDocumentRead]
+    reviews: list[PaymentProofReviewRead]
+
+
+class PaymentReviewDecisionCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document_id: int = Field(gt=0)
+    decision: Literal["approved", "rejected"]
+    amount_received: Decimal | None = Field(
+        default=None, ge=0, max_digits=12, decimal_places=2, allow_inf_nan=False
+    )
+    requirements_checked: StrictBool = False
+    rejection_reason: str | None = None
+
+    @model_validator(mode="after")
+    def require_decision_evidence(self) -> "PaymentReviewDecisionCreate":
+        if self.decision == "approved":
+            if self.amount_received is None or not self.requirements_checked:
+                raise ValueError(
+                    "Approval requires amount_received and checked participation requirements"
+                )
+            if self.rejection_reason is not None:
+                raise ValueError("Approval cannot include a rejection reason")
+        else:
+            self.rejection_reason = (self.rejection_reason or "").strip()
+            if not self.rejection_reason:
+                raise ValueError("Rejection requires a reason")
+            if self.amount_received is not None:
+                raise ValueError("Rejection cannot include a received amount")
+        return self
+
+
+class PaymentReviewDecisionRead(BaseModel):
+    review: PaymentProofReviewRead
+    registration_status: str
+    notification_result: Literal[
+        "not_required", "sent", "lookup_failed", "unavailable", "send_failed"
+    ]

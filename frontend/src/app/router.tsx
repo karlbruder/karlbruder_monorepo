@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 
+import { PaymentReviewRoute } from "@/app/routes/tournament/payment-review-route";
 import { AuthenticatedLayout } from "@/app/routes/authenticated-layout";
 import HomeRoute from "@/app/routes/home-route";
 import RegistrationRoute from "@/app/routes/tournament/registration-route";
@@ -23,6 +24,8 @@ export default function AppRouter() {
       <Route element={<AuthenticatedLayout />}>
         <Route path={accountRoutes.password} element={<ChangePasswordRoute />} />
         <Route path="/" element={<HomeRoute />} />
+        <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />
+        <Route path="/staff/payment-reviews/:registrationNumber" element={<PaymentReviewRoute />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -307,7 +307,8 @@ def upgrade() -> None:
             name="ck_tournament_registrations_identity_document_type",
         ),
         sa.CheckConstraint(
-            "registration_status IN ('awaiting_payment', 'payment_in_review', 'confirmed', 'waitlist', 'cancelled')",
+            "registration_status IN ('awaiting_payment', 'awaiting_payment_confirmation', "
+            "'confirmed', 'waitlist', 'cancelled')",
             name="ck_tournament_registrations_status",
         ),
         sa.CheckConstraint(
