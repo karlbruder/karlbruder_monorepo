@@ -86,3 +86,26 @@ issues a short-lived URL only for a proof or parental form belonging to that
 registration. Metadata reads do not call storage. Unknown registrations and mismatched
 documents return 404. Storage failures return 503. Guests receive 401 and authenticated
 non-admins receive 403 on all three endpoints. Owner proof access remains latest-only.
+
+
+## Staff payment-review screens
+
+The signed-in staff entry is `/staff/payment-reviews`. It lists pending proofs
+across tournaments, supports exact registration-number search and pagination,
+and links to `/staff/payment-reviews/{registration_number}`. The home screen
+shows this entry for admins. The backend remains the authorization boundary.
+
+The review screen shows the latest proof, earlier versions, parental forms,
+registration eligibility, capacity context, and attributable review history.
+Document links are requested on demand and can be renewed. Staff enters the
+actual BRL amount and acknowledges receipt and applicable requirements before
+approval. Rejection requires a reason, which is shared with the participant.
+
+The screen submits the displayed proof ID. A conflict preserves draft fields
+and blocks submission until staff refreshes and checks the evidence again.
+The saved response determines confirmed participation or paid waitlist.
+Email failure is shown separately from a saved decision. A late deadline does
+not disable review. Portuguese and English interface copy is available.
+
+This screen does not provide cancellation, refunds, waitlist selection, generic
+status editing, registration corrections, or exports.

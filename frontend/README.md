@@ -155,3 +155,17 @@ The build runs TypeScript checks and generates static assets in `dist/`. Preview
 ## Further reading
 
 [Repository setup](../README.md) · [Specifications](../specs/README.md) · [Frontend structure](../specs/decisions/0006-frontend-application-structure.md)
+
+
+## Staff payment review
+
+Admins can open payment review from the home screen or `/staff/payment-reviews`.
+The queue covers all tournaments and supports exact registration-number search.
+Each review shows evidence history, document links, eligibility, and capacity.
+Staff supplies the received amount for approval or a reason for rejection.
+A saved result distinguishes confirmation from paid waitlist and email failure.
+
+A stale proof or competing decision requires refreshing and inspecting evidence
+again. Draft amount and rejection text are retained. Backend authorization and
+capacity checks apply to every decision. The interface offers Portuguese and English.
+See the [administration specification](../specs/tournaments/administration.md#staff-payment-review-screens).
