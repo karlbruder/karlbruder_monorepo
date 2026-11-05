@@ -73,6 +73,15 @@ def test_approval_records_exact_proof_receipt_and_capacity_outcome(
     registration.tournament.competitor_capacity = capacity
     registration.tournament.payment_due_at = datetime(2020, 1, 1, tzinfo=UTC)
     session.flush()
+    client, key, _, _ = setup
+    owner = _headers(key, user_id=registration.user_id)
+    path = (
+        f"/api/tournaments/{registration.tournament_id}/registrations/"
+        f"{registration.registration_number}/payment"
+    )
+    pending = client.get(path, headers=owner).json()
+    assert pending["registration_fee_amount"] == "99.00"
+    assert pending["amount_received"] is None
     accounts, sender = _clients()
     response = _decide(setup, registration, documents[-1])
     assert response.status_code == 200, response.text
@@ -83,6 +92,9 @@ def test_approval_records_exact_proof_receipt_and_capacity_outcome(
     assert receipt.proof_review_id == review.id
     assert review.document_id == documents[-1].id
     assert payment.amount_received == Decimal("123.45")
+    approved = client.get(path, headers=owner).json()
+    assert approved["amount_received"] == "123.45"
+    assert approved["registration_fee_amount"] == "99.00"
     assert payment.verified_by_user_id == review.reviewed_by_user_id
     assert payment.verified_at == review.reviewed_at
     assert registration.registration_status == status

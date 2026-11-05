@@ -109,3 +109,7 @@ not disable review. Portuguese and English interface copy is available.
 
 This screen does not provide cancellation, refunds, waitlist selection, generic
 status editing, registration corrections, or exports.
+
+Selecting and confirming an already-paid participant remains a known gap for a
+future staff administration issue. Payment approval can still add participants
+to the paid waitlist in this release.

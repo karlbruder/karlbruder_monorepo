@@ -144,6 +144,10 @@ notice explains that staff verify the payment manually and that this review
 may take one to two business days. The panel shows New proof needed and the
 rejection reason when staff reject the current
 proof. After approval it shows Payment confirmed separately from the place status.
+Before approval the panel shows the current tournament fee. After approval it
+shows the amount staff recorded, including zero, for both confirmed places and
+paid waitlist entries. If no recorded amount is available, it shows the current
+tournament fee. The workflow does not snapshot a fee at registration.
 After a valid upload, it refreshes the saved status and hides the obsolete reason.
 Confirmed participation means a seat is assigned. Paid waitlist means payment was
 approved without a seat, with no second payment or automatic promotion. Approved

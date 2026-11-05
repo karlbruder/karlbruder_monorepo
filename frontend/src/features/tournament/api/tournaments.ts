@@ -99,6 +99,7 @@ export type RegistrationPaymentInstructions = {
   registration_number: string;
   registration_status: string;
   registration_fee_amount: string | number | null;
+  amount_received?: string | number | null;
   payment_due_at: string | null;
   payment_options: {
     pix: {
@@ -348,6 +349,9 @@ function isPaymentInstructions(value: unknown): value is RegistrationPaymentInst
     typeof record.registration_number === "string" &&
     typeof record.registration_status === "string" &&
     isCurrentReview(record.current_review) &&
+    (record.amount_received == null ||
+      typeof record.amount_received === "string" ||
+      typeof record.amount_received === "number") &&
     (record.registration_fee_amount === null ||
       typeof record.registration_fee_amount === "string" ||
       typeof record.registration_fee_amount === "number") &&

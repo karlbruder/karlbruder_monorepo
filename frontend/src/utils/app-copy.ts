@@ -209,6 +209,7 @@ const english = {
   "Inscrição": "Registration",
   "Número de inscrição": "Registration number",
   "Valor da inscrição": "Registration fee",
+  "Valor recebido": "Amount received",
   "Prazo para pagamento": "Payment deadline",
   "Chave Pix": "Pix key",
   "A chave Pix deste torneio ainda não foi configurada.": "This tournament's Pix key has not been configured yet.",

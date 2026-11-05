@@ -256,10 +256,15 @@ it.each([
 });
 it("shows approved paid-waitlist wording in English and refreshes a later confirmed outcome", async () => {
   let status = "waitlist";
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({ ...paymentInstructions, registration_status: status }) })));
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({
+    ...paymentInstructions, registration_status: status, registration_fee_amount: "100.00", amount_received: 0,
+  }) })));
   render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language="en" />);
   await screen.findByText("Paid waitlist");
   expect(screen.getByText("Payment confirmed")).toBeInTheDocument();
+  expect(screen.getByText("Amount received")).toBeInTheDocument();
+  expect(screen.getByText("R$0.00")).toBeInTheDocument();
+  expect(screen.queryByText("R$100.00")).not.toBeInTheDocument();
   expect(screen.getByText(/Do not pay again.*There is no automatic promotion/)).toBeInTheDocument();
   status = "confirmed"; fireEvent.click(screen.getByRole("button", { name: "Refresh status" }));
   await screen.findByText("Confirmed"); expect(screen.getByText(/Your participation is confirmed/)).toBeInTheDocument();

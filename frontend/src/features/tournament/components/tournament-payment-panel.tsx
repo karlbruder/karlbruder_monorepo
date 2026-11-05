@@ -171,6 +171,7 @@ export default function TournamentPaymentPanel({
   }
 
   const feeAmount = payment.registration_fee_amount ?? tournament.registration_fee_amount;
+  const amountReceived = payment.amount_received;
 
   return (
     <section className="registration-card registration-payment-panel" aria-labelledby="payment-panel-title">
@@ -184,7 +185,7 @@ export default function TournamentPaymentPanel({
         {(payment.registration_status === "confirmed" || payment.registration_status === "waitlist") && (
           <div><dt>{t("Pagamento da inscrição")}</dt><dd>{t("Pagamento confirmado")}</dd></div>
         )}
-        <div><dt>{t("Valor da inscrição")}</dt><dd>{formatMoney(feeAmount, language)}</dd></div>
+        <div><dt>{t(amountReceived == null ? "Valor da inscrição" : "Valor recebido")}</dt><dd>{formatMoney(amountReceived ?? feeAmount, language)}</dd></div>
         <div><dt>{t("Prazo para pagamento")}</dt><dd>{formatDateTime(payment.payment_due_at, language)}</dd></div>
         {canUpload && <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>}
       </dl>

@@ -16,8 +16,10 @@ from app.tournaments.services.tournament_payment_settings import (
     read_registration_pix_key_for_tournament,
 )
 from app.core.files.models import StoredFile
+from app.payments.models import Payment
 from app.tournaments.models import (
     PaymentProofReview,
+    RegistrationPayment,
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
@@ -234,10 +236,21 @@ def read_registration_payment_instructions(
             .order_by(PaymentProofReview.id.desc())
             .limit(1)
         )
+    amount_received = None
+    if review is not None and review.decision == "approved":
+        amount_received = session.scalar(
+            select(Payment.amount_received)
+            .join(RegistrationPayment, RegistrationPayment.payment_id == Payment.id)
+            .where(
+                RegistrationPayment.registration_id == tournament_registration.id,
+                RegistrationPayment.proof_review_id == review.id,
+            )
+        )
     return RegistrationPaymentInstructions(
         registration_number=tournament_registration.registration_number,
         registration_status=tournament_registration.registration_status,
         registration_fee_amount=tournament.registration_fee_amount,
+        amount_received=amount_received,
         payment_due_at=tournament.payment_due_at,
         payment_options=RegistrationPaymentOptions(
             pix=PixPaymentOptionRead(pix_key=registration_pix_key),

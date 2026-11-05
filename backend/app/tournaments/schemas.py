@@ -289,6 +289,7 @@ class RegistrationPaymentInstructions(BaseModel):
     registration_number: str
     registration_status: str
     registration_fee_amount: Decimal | None
+    amount_received: Decimal | None = None
     payment_due_at: datetime | None
     payment_options: RegistrationPaymentOptions
     latest_payment_proof: RegistrationPaymentProofSummary | None
