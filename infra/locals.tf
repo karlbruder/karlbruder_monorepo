@@ -13,7 +13,7 @@ locals {
 
   application_instance_type = {
     dev  = "t3a.micro"
-    prod = "t3a.small"
+    prod = "t3a.micro"
   }[local.env]
 
   aws_tags = {
