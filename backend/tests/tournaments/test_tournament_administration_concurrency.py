@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from threading import Event
 from unittest.mock import Mock
 from uuid import uuid4
@@ -26,6 +27,9 @@ from app.tournaments.schemas import (
 )
 from app.tournaments.services.payment_proof_reviews import (
     record_payment_review_decision,
+)
+from app.tournaments.services.registration_payment_instructions import (
+    read_registration_payment_instructions,
 )
 from app.tournaments.services.registration_acceptances import (
     acceptance_content,
@@ -296,4 +300,88 @@ def test_capacity_edit_waits_for_inflight_confirmation(setup):
             )
     finally:
         release.set()
+        _cleanup(engine, tournament_id)
+
+
+def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(setup):
+    from app.core import db
+
+    engine = db.sync_engine
+    tournament_id, token, payload = _event_and_payload(engine)
+    admin = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+    old_deadline = datetime(2027, 1, 5, 12, tzinfo=UTC)
+    new_deadline = datetime(2027, 1, 10, 12, tzinfo=UTC)
+
+    def update(fee, deadline, pix):
+        with Session(engine) as writer:
+            update_tournament(
+                writer,
+                admin,
+                tournament_id,
+                payload.model_copy(
+                    update={
+                        "registration_fee_amount": Decimal(fee),
+                        "payment_due_at": deadline,
+                        "pix_key": pix,
+                    }
+                ),
+                Mock(),
+                Mock(),
+            )
+
+    def values(instructions):
+        return (
+            instructions.registration_fee_amount,
+            instructions.payment_due_at,
+            instructions.payment_options.pix.pix_key,
+        )
+
+    try:
+        update("10.00", old_deadline, "old-fixture-key")
+        with Session(engine) as session:
+            registration = _register(session, tournament_id, token)
+            number = registration.registration_number
+            owner = User(id=registration.user_id, email=registration.email)
+
+        old = (Decimal("10.00"), old_deadline, "old-fixture-key")
+        new = (Decimal("20.00"), new_deadline, "new-fixture-key")
+        with Session(engine) as session:
+            assert values(read_registration_payment_instructions(
+                session, tournament_id, number, owner
+            )) == old
+
+        with Session(engine) as reader:
+            # Keep the ORM instance alive to expose stale identity-map reads.
+            loaded_tournament = reader.get(Tournament, tournament_id)
+            assert loaded_tournament.registration_fee_amount == Decimal("10.00")
+            updated = False
+
+            @event.listens_for(reader, "do_orm_execute", retval=True)
+            def commit_between_payment_and_document_reads(state):
+                nonlocal updated
+                result = state.invoke_statement()
+                descriptions = state.statement.column_descriptions if state.is_select else []
+                if not updated and any(
+                    item.get("entity") is TournamentRegistrationDocument
+                    for item in descriptions
+                ):
+                    updated = True
+                    update("20.00", new_deadline, "new-fixture-key")
+                return result
+
+            during = read_registration_payment_instructions(
+                reader, tournament_id, number, owner
+            )
+            assert updated
+            assert values(during) == old
+            assert loaded_tournament.registration_fee_amount == Decimal("10.00")
+            assert values(read_registration_payment_instructions(
+                reader, tournament_id, number, owner
+            )) == new
+
+        with Session(engine) as reader:
+            assert values(read_registration_payment_instructions(
+                reader, tournament_id, number, owner
+            )) == new
+    finally:
         _cleanup(engine, tournament_id)

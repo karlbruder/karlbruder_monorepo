@@ -69,8 +69,9 @@ None. Registration corrections, payment review, capacity, cancellation, reopenin
 ## Staff tournament configuration
 
 Staff APIs list, read, create, replace, and delete tournament configurations.
-Payment settings are visible only to staff. The last staff save replaces the
-configuration. Deletion is rejected when any registration exists, including a
+Staff manage payment settings through the staff APIs. Registration owners can see
+the Pix destination in their own payment instructions. The last staff save replaces
+the configuration. Deletion is rejected when any registration exists, including a
 cancelled registration or after registrations close. Future match results must also prevent
 deletion. Capacity cannot be reduced below confirmed participation.
 
