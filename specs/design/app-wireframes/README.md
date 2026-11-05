@@ -1,19 +1,19 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
 | Status | Draft for product/design review, v0.1 |
 | Application | `app.karlbruder.com` |
-| Scope | Initial registration/payment journey, with separate later-capability concepts |
+| Scope | Current account, registration and payment journeys, with proposed home and later-capability concepts |
 | Language | Wireframes show Portuguese; issue #21's Monomachia private registration route supports Portuguese and English interface copy |
 | Delivery | Offline HTML/CSS/JS artifact under specs; no frontend application changes |
 
 [Open the interactive wireframes](index.html). Open `index.html` in a browser directly, or serve the repository root with `python3 -m http.server 8766 --bind 127.0.0.1` and visit `http://127.0.0.1:8766/specs/design/app-wireframes/`. The artifact uses existing assets from `landing/`, so keep it inside the repository.
 
-Use **Tela** to choose a screen, **Estado** to compare variants, **Celular** to preview a narrow layout, and **Notas da spec** to show source rules. Buttons connect the principal journeys and open illustrative decision dialogs. Browser print can export the current screen and notes.
+Use **Tela** to choose a screen by journey: home and account, tournament discovery, registration, staff operations, or other future concepts. The initial screen is the signed-in home. The selector numbers follow the journey order. Stable `WF-xx` identifiers in notes and `#WF-xx/state` links remain unchanged, so existing references still open their original screens. Use **Estado** to compare variants, **Celular** to preview a narrow layout, and **Notas da spec** to show source rules. Buttons connect the principal journeys and open illustrative decision dialogs. Browser print can export the current screen and notes.
 
 The controls above the application frame and the spec notes are design-review tools, not proposed product UI. All displayed people, documents, amounts, counts, deadlines, and secondary events are fictional examples. Monomachia's name, longsword discipline, and supplied 17 January 2027 date come from its event spec; venue, final schedule, fees, capacity, registration window, and Pix destination remain configuration inputs. The **Informações não configuradas** state shows unknown values instead of treating examples as final facts.
 
@@ -30,18 +30,19 @@ The shared shell is guild-branded. Monomachia remains one event in a reusable ca
 
 ## Screen-to-spec map
 
-`WF-xx` identifies a design screen, not a new product rule. The interactive notes cite rules on every screen. First-release coverage below concerns layout and state communication; it is not evidence of implementation or passing acceptance tests.
+`WF-xx` identifies a design screen, not a new product rule. The interactive notes cite rules on every screen. Banners identify implemented portions and proposals. Even where a journey is partly implemented, the presentation and individual states are illustrative, not an exact reproduction. The current application has no catalog or cross-tournament personal list. The selected tournament registration page restores the person’s active registration, or a named owned registration from a link. [Issue #63](https://github.com/karlbruder/karlbruder_monorepo/issues/63) tracks the proposed personal list.
 
 | Screen | Audience / delivery | Source and important states |
 | --- | --- | --- |
-| [WF-01 · Catalog](index.html#WF-01/public) | Visitor/member · first release | [CAT-001, 004, 005](../../tournaments/catalog.md): public, member-only additions, empty and load failure. CAT-AC-001/005. |
-| [WF-02 · Event details](index.html#WF-02/open) | Visitor · first release | [CAT-002–004](../../tournaments/catalog.md), [CAP-008](../../tournaments/capacity-and-waitlist.md): open, full-but-open, closed, unknown configuration. CAT-AC-004/008. |
+| [WF-17 · Signed-in home](index.html#WF-17/current) | Existing actions in a proposed layout and future home | [AUTH-002/008](../../identity/authentication-and-access.md), [REG-008](../../tournaments/registration.md). Current account shortcuts and proposed registration list, empty, loading, error and admin states. |
+| [WF-01 · Catalog](index.html#WF-01/public) | Visitor/member · proposed | [CAT-001, 004, 005](../../tournaments/catalog.md): public, member-only additions, empty and load failure. CAT-AC-001/005. |
+| [WF-02 · Event details](index.html#WF-02/open) | Visitor · proposed | [CAT-002–004](../../tournaments/catalog.md), [CAP-008](../../tournaments/capacity-and-waitlist.md): open, full-but-open, closed, unknown configuration. CAT-AC-004/008. |
 | [WF-03 · Account access](index.html#WF-03/login) | Visitor · first release | [AUTH-001–003/006](../../identity/authentication-and-access.md): sign-in, sign-up, verification, recovery, new password, signed-in password change (`changepassword`), expired session, unavailable service. Routes `/account/sign-in` through `/account/password`. AUTH-AC-002/003. |
 | [WF-04 · Self-registration](index.html#WF-04/adult) | Participant · first release | [REG-001–005/010/011/015](../../tournaments/registration.md), [PRIV-001/002/010](../../tournaments/consent-and-privacy.md): adult, minor, full event, validation error, duplicate, closure during entry. REG-AC-001/003/007/010/015. |
 | [WF-05 · Pix and proof](index.html#WF-05/initial) | Participant · first release | [PAY-001/003/004/006/010/011](../../tournaments/payments-and-confirmation.md): first upload, replacement, rejection/resubmission, invalid file, late payment. PAY-AC-001/003/006/010/012. |
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
-| [WF-07 · My registrations](index.html#WF-07/list) | Participant · first release | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
-| [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · first release | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; preserve acceptance history. PRIV-AC-007, REG-AC-017. |
+| [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
+| [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · proposed | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; preserve acceptance history. PRIV-AC-007, REG-AC-017. |
 | [WF-09 · Review queue](index.html#WF-09/queue) | Staff · first release | [ADM-001/002/004](../../tournaments/administration.md): pending proofs and empty queue. ADM-AC-002/006. |
 | [WF-10 · Payment decision](index.html#WF-10/available) | Staff · first release | [PAY-004/005/011/013](../../tournaments/payments-and-confirmation.md), [CAP-003](../../tournaments/capacity-and-waitlist.md): available/full, rejection reason, late Pix, minor evidence, changed capacity. PAY-AC-005/007/011/012, ADM-AC-003/004. |
 | [WF-11 · Paid waitlist selection](index.html#WF-11/seat) | Staff · later operations interface | [CAP-003/005/009](../../tournaments/capacity-and-waitlist.md): staff selection with/without capacity, no payment reapproval. CAP-AC-004/009. |
@@ -51,7 +52,15 @@ The shared shell is guild-branded. Monomachia remains one event in a reusable ca
 | [WF-15 · Association](index.html#WF-15/concept) | Member · future concept | [MEM-001–004/006](../../membership/overview.md): reserves space for own membership and dues without inventing financial policy. MEM-AC-001/004. |
 | [WF-16 · Inventory](index.html#WF-16/list) | Staff only · future concept | [INV-001/003–007](../../inventory/overview.md): list/edit/retire, aggregate quantity and descriptive condition. INV-AC-001/003/004/005. |
 
-The application navigation does not advertise future capabilities in the first-release screens. Future screens are accessible only through the review selector and carry an explicit concept banner. The UI route `/tournaments/registration` is established by REG-001; `#WF-xx/state` links are artifact anchors, not proposed production routes. Other route names and menu organization remain implementation/design choices.
+Navigation and layout in the artifact are proposals. Every screen carries a banner identifying a existing actions in a proposed layout, a partly implemented journey, or a proposed concept. Links between screens simulate review journeys and are not evidence of application navigation. The UI route `/tournaments/registration` is established by REG-001; `#WF-xx/state` links are artifact anchors, not proposed production routes. Other route names and menu organization remain implementation/design choices.
+
+The current home links to password change, Monomachia registration, sign-out and, for admins, payment review. Compare [current home](index.html#WF-17/current) with the proposed [populated](index.html#WF-17/list), [empty](index.html#WF-17/empty), [loading](index.html#WF-17/loading), [error](index.html#WF-17/error) and [admin](index.html#WF-17/admin) states. The proposed admin panel is planned in [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75).
+
+## Home design rationale
+
+The proposed home puts the registration first. Its card combines the event, status, and next step. Account and admin destinations use compact navigation lists with descriptive labels. The current-home states show a proposed layout for the existing application actions. They do not reproduce the current layout. The empty, loading, and error states do not imply that the proposed cross-tournament list is already available.
+
+This is a design judgment informed by the Scottish Government’s [2025 card navigation guidance](https://designsystem.gov.scot/patterns/navigational-pages/card-navigation), which recommends cards for browsing and notes their space cost, and [dashboard text research published in 2025](https://doi.org/10.1109/TVCG.2024.3456601), which describes the role of text in context and navigation. These sources do not validate this particular design with Karlbrüder users. The same approach is used for the proposed personal registration list and the payment-review queue. Forms keep their fields and action buttons, while operational tables retain their columns for comparison. Tournament details and account access retain their existing structures. Keyboard focus and phone layout need interactive review.
 
 ## Review the important journeys
 
