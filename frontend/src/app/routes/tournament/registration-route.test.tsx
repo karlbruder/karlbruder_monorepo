@@ -258,6 +258,7 @@ describe('Monomachia registration entry', () => {
 function mockLinkedRegistration(status = "waitlist", paymentStatus = 200) {
   const request = vi.fn(async (url: string) => {
     if (url === "/api/tournaments/77") return { ok: true, status: 200, json: async () => ({ ...tournament, id: 77, name: "Second Tournament", slug: "second" }) };
+    if (url === "/api/tournaments/77/registrations/T77-001") return { ok: paymentStatus === 200, status: paymentStatus, json: async () => ({ tournament_id: 77, registration_number: "T77-001", registration_status: status, parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test" }) };
     if (url === "/api/tournaments/77/registrations/T77-001/payment") return { ok: paymentStatus === 200, status: paymentStatus, json: async () => ({
       registration_number: "T77-001", registration_status: status, registration_fee_amount: "100.00", payment_due_at: null,
       payment_options: { pix: { pix_key: "fixture-key" } }, latest_payment_proof: null, current_review: null,
@@ -330,7 +331,8 @@ it("does not contradict a confirmed outcome on the default personal registration
   vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null });
   vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, json: async () => {
     if (url === monomachiaListUrl) return catalogBody(tournament);
-    if (url.endsWith("/registrations")) return [{ tournament_id: 42, registration_number: "T42-001", registration_status: "confirmed", full_name: "Fixture", email: "athlete@example.test" }];
+    if (url.endsWith("/registrations")) return [{ tournament_id: 42, registration_number: "T42-001", registration_status: "confirmed", full_name: "Fixture", email: "athlete@example.test", parental_consent_required: false }];
+    if (url.endsWith("/registrations/T42-001")) return { tournament_id: 42, registration_number: "T42-001", registration_status: "confirmed", full_name: "Fixture", email: "athlete@example.test", parental_consent_required: false };
     return { registration_number: "T42-001", registration_status: "confirmed", registration_fee_amount: null, payment_due_at: null, payment_options: { pix: { pix_key: null } }, latest_payment_proof: null, current_review: null };
   } })));
   renderApp(); await screen.findByText("Confirmada");

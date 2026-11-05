@@ -152,6 +152,8 @@ describe('Tournament registration', () => {
           }),
         };
       }
+      const detail = url.match(/^\/api\/tournaments\/(\d+)\/registrations\/([^/]+)$/);
+      if (detail && (!init?.method || init.method === "GET")) return { ok: true, status: 200, json: async () => ({ tournament_id: Number(detail[1]), registration_number: detail[2], registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test" }) };
       if (url.endsWith("/payment")) {
         return { ok: true, status: 200, json: async () => paymentPayload };
       }
@@ -212,6 +214,7 @@ describe('Tournament registration', () => {
             }],
           };
         }
+        if (url === "/api/tournaments/42/registrations/T42-000001-5") return { ok: true, json: async () => ({ tournament_id: 42, registration_number: "T42-000001-5", registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test" }) };
         if (url.endsWith("/payment")) {
           return {
             ok: true,
@@ -311,6 +314,7 @@ describe('Tournament registration', () => {
           ],
         }
       }
+      if (url === "/api/tournaments/42/registrations/T42-ADMIN") return { ok: true, json: async () => ({ tournament_id: 42, registration_number: "T42-ADMIN", registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Admin", email: "admin@example.test", user_id: "admin-uuid" }) };
       if (url === "/api/tournaments/42/registrations/T42-ADMIN/payment") {
         return {
           ok: true,
@@ -418,6 +422,7 @@ describe('Tournament registration', () => {
       if (url === "/api/tournaments/42/registrations") {
         return { ok: true, status: 200, json: async () => [] }
       }
+      if (url === "/api/tournaments/42/registrations/T42-000001-1") return { ok: true, json: async () => ({ tournament_id: 42, registration_number: "T42-000001-1", registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test" }) };
       if (url.endsWith("/payment")) {
         return { ok: true, status: 200, json: async () => paymentPayload }
       }

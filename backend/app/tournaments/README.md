@@ -54,8 +54,8 @@ prevent deletion.
 ## Consent for an existing registration
 
 The registration owner can submit a missing parental consent form after an event
-change makes them a minor. The payment instructions include
-`parental_consent_required` when an active registration needs the form. The owner
+change makes them a minor. Registration responses include `parental_consent_required` when an active
+registration needs the form. The owner
 uses the existing parental consent upload URL and posts its staging key and original
 file name to `POST /api/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form`.
 The service checks ownership, age, and existing evidence. It validates the uploaded

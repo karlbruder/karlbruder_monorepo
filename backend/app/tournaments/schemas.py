@@ -304,9 +304,7 @@ class CurrentPaymentProofReview(BaseModel):
 
 
 class RegistrationPaymentInstructions(BaseModel):
-    parental_consent_required: bool
     registration_number: str
-    registration_status: str
     registration_fee_amount: Decimal | None
     amount_received: Decimal | None = None
     payment_due_at: datetime | None
@@ -323,6 +321,7 @@ class RegistrationRead(BaseModel):
     tournament_id: int
     registration_number: str
     registration_status: str
+    parental_consent_required: bool
     full_name: str
     social_name: str | None
     birth_date: date

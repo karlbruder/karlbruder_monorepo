@@ -744,7 +744,11 @@ def test_owner_reads_payment_instructions_and_pix_stays_private(setup):
     assert owner_payment.status_code == 200, owner_payment.text
     payload = owner_payment.json()
     assert payload["registration_number"] == number
-    assert payload["registration_status"] == "awaiting_payment"
+    assert "registration_status" not in payload
+    registration = client.get(payment_path.removesuffix("/payment"), headers=owner).json()
+    assert registration["registration_status"] == "awaiting_payment"
+    assert registration["parental_consent_required"] is False
+    assert "parental_consent_required" not in payload
     assert payload["registration_fee_amount"] == "150.00"
     assert payload["payment_due_at"] is not None
     assert payload["payment_options"]["pix"]["pix_key"] == fixture_pix
@@ -1976,7 +1980,9 @@ def test_rescheduled_minor_can_attach_missing_consent_to_confirmed_registration(
     )
     assert response.status_code == 200
     base = f"/api/tournaments/{event_id}/registrations/{number}"
-    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is True
+    assert client.get(base, headers=owner).json()["parental_consent_required"] is True
+    assert client.get(f"/api/tournaments/{event_id}/registrations", headers=owner).json()[0]["parental_consent_required"] is True
+    assert "parental_consent_required" not in client.get(f"{base}/payment", headers=owner).json()
     upload = client.post(
         f"/api/tournaments/{event_id}/registrations/parental-consent-form/upload-url", headers=owner
     ).json()
@@ -1986,12 +1992,12 @@ def test_rescheduled_minor_can_attach_missing_consent_to_confirmed_registration(
     assert client.post(f"{base}/parental-consent-form", json=payload).status_code == 401
     storage.copy_should_fail = True
     assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 503
-    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is True
+    assert client.get(base, headers=owner).json()["parental_consent_required"] is True
     storage.copy_should_fail = False
     saved = client.post(f"{base}/parental-consent-form", headers=owner, json=payload)
     assert saved.status_code == 200, saved.text
     assert saved.json()["registration_status"] == "confirmed"
-    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is False
+    assert client.get(base, headers=owner).json()["parental_consent_required"] is False
     assert client.get(f"{base}/parental-consent-form", headers=owner).status_code == 200
     assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 409
 

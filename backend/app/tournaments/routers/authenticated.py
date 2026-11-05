@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.dependencies import AuthenticatedUser, require_authenticated_user
 from app.auth.services import get_application_role
@@ -33,7 +33,7 @@ from app.tournaments.services import (
     visible_tournament,
 )
 from app.tournaments.services.registration_acceptances import project_registration
-from app.tournaments.services.registration_payment_instructions import (
+from app.tournaments.services.tournament_registrations import (
     submit_registration_parental_consent_form,
 )
 from app.tournaments.services.registration_documents import (
@@ -109,6 +109,7 @@ def list_registrations(
     visible_tournament(session, tournament_id, user)
     query = (
         select(TournamentRegistration)
+        .options(joinedload(TournamentRegistration.tournament), selectinload(TournamentRegistration.documents))
         .where(TournamentRegistration.tournament_id == tournament_id)
         .order_by(TournamentRegistration.id)
     )
