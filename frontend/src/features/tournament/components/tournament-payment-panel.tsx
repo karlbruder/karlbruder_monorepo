@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
@@ -80,14 +80,21 @@ export default function TournamentPaymentPanel({
   const [pending, setPending] = useState(false);
   const [replaceMode, setReplaceMode] = useState(false);
 
-  const { data: payment, error, isFetching, refetch } = useTournamentRegistrationPayment(
+  const { data: payment, dataUpdatedAt, error, isFetching, refetch } = useTournamentRegistrationPayment(
     tournament.id,
     registrationNumber,
     session.access_token,
   );
 
-  const canUpload =
+  const awaitingPayment =
     registrationStatus === "awaiting_payment" || registrationStatus === "awaiting_payment_confirmation";
+  const approved = payment?.current_review?.decision === "approved";
+  const canUpload = awaitingPayment && !approved;
+  const refreshRegistration = useRef(onRegistrationRefresh);
+  useEffect(() => { refreshRegistration.current = onRegistrationRefresh; }, [onRegistrationRefresh]);
+  useEffect(() => {
+    if (approved && awaitingPayment) void refreshRegistration.current();
+  }, [approved, awaitingPayment, dataUpdatedAt]);
   const showReplaceForm =
     canUpload && (replaceMode || registrationStatus === "awaiting_payment" || !payment?.latest_payment_proof);
 
@@ -161,12 +168,12 @@ export default function TournamentPaymentPanel({
         <p className="registration-notice" role="alert">
           {t(error instanceof Error && error.message === "http-404" ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar as instruções de pagamento. Tente novamente.")}
         </p>
-        <button type="button" onClick={() => void refetch()}>{t("Tentar novamente")}</button>
+        <button type="button" onClick={() => { void refetch(); void onRegistrationRefresh(); }}>{t("Tentar novamente")}</button>
       </section>
     );
   }
 
-  const feeAmount = payment.registration_fee_amount ?? tournament.registration_fee_amount;
+  const feeAmount = payment.registration_fee_amount;
   const amountReceived = payment.amount_received;
 
   return (
@@ -174,7 +181,7 @@ export default function TournamentPaymentPanel({
       <p className="registration-eyebrow">{t("Inscrição")}</p>
       <h2 id="payment-panel-title">{t("Pagamento da inscrição")}</h2>
       <dl className="registration-success-facts">
-        {(registrationStatus === "confirmed" || registrationStatus === "waitlist") && (
+        {(approved || registrationStatus === "confirmed" || registrationStatus === "waitlist") && (
           <div><dt>{t("Pagamento da inscrição")}</dt><dd>{t("Pagamento confirmado")}</dd></div>
         )}
         <div><dt>{t(amountReceived == null ? "Valor da inscrição" : "Valor recebido")}</dt><dd>{formatMoney(amountReceived ?? feeAmount, language)}</dd></div>
@@ -190,7 +197,7 @@ export default function TournamentPaymentPanel({
       {registrationStatus === "waitlist" && <p className="registration-notice" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
       {registrationStatus === "cancelled" && <p className="registration-notice" role="status">{t("Esta inscrição está cancelada e não permite envio de comprovantes.")}</p>}
 
-      {registrationStatus === "awaiting_payment_confirmation" && (
+      {canUpload && registrationStatus === "awaiting_payment_confirmation" && (
         <p className="registration-notice" role="status">
           {t("Recebemos seu comprovante. Nossa equipe confere o pagamento manualmente. Essa conferência pode levar de 1 a 2 dias úteis. Nenhuma vaga foi reservada.")}
         </p>

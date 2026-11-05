@@ -59,3 +59,45 @@ it("refreshes a waitlisted registration to confirmed without another payment", a
   await screen.findByText("Confirmed");
   expect(screen.getByText(/Your participation is confirmed/)).toBeInTheDocument();
 });
+
+it.each(["awaiting_payment", "awaiting_payment_confirmation"])("suppresses payment actions while an approved %s registration refreshes", async status => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  let registrationRequests = 0;
+  let resolveRefresh!: (value: unknown) => void;
+  const refresh = new Promise(resolve => { resolveRefresh = resolve; });
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("/payment")) return { ok: true, json: async () => ({ ...payment, payment_options: { pix: { pix_key: "pix-key" } }, current_review: { document_id: 1, decision: "approved", rejection_reason: null, reviewed_at: "2026-11-05T12:00:00Z" } }) };
+    registrationRequests++;
+    if (registrationRequests > 1) return refresh;
+    return { ok: true, json: async () => ({ ...registration, registration_status: status, parental_consent_required: false }) };
+  }));
+  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  await screen.findByText("Payment confirmed");
+  await waitFor(() => expect(registrationRequests).toBe(2));
+  expect(screen.queryByText("pix-key")).not.toBeInTheDocument();
+  expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Complete the Pix transfer|We received your proof/)).not.toBeInTheDocument();
+  resolveRefresh({ ok: true, json: async () => ({ ...registration, registration_status: "waitlist", parental_consent_required: false }) });
+  expect(await screen.findByText("Paid waitlist")).toBeInTheDocument();
+  expect(screen.getByText(/Do not pay again/)).toBeInTheDocument();
+});
+
+it("refreshes registration when retrying a failed payment request", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  let paymentRequests = 0;
+  let registrationRequests = 0;
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("/payment")) {
+      paymentRequests++;
+      return paymentRequests === 1 ? { ok: false, status: 503, json: async () => ({}) } : { ok: true, json: async () => payment };
+    }
+    registrationRequests++;
+    return { ok: true, json: async () => ({ ...registration, registration_status: registrationRequests > 1 ? "confirmed" : "awaiting_payment", parental_consent_required: false }) };
+  }));
+  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByText("Confirmed")).toBeInTheDocument();
+  await screen.findByRole("heading", { name: "Registration payment" });
+  expect(registrationRequests).toBe(2);
+});

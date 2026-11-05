@@ -82,6 +82,8 @@ not implement those workflows or authorize their actors.
 
 For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
 
+When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The fee in the current payment details is authoritative. If it is unknown, the application shows it as unconfirmed rather than using an older catalog value.
+
 Waitlisted participants have already had payment approved. Staff later selects and confirms a waitlisted participant under CAP-005 without requiring another payment approval. The system does not choose the participant or impose an invitation/payment stage. Submitted proof is evidence of payment to the guild, not funds held by an application wallet or gateway. Cancelled participation remains inactive while refund progress is tracked, so an outstanding refund does not block a replacement registration under the registration rules.
 
 ## Acceptance criteria

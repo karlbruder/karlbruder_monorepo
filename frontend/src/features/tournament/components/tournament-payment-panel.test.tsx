@@ -118,6 +118,15 @@ describe("Tournament payment panel", () => {
     expect(await screen.findByText(/A chave Pix deste torneio ainda não foi configurada/)).toBeInTheDocument();
   });
 
+  it("shows an unknown current fee instead of the older catalog fee", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, registration_fee_amount: null }) }));
+    render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+    await screen.findByRole("heading", { name: "Pagamento da inscrição" });
+    expect(screen.getAllByText("A confirmar").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/150,00/)).not.toBeInTheDocument();
+    expect(screen.getByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).toBeInTheDocument();
+  });
+
   it("uploads proof through presigned flow and shows payment in review", async () => {
     let paymentFetchCount = 0;
     const request = vi.fn(async (url: string, init?: RequestInit) => {
