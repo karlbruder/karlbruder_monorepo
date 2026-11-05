@@ -182,7 +182,6 @@ These existing paths and behaviors are migration gaps, not precedents for new bo
 
 - Auth settings still live in `config/`. Moving them into auth requires preserving startup validation and environment-specific defaults. Leave them there during unrelated work.
 - Tournament routers still contain queries and record-access decisions. New workflows belong in services.
-- `config/env.py` supplies an AWS region fallback. A settings change must reconcile it and its tests with the explicit-region requirement above. Do not silently adopt the fallback as policy.
 
 ## Migrations, queries, and external calls
 

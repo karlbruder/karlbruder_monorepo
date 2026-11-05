@@ -37,12 +37,6 @@ services:
 
     environment:
       ENV_NAME: test
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_HOST: db
-      DB_PORT: "5432"
-      DB_NAME: postgres
-      SUPABASE_URL: "https://test-project.supabase.co"
 
     volumes:
       - ./backend:/app

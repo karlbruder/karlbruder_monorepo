@@ -17,7 +17,7 @@ from app.tournaments.services.payment_review_notifications import (
 )
 from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import User
-from app.auth.services import get_application_role
+from app.auth.supabase.roles import get_application_role
 from app.core.files import FileStorage
 from app.tournaments.exceptions import (
     RegistrationResourceNotFoundError,

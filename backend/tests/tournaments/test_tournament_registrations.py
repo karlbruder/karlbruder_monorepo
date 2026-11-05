@@ -1,6 +1,5 @@
 """REG-AC-001–010, 014–016: registration ownership, uniqueness, dates, and privacy."""
 
-import os
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -11,20 +10,17 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select, update
 
-
-# Settings are built at import time and need the test project URL first.
-os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
-
-import app.auth.services as auth  # noqa: E402
-import app.tournaments.services.tournament_local_dates as tournament_local_dates  # noqa: E402
-from app.core.files import FileStorageError, get_file_storage  # noqa: E402
-from app.main import karlbruder_app  # noqa: E402
-from app.core.files.models import StoredFile  # noqa: E402
-from app.tournaments.models import (  # noqa: E402
+import app.tournaments.services.tournament_local_dates as tournament_local_dates
+from app.auth.supabase import tokens
+from app.core.files import FileStorageError, get_file_storage
+from app.core.files.models import StoredFile
+from app.main import karlbruder_app
+from app.tournaments.models import (
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
 )
+from config import settings
 
 
 class StaticJwksClient:
@@ -124,7 +120,7 @@ def _headers(key, *, user_id=None, email="fixture@example.test", role="regular_u
     now = datetime.now(UTC)
     token = jwt.encode(
         {
-            "iss": f"{os.environ['SUPABASE_URL'].rstrip('/')}/auth/v1",
+            "iss": settings.issuer,
             "aud": "authenticated",
             "exp": now + timedelta(minutes=5),
             "iat": now,
@@ -189,7 +185,7 @@ def _registration(*, email="fixture@example.test", document="AB-123", **override
 def setup(monkeypatch, db_session):
     key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(
-        auth, "get_jwks_client", lambda: StaticJwksClient(key.public_key())
+        tokens, "get_jwks_client", lambda: StaticJwksClient(key.public_key())
     )
     monkeypatch.setattr(
         tournament_local_dates,

@@ -6,7 +6,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.exc import OperationalError
 
-from app.auth.account_email import SupabaseAccountEmailReader, AccountEmailReadError
+from app.auth.account_email import AccountEmailReadError
+from app.auth.supabase.account_email import SupabaseAccountEmailReader
 
 
 def test_lookup_reads_current_email_each_time_with_parameterized_uuid():

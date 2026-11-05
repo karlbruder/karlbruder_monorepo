@@ -61,6 +61,7 @@ class Settings(BaseSettings):
 
     # Supabase
     SUPABASE_URL: AnyHttpUrl
+    SUPABASE_SERVICE_ROLE_KEY: str
 
     SMTP_FROM: str = "Suporte Karlbrüder <no-reply@karlbruder.com.br>"
     SMTP_ENABLED: bool = False

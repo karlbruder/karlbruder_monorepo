@@ -11,7 +11,7 @@ from app.auth.dependencies import (
     get_current_user,
 )
 from app.auth.models import AnonymousUser, User
-from app.auth.services import get_application_role
+from app.auth.supabase.roles import get_application_role
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.models import Tournament

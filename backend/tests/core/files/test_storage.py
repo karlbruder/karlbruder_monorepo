@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 
 from app.core.files import FileStorage, FileStorageError, get_file_storage
 from app.core.files.storage import build_s3_client
-from config.base import Settings
+from config.test import TestSettings as BackendTestSettings
 
 
 def test_store_file_puts_the_object_in_the_configured_bucket():
@@ -183,16 +183,7 @@ def test_presigned_urls_use_the_server_client_when_no_browser_endpoint_is_set():
 def test_get_file_storage_passes_settings_to_the_client_builder(monkeypatch):
     monkeypatch.setattr(
         "app.core.files.storage.settings",
-        Settings(
-            DB_USER="postgres",
-            DB_PASSWORD="postgres",
-            DB_HOST="db",
-            DB_NAME="postgres",
-            AUTH_DB_USER="auth",
-            AUTH_DB_PASSWORD="auth",
-            AUTH_DB_HOST="auth-db",
-            AUTH_DB_NAME="auth",
-            SUPABASE_URL="https://example.supabase.co",
+        BackendTestSettings(
             S3_BUCKET_NAME="kb-local-bucket",
             S3_ENDPOINT_URL="http://ministack:4566",
         ),
@@ -211,16 +202,7 @@ def test_get_file_storage_signs_browser_urls_with_the_browser_endpoint(
 ):
     monkeypatch.setattr(
         "app.core.files.storage.settings",
-        Settings(
-            DB_USER="postgres",
-            DB_PASSWORD="postgres",
-            DB_HOST="db",
-            DB_NAME="postgres",
-            AUTH_DB_USER="auth",
-            AUTH_DB_PASSWORD="auth",
-            AUTH_DB_HOST="auth-db",
-            AUTH_DB_NAME="auth",
-            SUPABASE_URL="https://example.supabase.co",
+        BackendTestSettings(
             S3_BUCKET_NAME="kb-local-bucket",
             S3_ENDPOINT_URL="http://ministack:4566",
             S3_BROWSER_ENDPOINT_URL="http://localhost:4566",

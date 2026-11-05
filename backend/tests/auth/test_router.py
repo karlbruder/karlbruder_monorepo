@@ -1,4 +1,3 @@
-import os
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -12,16 +11,15 @@ from fastapi.testclient import TestClient
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientConnectionError
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL") or ("https://test-project.supabase.co")
-os.environ["SUPABASE_URL"] = SUPABASE_URL
+from app.auth.dependencies import get_current_user, require_authenticated_user
+from app.auth.exceptions import InvalidCredentialsException
+from app.auth.models import AnonymousUser
+from app.auth.supabase import tokens
+from app.auth.supabase.roles import get_application_role
+from app.main import karlbruder_app
+from config import settings
 
-import app.auth.services as auth  # noqa: E402
-from app.main import karlbruder_app  # noqa: E402
-from app.auth.dependencies import get_current_user, require_authenticated_user  # noqa: E402
-from app.auth.models import AnonymousUser  # noqa: E402
-from app.auth.exceptions import InvalidCredentialsException  # noqa: E402
-
-ISSUER = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
+ISSUER = settings.issuer
 
 
 class StaticJwksClient:
@@ -50,7 +48,7 @@ def rsa_signing_key():
 @pytest.fixture
 def client(monkeypatch, signing_key):
     monkeypatch.setattr(
-        auth,
+        tokens,
         "get_jwks_client",
         lambda: StaticJwksClient(signing_key.public_key()),
     )
@@ -89,7 +87,7 @@ def test_get_current_user_returns_explicit_guest_without_credentials():
 
     assert isinstance(guest, AnonymousUser)
     assert (guest.id, guest.email, guest.role) == ("", "", "guest")
-    assert auth.get_application_role(guest) == "guest"
+    assert get_application_role(guest) == "guest"
     with pytest.raises(InvalidCredentialsException):
         require_authenticated_user(guest)
 
@@ -128,7 +126,7 @@ def test_users_me_rejects_present_non_bearer_or_empty_credentials(client, author
 
 def test_users_me_rejects_malformed_token_before_jwks_fetch(monkeypatch):
     jwks_client = PyJWKClient("https://unused.example.test/jwks")
-    monkeypatch.setattr(auth, "get_jwks_client", lambda: jwks_client)
+    monkeypatch.setattr(tokens, "get_jwks_client", lambda: jwks_client)
 
     response = TestClient(karlbruder_app).get(
         "/api/users/me",
@@ -197,7 +195,7 @@ def test_users_me_rejects_token_signed_by_another_key(client):
 
 def test_users_me_accepts_rs256_token_from_trusted_key(monkeypatch, rsa_signing_key):
     monkeypatch.setattr(
-        auth,
+        tokens,
         "get_jwks_client",
         lambda: StaticJwksClient(rsa_signing_key.public_key()),
     )
@@ -215,7 +213,7 @@ def test_users_me_accepts_rs256_token_from_trusted_key(monkeypatch, rsa_signing_
 def test_users_me_rejects_rs256_token_from_untrusted_key(monkeypatch, rsa_signing_key):
     untrusted_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     monkeypatch.setattr(
-        auth,
+        tokens,
         "get_jwks_client",
         lambda: StaticJwksClient(rsa_signing_key.public_key()),
     )
@@ -231,7 +229,7 @@ def test_users_me_rejects_rs256_token_from_untrusted_key(monkeypatch, rsa_signin
 
 
 def test_users_me_reports_jwks_outage(monkeypatch, signing_key):
-    monkeypatch.setattr(auth, "get_jwks_client", lambda: OfflineJwksClient())
+    monkeypatch.setattr(tokens, "get_jwks_client", lambda: OfflineJwksClient())
     token, _ = make_token(signing_key)
 
     response = TestClient(karlbruder_app).get(
