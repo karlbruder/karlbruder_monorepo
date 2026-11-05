@@ -78,6 +78,8 @@ deletion. Capacity cannot be reduced below confirmed participation.
 The editor loads current configuration when staff open it. A later refresh does not
 erase a draft. Saving preserves unchanged dates and times. The editor identifies
 the time zone used for changed values and explains known validation failures.
+A date change may make an existing participant a minor. Their registration remains
+unchanged. The participant can submit a missing parental form before participation.
 
 ## Staff payment-review evidence
 

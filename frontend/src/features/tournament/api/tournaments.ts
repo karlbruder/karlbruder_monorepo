@@ -96,6 +96,7 @@ export type PaymentProofSummary = {
 };
 
 export type RegistrationPaymentInstructions = {
+  parental_consent_required?: boolean;
   registration_number: string;
   registration_status: string;
   registration_fee_amount: string | number | null;
@@ -348,6 +349,7 @@ function isPaymentInstructions(value: unknown): value is RegistrationPaymentInst
   return (
     typeof record.registration_number === "string" &&
     typeof record.registration_status === "string" &&
+    (record.parental_consent_required === undefined || typeof record.parental_consent_required === "boolean") &&
     isCurrentReview(record.current_review) &&
     (record.amount_received == null ||
       typeof record.amount_received === "string" ||
@@ -438,4 +440,15 @@ export async function submitPaymentProof(
     throw new Error("invalid-payment-proof-submit-response");
   }
   return body;
+}
+
+export async function submitParentalConsentForm(
+  tournamentId: number, registrationNumber: string, token: string,
+  payload: { storage_key: string; original_file_name: string },
+): Promise<void> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/parental-consent-form`,
+    { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+  );
+  if (!response.ok) throw new Error(`http-${response.status}`);
 }

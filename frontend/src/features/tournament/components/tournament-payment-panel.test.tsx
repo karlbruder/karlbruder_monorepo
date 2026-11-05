@@ -310,3 +310,24 @@ it("reports inaccessible registrations instead of offering payment or creation",
   expect(await screen.findByRole("alert")).toHaveTextContent("Inscrição não encontrada ou sem acesso para esta conta.");
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });
+
+it("lets a confirmed participant upload missing parental consent after rescheduling", async () => {
+  let required = true;
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("/upload-url")) return { ok: true, status: 200, json: async () => ({ storage_key: "fixture-key", upload_url: "https://upload.example.test", expires_in_seconds: 900, required_headers: {} }) };
+    if (url === "https://upload.example.test") return { ok: true, status: 200 };
+    if (init?.method === "POST") { required = false; return { ok: true, status: 200 }; }
+    return { ok: true, status: 200, json: async () => ({ ...paymentInstructions, registration_status: "confirmed", parental_consent_required: required }) };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber="T42-000001-5" />);
+  const input = await screen.findByLabelText("Termo de responsabilidade assinado");
+  expect(screen.getByText(/termo assinado pelo responsável é necessário/)).toBeInTheDocument();
+  fireEvent.change(input, { target: { files: [mockPdfFile("term.pdf")] } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar termo" }));
+  await screen.findByText(/Sua participação está confirmada/);
+  const call = fetchMock.mock.calls.find(([url, init]) => url.includes("/T42-000001-5/parental-consent-form") && init?.method === "POST");
+  expect(call).toBeDefined();
+  expect(JSON.parse(String(call![1]!.body))).toEqual({ storage_key: "fixture-key", original_file_name: "term.pdf" });
+  expect(screen.getByText(/Sua participação está confirmada/)).toBeInTheDocument();
+});

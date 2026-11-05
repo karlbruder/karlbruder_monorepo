@@ -14,6 +14,7 @@ from app.tournaments.models import TournamentRegistration
 from app.tournaments.schemas import (
     ParentalConsentFormDownloadUrlRead,
     ParentalConsentFormUploadUrlRead,
+    ParentalConsentFormSubmitCreate,
     PaymentProofDownloadUrlRead,
     PaymentProofSubmitCreate,
     PaymentProofUploadUrlRead,
@@ -32,6 +33,9 @@ from app.tournaments.services import (
     visible_tournament,
 )
 from app.tournaments.services.registration_acceptances import project_registration
+from app.tournaments.services.registration_payment_instructions import (
+    submit_registration_parental_consent_form,
+)
 from app.tournaments.services.registration_documents import (
     create_parental_consent_form_upload_url,
 )
@@ -147,6 +151,26 @@ def get_registration(
     if get_application_role(user) == "admin":
         return project_registration(tournament_registration, staff=True)
     return project_registration(tournament_registration)
+
+
+@router.post(
+    "/{tournament_id}/registrations/{registration_number}/parental-consent-form",
+    response_model=RegistrationRead,
+)
+def submit_parental_consent_form(
+    tournament_id: int,
+    registration_number: str,
+    payload: ParentalConsentFormSubmitCreate,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> RegistrationRead:
+    registration = submit_registration_parental_consent_form(
+        session, tournament_id, registration_number, user,
+        storage_key=payload.storage_key, original_file_name=payload.original_file_name,
+        file_storage=file_storage,
+    )
+    return project_registration(registration)
 
 
 @router.get(

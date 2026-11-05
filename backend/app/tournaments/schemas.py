@@ -268,6 +268,13 @@ class PaymentProofSubmitCreate(BaseModel):
     original_file_name: str = Field(min_length=1, max_length=255)
 
 
+class ParentalConsentFormSubmitCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
 class PaymentProofDownloadUrlRead(BaseModel):
     download_url: str
     content_type: str
@@ -297,6 +304,7 @@ class CurrentPaymentProofReview(BaseModel):
 
 
 class RegistrationPaymentInstructions(BaseModel):
+    parental_consent_required: bool
     registration_number: str
     registration_status: str
     registration_fee_amount: Decimal | None

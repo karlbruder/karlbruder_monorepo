@@ -193,6 +193,9 @@ const english = {
   "A idade no dia do torneio orienta este campo. O servidor confirma se o envio é obrigatório.":
     "Age on the tournament day guides this field. The server confirms whether the upload is required.",
   "Termo de responsabilidade assinado": "Signed parental consent form",
+  "O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.": "A signed parental consent form is required to participate. Upload it before the event.",
+  "Enviando termo...": "Uploading form...",
+  "Enviar termo": "Upload form",
   "Envie o termo de responsabilidade assinado em PDF ou imagem (JPEG ou PNG).":
     "Upload the signed parental consent form as PDF or image (JPEG or PNG).",
   "O termo de responsabilidade deve ser PDF, JPEG ou PNG.":

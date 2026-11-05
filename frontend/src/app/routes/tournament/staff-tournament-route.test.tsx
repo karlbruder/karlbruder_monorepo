@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
@@ -173,4 +173,43 @@ it("localizes validation and policy errors in English", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Save tournament" }));
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("exceeds 10 MiB"));
   expect(screen.getByLabelText("Name")).toHaveValue("Draft");
+});
+
+it.each(["edit", "create", "delete"])("does not redirect a later draft when a pending %s finishes", async operation => {
+  let finish!: (response: Response) => void;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (init?.method === ({ edit: "PUT", create: "POST", delete: "DELETE" }[operation])) return new Promise<Response>(resolve => { finish = resolve; });
+    if (url.includes("?")) return json({ items: [event], total: 1 });
+    return json(event);
+  });
+  render(tree(operation === "create" ? "/staff/tournaments/new" : "/staff/tournaments/1"));
+  if (operation === "create") {
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "First" } });
+    fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17T12:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
+  } else if (operation === "edit") {
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar torneio" }));
+  } else {
+    fireEvent.click(await screen.findByRole("button", { name: "Excluir torneio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+  }
+  await waitFor(() => expect(finish).toBeDefined());
+  fireEvent.click(screen.getByRole("link", { name: /^Torneios$/ }));
+  fireEvent.click(await screen.findByRole("link", { name: "Criar torneio" }));
+  fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Second draft" } });
+  await act(async () => { finish(operation === "delete" ? new Response(null, { status: 204 }) : json(event)); });
+  expect(screen.getByLabelText("Nome")).toHaveValue("Second draft");
+});
+
+const observesNewYorkGap = new Date("2027-03-14T01:59").getTimezoneOffset() === 300 && new Date("2027-03-14T03:00").getTimezoneOffset() === 240;
+it.skipIf(!observesNewYorkGap).each([
+  ["Início", false], ["Término", false], ["Prazo de pagamento", true],
+])("rejects nonexistent local time for %s without sending a request", async (label, english) => {
+  render(tree("/staff/tournaments/1"));
+  await screen.findByLabelText("Início");
+  fireEvent.change(screen.getByLabelText(label), { target: { value: "2027-03-14T02:30" } });
+  if (english) fireEvent.click(screen.getByRole("button", { name: "English" }));
+  fireEvent.click(screen.getByRole("button", { name: english ? "Save tournament" : "Salvar torneio" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(english ? "local time does not exist" : "horário local não existe");
+  expect(fetchMock.mock.calls.every(([, init]) => init?.method !== "PUT")).toBe(true);
 });

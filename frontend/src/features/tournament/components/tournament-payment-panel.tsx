@@ -5,6 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   PaymentProofRequestError,
   requestPaymentProofUploadUrl,
+  requestParentalConsentFormUploadUrl,
+  submitParentalConsentForm,
   submitPaymentProof,
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
@@ -84,6 +86,9 @@ export default function TournamentPaymentPanel({
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
   const [replaceMode, setReplaceMode] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+  const [consentPending, setConsentPending] = useState(false);
+  const consentBusy = useRef(false);
 
   const { data: payment, error, isFetching, refetch } = useTournamentRegistrationPayment(
     tournament.id,
@@ -151,6 +156,32 @@ export default function TournamentPaymentPanel({
     }
   };
 
+  const submitConsent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (consentBusy.current || !payment?.parental_consent_required) return;
+    const form = event.currentTarget;
+    const input = form.elements.namedItem("parental_consent_form");
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    consentBusy.current = true;
+    setConsentPending(true);
+    setConsentError(false);
+    try {
+      if (!file || await validateParentalConsentFormFile(file)) throw new Error("invalid file");
+      const upload = await requestParentalConsentFormUploadUrl(tournament.id, session.access_token);
+      await uploadFileToPresignedUrl(upload.upload_url, file, upload.required_headers);
+      await submitParentalConsentForm(tournament.id, registrationNumber, session.access_token, {
+        storage_key: upload.storage_key, original_file_name: file.name,
+      });
+      form.reset();
+      await invalidatePayment();
+    } catch {
+      setConsentError(true);
+    } finally {
+      consentBusy.current = false;
+      setConsentPending(false);
+    }
+  };
+
   if (isFetching && !payment) {
     return (
       <section className="registration-card" aria-labelledby="payment-panel-title">
@@ -195,7 +226,15 @@ export default function TournamentPaymentPanel({
         <p>{payment.current_review.rejection_reason}</p>
         <p>{t("Sua inscrição não foi cancelada. Envie um novo comprovante para análise. Nenhuma vaga está reservada.")}</p>
       </div>}
-      {payment.registration_status === "confirmed" && <p className="registration-notice" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
+      {payment.parental_consent_required && <form className="registration-payment-proof-form" onSubmit={submitConsent}>
+        <p className="registration-notice" role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
+        <label htmlFor="parental_consent_form_existing">{t("Termo de responsabilidade assinado")}</label>
+        <input id="parental_consent_form_existing" name="parental_consent_form" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" disabled={consentPending} />
+        <p>{t("Envie o termo de responsabilidade assinado em PDF ou imagem (JPEG ou PNG).")}</p>
+        {consentError && <p role="alert">{t("Não foi possível enviar o termo de responsabilidade. Tente novamente.")}</p>}
+        <button type="submit" disabled={consentPending}>{t(consentPending ? "Enviando termo..." : "Enviar termo")}</button>
+      </form>}
+      {payment.registration_status === "confirmed" && !payment.parental_consent_required && <p className="registration-notice" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
       {payment.registration_status === "waitlist" && <p className="registration-notice" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
       {payment.registration_status === "cancelled" && <p className="registration-notice" role="status">{t("Esta inscrição está cancelada e não permite envio de comprovantes.")}</p>}
 

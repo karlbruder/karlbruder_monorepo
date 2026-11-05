@@ -1944,3 +1944,70 @@ def test_later_staff_save_replaces_an_earlier_edit(setup):
     result = client.get(f"/api/staff/tournaments/{event_id}", headers=admin).json()
     assert result["name"] == "Second edit"
     assert result["pix_key"] == "second-key"
+
+
+def test_rescheduled_minor_can_attach_missing_consent_to_confirmed_registration(setup):
+    client, key, session, storage = setup
+    event_id = _create_event(client, key, starts_at="2027-01-17T12:00:00Z")
+    owner = _headers(key)
+    created = _post_registration(client, event_id, owner, _registration(birth_date="2009-01-16"))
+    assert created.status_code == 201
+    number = created.json()["registration_number"]
+    registration = session.scalar(select(TournamentRegistration).where(
+        TournamentRegistration.registration_number == number
+    ))
+    from tests.tournaments.test_payment_review_decisions import _clients, _decide
+
+    proof_key = "fixture/reschedule-proof.pdf"
+    storage.objects[proof_key] = (_pdf_bytes(), "application/pdf")
+    proof = TournamentRegistrationDocument(
+        registration_id=registration.id,
+        document_type="payment_proof",
+        file=StoredFile(storage_key=proof_key, original_file_name="proof.pdf", content_type="application/pdf", size_bytes=len(_pdf_bytes())),
+    )
+    registration.registration_status = "awaiting_payment_confirmation"
+    session.add(proof)
+    session.flush()
+    _clients()
+    assert _decide(setup, registration, proof).json()["registration_status"] == "confirmed"
+    response = client.put(
+        f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin"),
+        json=_staff_update_payload(client, event_id, key, starts_at="2027-01-15T12:00:00Z"),
+    )
+    assert response.status_code == 200
+    base = f"/api/tournaments/{event_id}/registrations/{number}"
+    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is True
+    upload = client.post(
+        f"/api/tournaments/{event_id}/registrations/parental-consent-form/upload-url", headers=owner
+    ).json()
+    storage.objects[upload["storage_key"]] = (_pdf_bytes(), "application/pdf")
+    payload = {"storage_key": upload["storage_key"], "original_file_name": "term.pdf"}
+    assert client.post(f"{base}/parental-consent-form", headers=_headers(key, user_id=uuid4()), json=payload).status_code == 404
+    assert client.post(f"{base}/parental-consent-form", json=payload).status_code == 401
+    storage.copy_should_fail = True
+    assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 503
+    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is True
+    storage.copy_should_fail = False
+    saved = client.post(f"{base}/parental-consent-form", headers=owner, json=payload)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["registration_status"] == "confirmed"
+    assert client.get(f"{base}/payment", headers=owner).json()["parental_consent_required"] is False
+    assert client.get(f"{base}/parental-consent-form", headers=owner).status_code == 200
+    assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 409
+
+
+def test_existing_registration_consent_rejects_wrong_owner_storage_and_invalid_file(setup):
+    client, key, session, storage = setup
+    event_id = _create_event(client, key, starts_at="2027-01-17T12:00:00Z")
+    owner = _headers(key)
+    created = _post_registration(client, event_id, owner, _registration(birth_date="2009-01-16"))
+    number = created.json()["registration_number"]
+    base = f"/api/tournaments/{event_id}/registrations/{number}"
+    upload = client.post(f"/api/tournaments/{event_id}/registrations/parental-consent-form/upload-url", headers=owner).json()
+    payload = {"storage_key": upload["storage_key"], "original_file_name": "term.pdf"}
+    assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 422
+    assert client.put(f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin"), json=_staff_update_payload(client, event_id, key, starts_at="2027-01-15T12:00:00Z")).status_code == 200
+    assert client.post(f"{base}/parental-consent-form", headers=owner, json={**payload, "storage_key": "wrong-prefix"}).status_code == 422
+    storage.objects[upload["storage_key"]] = (b"bad file", "application/pdf")
+    assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 415
+    assert session.scalar(select(func.count()).select_from(TournamentRegistrationDocument)) == 0

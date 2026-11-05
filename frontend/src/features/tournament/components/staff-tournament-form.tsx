@@ -71,15 +71,25 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   const [closed, setClosed] = useState(event?.is_registration_closed ?? false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const [invalidTime, setInvalidTime] = useState<string | null>(null);
   const en = language === "en";
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (pending) return;
-    setPending(true); setError(null);
+    setPending(true); setError(null); setInvalidTime(null);
     try {
       const payload: Record<string, unknown> = { is_internal: internal, is_registration_closed: closed };
       for (const field of fields) {
         const value = values[field.key].trim();
+        if (value && field.type === "datetime-local" && !(event && value === originalValues[field.key])) {
+          const date = new Date(value);
+          const entered = value.length === 16 ? `${value}:00` : value;
+          const roundTrip = Number.isNaN(date.getTime()) ? "" : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+          if (roundTrip !== entered) {
+            setInvalidTime(field.key);
+            return;
+          }
+        }
         payload[field.key] = !value ? null : field.type === "datetime-local" ? event && value === originalValues[field.key] ? event[field.key] : new Date(value).toISOString() : field.key === "competitor_capacity" ? Number(value) : value;
       }
       await saveStaffTournament(token, payload, event ? String(event.id) : undefined);
@@ -96,6 +106,7 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     </label>)}
     <label><input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {en ? "Internal tournament" : "Torneio interno"}</label>{" "}
     <label><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
+    {invalidTime && <p role="alert">{en ? "This local time does not exist. Choose another time for" : "Este horário local não existe. Escolha outro horário para"} {en ? fields.find(field => field.key === invalidTime)?.en : fields.find(field => field.key === invalidTime)?.pt}.</p>}
     {error != null && <p role="alert">{saveErrorMessage(error, en)}</p>}
     <p><button disabled={pending}>{pending ? (en ? "Saving..." : "Salvando...") : (en ? "Save tournament" : "Salvar torneio")}</button></p>
   </form>;
