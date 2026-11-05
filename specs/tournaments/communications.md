@@ -1,7 +1,7 @@
 # Tournament communications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Keep participants informed about registration, payment, confirmation, and waitli
 
 ## Required communication types
 
-The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on paid waitlist entry, completed refund, rejected payment evidence, and material event-fact changes under CAT-008. Each notification is required when its triggering workflow is delivered; the broader reminder and announcement suite remains deferred.
+The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on paid waitlist entry, completed refund, and rejected payment evidence. Each notice is required when its triggering workflow is delivered. Notifications for material event-fact changes are deferred under CAT-008. The broader reminder and announcement suite also remains deferred.
 
 The acceptance criteria for acknowledgments, definitive-confirmation emails, and editable templates apply when those later messaging capabilities are delivered. They do not expand PROD-011's first-release notification scope. Staff may contact waitlisted participants as part of their operational judgment; this does not introduce an automated invitation workflow.
 
@@ -30,7 +30,7 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 - **COM-006:** Send refund confirmation only after guild staff records the completed refund, not when the user first cancels. Cancellation without payment does not trigger refund confirmation. When staff approves payment but the tournament is full, email the user that they are waitlisted and have no confirmed seat.
 - **COM-007:** The backend sends application emails through AWS SES using SMTP. SMTP credentials and connection settings are backend configuration. Local SMTP setup is deferred, likely real SES with real AWS/SES credentials. No local mail emulator is chosen by the S3/Ministack decision.
 - **COM-008:** Send application email in Portuguese. The sender is backend configuration (`SMTP_FROM`), defaulting to `Suporte Karlbrüder <no-reply@karlbruder.com.br>`. Use the user's current account email at delivery time, not a stale registration email or stripped comparison value. Ownership remains the Supabase UUID after an email change.
-- **COM-009:** Rejected payment evidence notifies the participant with the rejection message and a resubmission path. Tournament date, schedule, location, regulation, equipment-requirement, and cancellation-policy changes notify affected registrants under CAT-008. Ordinary staff corrections to registration fields do not require notifications; required workflow notices still apply.
+- **COM-009:** Rejected payment evidence notifies the participant with the rejection message and a resubmission path. Tournament-fact change notifications are deferred under CAT-008. Ordinary staff corrections to registration fields do not require notifications. Required workflow notices still apply.
 
 ## Persisted outcome references
 
@@ -54,7 +54,7 @@ scope. Refund commands and their notices remain unimplemented.
 - **COM-AC-007:** Staff approval of payment when no seat is available records waitlist status and sends the user an email explaining that outcome.
 - **COM-AC-008:** Production notification delivery uses the configured AWS SES SMTP connection and exposes no SMTP credentials to browser code.
 - **COM-AC-009:** After an account email change, subsequent registration messages use the current account email, in Portuguese, with the configured sender identity.
-- **COM-AC-010:** Rejecting payment evidence sends its reason and resubmission guidance; changing a CAT-008 notification-triggering fact informs affected registrants.
+- **COM-AC-010:** Rejecting payment evidence sends its reason and resubmission guidance. Notices for changed tournament facts remain future work under CAT-008.
 
 ## Open questions
 

@@ -14,7 +14,7 @@ Account sign-up remains a separate Supabase Auth operation.
 `GET /api/tournaments/{tournament_id}` returns one event. Guests and regular
 users see non-internal events. Guild members and admins also see internal events.
 An inaccessible event returns 404. A supplied invalid token returns 401 even
-on a guest-readable route. Only admins may `POST /api/staff/tournaments`.
+on a guest-readable route. Only admins may use the staff configuration endpoints.
 
 `name` filters display names without case sensitivity. `starts_from` and
 `starts_to` filter the event start by inclusive calendar dates in UTC-03:00.
@@ -32,6 +32,35 @@ or separately. Missing content remains visibly unconfigured. Text is displayed a
 text even when it resembles a URL. `rules_version` and `terms_version` identify
 accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
 
+## Staff tournament configuration
+
+`GET /api/staff/tournaments` lists all events with `items`, `total`, `limit`,
+and `offset`. `GET /api/staff/tournaments/{tournament_id}` reads one event.
+These staff projections include `pix_key`. Public catalog responses do not
+expose it. `POST /api/staff/tournaments`
+keeps its existing create contract.
+
+`PUT /api/staff/tournaments/{tournament_id}` replaces the configuration. Send
+the create fields. The last staff save replaces the configuration. A duplicate
+slug or capacity below confirmed participation returns 409. Every save
+captures configured policy links again. A failed capture, storage operation, or
+database transaction publishes no partial change. `DELETE` on the same resource
+returns 204 for an eligible event. It returns 409 when any registration exists.
+Missing events return 404. Guests receive 401 and non-admins receive 403.
+
+Notifications for event changes remain future work. Future results must also
+prevent deletion.
+
+## Consent for an existing registration
+
+The registration owner can submit a missing parental consent form after an event
+change makes them a minor. Registration responses include `parental_consent_required` when an active
+registration needs the form. The owner
+uses the existing parental consent upload URL and posts its staging key and original
+file name to `POST /api/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form`.
+The service checks ownership, age, and existing evidence. It validates the uploaded
+file before attaching it. A successful submission does not change registration status.
+
 ## Preserved policies and acceptance
 
 Tournament creation captures each configured policy URL before saving the event.
@@ -39,8 +68,8 @@ Inline text remains separate and both forms may be present.
 Each URL capture creates a shared ArchivedFile referencing StoredFile metadata.
 The capture retains source/final URLs, SHA-256 and capture time. Private stored
 bytes use a fresh key. Reads do not fetch the source again. A new capture preserves
-a new copy even when its source URL is unchanged. Tournament editing is not
-implemented.
+a new copy even when its source URL is unchanged. Both creation and replacement
+capture configured URLs before publishing the configuration.
 
 The bounded client accepts public HTTP(S) PDF, plain text and HTML documents.
 It checks every redirect and resolved address, pins the connected IP, retains

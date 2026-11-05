@@ -12,15 +12,13 @@ from app.tournaments.exceptions import (
     TournamentError,
 )
 from app.auth.models import User
-from app.tournaments.services.tournament_payment_settings import (
-    read_registration_pix_key_for_tournament,
-)
 from app.core.files.models import StoredFile
 from app.payments.models import Payment
 from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,
     Tournament,
+    TournamentPaymentSettings,
     TournamentRegistration,
     TournamentRegistrationDocument,
 )
@@ -201,10 +199,19 @@ def read_registration_payment_instructions(
     )
     if tournament_registration is None or tournament_registration.user_id != user.id:
         raise RegistrationResourceNotFoundError("Registration not found")
-    tournament = session.scalar(
-        select(Tournament).where(Tournament.id == tournament_id)
-    )
-    if tournament is None:
+    payment_configuration = session.execute(
+        select(
+            Tournament.registration_fee_amount,
+            Tournament.payment_due_at,
+            TournamentPaymentSettings.pix_key,
+        )
+        .outerjoin(
+            TournamentPaymentSettings,
+            TournamentPaymentSettings.tournament_id == Tournament.id,
+        )
+        .where(Tournament.id == tournament_id)
+    ).one_or_none()
+    if payment_configuration is None:
         raise RegistrationResourceNotFoundError("Tournament not found")
     latest_proof_row = session.scalar(
         select(TournamentRegistrationDocument)
@@ -225,9 +232,6 @@ def read_registration_payment_instructions(
             size_bytes=latest_proof_row.file.size_bytes,
             submitted_at=latest_proof_row.submitted_at,
         )
-    registration_pix_key = read_registration_pix_key_for_tournament(
-        session, tournament_id
-    )
     review = None
     if latest_proof_row is not None:
         review = session.scalar(
@@ -248,12 +252,11 @@ def read_registration_payment_instructions(
         )
     return RegistrationPaymentInstructions(
         registration_number=tournament_registration.registration_number,
-        registration_status=tournament_registration.registration_status,
-        registration_fee_amount=tournament.registration_fee_amount,
+        registration_fee_amount=payment_configuration.registration_fee_amount,
         amount_received=amount_received,
-        payment_due_at=tournament.payment_due_at,
+        payment_due_at=payment_configuration.payment_due_at,
         payment_options=RegistrationPaymentOptions(
-            pix=PixPaymentOptionRead(pix_key=registration_pix_key),
+            pix=PixPaymentOptionRead(pix_key=payment_configuration.pix_key),
         ),
         latest_payment_proof=latest_payment_proof,
         current_review=(

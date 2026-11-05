@@ -99,7 +99,15 @@ def project_registration(registration: TournamentRegistration, *, staff: bool = 
     schema = StaffRegistrationRead if staff else RegistrationRead
     snapshot = registration.acceptances[-1]
     evidence_fields = {*CHOICE_FIELDS, "accepted_terms_version", "accepted_rules_version", "accepted_at", "accepted_from_ip"}
-    return schema(**{
+    from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
+
+    values = {
         name: getattr(snapshot if name in evidence_fields else registration, name)
-        for name in schema.model_fields
-    })
+        for name in schema.model_fields if name != "parental_consent_required"
+    }
+    values["parental_consent_required"] = (
+        registration.registration_status != "cancelled"
+        and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)
+        and not any(document.document_type == "parental_consent_form" for document in registration.documents)
+    )
+    return schema(**values)

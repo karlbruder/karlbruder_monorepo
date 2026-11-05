@@ -3,7 +3,13 @@ import { renderWithQuery as render } from "@/testing/render-with-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
-import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
+import PaymentPanel from "@/features/tournament/components/tournament-payment-panel";
+import { useState, type ComponentProps } from "react";
+
+function TournamentPaymentPanel(props: Omit<ComponentProps<typeof PaymentPanel>, "registrationStatus" | "onProofSubmitted" | "onRegistrationRefresh"> & { initialStatus?: string }) {
+  const [status, setStatus] = useState(props.initialStatus ?? "awaiting_payment");
+  return <PaymentPanel {...props} registrationStatus={status} onProofSubmitted={() => {}} onRegistrationRefresh={async () => { setStatus("awaiting_payment_confirmation"); }} />;
+}
 import type { RegistrationPaymentInstructions, Tournament } from "@/features/tournament/api/tournaments";
 
 const tournament: Tournament = {
@@ -34,7 +40,6 @@ const session = {
 
 const paymentInstructions: RegistrationPaymentInstructions = {
   registration_number: "T42-000001-5",
-  registration_status: "awaiting_payment",
   registration_fee_amount: "150.00",
   payment_due_at: "2027-02-01T23:59:59+00:00",
   payment_options: { pix: { pix_key: "EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY" } },
@@ -89,7 +94,6 @@ describe("Tournament payment panel", () => {
     );
     expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument();
     expect(screen.getByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).toBeInTheDocument();
-    expect(screen.getByText("T42-000001-5")).toBeInTheDocument();
   });
 
   it("shows not configured when Pix key is missing", async () => {
@@ -112,6 +116,15 @@ describe("Tournament payment panel", () => {
       />,
     );
     expect(await screen.findByText(/A chave Pix deste torneio ainda não foi configurada/)).toBeInTheDocument();
+  });
+
+  it("shows an unknown current fee instead of the older catalog fee", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, registration_fee_amount: null }) }));
+    render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+    await screen.findByRole("heading", { name: "Pagamento da inscrição" });
+    expect(screen.getAllByText("A confirmar").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/150,00/)).not.toBeInTheDocument();
+    expect(screen.getByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).toBeInTheDocument();
   });
 
   it("uploads proof through presigned flow and shows payment in review", async () => {
@@ -179,7 +192,7 @@ describe("Tournament payment panel", () => {
       "/api/tournaments/42/registrations/T42-000001-5/payment-proof",
       expect.objectContaining({ method: "POST" }),
     ));
-    expect(await screen.findByText("Aguardando confirmação do pagamento")).toBeInTheDocument();
+    expect(await screen.findByText(/Recebemos seu comprovante/)).toBeInTheDocument();
   });
 
   it("keeps latest proof visible when server rejects replacement file", async () => {
@@ -227,6 +240,7 @@ describe("Tournament payment panel", () => {
         tournament={tournament}
         session={session}
         registrationNumber="T42-000001-5"
+        initialStatus="awaiting_payment_confirmation"
       />,
     );
     await screen.findByRole("heading", { name: "Pagamento da inscrição" });
@@ -241,33 +255,19 @@ describe("Tournament payment panel", () => {
   });
 });
 
-it.each([
-  ["confirmed", "Confirmada", "Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente."],
-  ["waitlist", "Lista de espera", "Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática."],
-  ["cancelled", "Cancelada", "Esta inscrição está cancelada e não permite envio de comprovantes."],
-])("shows %s without requesting another payment or allowing proof upload", async (status, label, message) => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, registration_status: status }) }));
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
-  expect(await screen.findByText(label)).toBeInTheDocument(); expect(screen.getByText(message)).toBeInTheDocument();
+it.each(["confirmed", "waitlist", "cancelled"])("does not offer another proof for %s registrations", async status => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => paymentInstructions }));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} initialStatus={status} />);
+  await screen.findByRole("heading", { name: "Pagamento da inscrição" });
   expect(screen.queryByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).not.toBeInTheDocument();
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
-  expect(screen.queryByText(/Faça o Pix/)).not.toBeInTheDocument();
-  expect(screen.queryByText(/O envio da inscrição não confirma/)).not.toBeInTheDocument();
 });
-it("shows approved paid-waitlist wording in English and refreshes a later confirmed outcome", async () => {
-  let status = "waitlist";
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({
-    ...paymentInstructions, registration_status: status, registration_fee_amount: "100.00", amount_received: 0,
-  }) })));
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language="en" />);
-  await screen.findByText("Paid waitlist");
-  expect(screen.getByText("Payment confirmed")).toBeInTheDocument();
-  expect(screen.getByText("Amount received")).toBeInTheDocument();
-  expect(screen.getByText("R$0.00")).toBeInTheDocument();
-  expect(screen.queryByText("R$100.00")).not.toBeInTheDocument();
-  expect(screen.getByText(/Do not pay again.*There is no automatic promotion/)).toBeInTheDocument();
-  status = "confirmed"; fireEvent.click(screen.getByRole("button", { name: "Refresh status" }));
-  await screen.findByText("Confirmed"); expect(screen.getByText(/Your participation is confirmed/)).toBeInTheDocument();
+it("does not offer resubmission for a cancelled registration with a rejected proof", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, current_review: { document_id: 1, decision: "rejected", rejection_reason: "Unreadable proof", reviewed_at: "2026-11-05T12:00:00Z" } }) }));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} initialStatus="cancelled" language="en" />);
+  await screen.findByText(/registration is cancelled/);
+  expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Unreadable proof")).not.toBeInTheDocument();
 });
 it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only new evidence in %s", async language => {
   let uploaded = false;
@@ -288,7 +288,7 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
   expect(screen.queryByText(/Faça o Pix|Complete the Pix transfer/)).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText(language === "pt" ? "Comprovante de pagamento" : "Payment proof", { selector: "input" }), { target: { files: [mockPdfFile("replacement.pdf")] } });
   fireEvent.submit(screen.getByRole("form"));
-  await screen.findByText(language === "pt" ? "Aguardando confirmação do pagamento" : "Awaiting payment confirmation");
+  await screen.findByText(language === "pt" ? /Recebemos seu comprovante/ : /We received your proof/);
   expect(screen.getByRole("status")).toHaveTextContent(language === "pt"
     ? "Nossa equipe confere o pagamento manualmente. Essa conferência pode levar de 1 a 2 dias úteis."
     : "Our staff verify payments manually. This review may take 1 to 2 business days.");

@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -23,7 +23,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
-- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Notify registered participants when event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, or cancellation policy change. Other fact changes do not require notification. Preserve earlier regulation acceptances when text changes.
+- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier regulation acceptances when text changes.
 - **CAT-009:** The catalog is the listing and detail experience for `Tournament` resources, not a separate domain object. Fees, dates, venue, schedule, equipment, regulation, and capacity are staff-managed configuration. Currency is BRL. Pix destination and receiving-account details are payment configuration, not fixed product-spec values.
 
 Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
@@ -41,7 +41,7 @@ new linked content, including when the source URL is unchanged.
 
 The user selects a tournament, reads its available details, and enters registration at `/tournaments/registration`. Signing in is required to register, and a user registers only themselves. In the later results capability, non-internal results may be public; internal results require guild membership, including the inherited access of guild staff.
 
-Guild staff (admins) can create and manage all tournaments. API naming and display ordering are implementation choices. This specification does not introduce a draft/published/archived lifecycle absent from the agreed Tournament model.
+Guild staff (admins) can create and manage all tournaments. API naming and display ordering are implementation choices. Staff can delete a tournament only when it has no registrations. This applies even after registrations close. A future tournament with match results must also be protected from deletion. This specification does not introduce a draft/published/archived lifecycle absent from the agreed Tournament model.
 
 ## Acceptance criteria
 
@@ -51,12 +51,12 @@ Guild staff (admins) can create and manage all tournaments. API naming and displ
 - **CAT-AC-004:** Unknown event facts remain visibly unconfirmed until configured.
 - **CAT-AC-005:** A guest can view public tournament listings and details, while a guest or non-member regular user cannot list or retrieve internal tournaments.
 - **CAT-AC-006:** A guild member or guild staff user can view internal tournaments. Administrative event changes require the admin role.
-- **CAT-AC-007:** Changing a date, schedule, location, regulation, equipment requirement, or cancellation policy notifies affected registrants; changing another fact does not require a notification.
+- **CAT-AC-007:** Tournament edits preserve prior acceptance evidence. Notifications about changed tournament facts remain future work.
 - **CAT-AC-008:** Explicitly closing new registrations rejects new submissions even within the date window. A full event that remains open displays a waitlist warning without claiming that form submission itself assigns waitlist status.
 
 ## Open questions
 
-None. Tournament listing uses the existing resource, and editing/notification rules are defined above. Actual event values are configuration inputs, not unanswered product decisions.
+None. Tournament listing uses the existing resource, and editing rules and the notification deferral are defined above. Actual event values are configuration inputs, not unanswered product decisions.
 
 ## Deferred questions
 

@@ -85,6 +85,7 @@ export type RegistrationCreated = {
 };
 
 export type OwnerRegistration = RegistrationCreated & {
+  parental_consent_required?: boolean;
   user_id?: string;
 };
 
@@ -97,7 +98,6 @@ export type PaymentProofSummary = {
 
 export type RegistrationPaymentInstructions = {
   registration_number: string;
-  registration_status: string;
   registration_fee_amount: string | number | null;
   amount_received?: string | number | null;
   payment_due_at: string | null;
@@ -325,6 +325,14 @@ export async function listOwnRegistrations(
   return body;
 }
 
+export async function getOwnRegistration(tournamentId: number, number: string, token: string, signal?: AbortSignal): Promise<OwnerRegistration & { parental_consent_required: boolean }> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(`http-${response.status}`);
+  if (!isOwnerRegistration(body) || body.tournament_id !== tournamentId || body.registration_number !== number || typeof body.parental_consent_required !== "boolean") throw new Error("invalid-registration");
+  return body as OwnerRegistration & { parental_consent_required: boolean };
+}
+
 function isCurrentReview(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   if (typeof value !== "object") return false;
@@ -347,7 +355,6 @@ function isPaymentInstructions(value: unknown): value is RegistrationPaymentInst
   const pixKey = (pix as Record<string, unknown>).pix_key;
   return (
     typeof record.registration_number === "string" &&
-    typeof record.registration_status === "string" &&
     isCurrentReview(record.current_review) &&
     (record.amount_received == null ||
       typeof record.amount_received === "string" ||
@@ -438,4 +445,15 @@ export async function submitPaymentProof(
     throw new Error("invalid-payment-proof-submit-response");
   }
   return body;
+}
+
+export async function submitParentalConsentForm(
+  tournamentId: number, registrationNumber: string, token: string,
+  payload: { storage_key: string; original_file_name: string },
+): Promise<void> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/parental-consent-form`,
+    { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+  );
+  if (!response.ok) throw new Error(`http-${response.status}`);
 }

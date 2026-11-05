@@ -141,6 +141,17 @@ class TournamentList(BaseModel):
     offset: int
 
 
+class StaffTournamentRead(TournamentRead):
+    pix_key: str | None
+
+
+class StaffTournamentList(BaseModel):
+    items: list[StaffTournamentRead]
+    total: int
+    limit: int
+    offset: int
+
+
 class RegistrationCreate(BaseModel):
     """Participant-supplied fields only. Ownership and acceptance evidence are server-owned."""
 
@@ -257,6 +268,13 @@ class PaymentProofSubmitCreate(BaseModel):
     original_file_name: str = Field(min_length=1, max_length=255)
 
 
+class ParentalConsentFormSubmitCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
 class PaymentProofDownloadUrlRead(BaseModel):
     download_url: str
     content_type: str
@@ -287,7 +305,6 @@ class CurrentPaymentProofReview(BaseModel):
 
 class RegistrationPaymentInstructions(BaseModel):
     registration_number: str
-    registration_status: str
     registration_fee_amount: Decimal | None
     amount_received: Decimal | None = None
     payment_due_at: datetime | None
@@ -304,6 +321,7 @@ class RegistrationRead(BaseModel):
     tournament_id: int
     registration_number: str
     registration_status: str
+    parental_consent_required: bool
     full_name: str
     social_name: str | None
     birth_date: date

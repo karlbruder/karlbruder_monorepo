@@ -16,6 +16,7 @@ from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
     ParentalConsentFormRequiredError,
     RegistrationConflictError,
+    RegistrationDocumentInvalidError,
     RegistrationNotAllowedError,
     RegistrationResourceNotFoundError,
 )
@@ -268,3 +269,63 @@ def is_duplicate_tournament_registration(exc: IntegrityError) -> bool:
         and message.removeprefix("UNIQUE constraint failed: ")
         in _SQLITE_DUPLICATE_COLUMNS
     )
+
+def submit_registration_parental_consent_form(
+    session: Session,
+    tournament_id: int,
+    registration_number: str,
+    user: User,
+    *,
+    storage_key: str,
+    original_file_name: str,
+    file_storage: FileStorage,
+) -> TournamentRegistration:
+    """Attach missing consent to an existing minor's own active registration."""
+    final_key = None
+    try:
+        tournament = visible_tournament(session, tournament_id, user, lock=True)
+        registration = session.scalar(
+            select(TournamentRegistration)
+            .where(
+                TournamentRegistration.tournament_id == tournament_id,
+                TournamentRegistration.registration_number == registration_number,
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if registration is None or registration.user_id != user.id:
+            raise RegistrationResourceNotFoundError("Registration not found")
+        if registration.registration_status == "cancelled" or not is_minor_at_tournament_start(
+            registration.birth_date, tournament.starts_at
+        ):
+            raise ParentalConsentFormNotAllowedError("Parental consent form is not required")
+        existing = session.scalar(
+            select(TournamentRegistrationDocument.id).where(
+                TournamentRegistrationDocument.registration_id == registration.id,
+                TournamentRegistrationDocument.document_type == "parental_consent_form",
+            ).limit(1)
+        )
+        if existing is not None:
+            raise RegistrationConflictError("Parental consent form already exists")
+        name = original_file_name.strip()
+        if not name:
+            raise RegistrationDocumentInvalidError("Parental consent form file name is required")
+        validate_staged_parental_consent_form_storage_key(storage_key, tournament_id, user.id)
+        inspect_staged_parental_consent_form_upload(file_storage, storage_key)
+        final_key, content_type, size = promote_staged_parental_consent_form_to_registration(
+            file_storage, staged_storage_key=storage_key,
+            tournament_id=tournament_id, registration_id=registration.id,
+        )
+        session.add(TournamentRegistrationDocument(
+            registration_id=registration.id,
+            document_type="parental_consent_form",
+            file=StoredFile(storage_key=final_key, original_file_name=name,
+                            content_type=content_type, size_bytes=size),
+        ))
+        session.commit()
+        return registration
+    except Exception:
+        session.rollback()
+        if final_key is not None:
+            delete_storage_object_quietly(file_storage, final_key)
+        raise

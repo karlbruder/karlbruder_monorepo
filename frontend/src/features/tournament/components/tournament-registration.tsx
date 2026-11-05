@@ -7,7 +7,7 @@ import { accountRoutes } from "@/config/account-routes";
 import { useRegistrationTournament } from "@/features/tournament/api/use-registration-tournament";
 import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own-tournament-registrations";
 import type { OwnerRegistration, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
-import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
+import TournamentRegistrationPanel from "@/features/tournament/components/tournament-registration-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -93,7 +93,7 @@ function SignedInRegistration({
       ) : !registrationNumber && !createdRegistration && ownRegistrationsQuery.isError ? (
         <div><p role="alert">{t("Não foi possível carregar sua inscrição.")}</p><button onClick={() => void ownRegistrationsQuery.refetch()}>{t("Tentar novamente")}</button></div>
       ) : selectedRegistrationNumber ? (
-        <TournamentPaymentPanel
+        <TournamentRegistrationPanel
           tournament={tournament}
           session={session}
           key={selectedRegistrationNumber}
