@@ -1,6 +1,5 @@
 """Tournament catalog authorization and configuration contracts."""
 
-import os
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -11,10 +10,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientConnectionError
 
-os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
-
-import app.auth.services as auth  # noqa: E402
-from app.main import karlbruder_app  # noqa: E402
+from app.auth.supabase import tokens
+from app.main import karlbruder_app
+from config import settings
 
 
 class StaticJwksClient:
@@ -48,7 +46,7 @@ def client(monkeypatch):
     karlbruder_app.dependency_overrides[get_policy_fetcher] = lambda: fetcher
     signing_key = ec.generate_private_key(ec.SECP256R1())
     monkeypatch.setattr(
-        auth, "get_jwks_client", lambda: StaticJwksClient(signing_key.public_key())
+        tokens, "get_jwks_client", lambda: StaticJwksClient(signing_key.public_key())
     )
     with TestClient(karlbruder_app) as test_client:
         yield test_client, signing_key
@@ -60,7 +58,7 @@ def _headers(signing_key, role=None, *, user_metadata=None):
     now = datetime.now(UTC)
     token = jwt.encode(
         {
-            "iss": f"{os.environ['SUPABASE_URL'].rstrip('/')}/auth/v1",
+            "iss": settings.issuer,
             "aud": "authenticated",
             "exp": now + timedelta(minutes=5),
             "iat": now,
@@ -296,7 +294,7 @@ def test_guest_catalog_does_not_fetch_jwks_and_supplied_token_outage_is_503(
     client, monkeypatch
 ):
     test_client, key = client
-    monkeypatch.setattr(auth, "get_jwks_client", lambda: OfflineJwksClient())
+    monkeypatch.setattr(tokens, "get_jwks_client", lambda: OfflineJwksClient())
 
     assert test_client.get("/api/tournaments").status_code == 200
     assert test_client.get("/api/tournaments/1").status_code == 404

@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -18,6 +18,7 @@ Copy [`.env.example`](.env.example) to `backend/.env` and fill in the project va
 | `ENV_NAME` | `local` or `test` selects that settings class. Other names select AWS settings. |
 | `DB_*` | Domain PostgreSQL connection, used to build the database URL. |
 | `SUPABASE_URL` | HTTPS project root for access-token verification. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Legacy Supabase `service_role` key for the same project. Set it only in the backend environment. |
 | `AUTH_DB_*` | Hosted PostgreSQL connection for `/api/health/auth`. It is not used to verify tokens. |
 | `S3_BUCKET_NAME`, `S3_ENDPOINT_URL`, `S3_BROWSER_ENDPOINT_URL` | Private storage bucket, server endpoint, and browser endpoint for presigned URLs. |
 | `SECRET_NAME`, `AWS_REGION` | Required AWS configuration. Secrets Manager fills values not supplied by environment or `.env`. |
@@ -26,8 +27,7 @@ Local Compose loads `backend/.env`. Production Compose loads
 `/opt/karlbruder/backend.env`. Settings also read `.env` from the process's working
 directory. Export `ENV_NAME` before startup because settings-class selection happens
 before that file is read. Environment variables override `.env` values. Export
-`SECRET_NAME` and `AWS_REGION` for AWS startup too. The current region fallback is a
-[known gap](AGENTS.md#known-implementation-gaps), not the intended deployment policy.
+`SECRET_NAME` and `AWS_REGION` for AWS startup too.
 
 To run on the host, install Python 3.12 and Poetry. From `backend/`:
 

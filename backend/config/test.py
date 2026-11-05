@@ -27,6 +27,8 @@ class TestSettings(Settings):
 
     SUPABASE_URL: AnyHttpUrl = "https://test-project.supabase.co"  # type: ignore[assignment]
 
+    SUPABASE_SERVICE_ROLE_KEY: str = "test-only-service-role-key"
+
     S3_BUCKET_NAME: str = "kb-test-bucket"
 
     SMTP_ENABLED: bool = False

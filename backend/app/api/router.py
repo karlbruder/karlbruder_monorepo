@@ -3,12 +3,14 @@
 from fastapi import APIRouter
 
 from app.api.health.router import router as health_router
-from app.auth.router import router as auth_router
+from app.auth.routers.authenticated import router as auth_router
+from app.auth.routers.staff import router as staff_auth_router
 from app.tournaments.routers import router as tournaments_router
 from config import settings
 
 router = APIRouter()
 router.include_router(auth_router)
+router.include_router(staff_auth_router)
 router.include_router(tournaments_router)
 router.include_router(health_router)
 

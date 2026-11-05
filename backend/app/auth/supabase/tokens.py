@@ -1,3 +1,5 @@
+"""Verify Supabase Auth access tokens and extract trusted identity claims."""
+
 import logging
 
 import jwt
@@ -13,7 +15,7 @@ from app.auth.exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
-from app.auth.models import AnonymousUser, User
+from app.auth.models import User
 from config import (
     ALLOWED_JWT_ALGORITHMS,
     EXPECTED_AUDIENCE,
@@ -72,14 +74,3 @@ def verify_user(access_token: str) -> User:
         )
     except (InvalidTokenError, KeyError, TypeError, ValidationError) as exc:
         raise InvalidCredentialsException() from exc
-
-
-def get_application_role(user: User | AnonymousUser) -> str:
-    """Read only the trusted Auth-managed app_metadata role claim."""
-
-    if isinstance(user, AnonymousUser):
-        return "guest"
-    role = user.app_metadata.get("karlbruder_role")
-    if role in ("regular_user", "guild_member", "admin"):
-        return role
-    return "regular_user"

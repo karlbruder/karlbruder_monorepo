@@ -163,11 +163,11 @@ settings JSON after apply. The secret uses the AWS managed key, so the host does
 not need a separate decrypt permission.
 
 Each deploy writes `/opt/karlbruder/backend.env` with `ENV_NAME`, `SECRET_NAME`, and
-`AWS_REGION`. The selected secret supplies database and Supabase settings, not
-those bootstrap values. Explicit region configuration is required by the intended
-policy. Backend bootstrap currently supplies a fallback region, so absence does
-not reliably cause startup failure. This existing gap is recorded in
-[backend instructions](../backend/AGENTS.md#known-implementation-gaps).
+`AWS_REGION`. The selected secret supplies database and Supabase settings. Add
+`SUPABASE_SERVICE_ROLE_KEY` to each backend secret before deploying role
+management. Use the legacy `service_role` key for that environment’s Supabase
+project. The backend requires this key at startup. Keep it out of frontend build
+settings.
 
 The production image includes the Secrets Manager dependencies. Its entrypoint
 runs `alembic upgrade head` once per container startup, before Gunicorn workers.

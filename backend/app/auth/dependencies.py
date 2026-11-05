@@ -7,7 +7,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.exceptions import AdminAccessRequiredException, InvalidCredentialsException
 from app.auth.models import AnonymousUser, User
-from app.auth.services import get_application_role, verify_user
+from app.auth.supabase.roles import get_application_role
+from app.auth.supabase.tokens import verify_user
 
 bearer_scheme = HTTPBearer(
     auto_error=False,

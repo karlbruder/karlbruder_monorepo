@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.exception_handlers import register_api_exception_handlers
 from app.api.router import router
+from app.auth.supabase.account_email import SupabaseAccountEmailReader
 from app.core import db
 from app.core.mail import SmtpMailSender
-from app.auth.account_email import SupabaseAccountEmailReader
 from config import settings
 
 

@@ -1,6 +1,5 @@
 """PostgreSQL lifecycle shared by the backend test suite."""
 
-import os
 from pathlib import Path
 
 import pytest
@@ -8,11 +7,9 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
-os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
-
-from app.core.db import create_sync_engine, get_session  # noqa: E402
-from config import settings  # noqa: E402
-from app.main import karlbruder_app  # noqa: E402
+from app.core.db import create_sync_engine, get_session
+from app.main import karlbruder_app
+from config import settings
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
 

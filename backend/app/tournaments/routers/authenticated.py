@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.dependencies import AuthenticatedUser, require_authenticated_user
-from app.auth.services import get_application_role
+from app.auth.supabase.roles import get_application_role
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.models import TournamentRegistration

@@ -9,6 +9,10 @@ from app.auth.exceptions import (
     AuthenticationUnavailableException,
     InvalidCredentialsException,
 )
+from app.auth.supabase.exceptions import (
+    SupabaseAccountNotFoundError,
+    SupabaseAdminUnavailableError,
+)
 from app.core.files import FileStorageError
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
@@ -24,6 +28,8 @@ from app.tournaments.exceptions import (
 )
 
 _ERROR_STATUS = {
+    SupabaseAccountNotFoundError: 404,
+    SupabaseAdminUnavailableError: 503,
     InvalidCredentialsException: 401,
     AuthenticationUnavailableException: 503,
     AdminAccessRequiredException: 403,
