@@ -96,27 +96,18 @@ These are existing question IDs, not additional questions or silent answers. Rev
 
 Reference a screen and state in the delivery issue alongside its owning rules and acceptance criteria, for example `WF-05/rejected + PAY-004 + PAY-AC-012`. A wireframe is supporting evidence of the intended interaction, never a substitute for the spec. Add implementation/tests through the normal issue workflow only after the relevant slice is agreed.
 
-Changes to behavior belong in the owning specification and all affected screens in the same review. Pure layout refinements can update these artifacts without inventing product rules. The primary editable sources are `index.html`, `wireframes.css`, and `wireframes.js`; PNG previews are supporting snapshots and must be regenerated when their screens change.
-
-## Preview snapshots
-
-These snapshots predate the 5 November 2026 changes. They have not been regenerated and do not verify the current artifact.
-
-- [Desktop catalog](previews/catalog-desktop.png)
-- [Staff payment review with full capacity](previews/staff-review-desktop.png)
-- [Mobile proof rejection/resubmission](previews/payment-mobile.png)
-- [Mobile paid-waitlist status](previews/waitlist-mobile.png)
+Changes to behavior belong in the owning specification and all affected screens in the same review. Pure layout refinements can update these artifacts without inventing product rules. The editable sources are `index.html`, `wireframes.css`, and `wireframes.js`. Review the interactive artifact for its current states and layouts.
 
 ## Prototype limits
 
 This is a navigation and state-review artifact. It has no authentication, backend, real payment details, storage, API calls, email, or persistent data. File controls do not read/upload contents. Filters, checks, form validation, and administrative decisions are illustrative; submitting a screen can navigate with blank fields. Use the state selector for errors and alternate outcomes. Refresh resets local form edits. Security and capacity protections are requirements to implement and test, not mechanisms demonstrated by this prototype.
 
-The first-release staff screen presents manual payment review; full CRUD, messaging editors, exports, results publishing, role administration, gateway checkout, and detailed membership administration are not designed as ready-to-implement workflows here. PRIV-008 operational controls remain backend/platform requirements beyond these screens.
+The payment-review journey reflects existing functionality. Tournament management and user access management are proposed designs. Messaging editors, exports, results publishing, gateway checkout, and detailed membership administration are not designed as ready-to-implement workflows here. PRIV-008 operational controls remain backend/platform requirements beyond these screens.
 
 ## Design verification
 
-Checked on 18 October 2026 against the specifications in this checkout: 16 screens and 57 states rendered at desktop (1500 px) and phone (390 px) widths, with no horizontal overflow, broken loaded images, or JavaScript runtime errors. The main registration-to-proof journey and staff decision dialog were exercised, local document links and cited rule IDs were checked, and the four preview snapshots were visually inspected. These checks validate the design artifact only; they do not validate application behavior, accessibility conformance, or product acceptance criteria.
+Checked on 18 October 2026 against the specifications in this checkout: 16 screens and 57 states rendered at desktop (1500 px) and phone (390 px) widths, with no horizontal overflow, broken loaded images, or JavaScript runtime errors. The main registration-to-proof journey and staff decision dialog were exercised, local document links and cited rule IDs were checked, and the preview snapshots available at that time were visually inspected. These checks validate the design artifact only; they do not validate application behavior, accessibility conformance, or product acceptance criteria.
 
-On 5 November 2026, source-level checks rendered 95 screen states and checked the 22-screen selector and README links. The reviewer inspected and approved the revised screens and states at desktop and phone widths. The preview snapshots have not been regenerated. These checks do not establish accessibility or application behavior.
+On 5 November 2026, source-level checks rendered 103 screen states and checked the 22-screen selector and README links. The reviewer inspected and approved the revised screens and states at desktop and phone widths. These checks do not establish accessibility or application behavior.
 
 The 5 November 2026 frontend comparison covered the router and protected layout, home, account forms and recovery, tournament registration and proof upload, and the payment-review queue and decision panel. The application restores a registration within a selected tournament, collects the amount received during review, displays the staff safety note for reading, and reports when a decision was recorded but its email failed. The prototype remains an illustrative composition, not a pixel-for-pixel copy.
