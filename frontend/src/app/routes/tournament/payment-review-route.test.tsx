@@ -176,7 +176,8 @@ it.each(["queue", "detail", "decision"])("handles backend 403 on %s without sign
   await screen.findByText("Acesso restrito à equipe."); expect(unauthorized).not.toHaveBeenCalled();
 });
 it("uses English labels and provides staff navigation from home", async () => {
-  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Conferência de pagamentos" }));
+  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Painel da equipe" }));
+  fireEvent.click(screen.getByRole("link", { name: "Conferência de pagamentos" }));
   await screen.findByRole("button", { name: "Revisar T1-001" });
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   expect(screen.getByRole("heading", { name: "Payment verification" })).toBeInTheDocument();

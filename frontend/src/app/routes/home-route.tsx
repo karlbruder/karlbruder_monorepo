@@ -20,7 +20,7 @@ export default function HomeRoute() {
           <p>{session?.user.user_metadata?.name ?? session?.user.email}</p>
           <Link to={accountRoutes.password}>{t("Alterar senha")}</Link>
           <a href="/tournaments/registration">{t("Inscrição Monomachia")}</a>
-          {session?.user.app_metadata?.karlbruder_role === "admin" && <Link to="/staff/payment-reviews">{t("Conferência de pagamentos")}</Link>}
+          {session?.user.app_metadata?.karlbruder_role === "admin" && <Link to="/staff/tournaments">{language === "en" ? "Staff panel" : "Painel da equipe"}</Link>}
           <button type="button" onClick={signOut}>{t("Sair")}</button>
         </div>
       </div>
