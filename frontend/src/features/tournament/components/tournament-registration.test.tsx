@@ -40,11 +40,11 @@ function catalogBody(response: unknown) {
 }
 
 function mockTournament(response: unknown = tournament) {
-  const request = vi.fn().mockResolvedValue({
+  const request = vi.fn(async (url: string) => ({
     ok: true,
     status: 200,
-    json: async () => catalogBody(response),
-  })
+    json: async () => url.endsWith("/registrations") ? [] : catalogBody(response),
+  }))
   vi.stubGlobal('fetch', request)
   return request
 }

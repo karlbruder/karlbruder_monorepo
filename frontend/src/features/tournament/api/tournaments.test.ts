@@ -123,3 +123,21 @@ describe('tournament registration API', () => {
     await expect(listOwnRegistrations(42, 'test-token')).rejects.toThrow('invalid-registration-list')
   })
 })
+
+it("retains a current rejection reason and rejects malformed review evidence", async () => {
+  const { getPaymentInstructions } = await import("@/features/tournament/api/tournaments");
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  const body = { registration_number: "T1", registration_status: "awaiting_payment", registration_fee_amount: "10.00", payment_due_at: null,
+    payment_options: { pix: { pix_key: null } }, latest_payment_proof: null,
+    current_review: { document_id: 20, decision: "rejected", rejection_reason: "Unreadable", reviewed_at: "2026-11-04T12:00:00Z" },
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => body }));
+  expect((await getPaymentInstructions(1, "T1", "token")).current_review?.rejection_reason).toBe("Unreadable");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...body, current_review: { ...body.current_review, rejection_reason: null } }) }));
+  await expect(getPaymentInstructions(1, "T1", "token")).rejects.toThrow();
+});
+it("rejects payment responses for a different registration", async () => {
+  const { getPaymentInstructions } = await import("@/features/tournament/api/tournaments");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ registration_number: "other", registration_status: "confirmed", registration_fee_amount: null, payment_due_at: null, payment_options: { pix: { pix_key: null } }, latest_payment_proof: null }) }));
+  await expect(getPaymentInstructions(1, "T1", "token")).rejects.toThrow();
+});

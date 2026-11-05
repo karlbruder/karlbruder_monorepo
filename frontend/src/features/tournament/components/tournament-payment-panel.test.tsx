@@ -240,3 +240,64 @@ describe("Tournament payment panel", () => {
     expect(screen.getByText(/proof-old\.pdf/)).toBeInTheDocument();
   });
 });
+
+it.each([
+  ["confirmed", "Confirmada", "Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente."],
+  ["waitlist", "Lista de espera", "Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática."],
+  ["cancelled", "Cancelada", "Esta inscrição está cancelada e não permite envio de comprovantes."],
+])("shows %s without requesting another payment or allowing proof upload", async (status, label, message) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, registration_status: status }) }));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+  expect(await screen.findByText(label)).toBeInTheDocument(); expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.queryByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).not.toBeInTheDocument();
+  expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Faça o Pix/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/O envio da inscrição não confirma/)).not.toBeInTheDocument();
+});
+it("shows approved paid-waitlist wording in English and refreshes a later confirmed outcome", async () => {
+  let status = "waitlist";
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({ ...paymentInstructions, registration_status: status }) })));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language="en" />);
+  await screen.findByText("Paid waitlist");
+  expect(screen.getByText(/Do not pay again.*There is no automatic promotion/)).toBeInTheDocument();
+  status = "confirmed"; fireEvent.click(screen.getByRole("button", { name: "Refresh status" }));
+  await screen.findByText("Confirmed"); expect(screen.getByText(/Your participation is confirmed/)).toBeInTheDocument();
+});
+it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only new evidence in %s", async language => {
+  let uploaded = false;
+  const request = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/payment")) return { ok: true, json: async () => ({ ...paymentInstructions,
+      registration_status: uploaded ? "payment_in_review" : "awaiting_payment",
+      latest_payment_proof: { original_file_name: uploaded ? "replacement.pdf" : "rejected.pdf", content_type: "application/pdf", size_bytes: 128, submitted_at: "2026-11-04T12:00:00Z" },
+      current_review: uploaded ? null : { document_id: 20, decision: "rejected", rejection_reason: "Unreadable beneficiary fixture", reviewed_at: "2026-11-04T13:00:00Z" },
+    }) };
+    if (url.endsWith("/upload-url")) return { ok: true, json: async () => ({ storage_key: "new-key", upload_url: "https://files.example.test/upload", expires_in_seconds: 900, required_headers: { "Content-Type": "application/pdf" } }) };
+    if (init?.method === "PUT") return { ok: true };
+    if (url.endsWith("/payment-proof")) { uploaded = true; return { ok: true, json: async () => ownerRegistrationAfterProof("payment_in_review") }; }
+    throw new Error("unexpected request");
+  });
+  vi.stubGlobal("fetch", request);
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language={language} />);
+  await screen.findByText("Unreadable beneficiary fixture");
+  expect(screen.queryByText(/Faça o Pix|Complete the Pix transfer/)).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText(language === "pt" ? "Comprovante de pagamento" : "Payment proof", { selector: "input" }), { target: { files: [mockPdfFile("replacement.pdf")] } });
+  fireEvent.submit(screen.getByRole("form"));
+  await screen.findByText(language === "pt" ? "Pagamento em análise" : "Payment under review");
+  expect(screen.queryByText("Unreadable beneficiary fixture")).not.toBeInTheDocument();
+  expect(screen.queryByText(/rejected.pdf/)).not.toBeInTheDocument();
+  expect(screen.getByText(/replacement.pdf/)).toBeInTheDocument();
+  expect(request.mock.calls.find(([, init]) => init?.method === "POST" && init?.body)?.[1]?.body).toBe(JSON.stringify({ storage_key: "new-key", original_file_name: "replacement.pdf" }));
+});
+it("rejects an invalid file locally without a storage request", async () => {
+  const request = vi.fn().mockResolvedValue({ ok: true, json: async () => paymentInstructions }); vi.stubGlobal("fetch", request);
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+  await screen.findByRole("form");
+  fireEvent.change(screen.getByLabelText("Comprovante de pagamento", { selector: "input" }), { target: { files: [new File(["bad"], "file.txt", { type: "text/plain" })] } });
+  fireEvent.submit(screen.getByRole("form")); await screen.findByRole("alert"); expect(request).toHaveBeenCalledTimes(1);
+});
+it("reports inaccessible registrations instead of offering payment or creation", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "Not found" }) }));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber="foreign" />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Inscrição não encontrada ou sem acesso para esta conta.");
+  expect(screen.queryByRole("form")).not.toBeInTheDocument();
+});

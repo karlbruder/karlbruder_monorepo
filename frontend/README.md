@@ -77,7 +77,7 @@ store, never in frontend code, `VITE_*`, READMEs, or env examples.
 
 ### Tournament requests
 
-The registration page finds Monomachia through `GET /api/tournaments`, filtered by name and the 2027 date range. It requires one matching event and uses its returned ID. No match shows an unavailable state. Multiple matches are an error. No tournament ID is configured in the frontend.
+Without explicit query parameters, the registration page finds Monomachia through `GET /api/tournaments`, filtered by name and the 2027 date range. It requires one matching event and uses its returned ID. No match shows an unavailable state. Multiple matches are an error. No tournament ID is configured in the frontend.
 
 Keep `VITE_API_BASE_URL=/api`.
 
@@ -169,3 +169,17 @@ A stale proof or competing decision requires refreshing and inspecting evidence
 again. Draft amount and rejection text are retained. Backend authorization and
 capacity checks apply to every decision. The interface offers Portuguese and English.
 See the [administration specification](../specs/tournaments/administration.md#staff-payment-review-screens).
+
+
+## Participant payment outcomes and notification links
+
+`/tournaments/registration?tournament_id=77&registration_number=EXAMPLE` opens the
+specified owned registration after sign-in. The IDs are examples. Missing or
+inaccessible records do not fall back to another registration. The default route
+still selects Monomachia. Sign-in retains the complete destination.
+
+Participants see the current rejection reason and can submit a new proof.
+Confirmed and paid-waitlist outcomes suppress payment prompts and proof uploads.
+Waitlist copy explains that payment is approved without a confirmed seat and that
+staff confirmation is required. The status refresh does not depend on email delivery.
+Portuguese and English are available. Cancelled linked records are read-only.

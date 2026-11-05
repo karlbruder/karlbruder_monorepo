@@ -311,6 +311,21 @@ const english = {
   "Responsável": "Reviewer",
   "Documento analisado": "Reviewed document",
   "Atualização concluída. Confira o comprovante antes de decidir.": "Review refreshed. Inspect the proof before deciding.",
+  "Confirmada": "Confirmed",
+  "Lista de espera": "Paid waitlist",
+  "Cancelada": "Cancelled",
+  "Situação indisponível": "Status unavailable",
+  "Comprovante rejeitado": "Payment proof rejected",
+  "Sua inscrição não foi cancelada. Envie um novo comprovante para análise. Nenhuma vaga está reservada.": "Your registration has not been cancelled. Upload a new proof for review. No place is reserved.",
+  "Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.": "Your participation is confirmed. You have a place. You do not need to pay again.",
+  "Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.": "Your payment was approved, but you do not have a confirmed place. Do not pay again. Staff select and confirm participants from the paid waitlist. There is no automatic promotion.",
+  "Esta inscrição está cancelada e não permite envio de comprovantes.": "This registration is cancelled. Payment proof uploads are unavailable.",
+  "Atualizar situação": "Refresh status",
+  "Inscrição não encontrada ou sem acesso para esta conta.": "Registration not found or unavailable to this account.",
+  "Este link de inscrição não é válido.": "This registration link is invalid.",
+  "Entre com sua conta para consultar esta inscrição.": "Sign in to view this registration.",
+  "Não foi possível carregar sua inscrição.": "Could not load your registration.",
+  "Acompanhe o pagamento e a situação da sua inscrição.": "Follow your payment and registration status.",
 } as const;
 
 export type AppCopyKey = keyof typeof english;
