@@ -1660,3 +1660,287 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
         session.get(RegistrationRefund, refund.id).refund.refund_status == refund_status
     )
     assert refund.refund.amount_owed == Decimal("125.50")
+
+
+def _staff_update_payload(client, event_id, key, **changes):
+    from app.tournaments.schemas import TournamentCreate
+
+    response = client.get(
+        f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin")
+    )
+    assert response.status_code == 200, response.text
+    current = response.json()
+    return {
+        **{name: current[name] for name in TournamentCreate.model_fields},
+        **changes,
+    }
+
+
+def test_staff_configuration_crud_and_direct_access_boundaries(setup):
+    client, key, _session, _storage = setup
+    first = _create_event(client, key, pix_key="fixture-pix")
+    second = _create_event(client, key, internal=True)
+    admin = _headers(key, role="admin")
+    listing = client.get("/api/staff/tournaments", headers=admin).json()
+    assert {event["id"] for event in listing["items"]} == {first, second}
+    assert (
+        next(event for event in listing["items"] if event["id"] == first)["pix_key"]
+        == "fixture-pix"
+    )
+    public = client.get(f"/api/tournaments/{first}").json()
+    assert "pix_key" not in public
+    payload = _staff_update_payload(client, first, key, name="Changed", pix_key=None)
+    for headers, expected in (({}, 401), (_headers(key), 403)):
+        for method, path, kwargs in (
+            ("get", "/api/staff/tournaments", {}),
+            ("get", f"/api/staff/tournaments/{first}", {}),
+            ("put", f"/api/staff/tournaments/{first}", {"json": payload}),
+            ("delete", f"/api/staff/tournaments/{first}", {}),
+        ):
+            assert (
+                getattr(client, method)(path, headers=headers, **kwargs).status_code
+                == expected
+            )
+    updated = client.put(f"/api/staff/tournaments/{first}", headers=admin, json=payload)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["name"] == "Changed"
+    assert updated.json()["pix_key"] is None
+    assert (
+        client.delete(f"/api/staff/tournaments/{first}", headers=admin).status_code
+        == 204
+    )
+    assert (
+        client.get(f"/api/staff/tournaments/{first}", headers=admin).status_code == 404
+    )
+    assert (
+        client.delete(f"/api/staff/tournaments/{first}", headers=admin).status_code
+        == 404
+    )
+
+
+def test_staff_capacity_and_deletion_preserve_closed_registered_tournament(setup):
+    client, key, session, _storage = setup
+    event_id = _create_event(client, key)
+    assert _post_registration(client, event_id, _headers(key)).status_code == 201
+    registration = session.scalar(select(TournamentRegistration))
+    registration.registration_status = "confirmed"
+    session.commit()
+    admin = _headers(key, role="admin")
+    rejected = _staff_update_payload(client, event_id, key, competitor_capacity=0)
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{event_id}", json=rejected, headers=admin
+        ).status_code
+        == 409
+    )
+    accepted = _staff_update_payload(
+        client, event_id, key, competitor_capacity=1, is_registration_closed=True
+    )
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{event_id}", json=accepted, headers=admin
+        ).status_code
+        == 200
+    )
+    assert (
+        client.delete(f"/api/staff/tournaments/{event_id}", headers=admin).status_code
+        == 409
+    )
+    session.expire_all()
+    assert session.get(Tournament, event_id).competitor_capacity == 1
+    assert (
+        session.scalar(select(TournamentRegistration)).registration_status
+        == "confirmed"
+    )
+
+
+def test_staff_resaves_linked_policy_and_preserves_prior_acceptance(setup, monkeypatch):
+    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
+
+    client, key, session, storage = setup
+    source = {"body": b"Original policy"}
+    monkeypatch.setattr(
+        PolicyFetcher,
+        "fetch",
+        lambda self, url: FetchedPolicy(source["body"], "text/plain", url),
+    )
+    event_id = _create_event(
+        client, key, rules_url="https://policies.example.test/rules"
+    )
+    owner = _headers(key)
+    old_token = client.get(f"/api/tournaments/{event_id}").json()["acceptance_tokens"][
+        "pt"
+    ]
+    assert _post_registration(client, event_id, owner).status_code == 201
+    registration = session.scalar(select(TournamentRegistration))
+    old_archive = registration.acceptances[0].rules_archive_id
+    old_key = session.get(Tournament, event_id).rules_archive.file.storage_key
+    source["body"] = b"Updated policy"
+    admin = _headers(key, role="admin")
+    payload = _staff_update_payload(client, event_id, key)
+    response = client.put(
+        f"/api/staff/tournaments/{event_id}", headers=admin, json=payload
+    )
+    assert response.status_code == 200, response.text
+    session.expire_all()
+    assert session.get(Tournament, event_id).rules_archive_id != old_archive
+    assert registration.acceptances[0].rules_archive_id == old_archive
+    assert storage.objects[old_key][0] == b"Original policy"
+    assert response.json()["acceptance_tokens"]["pt"] != old_token
+    stale = _post_registration(
+        client,
+        event_id,
+        _headers(key, email="other@example.test"),
+        _registration(
+            email="other@example.test", document="NEW", acceptance_token=old_token
+        ),
+    )
+    assert stale.status_code == 409
+
+
+def test_failed_policy_recapture_preserves_configuration_and_cleans_new_objects(
+    setup, monkeypatch
+):
+    from app.tournaments.exceptions import PolicyArchiveError
+    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
+
+    client, key, session, storage = setup
+    event_id = _create_event(client, key)
+    admin = _headers(key, role="admin")
+    before = _staff_update_payload(client, event_id, key)
+    payload = {
+        **before,
+        "name": "Not saved",
+        "rules_url": "https://policies.example.test/rules",
+        "cancellation_policy_url": "https://policies.example.test/cancel",
+    }
+
+    def fetch(self, url):
+        if url.endswith("cancel"):
+            raise PolicyArchiveError("Policy capture failed")
+        return FetchedPolicy(b"Policy", "text/plain", url)
+
+    monkeypatch.setattr(PolicyFetcher, "fetch", fetch)
+    response = client.put(
+        f"/api/staff/tournaments/{event_id}", headers=admin, json=payload
+    )
+    assert response.status_code == 422
+    assert storage.objects == {}
+    session.expire_all()
+    assert _staff_update_payload(client, event_id, key) == before
+
+
+@pytest.mark.parametrize("failure", ["storage", "database"])
+def test_staff_update_failure_rolls_back_configuration_and_new_archives(
+    setup, monkeypatch, failure
+):
+    from sqlalchemy.exc import SQLAlchemyError
+    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
+
+    client, key, session, storage = setup
+    monkeypatch.setattr(
+        PolicyFetcher,
+        "fetch",
+        lambda self, url: FetchedPolicy(b"Policy", "text/plain", url),
+    )
+    event_id = _create_event(
+        client, key, rules_url="https://policies.example.test/rules"
+    )
+    old_key = session.get(Tournament, event_id).rules_archive.file.storage_key
+    before = _staff_update_payload(client, event_id, key)
+    payload = {**before, "name": "Not saved"}
+    if failure == "storage":
+
+        def fail_store(*args, **kwargs):
+            raise FileStorageError("storage unavailable")
+
+        monkeypatch.setattr(storage, "store_file", fail_store)
+        response = client.put(
+            f"/api/staff/tournaments/{event_id}",
+            headers=_headers(key, role="admin"),
+            json=payload,
+        )
+        assert response.status_code == 503
+    else:
+
+        def fail_commit():
+            raise SQLAlchemyError("commit failed")
+
+        monkeypatch.setattr(session, "commit", fail_commit)
+        with pytest.raises(SQLAlchemyError, match="commit failed"):
+            client.put(
+                f"/api/staff/tournaments/{event_id}",
+                headers=_headers(key, role="admin"),
+                json=payload,
+            )
+    session.expire_all()
+    assert _staff_update_payload(client, event_id, key) == before
+    assert set(storage.objects) == {old_key}
+
+
+def test_cancelled_registration_still_prevents_tournament_deletion(setup):
+    client, key, session, _storage = setup
+    event_id = _create_event(client, key, is_registration_closed=False)
+    assert _post_registration(client, event_id, _headers(key)).status_code == 201
+    session.scalar(select(TournamentRegistration)).registration_status = "cancelled"
+    session.get(Tournament, event_id).is_registration_closed = True
+    session.commit()
+    response = client.delete(
+        f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin")
+    )
+    assert response.status_code == 409
+    assert session.get(Tournament, event_id) is not None
+    assert (
+        session.scalar(select(TournamentRegistration)).registration_status
+        == "cancelled"
+    )
+
+
+def test_update_rejects_duplicate_slug_and_invalid_dates_without_changes(setup):
+    client, key, session, _storage = setup
+    first = _create_event(client, key)
+    second = _create_event(client, key)
+    admin = _headers(key, role="admin")
+    other_slug = session.get(Tournament, second).slug
+    payload = _staff_update_payload(client, first, key, slug=other_slug)
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{first}", headers=admin, json=payload
+        ).status_code
+        == 409
+    )
+    payload = _staff_update_payload(client, first, key, ends_at="2020-01-01T00:00:00Z")
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{first}", headers=admin, json=payload
+        ).status_code
+        == 422
+    )
+    session.expire_all()
+    assert session.get(Tournament, first).ends_at is None
+    assert session.get(Tournament, first).slug != other_slug
+
+
+def test_later_staff_save_replaces_an_earlier_edit(setup):
+    client, key, _session, _storage = setup
+    event_id = _create_event(client, key, pix_key="first-key")
+    admin = _headers(key, role="admin")
+    first = _staff_update_payload(client, event_id, key, name="First edit")
+    second = _staff_update_payload(
+        client, event_id, key, name="Second edit", pix_key="second-key"
+    )
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{event_id}", headers=admin, json=first
+        ).status_code
+        == 200
+    )
+    assert (
+        client.put(
+            f"/api/staff/tournaments/{event_id}", headers=admin, json=second
+        ).status_code
+        == 200
+    )
+    result = client.get(f"/api/staff/tournaments/{event_id}", headers=admin).json()
+    assert result["name"] == "Second edit"
+    assert result["pix_key"] == "second-key"

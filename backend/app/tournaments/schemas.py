@@ -141,6 +141,17 @@ class TournamentList(BaseModel):
     offset: int
 
 
+class StaffTournamentRead(TournamentRead):
+    pix_key: str | None
+
+
+class StaffTournamentList(BaseModel):
+    items: list[StaffTournamentRead]
+    total: int
+    limit: int
+    offset: int
+
+
 class RegistrationCreate(BaseModel):
     """Participant-supplied fields only. Ownership and acceptance evidence are server-owned."""
 

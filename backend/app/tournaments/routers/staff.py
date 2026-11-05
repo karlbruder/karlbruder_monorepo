@@ -17,10 +17,12 @@ from app.tournaments.schemas import (
     PaymentReviewDecisionRead,
     StaffPaymentReviewDetail,
     StaffPaymentReviewQueue,
+    StaffTournamentList,
+    StaffTournamentRead,
     TournamentCreate,
     TournamentRead,
 )
-from app.tournaments.services import payment_proof_reviews
+from app.tournaments.services import payment_proof_reviews, tournament_administration
 from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
 from app.tournaments.services.tournament_policies import (
     create_tournament_configuration,
@@ -118,3 +120,54 @@ def record_payment_review_decision(
         ),
         from_address=settings.SMTP_FROM,
     )
+
+
+@router.get("", response_model=StaffTournamentList)
+def list_staff_tournaments(
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> StaffTournamentList:
+    return tournament_administration.list_staff_tournaments(
+        session, admin, storage, limit=limit, offset=offset
+    )
+
+
+@router.get("/{tournament_id}", response_model=StaffTournamentRead)
+def get_staff_tournament(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+) -> StaffTournamentRead:
+    return tournament_administration.read_staff_tournament(
+        session, admin, tournament_id, storage
+    )
+
+
+@router.put("/{tournament_id}", response_model=StaffTournamentRead)
+def update_staff_tournament(
+    tournament_id: int,
+    payload: TournamentCreate,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+    fetcher: Annotated[PolicyFetcher, Depends(get_policy_fetcher)],
+) -> StaffTournamentRead:
+    try:
+        return tournament_administration.update_tournament(
+            session, admin, tournament_id, payload, storage, fetcher
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.delete("/{tournament_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_staff_tournament(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+) -> None:
+    tournament_administration.delete_tournament(session, admin, tournament_id)

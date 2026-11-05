@@ -1,7 +1,7 @@
 # Tournament consent and privacy
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -23,10 +23,10 @@ Collect the necessary participant declarations, preserve their evidence, and res
 - **PRIV-005:** Participants may retrieve and correct their own TournamentRegistration fields except `staff_safety_note`, `id`, `tournament_id`, `user_id`, `registration_number`, `created_at`, `updated_at`, and `registration_status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules; changing declarations must preserve earlier acceptance evidence.
 - **PRIV-006:** Remove `show_on_public_list` and its opt-out choice. A limited participant directory and published results are visible to other authorized platform users under the event's public/internal access boundary. Terms must explain that participation and results are visible. Directory fields remain limited to display name, school/team, city/country, and confirmation status; private registration records are not exposed. This does not make private contact, payment, or safety fields public or change internal-event restrictions. Existing permitted guest access to published non-internal results remains unchanged.
 - **PRIV-007:** Proof files require validated type/size, restricted storage, and authorized retrieval. Sensitive records and proofs are not email attachments or files in public website directories.
-- **PRIV-008:** Released data-handling flows require HTTPS, appropriate protection against automated submissions, controlled administrative access, auditability, backups, and defined correction/deletion and retention processes.
+- **PRIV-008:** Released data-handling flows require HTTPS, appropriate protection against automated submissions, controlled administrative access, backups, and defined correction/deletion and retention processes.
 - **PRIV-009:** Collect only data required for the event's agreed purpose. Administratively editable forms and terms must preserve the meaning and version of earlier acceptances.
-- **PRIV-010:** Minors register themselves. Participation requires a signed parental consent form, scanned and uploaded through the platform, and parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff to verify both in person. Store the scanned term privately with authorized staff access. Verification evidence follows the existing actor/time audit requirements; its representation is an implementation choice, not another product-policy question. This in-person check does not require additional identity-document uploads or copies.
-- **PRIV-011:** The interim retention policy is indefinite for registrations, every submitted payment proof, safety information, acceptance/IP evidence, and audit records. Do not add automatic expiry or deletion under an invented period. A final retention schedule remains deferred for policy review; correction/deletion requests remain subject to PRIV-Q4.
+- **PRIV-010:** Minors register themselves. Participation requires a signed parental consent form, scanned and uploaded through the platform, and parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff to verify both in person. Store the scanned term privately with authorized staff access. This in-person check does not require additional identity-document uploads or copies.
+- **PRIV-011:** The interim retention policy is indefinite for registrations, every submitted payment proof, safety information, and acceptance/IP evidence. Do not add automatic expiry or deletion under an invented period. A final retention schedule remains deferred for policy review; correction/deletion requests remain subject to PRIV-Q4.
 
 ## Acceptance evidence
 
@@ -67,7 +67,7 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 ## Open questions
 
 - **PRIV-Q1:** Do you already have the actual texts or documents participants must read and accept? We still need the wording for the separate truthful-information declaration, the risk/equipment/fitness declarations, the explanation of how registration data is used and visible to other platform users, and the separate permission or refusal to use their image. The types of declarations and separate choices are already decided; this asks for the approved content to display, or who will provide it before release. The event's own regulation remains Tournament configuration.
-- **PRIV-Q4:** If a participant asks staff to delete their registration data or payment proofs, how should they submit that request, and what should staff delete versus keep? For example, should a completed event's registration be deleted, anonymized, or retained with its payment/audit history? Participants already may edit their allowed fields themselves; this asks how staff handles requests beyond that access. The interim default remains indefinite retention until this exception process is decided.
+- **PRIV-Q4:** If a participant asks staff to delete their registration data or payment proofs, how should they submit that request, and what should staff delete versus keep? For example, should a completed event's registration be deleted, anonymized, or retained with its payment history? Participants already may edit their allowed fields themselves; this asks how staff handles requests beyond that access. The interim default remains indefinite retention until this exception process is decided.
 
 
 ## Related specifications

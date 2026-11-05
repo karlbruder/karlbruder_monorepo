@@ -53,8 +53,8 @@ Actual event capacity is [Tournament configuration](events/monomachia-2027.md#to
 
 ## Implementation decisions
 
-`Tournament.is_registration_closed` stores staff closure independently of the date window and capacity. Registration creation enforces it. Payment-review approval can confirm participation. Tournament editing and
-confirmation of selected paid-waitlist participants remain unimplemented.
+`Tournament.is_registration_closed` stores staff closure independently of the date window and capacity. Registration creation enforces it. Payment-review approval can confirm participation. Tournament editing enforces the confirmed-capacity minimum under the same tournament lock.
+Confirmation of selected paid-waitlist participants remains unimplemented.
 
 Payment review locks the tournament before the registration and counts only
 confirmed registrations while holding those locks. Null capacity permits confirmation.
