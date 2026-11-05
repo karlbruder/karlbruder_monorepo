@@ -1,7 +1,7 @@
 # Authentication and access
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -49,6 +49,8 @@ The initial `/api/users/me` verification endpoint does not need a local users ta
 
 Source inspection on 4 November 2026 found Google and email/password authentication, session restoration, sign-out, and account recovery/password routes under `frontend/src/features/auth/` and `frontend/src/app/`. Supabase calls retain provider names such as `signUp`. The backend verifies JWTs in `backend/app/auth/services.py` using an ES256/RS256 allowlist and JWKS, and exposes `/api/users/me`. It reads the application role from verified `app_metadata.karlbruder_role`.
 
+Until application role management is delivered, an authorized Supabase operator assigns or removes the `admin` value in the user's Auth-managed app metadata manually. For example, use the [Supabase Auth Admin API](https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid) from a trusted environment to set `app_metadata.karlbruder_role` on the user's Auth ID. The other recognized values are `regular_user` and `guild_member`. Preserve unrelated metadata when changing the role. Do not put roles in user-editable metadata or expose a privileged Supabase key to the browser.
+
 The 17 October inspection found only Google sign-in in the old frontend entry point despite issue #18 being marked Done. That historical observation no longer describes the current account screens. Neither inspection establishes hosted provider configuration or live email delivery.
 
 ## Open questions
@@ -58,6 +60,8 @@ None for the agreed authentication and role boundaries. The association membersh
 ## Implementation decisions
 
 Account routes and session-expiry behavior are defined by AUTH-003 and AUTH-004. Use the [frontend configuration guide](../../frontend/README.md#account-routes-and-supabase-redirect-urls) for hosted redirect setup and the [tournament API guide](../../backend/app/tournaments/README.md) for current resource-access responses. Future workflows must preserve the selected tournament through sign-in, the existing 401 contract, and trusted role checks. Self-registration, Supabase UUID ownership, and the three-role policy remain requirements.
+
+Role changes do not immediately change claims in already-issued access tokens. A demoted admin's existing token can retain admin access until it expires or is refreshed. The owner accepts this delay for now because access tokens are short-lived. Immediate revocation and a live role check on each privileged API call are not current requirements. The actual token lifetime is configured in Supabase and has not been verified here.
 
 When the product adds multi-language Auth email, keep one Supabase template per message type. Branch inside each template with Supabase Go template conditionals on `user_metadata` exposed as `{{ .Data.* }}`, as in [Customizing emails by language](https://supabase.com/docs/guides/troubleshooting/customizing-emails-by-language-KZ_38Q). Persist the person's language preference in `user_metadata` on sign-up and when they change language in the app. Do not adopt a separate Send Email Hook for Auth mail unless a later decision requires it.
 
