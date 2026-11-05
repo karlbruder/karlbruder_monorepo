@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
@@ -106,7 +106,7 @@ a tournament return 409. Cancelled registrations permit replacement.
 
 Every creation starts as `awaiting_payment`. Creation and proof submission consume
 no seat, including when capacity is full or zero. Staff confirmation is a later
-workflow. The existing states remain `awaiting_payment`, `payment_in_review`,
+workflow. The existing states remain `awaiting_payment`, `awaiting_payment_confirmation`,
 `confirmed`, `waitlist`, and `cancelled`.
 
 `registration_number` retains `T<tournament id>-<six-digit serial>-<Luhn digit>`.
@@ -172,12 +172,12 @@ as null and shown as unconfigured. No key is invented or bundled in the frontend
 
 For payment proof, the owner calls `POST .../payment-proof/upload-url`, uploads
 with the required headers, then calls `POST .../payment-proof` with `storage_key`
-and `original_file_name`. The first valid submission sets `payment_in_review`.
-Replacement is allowed while `awaiting_payment` or `payment_in_review`.
+and `original_file_name`. The first valid submission sets `awaiting_payment_confirmation`.
+Replacement is allowed while `awaiting_payment` or `awaiting_payment_confirmation`.
 Every submitted proof is retained. The owner retrieves only the latest through
 `GET .../payment-proof`. The staff decision endpoint is documented below.
 
-A proof alone is evidence. Staff decisions now record verified receipts and
+A proof alone is evidence. Payment verifications now record verified receipts and
 participation outcomes, with rejection and paid-waitlist notices. Refund actions
 remain future work. The frontend entry
 is `/tournaments/registration`.
@@ -225,7 +225,7 @@ See [migration notes](../../../docs/database-migrations.md) for the reset and te
 Admins can read pending work across all tournaments with
 `GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
 `offset`, and an optional exact `registration_number`. It includes only registrations
-in `payment_in_review` whose latest proof has no decision. Results are ordered by
+in `awaiting_payment_confirmation` whose latest proof has no decision. Results are ordered by
 current proof ID. The queue excludes contact, identity, safety, and storage fields.
 
 `GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
@@ -255,7 +255,7 @@ Numeric(12,2) range) and `requirements_checked=true`. Received amount is indepen
 of the configured fee. Use `decision=rejected` with a nonblank `rejection_reason`
 and no amount. Actors and timestamps are server-owned.
 
-Only the latest undecided payment proof of a registration in `payment_in_review`
+Only the latest undecided payment proof of a registration in `awaiting_payment_confirmation`
 is eligible. Invalid/stale/repeated decisions return 409 without a new review,
 receipt, or notice. Minor approval also requires a stored parental form. Passed
 payment deadlines and closed registration windows do not prevent staff review.
@@ -265,7 +265,7 @@ values. Approval saves PaymentProofReview, shared Payment, RegistrationPayment,
 and `confirmed` or `waitlist` in one transaction. Only confirmed rows consume
 capacity. Rejection writes a review, sets `awaiting_payment`, and creates no receipt.
 Its current-proof reason appears in the owner payment response as `current_review`.
-A new valid proof restores `payment_in_review` and clears that projection, while
+A new valid proof restores `awaiting_payment_confirmation` and clears that projection, while
 retaining older evidence. Confirmed/waitlist owners cannot replace proofs.
 
 The response contains `review`, `registration_status`, and `notification_result`.

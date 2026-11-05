@@ -1,7 +1,7 @@
 # Tournament capacity and waitlist
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -22,7 +22,7 @@ Keep confirmed participation within event limits and provide an explicit path fo
 - **CAP-004:** Cancellation immediately releases any occupied seat, independently of refund progress. Repeating cancellation must not release the same seat twice. There is no pre-approval review reservation to expire.
 - **CAP-005:** Guild staff (admins) decide who to select from the paid waitlist based on the event, participants, and available capacity. The system imposes no queue priority, automatic promotion, mandatory invitation/acceptance stage, or invitation-expiry rule. Staff decides whether to contact a participant before confirming them. Releasing or adding capacity does not itself promote anyone. Staff confirmation of a selected waitlisted participant requires an available seat and the ordinary eligibility checks; their payment is already approved.
 - **CAP-006:** The UI accurately communicates registration availability, waitlist status, and confirmation. A displayed seat count cannot substitute for the backend allocation decision.
-- **CAP-007:** Only confirmed participation consumes capacity. Neither `awaiting_payment` nor `payment_in_review` reserves a seat. Proof can be stored for manual review even when the event is full. Approval without an available seat produces `waitlist` and an email notification.
+- **CAP-007:** Only confirmed participation consumes capacity. Neither `awaiting_payment` nor `awaiting_payment_confirmation` reserves a seat. Proof can be stored for manual review even when the event is full. Approval without an available seat produces `waitlist` and an email notification.
 - **CAP-008:** The paid waitlist has no size limit. Staff may close new registrations to control queue growth and refund workload. When the event is full but registrations remain open, warn users before submission that payment approval will lead to the waitlist unless a seat becomes available. Form submission still starts in `awaiting_payment`.
 - **CAP-009:** Reject any capacity change below the number already confirmed, including a change from unlimited capacity to a finite limit. This constraint applies to admins without an override. A rejected capacity edit must not cancel registrations or release seats. To lower capacity further, staff must first handle cancellations through the normal workflow.
 - **CAP-010:** Staff may explicitly increase configured capacity, including when deciding whether to accept late Pix payments. The system never increases capacity automatically or confirms more participants than the configured limit. Late-payment acceptance or refund remains a staff judgment under PAY-006 and PAY-013.
@@ -39,7 +39,7 @@ Storing evidence does not require an available seat. Cancellation releases a sea
 - **CAP-AC-002:** With one confirmable seat remaining and two concurrent valid confirmation requests, at most one is confirmed.
 - **CAP-AC-003:** Cancelling a confirmed registration releases its seat immediately. Repeating cancellation or later recording its refund does not release another seat.
 - **CAP-AC-004:** Authorized staff may select a paid waitlisted participant regardless of queue position and confirm them if an eligible seat is available. No fixed invitation-acceptance or expiry stage is required by the system. Confirmation cannot overbook the event or allocate a second seat to the same registration.
-- **CAP-AC-005:** A valid proof can be stored for manual review when the tournament is full, and `payment_in_review` consumes no capacity. Staff approval then produces waitlist status and an email rather than overbooking the event.
+- **CAP-AC-005:** A valid proof can be stored for manual review when the tournament is full, and `awaiting_payment_confirmation` consumes no capacity. Staff approval then produces waitlist status and an email rather than overbooking the event.
 - **CAP-AC-006:** Null capacity permits confirmations without a finite seat limit; setting a finite limit still cannot put confirmed participation above it.
 - **CAP-AC-007:** An admin capacity edit below confirmed participation is rejected without changing registration statuses or occupied seats.
 - **CAP-AC-008:** An open, full event warns applicants about the paid waitlist. Explicit staff closure prevents new registrations through the backend; reaching capacity alone does not close them.

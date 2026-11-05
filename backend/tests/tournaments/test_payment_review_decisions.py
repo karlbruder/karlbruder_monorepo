@@ -132,7 +132,7 @@ def test_rejection_is_visible_and_new_proof_supersedes_it_without_receipt(setup)
         },
     )
     assert submitted.status_code == 200, submitted.text
-    assert submitted.json()["registration_status"] == "payment_in_review"
+    assert submitted.json()["registration_status"] == "awaiting_payment_confirmation"
     assert client.get(base + "/payment", headers=owner).json()["current_review"] is None
     assert session.scalar(select(func.count()).select_from(PaymentProofReview)) == 1
     assert session.scalar(select(func.count()).select_from(Payment)) == 0
@@ -299,5 +299,5 @@ def test_database_failure_after_receipt_flush_rolls_back_all_review_changes(
     assert session.scalar(select(func.count()).select_from(Payment)) == 0
     assert (
         session.get(TournamentRegistration, registration.id).registration_status
-        == "payment_in_review"
+        == "awaiting_payment_confirmation"
     )

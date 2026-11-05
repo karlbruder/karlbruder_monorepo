@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -18,7 +18,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 
 - **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Fees are configured through Tournament `registration_fee_amount`, always in BRL. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
 - **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally. They are not public site files.
-- **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `payment_in_review` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
+- **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `awaiting_payment_confirmation` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
 - **PAY-004:** Guild staff (admins) review payment evidence and record decisions. Rejection records a reason, shows a rejected-evidence outcome and message to the participant, and notifies them. The participant may submit another proof for review. Rejection does not confirm a seat or cancel participation by itself. Representing the review outcome separately from registration status is an implementation decision.
 - **PAY-005:** Guild staff manually approves payment. If the registration meets participation requirements and a seat is available, approval confirms the registration and assigns that seat atomically. If the tournament is full, the registration becomes `waitlist` and the user is notified by email. There is no seat reservation before confirmation.
 - **PAY-006:** When a payment deadline applies, the participant sees it. A Pix transfer after `payment_due_at` remains a manual staff decision: staff may accept it or decline participation and arrange a refund. The deadline alone must not automatically approve, reject, cancel, refund, or block staff review. Waitlist call-up rules belong in the capacity specification. Review reservations and their expiry are not part of this flow.
@@ -80,7 +80,7 @@ not implement those workflows or authorize their actors.
 
 ## Initial journey
 
-For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `payment_in_review` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
+For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
 
 Waitlisted participants have already had payment approved. Staff later selects and confirms a waitlisted participant under CAP-005 without requiring another payment approval. The system does not choose the participant or impose an invitation/payment stage. Submitted proof is evidence of payment to the guild, not funds held by an application wallet or gateway. Cancelled participation remains inactive while refund progress is tracked, so an outstanding refund does not block a replacement registration under the registration rules.
 

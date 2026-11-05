@@ -38,7 +38,8 @@ class TournamentRegistration(BaseModel):
             name="uq_tournament_registrations_registration_number",
         ),
         CheckConstraint(
-            "registration_status IN ('awaiting_payment', 'payment_in_review', 'confirmed', 'waitlist', 'cancelled')",
+            "registration_status IN ('awaiting_payment', 'awaiting_payment_confirmation', "
+            "'confirmed', 'waitlist', 'cancelled')",
             name="ck_tournament_registrations_status",
         ),
         CheckConstraint(

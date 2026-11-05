@@ -810,7 +810,7 @@ def test_payment_instructions_return_null_pix_and_latest_proof_metadata(setup):
 
 
 def test_payment_proof_presigned_submit_replace_and_read(setup):
-    """Owner submits proof via staging, moves to payment_in_review, replaces proof, and reads latest only."""
+    """Owner submits proof via staging, moves to awaiting_payment_confirmation, replaces proof, and reads latest only."""
     client, key, db_session, storage = setup
     event_id = _create_event(client, key, competitor_capacity=1)
     owner_id = uuid4()
@@ -844,7 +844,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         json={"storage_key": staged_one, "original_file_name": "proof-one.pdf"},
     )
     assert submit_one.status_code == 200, submit_one.text
-    assert submit_one.json()["registration_status"] == "payment_in_review"
+    assert submit_one.json()["registration_status"] == "awaiting_payment_confirmation"
     assert staged_one not in storage.objects
     proof_rows = db_session.scalars(
         select(TournamentRegistrationDocument).where(
@@ -867,7 +867,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         json={"storage_key": staged_two, "original_file_name": "proof-two.pdf"},
     )
     assert submit_two.status_code == 200
-    assert submit_two.json()["registration_status"] == "payment_in_review"
+    assert submit_two.json()["registration_status"] == "awaiting_payment_confirmation"
     proof_rows = db_session.scalars(
         select(TournamentRegistrationDocument)
         .where(TournamentRegistrationDocument.document_type == "payment_proof")

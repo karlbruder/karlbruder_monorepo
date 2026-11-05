@@ -45,7 +45,7 @@ async function request<T>(token: string, path = "", init: RequestInit = {}): Pro
   if (!response.ok) throw new PaymentReviewRequestError(response.status);
   return response.json();
 }
-export function listPaymentReviews(token: string, filter: string, offset: number, signal?: AbortSignal) {
+export function listPendingPaymentProofs(token: string, filter: string, offset: number, signal?: AbortSignal) {
   const params = new URLSearchParams({ limit: "20", offset: String(offset) });
   if (filter) params.set("registration_number", filter);
   return request<ReviewQueue>(token, `?${params}`, { signal });
@@ -60,7 +60,7 @@ export function getReviewDocument(token: string, number: string, id: number) {
   return request<{ download_url: string }>(token, `/${encodeURIComponent(number)}/documents/${id}/download-url`);
 }
 export function usePaymentReviewQueue(token: string, userId: string, filter: string, offset: number) {
-  return useQuery({ queryKey: ["payment-reviews", userId, "queue", filter, offset], queryFn: ({ signal }) => listPaymentReviews(token, filter, offset, signal) });
+  return useQuery({ queryKey: ["payment-reviews", userId, "queue", filter, offset], queryFn: ({ signal }) => listPendingPaymentProofs(token, filter, offset, signal) });
 }
 export function usePaymentReview(token: string, userId: string, number: string) {
   return useQuery({ queryKey: ["payment-reviews", userId, "detail", number], queryFn: ({ signal }) => getPaymentReview(token, number, signal) });

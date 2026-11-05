@@ -126,7 +126,7 @@ describe("Tournament payment panel", () => {
             paymentFetchCount > 1
               ? {
                   ...paymentInstructions,
-                  registration_status: "payment_in_review",
+                  registration_status: "awaiting_payment_confirmation",
                   latest_payment_proof: {
                     original_file_name: "proof.pdf",
                     content_type: "application/pdf",
@@ -153,7 +153,7 @@ describe("Tournament payment panel", () => {
         return {
           ok: true,
           status: 200,
-          json: async () => ownerRegistrationAfterProof("payment_in_review"),
+          json: async () => ownerRegistrationAfterProof("awaiting_payment_confirmation"),
         };
       }
       if (url === "https://mock.example/upload/staged" && init?.method === "PUT") {
@@ -179,7 +179,7 @@ describe("Tournament payment panel", () => {
       "/api/tournaments/42/registrations/T42-000001-5/payment-proof",
       expect.objectContaining({ method: "POST" }),
     ));
-    expect(await screen.findByText("Pagamento em análise")).toBeInTheDocument();
+    expect(await screen.findByText("Aguardando confirmação do pagamento")).toBeInTheDocument();
   });
 
   it("keeps latest proof visible when server rejects replacement file", async () => {
@@ -190,7 +190,7 @@ describe("Tournament payment panel", () => {
           status: 200,
           json: async () => ({
             ...paymentInstructions,
-            registration_status: "payment_in_review",
+            registration_status: "awaiting_payment_confirmation",
             latest_payment_proof: {
               original_file_name: "proof-old.pdf",
               content_type: "application/pdf",
@@ -259,6 +259,7 @@ it("shows approved paid-waitlist wording in English and refreshes a later confir
   vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({ ...paymentInstructions, registration_status: status }) })));
   render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language="en" />);
   await screen.findByText("Paid waitlist");
+  expect(screen.getByText("Payment confirmed")).toBeInTheDocument();
   expect(screen.getByText(/Do not pay again.*There is no automatic promotion/)).toBeInTheDocument();
   status = "confirmed"; fireEvent.click(screen.getByRole("button", { name: "Refresh status" }));
   await screen.findByText("Confirmed"); expect(screen.getByText(/Your participation is confirmed/)).toBeInTheDocument();
@@ -267,13 +268,13 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
   let uploaded = false;
   const request = vi.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith("/payment")) return { ok: true, json: async () => ({ ...paymentInstructions,
-      registration_status: uploaded ? "payment_in_review" : "awaiting_payment",
+      registration_status: uploaded ? "awaiting_payment_confirmation" : "awaiting_payment",
       latest_payment_proof: { original_file_name: uploaded ? "replacement.pdf" : "rejected.pdf", content_type: "application/pdf", size_bytes: 128, submitted_at: "2026-11-04T12:00:00Z" },
       current_review: uploaded ? null : { document_id: 20, decision: "rejected", rejection_reason: "Unreadable beneficiary fixture", reviewed_at: "2026-11-04T13:00:00Z" },
     }) };
     if (url.endsWith("/upload-url")) return { ok: true, json: async () => ({ storage_key: "new-key", upload_url: "https://files.example.test/upload", expires_in_seconds: 900, required_headers: { "Content-Type": "application/pdf" } }) };
     if (init?.method === "PUT") return { ok: true };
-    if (url.endsWith("/payment-proof")) { uploaded = true; return { ok: true, json: async () => ownerRegistrationAfterProof("payment_in_review") }; }
+    if (url.endsWith("/payment-proof")) { uploaded = true; return { ok: true, json: async () => ownerRegistrationAfterProof("awaiting_payment_confirmation") }; }
     throw new Error("unexpected request");
   });
   vi.stubGlobal("fetch", request);
@@ -282,7 +283,10 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
   expect(screen.queryByText(/Faça o Pix|Complete the Pix transfer/)).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText(language === "pt" ? "Comprovante de pagamento" : "Payment proof", { selector: "input" }), { target: { files: [mockPdfFile("replacement.pdf")] } });
   fireEvent.submit(screen.getByRole("form"));
-  await screen.findByText(language === "pt" ? "Pagamento em análise" : "Payment under review");
+  await screen.findByText(language === "pt" ? "Aguardando confirmação do pagamento" : "Awaiting payment confirmation");
+  expect(screen.getByRole("status")).toHaveTextContent(language === "pt"
+    ? "Nossa equipe confere o pagamento manualmente. Essa conferência pode levar de 1 a 2 dias úteis."
+    : "Our staff verify payments manually. This review may take 1 to 2 business days.");
   expect(screen.queryByText("Unreadable beneficiary fixture")).not.toBeInTheDocument();
   expect(screen.queryByText(/rejected.pdf/)).not.toBeInTheDocument();
   expect(screen.getByText(/replacement.pdf/)).toBeInTheDocument();

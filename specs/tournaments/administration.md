@@ -1,7 +1,7 @@
 # Tournament administration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -30,7 +30,7 @@ Give guild staff (admins) control over tournament participation, payment review,
 
 ## Lifecycle boundary
 
-The initial registration states are `awaiting_payment`, `payment_in_review`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund links a shared Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
+The initial registration states are `awaiting_payment`, `awaiting_payment_confirmation`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its RegistrationRefund links a shared Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
 
 Confirmation allocates a seat after the requirements applicable at that stage are met. Event-day checks remain separate: confirming a minor's registration does not waive the identity-document check and parental accompaniment required at the event by PRIV-010.
 
@@ -73,7 +73,7 @@ Audit-record retention follows [privacy rules](consent-and-privacy.md#rules). Au
 Admins can read pending work across all tournaments with
 `GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
 `offset`, and an optional exact `registration_number`. It includes only registrations
-in `payment_in_review` whose latest proof has no decision. Results are ordered by
+in `awaiting_payment_confirmation` whose latest proof has no decision. Results are ordered by
 current proof ID. The queue excludes contact, identity, safety, and storage fields.
 
 `GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff

@@ -54,7 +54,7 @@ def _require_admin(user: User) -> None:
         raise AdminAccessRequiredException()
 
 
-def list_payment_reviews(
+def list_pending_payment_proofs(
     session: Session,
     user: User,
     *,
@@ -87,7 +87,7 @@ def list_payment_reviews(
             TournamentRegistrationDocument, TournamentRegistrationDocument.id == latest
         )
         .where(
-            TournamentRegistration.registration_status == "payment_in_review",
+            TournamentRegistration.registration_status == "awaiting_payment_confirmation",
             ~select(PaymentProofReview.id)
             .where(PaymentProofReview.document_id == TournamentRegistrationDocument.id)
             .exists(),
@@ -256,7 +256,7 @@ def _require_reviewable_proof(
         .limit(1)
     )
     if (
-        registration.registration_status != "payment_in_review"
+        registration.registration_status != "awaiting_payment_confirmation"
         or latest_id != document_id
         or reviewed is not None
         or receipt is not None

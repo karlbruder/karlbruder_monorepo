@@ -15,7 +15,7 @@ from app.tournaments.models import (
     TournamentRegistrationDocument,
 )
 from app.tournaments.services.payment_proof_reviews import (
-    list_payment_reviews,
+    list_pending_payment_proofs,
     read_payment_review,
     read_payment_review_document,
 )
@@ -49,7 +49,7 @@ def _pending(setup, *, internal=False):
             TournamentRegistration.registration_number == number
         )
     )
-    registration.registration_status = "payment_in_review"
+    registration.registration_status = "awaiting_payment_confirmation"
     documents = []
     for index in range(2):
         storage_key = f"fixture/{uuid4()}.pdf"
@@ -87,7 +87,7 @@ def test_services_reject_editable_admin_metadata_before_reading_records(setup):
     _client, _key, session, storage = setup
     user = User(id=uuid4(), user_metadata={"karlbruder_role": "admin"})
     for operation in (
-        lambda: list_payment_reviews(session, user),
+        lambda: list_pending_payment_proofs(session, user),
         lambda: read_payment_review(session, user, "unknown"),
         lambda: read_payment_review_document(session, user, "unknown", 1, storage),
     ):
@@ -238,7 +238,7 @@ def test_parental_form_is_visible_to_staff_and_missing_proof_has_no_queue_entry(
             TournamentRegistration.registration_number == number
         )
     )
-    empty.registration_status = "payment_in_review"
+    empty.registration_status = "awaiting_payment_confirmation"
     session.flush()
     assert (
         client.get(

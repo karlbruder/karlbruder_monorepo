@@ -32,7 +32,7 @@ from app.tournaments.services.registration_documents import (
 )
 from app.tournaments.services.tournament_registrations import visible_tournament
 
-_PAYMENT_PROOF_UPLOAD_STATUSES = frozenset({"awaiting_payment", "payment_in_review"})
+_PAYMENT_PROOF_UPLOAD_STATUSES = frozenset({"awaiting_payment", "awaiting_payment_confirmation"})
 
 
 def load_owner_tournament_registration(
@@ -134,7 +134,7 @@ def submit_registration_payment_proof(
             )
         )
         if tournament_registration.registration_status == "awaiting_payment":
-            tournament_registration.registration_status = "payment_in_review"
+            tournament_registration.registration_status = "awaiting_payment_confirmation"
         session.commit()
     except (FileStorageError, TournamentError, SQLAlchemyError):
         session.rollback()

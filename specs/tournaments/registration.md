@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-05
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@ Allow an authenticated user to register for a tournament, retain a registration 
 - **REG-003:** Each accepted registration receives a unique, human-friendly `registration_number` for participant/staff reference, not an access credential. The developer may choose its exact format and sequence semantics. A tournament slug, year, and sequential number, such as `MONO2027001`, is an acceptable example rather than a mandatory format.
 - **REG-004:** Within a tournament, a non-cancelled registration blocks another registration for the same user UUID, normalized email, or normalized identity document. Duplicates return HTTP 409, including concurrent submissions. Cancelled registrations do not block a new registration, including while their refund is awaiting processing. Participation cancellation and refund progress must remain distinguishable so a refund does not reactivate a registration.
 - **REG-005:** Registration is available from the configured opening day through the configured closing day, inclusive, in fixed GMT-3 (UTC-03:00). The window is expressed as calendar days, not configurable times within those days. Creation outside the date range returns HTTP 400, following issue #20.
-- **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `payment_in_review` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm an already-paid waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
+- **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `awaiting_payment_confirmation` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm an already-paid waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
 - **REG-007:** Successful submission shows the registration number, registration summary, current status, and applicable next step. A waitlisted participant has already had payment approved but has no confirmed seat. Status messages must reflect that distinction.
 - **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. The tournament registration list returns every registration to admins. Other authenticated callers receive only their own registrations in the owner-safe projection, including cancelled rows. The default personal registration page shows only the signed-in account's own non-cancelled registration. An explicit notification link can show the named owned registration, including a cancelled record, without reopening it. An admin still receives the full list, and that page ignores every other row. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. A registration number is not authorization to retrieve a private record.
 - **REG-009:** Safety notes are staff-only. Participants may retrieve and correct other permitted registration fields, excluding staff/system-managed fields listed in PRIV-005. Public and participant-facing projections omit `staff_safety_note`; edits preserve validation, uniqueness, ownership, and acceptance evidence.
@@ -86,7 +86,7 @@ a tournament registration document.
 | State or outcome | Meaning | Capacity |
 | --- | --- | --- |
 | `awaiting_payment` | Registration created; no payment approved | No seat reserved |
-| `payment_in_review` | Proof stored for manual payment review | No seat reserved |
+| `awaiting_payment_confirmation` | Proof stored for manual payment review | No seat reserved |
 | `confirmed` | Payment and participation validated | Occupies a seat |
 | `waitlist` | Payment approved; waiting for staff selection and confirmation when a seat is available | No confirmed seat; newly available capacity does not promote the registration automatically |
 | `cancelled`, no payment | Participation cancelled before payment | Any occupied seat released immediately; no refund due |
@@ -109,7 +109,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-008:** A registration email that does not match the normalized account email rejects creation. Changing the account email afterward does not change registration ownership or invalidate the registration.
 - **REG-AC-009:** Email/document values differing only in case, whitespace, dots, or dashes are treated as the same value for the relevant comparison and uniqueness checks.
 - **REG-AC-010:** A repeated create request while the first successful registration remains non-cancelled returns the ordinary duplicate error rather than creating a second record, even if the client lost the original response.
-- **REG-AC-011:** Storing a valid proof and entering `payment_in_review` do not change occupied capacity, even when the event is full. Staff approval confirms and occupies a seat if available; otherwise it produces `waitlist` and an email notification.
+- **REG-AC-011:** Storing a valid proof and entering `awaiting_payment_confirmation` do not change occupied capacity, even when the event is full. Staff approval confirms and occupies a seat if available; otherwise it produces `waitlist` and an email notification.
 - **REG-AC-012:** Cancellation does not report a completed refund. Once staff records the completed refund, the user receives refund confirmation by email.
 - **REG-AC-013:** Cancellation before payment produces `cancelled` without `awaiting_refund`. Cancellation after payment shows `awaiting_refund`. In either case, any occupied seat is released immediately.
 - **REG-AC-014:** A valid request after a previous cancellation can create a new registration; the old record remains cancelled and its refund can be tracked separately. Reopening the old registration is an admin-only manual Supabase operation, not an application feature.
@@ -139,7 +139,11 @@ open a creation form. Cancelled records remain read-only. Malformed identifiers
 fail without falling back to the default tournament. Without these parameters,
 the existing Monomachia entry remains unchanged.
 
-The payment panel displays current-proof rejection reasons and allows a new proof.
+The payment panel shows Awaiting payment confirmation after proof upload. The
+notice explains that staff verify the payment manually and that this review
+may take one to two business days. The panel shows New proof needed and the
+rejection reason when staff reject the current
+proof. After approval it shows Payment confirmed separately from the place status.
 After a valid upload, it refreshes the saved status and hides the obsolete reason.
 Confirmed participation means a seat is assigned. Paid waitlist means payment was
 approved without a seat, with no second payment or automatic promotion. Approved

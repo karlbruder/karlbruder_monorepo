@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
 const admin = { access_token: "staff-token", user: { id: "staff-id", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
 const detail: ReviewDetail = {
   registration: {
-    tournament_id: 1, registration_number: "T1-001", registration_status: "payment_in_review", full_name: "Athlete Fixture",
+    tournament_id: 1, registration_number: "T1-001", registration_status: "awaiting_payment_confirmation", full_name: "Athlete Fixture",
     social_name: null, birth_date: "2012-01-01", identity_document_type: "passport", identity_document_number: "TEST",
     school_or_team_name: "Fixture Team", instructor_name: null, hema_experience_description: "2 years", hema_started_year: 2024,
     previous_tournament_count: 0, category_or_eligibility_note: null, declares_has_required_equipment: true,
@@ -140,13 +140,13 @@ it.each(["confirmed", "waitlist"])("shows the saved %s outcome and separates ema
   if (status === "waitlist") expect(screen.getByText(/Sem vaga disponível/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
   await screen.findByText(status === "confirmed" ? "Participação confirmada." : "Pagamento aprovado. Lista de espera, sem vaga confirmada.");
-  if (status === "waitlist") expect(screen.getByText(/A decisão foi salva, mas o e-mail/)).toBeInTheDocument();
+  if (status === "waitlist") expect(screen.getByText(/A análise foi registrada, mas o e-mail/)).toBeInTheDocument();
 });
 it("requires a trimmed rejection reason without payment acknowledgements", async () => {
   outcome = "awaiting_payment"; openReview(); await screen.findByLabelText("Motivo da recusa");
-  fireEvent.click(screen.getByRole("button", { name: "Recusar e solicitar novo envio" })); expect(decisions()).toHaveLength(0);
+  fireEvent.click(screen.getByRole("button", { name: "Recusar comprovante e solicitar novo envio" })); expect(decisions()).toHaveLength(0);
   fireEvent.change(screen.getByLabelText("Motivo da recusa"), { target: { value: "  Unreadable  " } });
-  fireEvent.click(screen.getByRole("button", { name: "Recusar e solicitar novo envio" }));
+  fireEvent.click(screen.getByRole("button", { name: "Recusar comprovante e solicitar novo envio" }));
   await screen.findByText("Comprovante rejeitado. Aguardando novo envio.");
   expect(JSON.parse(decisions()[0][1].body)).toEqual({ document_id: 20, decision: "rejected", rejection_reason: "Unreadable" });
 });
@@ -154,17 +154,17 @@ it("blocks stale submissions, preserves drafts, and requires renewed checks for 
   decisionStatus = 409; openReview(); await approveDraft();
   fireEvent.change(screen.getByLabelText("Motivo da recusa"), { target: { value: "Draft reason" } });
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
-  await screen.findByText(/O comprovante ou a decisão mudou/);
+  await screen.findByText(/O comprovante ou a análise mudou/);
   expect(screen.getByRole("button", { name: "Aprovar pagamento" })).toBeDisabled();
   current = { ...current, latest_document_id: 21, documents: [...current.documents, { ...current.documents[0], id: 21, original_file_name: "replacement.pdf" }] };
   fireEvent.click(screen.getByRole("button", { name: "Atualizar análise" }));
-  await screen.findByText("Atualização concluída. Confira o comprovante antes de decidir.");
+  await screen.findByText("Atualização concluída. Confira o comprovante novamente.");
   expect(screen.getByLabelText("Valor recebido (BRL)")).toHaveValue("123,45");
   expect(screen.getByLabelText("Motivo da recusa")).toHaveValue("Draft reason");
   expect(screen.getByLabelText("Conferi o recebimento e o valor do pagamento.")).not.toBeChecked();
   await approveDraft(); decisionStatus = 200;
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
-  await screen.findByText("Decisão salva.");
+  await screen.findByText("Análise registrada.");
   expect(JSON.parse(decisions()[1][1].body).document_id).toBe(21);
 });
 it.each(["queue", "detail", "decision"])("handles backend 403 on %s without signing out", async location => {
@@ -176,10 +176,10 @@ it.each(["queue", "detail", "decision"])("handles backend 403 on %s without sign
   await screen.findByText("Acesso restrito à equipe."); expect(unauthorized).not.toHaveBeenCalled();
 });
 it("uses English labels and provides staff navigation from home", async () => {
-  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Análise de pagamentos" }));
+  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Conferência de pagamentos" }));
   await screen.findByRole("button", { name: "Revisar T1-001" });
   fireEvent.click(screen.getByRole("button", { name: "English" }));
-  expect(screen.getByRole("heading", { name: "Payment reviews" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Payment verification" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Review T1-001" }));
   await screen.findByLabelText("Amount received (BRL)");
 });
@@ -205,7 +205,7 @@ it("removes private evidence when the session is lost", async () => {
 it("does not offer another decision when a refresh finds the proof already decided", async () => {
   decisionStatus = 409; openReview(); await approveDraft();
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
-  await screen.findByText(/O comprovante ou a decisão mudou/);
+  await screen.findByText(/O comprovante ou a análise mudou/);
   current.registration.registration_status = "confirmed";
   fireEvent.click(screen.getByRole("button", { name: "Atualizar análise" }));
   await screen.findByText("Esta evidência já foi decidida ou não está em análise.");
@@ -219,14 +219,14 @@ it("allows correction after validation failure without losing the draft", async 
   decisionStatus = 200;
   fireEvent.change(screen.getByLabelText("Valor recebido (BRL)"), { target: { value: "0" } });
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
-  await screen.findByText("Decisão salva.");
+  await screen.findByText("Análise registrada.");
   expect(JSON.parse(decisions()[1][1].body).amount_received).toBe("0");
 });
 
 it("preserves the blocked draft if refreshing a conflict fails", async () => {
   decisionStatus = 409; openReview(); await approveDraft();
   fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
-  await screen.findByText(/O comprovante ou a decisão mudou/);
+  await screen.findByText(/O comprovante ou a análise mudou/);
   detailStatus = 503;
   fireEvent.click(screen.getByRole("button", { name: "Atualizar análise" }));
   await screen.findByText("Não foi possível carregar as análises.");

@@ -47,7 +47,7 @@ def create_tournament(
 
 
 @router.get("/payment-reviews", response_model=StaffPaymentReviewQueue)
-def list_payment_reviews(
+def list_pending_payment_proofs(
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -56,7 +56,7 @@ def list_payment_reviews(
         str | None, Query(min_length=1, max_length=50)
     ] = None,
 ) -> StaffPaymentReviewQueue:
-    return payment_proof_reviews.list_payment_reviews(
+    return payment_proof_reviews.list_pending_payment_proofs(
         session,
         admin,
         limit=limit,
