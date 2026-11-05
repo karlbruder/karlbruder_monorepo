@@ -330,6 +330,7 @@ const english = {
   "Este link de inscrição não é válido.": "This registration link is invalid.",
   "Entre com sua conta para consultar esta inscrição.": "Sign in to view this registration.",
   "Não foi possível carregar sua inscrição.": "Could not load your registration.",
+  "Não foi possível atualizar sua inscrição. Tente novamente.": "Could not refresh your registration. Try again.",
   "Acompanhe o pagamento e a situação da sua inscrição.": "Follow your payment and registration status.",
 } as const;
 

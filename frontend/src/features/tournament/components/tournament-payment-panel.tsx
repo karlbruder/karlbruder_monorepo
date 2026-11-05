@@ -89,14 +89,16 @@ export default function TournamentPaymentPanel({
   const awaitingPayment =
     registrationStatus === "awaiting_payment" || registrationStatus === "awaiting_payment_confirmation";
   const approved = payment?.current_review?.decision === "approved";
+  const rejected = payment?.current_review?.decision === "rejected";
+  const needsRegistrationRefresh = (approved && awaitingPayment) || (rejected && registrationStatus === "awaiting_payment_confirmation");
   const canUpload = awaitingPayment && !approved;
   const refreshRegistration = useRef(onRegistrationRefresh);
   useEffect(() => { refreshRegistration.current = onRegistrationRefresh; }, [onRegistrationRefresh]);
   useEffect(() => {
-    if (approved && awaitingPayment) void refreshRegistration.current();
-  }, [approved, awaitingPayment, dataUpdatedAt]);
+    if (needsRegistrationRefresh) void refreshRegistration.current();
+  }, [needsRegistrationRefresh, dataUpdatedAt]);
   const showReplaceForm =
-    canUpload && (replaceMode || registrationStatus === "awaiting_payment" || !payment?.latest_payment_proof);
+    canUpload && (replaceMode || rejected || registrationStatus === "awaiting_payment" || !payment?.latest_payment_proof);
 
   const invalidatePayment = async () => {
     await queryClient.invalidateQueries({
@@ -189,7 +191,7 @@ export default function TournamentPaymentPanel({
         {canUpload && <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>}
       </dl>
       {canUpload && registrationStatus === "awaiting_payment" && payment.current_review?.decision !== "rejected" && <p className="registration-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>}
-      {registrationStatus === "awaiting_payment" && payment.current_review?.decision === "rejected" && <div className="registration-notice" role="status">
+      {canUpload && payment.current_review?.decision === "rejected" && <div className="registration-notice" role="status">
         <h3>{t("Comprovante rejeitado")}</h3>
         <p>{payment.current_review.rejection_reason}</p>
         <p>{t("Sua inscrição não foi cancelada. Envie um novo comprovante para análise. Nenhuma vaga está reservada.")}</p>
@@ -197,7 +199,7 @@ export default function TournamentPaymentPanel({
       {registrationStatus === "waitlist" && <p className="registration-notice" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
       {registrationStatus === "cancelled" && <p className="registration-notice" role="status">{t("Esta inscrição está cancelada e não permite envio de comprovantes.")}</p>}
 
-      {canUpload && registrationStatus === "awaiting_payment_confirmation" && (
+      {canUpload && !rejected && registrationStatus === "awaiting_payment_confirmation" && (
         <p className="registration-notice" role="status">
           {t("Recebemos seu comprovante. Nossa equipe confere o pagamento manualmente. Essa conferência pode levar de 1 a 2 dias úteis. Nenhuma vaga foi reservada.")}
         </p>

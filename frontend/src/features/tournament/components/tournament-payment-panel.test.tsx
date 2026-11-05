@@ -262,6 +262,13 @@ it.each(["confirmed", "waitlist", "cancelled"])("does not offer another proof fo
   expect(screen.queryByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).not.toBeInTheDocument();
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });
+it("does not offer resubmission for a cancelled registration with a rejected proof", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, current_review: { document_id: 1, decision: "rejected", rejection_reason: "Unreadable proof", reviewed_at: "2026-11-05T12:00:00Z" } }) }));
+  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} initialStatus="cancelled" language="en" />);
+  await screen.findByText(/registration is cancelled/);
+  expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Unreadable proof")).not.toBeInTheDocument();
+});
 it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only new evidence in %s", async language => {
   let uploaded = false;
   const request = vi.fn(async (url: string, init?: RequestInit) => {

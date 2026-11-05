@@ -17,6 +17,15 @@ function statusLabel(status: string): AppCopyKey {
   return "Situação indisponível";
 }
 
+function isTransientRefreshError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!(error instanceof Error)) return false;
+  const match = /^http-(\d{3})$/.exec(error.message);
+  if (!match) return false;
+  const status = Number(match[1]);
+  return status === 408 || status === 429 || status >= 500;
+}
+
 export default function TournamentRegistrationPanel({ tournament, session, registrationNumber, language }: {
   tournament: Tournament; session: Session; registrationNumber: string; language: AppLanguage;
 }) {
@@ -47,10 +56,12 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
     } catch { setFailed(true); } finally { busy.current = false; setPending(false); }
   }
   if (query.isPending) return <p role="status">{t("Carregando informações do torneio...")}</p>;
-  if (query.isError || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
+  const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);
+  if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
   return <>
     <section className="registration-card" aria-label={t("Sua inscrição")}>
       <h2>{t("Sua inscrição")}</h2><strong>{registration.registration_number}</strong>
+      {transientRefreshError && <p role="alert">{t("Não foi possível atualizar sua inscrição. Tente novamente.")} <button type="button" onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></p>}
       <dl><div><dt>{t("Situação")}</dt><dd>{t(statusLabel(registration.registration_status))}</dd></div></dl>
       {registration.parental_consent_required && <form onSubmit={submitConsent}>
         <p role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
