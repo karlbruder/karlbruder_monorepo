@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 
+import { StaffAccountsRoute } from "@/app/routes/staff-accounts-route";
 import { StaffLayout } from "@/app/routes/tournament/staff-layout";
 import { StaffTournamentListRoute, StaffTournamentCreateRoute, StaffTournamentDetailRoute } from "@/app/routes/tournament/staff-tournament-route";
 import { PaymentReviewRoute } from "@/app/routes/tournament/payment-review-route";
@@ -27,11 +28,12 @@ export default function AppRouter() {
         <Route path={accountRoutes.password} element={<ChangePasswordRoute />} />
         <Route path="/" element={<HomeRoute />} />
         <Route element={<StaffLayout />}>
-        <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
-        <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />
-        <Route path="/staff/tournaments/:tournamentId" element={<StaffTournamentDetailRoute />} />
-        <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />
-        <Route path="/staff/payment-reviews/:registrationNumber" element={<PaymentReviewRoute />} />
+          <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
+          <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />
+          <Route path="/staff/tournaments/:tournamentId" element={<StaffTournamentDetailRoute />} />
+          <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />
+          <Route path="/staff/payment-reviews/:registrationNumber" element={<PaymentReviewRoute />} />
+          <Route path="/staff/users" element={<StaffAccountsRoute />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

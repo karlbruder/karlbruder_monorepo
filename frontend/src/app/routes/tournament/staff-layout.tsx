@@ -13,7 +13,8 @@ export function StaffLayout() {
     {session?.user.app_metadata?.karlbruder_role !== "admin" ? <p role="alert">{en ? "Staff access required." : "Acesso restrito à equipe."}</p> : <>
       <nav aria-label={en ? "Staff panel" : "Painel da equipe"}>
         <Link to="/staff/tournaments">{en ? "Tournaments" : "Torneios"}</Link>{" · "}
-        <Link to="/staff/payment-reviews">{en ? "Payment verification" : "Conferência de pagamentos"}</Link>
+        <Link to="/staff/payment-reviews">{en ? "Payment verification" : "Conferência de pagamentos"}</Link>{" · "}
+        <Link to="/staff/users">{en ? "User accounts" : "Contas de usuários"}</Link>
       </nav>
       <Outlet />
     </>}

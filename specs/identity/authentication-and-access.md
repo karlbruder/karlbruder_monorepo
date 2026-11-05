@@ -53,7 +53,7 @@ The staff account API requires a verified admin token for both operations. `GET 
 
 `PATCH /api/staff/users/{user_id}` accepts only a `role` field with `regular_user`, `guild_member`, or `admin`. Invalid requests return 422, unknown accounts return 404, and unavailable provider operations return 503. The backend sends only `app_metadata.karlbruder_role` to the [Supabase Auth Admin API](https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid), which merges the supplied key into existing metadata. Concurrent external writes still depend on Supabase's update behavior. Successful promotions to admin log the actor and target IDs.
 
-Guild staff can demote themselves or the last admin. An authorized Supabase operator can restore admin access through Auth-managed app metadata. Role changes reach existing sessions on token refresh or expiry. The privileged key stays on the backend. The staff screen is a separate implementation checkpoint.
+Guild staff can demote themselves or the last admin. An authorized Supabase operator can restore admin access through Auth-managed app metadata. Role changes reach existing sessions on token refresh or expiry. The privileged key stays on the backend. The staff panel exposes this workflow at `/staff/users`. It searches the complete account directory by email or account ID and displays the current role for each result. Guild staff select one of the three application roles and receive feedback after saving.
 
 The 17 October inspection found only Google sign-in in the old frontend entry point despite issue #18 being marked Done. That historical observation no longer describes the current account screens. Neither inspection establishes hosted provider configuration or live email delivery.
 
