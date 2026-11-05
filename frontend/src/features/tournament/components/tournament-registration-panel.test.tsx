@@ -165,3 +165,43 @@ it.each([401, 403, 404])("hides cached registration and payment when a refresh r
   expect(screen.queryByText("Payment confirmed")).not.toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Your registration" })).not.toBeInTheDocument();
 });
+
+it.each([503, 403])("keeps a successful proof submission distinct from payment approval when the status refresh returns %s", async status => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  let submitted = false;
+  let resolveRefresh!: (value: unknown) => void;
+  const refresh = new Promise(resolve => { resolveRefresh = resolve; });
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/payment")) return { ok: true, json: async () => ({ ...payment, amount_received: null, payment_options: { pix: { pix_key: "pix-key" } }, latest_payment_proof: submitted ? { original_file_name: "proof.pdf", content_type: "application/pdf", submitted_at: "2026-11-05T10:00:00Z" } : null }) };
+    if (url.endsWith("/payment-proof/upload-url")) return { ok: true, json: async () => ({ storage_key: "key", upload_url: "https://upload.test", expires_in_seconds: 900, required_headers: {} }) };
+    if (url === "https://upload.test") return { ok: true };
+    if (url.endsWith("/payment-proof") && init?.method === "POST") {
+      submitted = true;
+      return { ok: true, json: async () => ({ ...registration, parental_consent_required: undefined, registration_status: "awaiting_payment_confirmation" }) };
+    }
+    if (submitted) return refresh;
+    return { ok: true, json: async () => ({ ...registration, registration_status: "awaiting_payment", parental_consent_required: true }) };
+  }));
+  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  const input = await screen.findByLabelText("Payment proof", { selector: "input" });
+  const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
+  const file = new File([bytes], "proof.pdf", { type: "application/pdf" });
+  Object.defineProperty(file, "arrayBuffer", { value: async () => bytes.buffer });
+  fireEvent.change(input, { target: { files: [file] } });
+  fireEvent.click(screen.getByRole("button", { name: "Upload payment proof" }));
+  expect(await screen.findByText(/We received your proof of payment/)).toBeInTheDocument();
+  expect(screen.getByText("Awaiting payment confirmation")).toBeInTheDocument();
+  expect(screen.getByLabelText("Signed parental consent form")).toBeInTheDocument();
+  expect(screen.queryByText(/Complete the Pix transfer/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Payment confirmed")).not.toBeInTheDocument();
+  await act(async () => resolveRefresh({ ok: false, status, json: async () => ({}) }));
+  await screen.findByRole("alert");
+  if (status === 503) {
+    expect(screen.getByText(/We received your proof of payment/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Signed parental consent form")).toBeInTheDocument();
+    expect(screen.queryByText(/Complete the Pix transfer/)).not.toBeInTheDocument();
+  } else {
+    expect(screen.queryByRole("heading", { name: "Your registration" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/We received your proof of payment/)).not.toBeInTheDocument();
+  }
+});

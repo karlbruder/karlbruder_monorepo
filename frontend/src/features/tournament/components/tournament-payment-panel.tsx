@@ -8,7 +8,7 @@ import {
   submitPaymentProof,
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
-import type { Tournament } from "@/features/tournament/api/tournaments";
+import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
 import {
   tournamentRegistrationPaymentQueryKey,
@@ -23,6 +23,7 @@ type Props = {
   session: Session;
   registrationNumber: string;
   registrationStatus: string;
+  onProofSubmitted: (registration: OwnerRegistration) => void;
   onRegistrationRefresh: () => Promise<unknown>;
   language?: AppLanguage;
 };
@@ -69,6 +70,7 @@ export default function TournamentPaymentPanel({
   session,
   registrationNumber,
   registrationStatus,
+  onProofSubmitted,
   onRegistrationRefresh,
   language = "pt",
 }: Props) {
@@ -141,10 +143,11 @@ export default function TournamentPaymentPanel({
         session.access_token,
       );
       await uploadFileToPresignedUrl(uploadInfo.upload_url, file, uploadInfo.required_headers);
-      await submitPaymentProof(tournament.id, registrationNumber, session.access_token, {
+      const updatedRegistration = await submitPaymentProof(tournament.id, registrationNumber, session.access_token, {
         storage_key: uploadInfo.storage_key,
         original_file_name: file.name,
       });
+      onProofSubmitted(updatedRegistration);
       form.reset();
       setReplaceMode(false);
       await invalidatePayment();

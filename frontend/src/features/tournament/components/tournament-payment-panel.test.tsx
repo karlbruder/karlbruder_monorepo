@@ -6,9 +6,9 @@ import type { Session } from "@supabase/supabase-js";
 import PaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import { useState, type ComponentProps } from "react";
 
-function TournamentPaymentPanel(props: Omit<ComponentProps<typeof PaymentPanel>, "registrationStatus" | "onRegistrationRefresh"> & { initialStatus?: string }) {
+function TournamentPaymentPanel(props: Omit<ComponentProps<typeof PaymentPanel>, "registrationStatus" | "onProofSubmitted" | "onRegistrationRefresh"> & { initialStatus?: string }) {
   const [status, setStatus] = useState(props.initialStatus ?? "awaiting_payment");
-  return <PaymentPanel {...props} registrationStatus={status} onRegistrationRefresh={async () => { setStatus("awaiting_payment_confirmation"); }} />;
+  return <PaymentPanel {...props} registrationStatus={status} onProofSubmitted={() => {}} onRegistrationRefresh={async () => { setStatus("awaiting_payment_confirmation"); }} />;
 }
 import type { RegistrationPaymentInstructions, Tournament } from "@/features/tournament/api/tournaments";
 

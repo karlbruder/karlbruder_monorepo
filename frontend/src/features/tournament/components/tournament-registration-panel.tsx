@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { getOwnRegistration, requestParentalConsentFormUploadUrl, submitParentalConsentForm, uploadFileToPresignedUrl } from "@/features/tournament/api/tournaments";
-import type { Tournament } from "@/features/tournament/api/tournaments";
+import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
@@ -31,14 +31,26 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const client = useQueryClient();
+  const registrationQueryKey = ["tournaments", tournament.id, "registrations", registrationNumber, "owner", session.user.id] as const;
   const query = useQuery({
-    queryKey: ["tournaments", tournament.id, "registrations", registrationNumber, "owner", session.user.id],
+    queryKey: registrationQueryKey,
     queryFn: ({ signal }) => getOwnRegistration(tournament.id, registrationNumber, session.access_token, signal),
   });
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
   const registration = query.data;
+  function updateSubmittedStatus(submitted: OwnerRegistration) {
+    if (submitted.tournament_id !== tournament.id || submitted.registration_number !== registrationNumber ||
+        (submitted.user_id && submitted.user_id !== session.user.id) || submitted.registration_status !== "awaiting_payment_confirmation") return;
+    const state = client.getQueryState(registrationQueryKey);
+    if (state?.status === "error" && !isTransientRefreshError(state.error)) return;
+    client.setQueryData<typeof registration>(registrationQueryKey, current =>
+      current?.registration_status === "awaiting_payment"
+        ? { ...current, registration_status: submitted.registration_status }
+        : current,
+    );
+  }
   async function submitConsent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current || !registration?.parental_consent_required) return;
@@ -73,6 +85,6 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       </form>}
       {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
-    <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onRegistrationRefresh={() => query.refetch()} language={language} />
+    <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />
   </>;
 }
