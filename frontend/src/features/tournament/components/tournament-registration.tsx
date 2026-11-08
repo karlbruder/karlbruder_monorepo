@@ -1,4 +1,5 @@
-import LanguageToggle from "@/components/language-toggle";
+import { ApplicationHeader } from "@/components/application-header";
+import { ApplicationFooter } from "@/components/application-footer";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -128,9 +129,7 @@ export default function TournamentRegistration({
 
   return (
     <div className="registration-page" lang={locale(language)}>
-      <header className="registration-header">
-        <a href="/" className="registration-brand">Karlbrüder</a>
-        <LanguageToggle className="registration-languages" language={language} onLanguageChange={onLanguageChange} />
+      <ApplicationHeader language={language} onLanguageChange={onLanguageChange}>
         {authReady && session && (
           <div className="registration-account">
             <span>{session.user.email}</span>
@@ -138,7 +137,7 @@ export default function TournamentRegistration({
             <button type="button" onClick={onSignOut}>{t("Sair")}</button>
           </div>
         )}
-      </header>
+      </ApplicationHeader>
       <main className="registration-main">
         <a className="registration-back" href="/">← {t("Início")}</a>
         <div className="registration-intro">
@@ -205,6 +204,7 @@ export default function TournamentRegistration({
           </div>
         )}
       </main>
+      <ApplicationFooter language={language} />
     </div>
   );
 }

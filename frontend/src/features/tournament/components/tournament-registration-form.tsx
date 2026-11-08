@@ -13,6 +13,7 @@ import { isMinorAtTournamentStart } from "@/features/tournament/utils/is-minor-a
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
+import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
 
 type Props = {
   tournament: Tournament;
@@ -342,6 +343,7 @@ export default function TournamentRegistrationForm({
 
   return (
     <form ref={formRef} className="registration-form" aria-label={t("Formulário de inscrição")} onSubmit={submit} noValidate>
+      <RegistrationProgress current={1} language={language} />
       <div className="registration-card registration-draft-notice">
         <p className="registration-eyebrow">{t("Conteúdo em preparação")}</p>
         <p>{t("Os textos finais das declarações e da privacidade ainda precisam de aprovação. Este formulário não está pronto para inscrições reais.")}</p>

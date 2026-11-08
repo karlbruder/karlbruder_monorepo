@@ -1,214 +1,240 @@
-.registration-sign-in-actions {
+.account-auth-page {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.account-email-link {
-  border: 1px solid #642226;
-  border-radius: 7px;
-  color: #642226;
-  display: inline-block;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
-  text-align: center;
-  text-decoration: none;
-}
-
-.account-auth-page {
-  background: #f4f0e9;
-  color: #241f1f;
-  min-height: 100vh;
-}
-
-.account-auth-header {
-  align-items: center;
-  background: #171719;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  min-height: 72px;
-  padding: 0.9rem max(1.25rem, calc((100vw - 960px) / 2));
-}
-
-.account-auth-brand {
-  color: #fff;
-  font-family: Georgia, serif;
-  font-size: 1.45rem;
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .account-auth-main {
+  width: 100%;
+  max-width: 1224px;
   margin: 0 auto;
-  max-width: 960px;
-  padding: 2rem 1.25rem 4rem;
+  flex: 1;
 }
 
 .account-auth-layout {
   display: grid;
-  gap: 2rem;
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (max-width: 820px) {
-  .account-auth-layout {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 540px;
 }
 
 .account-auth-story {
-  padding-top: 1rem;
+  padding: 50px 35px;
+  background: #30372f;
+  color: var(--paper);
 }
 
 .account-auth-overline {
-  color: #642226;
-  font-size: 0.8rem;
+  color: var(--wine);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  margin: 0 0 0.75rem;
+  letter-spacing: 1.7px;
+  margin: 0 0 10px;
   text-transform: uppercase;
 }
 
-.account-auth-story h1 {
+.account-auth-story .account-auth-overline {
+  color: #e6b18c;
+}
+
+.account-auth-story h2 {
   font-family: Georgia, serif;
-  font-size: 2rem;
-  line-height: 1.2;
-  margin: 0 0 1rem;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 55px 0 14px;
+  max-width: 390px;
+}
+
+.account-auth-story p {
+  color: #c4cec1;
+}
+
+.account-auth-story .account-auth-divider {
+  border-color: #73806d;
+  margin: 24px 0;
+}
+
+.account-auth-story .account-auth-muted {
+  color: #c4cec1;
+  font-size: 12px;
 }
 
 .account-auth-form-panel {
-  background: #fff;
-  border: 1px solid #d8c4a4;
-  border-radius: 14px;
-  padding: 1.75rem;
+  background: white;
+  padding: 40px 32px;
+  min-width: 0;
 }
 
 .account-auth-form-panel h2 {
-  font-family: Georgia, serif;
-  margin: 0 0 1rem;
+  font-size: 25px;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: -.7px;
+  margin: 0 0 30px;
 }
 
 .account-auth-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
+  gap: 7px;
+  margin-bottom: 17px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .account-auth-field input {
-  border: 1px solid #c9b59a;
-  border-radius: 8px;
-  font: inherit;
-  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd0c6;
+  border-radius: 4px;
+  background: white;
+  color: var(--ink);
+  padding: 12px;
+  min-height: 42px;
+  width: 100%;
 }
 
 .account-auth-divider {
   border: 0;
-  border-top: 1px solid #e5dccf;
-  margin: 1.25rem 0;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
 }
 
 .account-auth-or {
-  color: #666;
-  font-size: 0.9rem;
-  margin: 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 23px 0;
+  color: var(--muted);
+  font-size: 11px;
   text-align: center;
 }
 
+.account-auth-or::before, .account-auth-or::after {
+  content: "";
+  height: 1px;
+  background: var(--line);
+  flex: 1;
+}
+
 .account-auth-notice {
-  border-radius: 10px;
-  margin-bottom: 1rem;
-  padding: 0.85rem 1rem;
+  border-radius: 4px;
+  border: 1px solid;
+  border-left-width: 3px;
+  margin-bottom: 18px;
+  padding: 15px 17px;
+  font-size: 12px;
 }
 
 .account-auth-notice.info {
-  background: #eef4ff;
-  border: 1px solid #bfd3ff;
+  background: #eaf0f2;
+  color: #315465;
+  border-color: #d0dfe5;
+  border-left-color: #5b8191;
 }
 
 .account-auth-notice.success {
-  background: #ecfdf3;
-  border: 1px solid #a7f3d0;
+  background: #e8f0e6;
+  color: #32563d;
+  border-color: #d2dfcd;
+  border-left-color: #538060;
 }
 
 .account-auth-notice.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background: #f6e8e6;
+  color: #782e32;
+  border-color: #e6c6c2;
+  border-left-color: #aa5656;
+}
+
+.account-auth-notice p:last-child {
+  margin-bottom: 0;
 }
 
 .account-auth-text-button {
   background: transparent;
   border: 0;
-  color: #642226;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0;
+  color: var(--wine);
+  font-size: 12px;
+  padding: 8px 0;
   text-decoration: underline;
 }
 
 .account-auth-switch {
-  font-size: 0.92rem;
+  font-size: 12px;
   margin: 0;
 }
 
-.account-auth-submit,
-.google-btn {
-  background: #642226;
-  border: 0;
-  border-radius: 7px;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
+.account-auth-submit, .google-btn, .account-email-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--wine);
+  border: 1px solid var(--wine);
+  border-radius: 5px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 17px;
+  min-height: 42px;
   width: 100%;
 }
 
 .google-btn.secondary {
-  background: #fff;
-  border: 1px solid #642226;
-  color: #642226;
-}
-
-.google-btn:disabled,
-.account-auth-submit:disabled {
-  cursor: wait;
-  opacity: 0.6;
+  background: white;
+  border-color: #c2c7be;
+  color: var(--ink);
 }
 
 .account-auth-error {
-  color: #8f2525;
-  margin-top: 0.75rem;
+  color: #782e32;
+  margin-top: 12px;
 }
 
 .account-auth-muted {
-  color: #666;
-  font-size: 0.92rem;
+  color: var(--muted);
+  font-size: 12px;
 }
 
-.home-account-links {
+.registration-sign-in-actions, .home-account-links {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .home-account-links a {
-  border-radius: 7px;
   display: inline-block;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
-  text-decoration: none;
+  border: 1px solid var(--wine);
+  border-radius: 5px;
+  padding: 12px 17px;
+  font-weight: 600;
 }
 
 .home-account-links .primary {
-  background: #642226;
-  color: #fff;
+  background: var(--wine);
+  color: white;
 }
 
 .home-account-links .secondary {
-  border: 1px solid #642226;
-  color: #642226;
+  color: var(--wine);
+}
+
+@media (max-width: 700px) {
+  .account-auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-auth-story {
+    padding: 24px;
+  }
+  .account-auth-story h2 {
+    font-size: 28px;
+    margin-top: 12px;
+  }
+  .account-auth-form-panel {
+    padding: 25px;
+  }
+  .account-auth-form-panel h2 {
+    margin-bottom: 24px;
+  }
 }

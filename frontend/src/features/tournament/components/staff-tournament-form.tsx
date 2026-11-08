@@ -98,16 +98,20 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
       setError(caught);
     } finally { setPending(false); }
   }
-  return <form onSubmit={submit}>
+  return <form className="staff-tournament-form review-card" onSubmit={submit}>
     <p>{en ? "Leave optional fields empty when not configured. Saving captures linked policies again." : "Deixe os campos opcionais vazios quando não estiverem configurados. Salvar captura novamente as políticas vinculadas."}</p>
     <p>{en ? "Date and time fields use your browser time zone:" : "Os campos de data e hora usam o fuso horário do navegador:"} {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-    {fields.map(field => <label key={field.key} style={{ display: "block", margin: "1rem 0" }}>{en ? field.en : field.pt}{" "}
+    <div className="staff-form-grid">
+    {fields.map(field => <label key={field.key} className={field.multiline ? "staff-field-wide" : undefined}>{en ? field.en : field.pt}{" "}
       {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} step={field.key === "registration_fee_amount" ? "0.01" : field.type === "datetime-local" ? "1" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
     </label>)}
-    <label><input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {en ? "Internal tournament" : "Torneio interno"}</label>{" "}
-    <label><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
+    </div>
+    <div className="staff-tournament-options">
+    <label className="review-check"><input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {en ? "Internal tournament" : "Torneio interno"}</label>
+    <label className="review-check"><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
+    </div>
     {invalidTime && <p role="alert">{en ? "This local time does not exist. Choose another time for" : "Este horário local não existe. Escolha outro horário para"} {en ? fields.find(field => field.key === invalidTime)?.en : fields.find(field => field.key === invalidTime)?.pt}.</p>}
     {error != null && <p role="alert">{saveErrorMessage(error, en)}</p>}
-    <p><button disabled={pending}>{pending ? (en ? "Saving..." : "Salvando...") : (en ? "Save tournament" : "Salvar torneio")}</button></p>
+    <p><button className="staff-primary-button" disabled={pending}>{pending ? (en ? "Saving..." : "Salvando...") : (en ? "Save tournament" : "Salvar torneio")}</button></p>
   </form>;
 }

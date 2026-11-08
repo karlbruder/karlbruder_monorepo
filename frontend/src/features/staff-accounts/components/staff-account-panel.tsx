@@ -8,6 +8,7 @@ import {
   type StaffAccount,
 } from "@/features/staff-accounts/api/staff-accounts";
 import type { AppLanguage } from "@/utils/app-copy";
+import "@/features/staff-accounts/components/staff-accounts.css";
 
 const pageSize = 25;
 
@@ -82,11 +83,11 @@ function AccountRoleForm({ account, token, actorId, language }: PanelProps & { a
     : labels.saveError;
 
   return (
-    <li>
+    <li className="staff-account-card">
       <h2>{account.email ?? labels.noEmail}</h2>
       <p>{account.id}</p>
       <p>{labels.currentRole}: {labels[account.role]}</p>
-      <form onSubmit={submit}>
+      <form className="staff-role-form" onSubmit={submit}>
         <label>
           {labels.role}{" "}
           <select
@@ -126,10 +127,10 @@ export function StaffAccountPanel({ token, actorId, language }: PanelProps) {
   const showResults = accounts.data !== undefined && status !== 401 && status !== 403;
 
   return (
-    <section>
+    <section className="staff-accounts">
       <h1>{labels.title}</h1>
       <p>{labels.sessionNote}</p>
-      <label>
+      <label className="staff-account-search">
         {labels.search}{" "}
         <input type="search" value={search} onChange={(event) => {
           setSearch(event.target.value);
@@ -145,7 +146,7 @@ export function StaffAccountPanel({ token, actorId, language }: PanelProps) {
       )}
       {showResults && (matches.length === 0
         ? <p>{labels.empty}</p>
-        : <ul>{matches.slice(start, start + pageSize).map((account) =>
+        : <ul className="staff-account-list">{matches.slice(start, start + pageSize).map((account) =>
             <AccountRoleForm key={account.id} account={account} token={token} actorId={actorId} language={language} />,
           )}</ul>)}
       {showResults && pageCount > 1 && (
