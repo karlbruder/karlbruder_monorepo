@@ -46,9 +46,9 @@ export default function HomeRoute() {
             {session?.user.app_metadata?.karlbruder_role === "admin" && (
               <section className="home-shortcuts">
                 <p className="eyebrow">{en ? "Admin only" : "Somente admin"}</p>
-                <h2>{en ? "Staff" : "Equipe"}</h2>
-                <Link className="shortcut-link" to="/staff/tournaments" aria-label={en ? "Staff panel" : "Painel da equipe"}>
-                  <span><strong>{en ? "Staff panel" : "Painel da equipe"}</strong><small>{en ? "Tournaments, payments and users" : "Torneios, pagamentos e usuários"}</small></span><span aria-hidden="true">→</span>
+                <h2>{en ? "Guild" : "Guilda"}</h2>
+                <Link className="shortcut-link" to="/staff/tournaments" aria-label={en ? "Guild panel" : "Painel da Guilda"}>
+                  <span><strong>{en ? "Guild panel" : "Painel da Guilda"}</strong><small>{en ? "Tournaments, payments and users" : "Torneios, pagamentos e usuários"}</small></span><span aria-hidden="true">→</span>
                 </Link>
               </section>
             )}

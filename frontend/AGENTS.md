@@ -4,6 +4,15 @@ These instructions add to the root [AGENTS.md](../AGENTS.md) for `frontend/` and
 
 Use the [README](README.md) for setup and check commands as needed. Account creation is sign-up. Tournament participation is registration. Preserve SDK identifiers such as `signUp`.
 
+## Visual design
+
+- Before changing screens, shared UI, styles, or visible copy, read the [design index](../specs/design/README.md) and the relevant [wireframe screen/state references](../specs/design/app-wireframes/README.md#screen-to-spec-map). Inspect the rendered reference screens at desktop and phone widths. Read only the screens and states affected by the task.
+- Follow available designs for branding, layout, hierarchy, typography, spacing, component presentation, and responsive states. A draft label does not make the visual reference optional. Existing implementation that diverges from the reference is not the design baseline. The user's latest explicit direction takes precedence.
+- Owning product specs govern behavior. Design references do not authorize future features, new routes, permissions, configuration values, or business rules. Adapt the presentation to the authorized behavior and surface conflicts. When no design covers the change, extend the established visual system and report that no matching reference was available.
+- Use the [application vocabulary](../specs/taxonomy.md#application-vocabulary) for visible labels and accessible names. Keep technical identifiers and role names stable unless their change is explicitly in scope.
+- Compare the affected application screens against the references in a browser at desktop and phone widths. Check relevant normal, loading, empty, error, and success states, localized copy, keyboard focus, overflow, and loaded images. Keep verification proportional to the change. Behavioral tests do not establish visual fidelity.
+- Report the design screen/state references used, intentional deviations, and any visual checks that could not be completed. Do not claim a visual match from source inspection alone.
+
 ## Design and ownership
 
 Organize by capability. Before editing, identify responsibility, callers, and state ownership. Check boundaries as well as file placement.

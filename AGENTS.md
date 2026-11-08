@@ -12,6 +12,7 @@
 Start with this file, applicable child instructions, and the assigned issue or user request. Do not load the full specification set or follow every documentation link.
 
 - For a behavior change, read the owning spec's relevant rules, acceptance criteria, and unresolved questions. Use [the specification index](specs/README.md) to locate them when needed. An issue defines scope but may omit an applicable requirement.
+- For frontend UI work, consult the available design specs and relevant rendered screens before editing, even when behavior stays unchanged. Follow the design within the authorized scope. Use [Application design](specs/design/README.md) to find application references and [frontend instructions](frontend/AGENTS.md#visual-design) for verification.
 - Read a linked decision when its constraints or rationale affect the task. Do not open every linked decision automatically.
 - Read additional sections only to resolve a requirement, dependency, conflict, or verification question. Stop when those questions are answered.
 
@@ -20,6 +21,7 @@ Use these entry points when the task needs them:
 | Task | Read |
 | --- | --- |
 | Application boundaries or future capabilities | [Product](specs/product.md) |
+| Frontend screens, components, styling, or visible copy | Relevant [design references](specs/design/README.md) and [application vocabulary](specs/taxonomy.md#application-vocabulary) |
 | Deployment or stack composition | Relevant sections of [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) |
 | Local Compose, ports, or database | [Local development](specs/platform/local-development.md) |
 | Team access to AWS | [Team access](specs/platform/team-access.md) and [AWS team access](docs/aws-team-access.md) |

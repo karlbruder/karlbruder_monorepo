@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-08
 
 | Field | Value |
 | --- | --- |
@@ -28,6 +28,8 @@ The controls above the application frame and the spec notes are design-review to
 
 The shared shell is guild-branded. Monomachia remains one event in a reusable catalog. The lighter workspace, spacing, navigation, components, microcopy, and responsive breakpoints are proposed design choices, not new product requirements. State labels include words rather than relying on color alone.
 
+Use the relevant screens as the visual baseline for authorized frontend work. Follow the latest [application vocabulary](../../taxonomy.md#application-vocabulary). Product specs govern behavior and delivery scope. Illustrative controls, future screens, and fictional values do not authorize new functionality or configuration.
+
 ## Screen-to-spec map
 
 `WF-xx` identifies a design screen, not a new product rule. The interactive notes cite rules on every screen. Banners identify implemented portions and proposals. Even where a journey is partly implemented, the presentation and individual states are illustrative, not an exact reproduction. The current application has no catalog or cross-tournament personal list. The selected tournament registration page restores the person’s active registration, or a named owned registration from a link. [Issue #63](https://github.com/karlbruder/karlbruder_monorepo/issues/63) tracks the proposed personal list.
@@ -43,7 +45,7 @@ The shared shell is guild-branded. Monomachia remains one event in a reusable ca
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
 | [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
 | [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · proposed | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; preserve acceptance history. PRIV-AC-007, REG-AC-017. |
-| [WF-18 · Staff panel](index.html#WF-18/overview) | Admin · proposed | [AUTH-008](../../identity/authentication-and-access.md), [ADM-001](../../tournaments/administration.md). Shared navigation, loading, error and access restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
+| [WF-18 · Guild panel](index.html#WF-18/overview) | Admin · proposed | [AUTH-008](../../identity/authentication-and-access.md), [ADM-001](../../tournaments/administration.md). Shared navigation, loading, error and access restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
 | [WF-19 · Tournament list](index.html#WF-19/list) | Admin · proposed | List, empty, loading, error and restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
 | [WF-20 · Tournament detail and deletion](index.html#WF-20/detail) | Admin · proposed | Confirmation, success and rejection when registrations exist, including after closure. Future match results also prevent deletion. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
 | [WF-21 · Users](index.html#WF-21/list) | Admin · proposed | List, filter, empty, loading, error and restriction. [#74](https://github.com/karlbruder/karlbruder_monorepo/issues/74). |
@@ -67,7 +69,7 @@ The proposed home puts the registration first. Its card combines the event, stat
 
 This is a design judgment informed by the Scottish Government’s [2025 card navigation guidance](https://designsystem.gov.scot/patterns/navigational-pages/card-navigation), which recommends cards for browsing and notes their space cost, and [dashboard text research published in 2025](https://doi.org/10.1109/TVCG.2024.3456601), which describes the role of text in context and navigation. These sources do not validate this particular design with Karlbrüder users. The same approach is used for the proposed personal registration list and the payment-review queue. Forms keep their fields and action buttons, while operational tables retain their columns for comparison. Tournament details and account access retain their existing structures. Keyboard focus and phone layout need interactive review.
 
-The staff panel is a proposal. Follow [panel](index.html#WF-18/overview) → [tournaments](index.html#WF-19/list) → [detail](index.html#WF-20/detail) → [configuration](index.html#WF-12/edit) or [deletion](index.html#WF-20/confirm). Compare deletion [rejection after closure](index.html#WF-20/closed) with [success](index.html#WF-20/deleted). Use [create](index.html#WF-12/create) for unconfigured inputs and [policy failure](index.html#WF-12/policyerror) for rollback. Review [payments](index.html#WF-09/queue) and [users](index.html#WF-21/list) from the same navigation. The role selector illustrates [self-demotion](index.html#WF-22/self), [last-admin demotion](index.html#WF-22/last), success and failure.
+The guild panel is a proposal. Follow [panel](index.html#WF-18/overview) → [tournaments](index.html#WF-19/list) → [detail](index.html#WF-20/detail) → [configuration](index.html#WF-12/edit) or [deletion](index.html#WF-20/confirm). Compare deletion [rejection after closure](index.html#WF-20/closed) with [success](index.html#WF-20/deleted). Use [create](index.html#WF-12/create) for unconfigured inputs and [policy failure](index.html#WF-12/policyerror) for rollback. Review [payments](index.html#WF-09/queue) and [users](index.html#WF-21/list) from the same navigation. The role selector illustrates [self-demotion](index.html#WF-22/self), [last-admin demotion](index.html#WF-22/last), success and failure.
 
 Issue [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75) defers tournament-change notifications although CAT-008 and ADM-010 currently describe them. The artifact follows that issue decision and does not claim the specifications have already changed. [#62](https://github.com/karlbruder/karlbruder_monorepo/issues/62) supplies the configuration workflow, with unknown values left unconfigured.
 

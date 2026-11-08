@@ -175,11 +175,14 @@ it.each(["queue", "detail", "decision"])("handles backend 403 on %s without sign
   if (location === "decision") { await approveDraft(); decisionStatus = 403; fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" })); }
   await screen.findByText("Acesso restrito à equipe."); expect(unauthorized).not.toHaveBeenCalled();
 });
-it("uses English labels and provides staff navigation from home", async () => {
-  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Painel da equipe" }));
+it("uses English labels and provides guild panel navigation from home", async () => {
+  render(tree("/")); fireEvent.click(screen.getByRole("link", { name: "Painel da Guilda" }));
+  expect(screen.getByText("Guilda Karlbrüder")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Conferência de pagamentos" }));
   await screen.findByRole("button", { name: "Revisar T1-001" });
   fireEvent.click(screen.getByRole("button", { name: "English" }));
+  expect(screen.getByText("Karlbrüder Guild")).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "Guild panel" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Payment verification" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Review T1-001" }));
   await screen.findByLabelText("Amount received (BRL)");
