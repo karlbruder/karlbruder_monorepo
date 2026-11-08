@@ -189,17 +189,17 @@ export default function TournamentPaymentPanel({
         {(approved || registrationStatus === "confirmed" || registrationStatus === "waitlist") && (
           <div><dt>{t("Pagamento da inscrição")}</dt><dd>{t("Pagamento confirmado")}</dd></div>
         )}
-        <div><dt>{t(amountReceived == null ? "Valor da inscrição" : "Valor recebido")}</dt><dd>{formatMoney(amountReceived ?? feeAmount, language)}</dd></div>
+        <div><dt>{t(amountReceived == null ? "Valor da inscrição" : "Valor recebido")}</dt><dd className="registration-payment-amount">{formatMoney(amountReceived ?? feeAmount, language)}</dd></div>
         <div><dt>{t("Prazo para pagamento")}</dt><dd>{formatDateTime(payment.payment_due_at, language)}</dd></div>
         {canUpload && <div><dt>{t("Chave Pix")}</dt><dd>{payment.payment_options.pix.pix_key ?? t("A chave Pix deste torneio ainda não foi configurada.")}</dd></div>}
       </dl>
       {canUpload && registrationStatus === "awaiting_payment" && payment.current_review?.decision !== "rejected" && <p className="registration-help">{t("Faça o Pix fora da plataforma e envie o comprovante abaixo. Enviar o arquivo não transfere dinheiro nem reserva vaga.")}</p>}
-      {canUpload && payment.current_review?.decision === "rejected" && <div className="registration-notice" role="status">
+      {canUpload && payment.current_review?.decision === "rejected" && <div className="registration-notice registration-notice-error" role="status">
         <h3>{t("Comprovante rejeitado")}</h3>
         <p>{payment.current_review.rejection_reason}</p>
         <p>{t("Sua inscrição não foi cancelada. Envie um novo comprovante para análise. Nenhuma vaga está reservada.")}</p>
       </div>}
-      {registrationStatus === "waitlist" && <p className="registration-notice" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
+      {registrationStatus === "waitlist" && <p className="registration-notice registration-notice-waitlist" role="status">{t("Seu pagamento foi aprovado, mas você não tem uma vaga confirmada. Não pague novamente. A equipe escolhe e confirma participantes da lista de espera. Não há promoção automática.")}</p>}
       {registrationStatus === "cancelled" && <p className="registration-notice" role="status">{t("Esta inscrição está cancelada e não permite envio de comprovantes.")}</p>}
 
       {canUpload && !rejected && registrationStatus === "awaiting_payment_confirmation" && (

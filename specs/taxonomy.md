@@ -1,7 +1,7 @@
 # Taxonomy
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-08
 
 These names are the shared vocabulary for the rest of the specifications.
 
@@ -10,6 +10,7 @@ These names are the shared vocabulary for the rest of the specifications.
 | Term | Meaning and implemented names |
 | --- | --- |
 | Account sign-up | Create a Supabase Auth account. Keep provider identifiers such as `signUp` and the `/account/sign-up` route |
+| Guild | The organization is the guild. Its administrative area is the guild panel. Staff refers to people with administrative access |
 | Tournament registration | Participate in an event through `TournamentRegistration`, `registration_number`, and `/api/tournaments/{tournament_id}/registrations`. The frontend entry is `/tournaments/registration` |
 | Discipline | The tournament's sporting discipline, such as `longsword`. Keep the `discipline` field |
 | Parental consent form | The minor's signed document. Use `parental_consent_form` in fields and document purpose, and `parental-consent-form` in routes |

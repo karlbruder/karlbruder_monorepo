@@ -56,7 +56,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-it("opens accounts from the staff panel and searches across provider pages by email or ID", async () => {
+it("opens accounts from the guild panel and searches across provider pages by email or ID", async () => {
   const firstPage = Array.from({ length: 25 }, (_, index) => ({
     id: `account-${index}`, email: `first-${index}@example.test`, role: "regular_user",
   }));
@@ -66,7 +66,7 @@ it("opens accounts from the staff panel and searches across provider pages by em
     return json({ users: [{ id: "last-account", email: "last@example.test", role: "guild_member" }], next_page: null });
   });
   renderRoute("/staff/tournaments");
-  const panel = screen.getByRole("navigation", { name: "Painel da equipe" });
+  const panel = screen.getByRole("navigation", { name: "Painel da Guilda" });
   expect(within(panel).getByRole("link", { name: "Torneios" })).toBeInTheDocument();
   expect(within(panel).getByRole("link", { name: "Conferência de pagamentos" })).toBeInTheDocument();
   fireEvent.click(within(panel).getByRole("link", { name: "Contas de usuários" }));

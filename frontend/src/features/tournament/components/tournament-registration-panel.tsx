@@ -7,6 +7,7 @@ import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/us
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
+import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
 
 function statusLabel(status: string): AppCopyKey {
   if (status === "awaiting_payment") return "Aguardando pagamento";
@@ -71,10 +72,11 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);
   if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
   return <>
+    {registration.registration_status !== "cancelled" && <RegistrationProgress current={registration.registration_status === "awaiting_payment" ? 2 : 3} language={language} />}
     <section className="registration-card" aria-label={t("Sua inscrição")}>
       <h2>{t("Sua inscrição")}</h2><strong>{registration.registration_number}</strong>
       {transientRefreshError && <p role="alert">{t("Não foi possível atualizar sua inscrição. Tente novamente.")} <button type="button" onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></p>}
-      <dl><div><dt>{t("Situação")}</dt><dd>{t(statusLabel(registration.registration_status))}</dd></div></dl>
+      <dl className="registration-status-facts"><div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div></dl>
       {registration.parental_consent_required && <form onSubmit={submitConsent}>
         <p role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
         <label htmlFor="parental_consent_form_existing">{t("Termo de responsabilidade assinado")}</label>
@@ -83,7 +85,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
         {failed && <p role="alert">{t("Não foi possível enviar o termo de responsabilidade. Tente novamente.")}</p>}
         <button type="submit" disabled={pending}>{t(pending ? "Enviando termo..." : "Enviar termo")}</button>
       </form>}
-      {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
+      {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p className="registration-notice registration-notice-success" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
     <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />
   </>;

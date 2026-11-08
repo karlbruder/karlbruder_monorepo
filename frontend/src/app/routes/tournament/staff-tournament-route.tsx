@@ -22,14 +22,15 @@ export function StaffTournamentListRoute() {
   const [offset, setOffset] = useState(0);
   const query = useStaffTournaments(session!.access_token, session!.user.id, offset);
   const en = language === "en";
-  return <section><h1>{en ? "Tournaments" : "Torneios"}</h1>
-    <Link to="/staff/tournaments/new">{en ? "Create tournament" : "Criar torneio"}</Link>
+  return <section className="staff-tournaments">
+    <div className="staff-page-heading"><h1>{en ? "Tournaments" : "Torneios"}</h1>
+    <Link className="staff-primary-button" to="/staff/tournaments/new">{en ? "Create tournament" : "Criar torneio"}</Link></div>
     {query.isLoading && <p role="status">{en ? "Loading tournaments..." : "Carregando torneios..."}</p>}
     {query.isError && <p role="alert">{en ? "Could not load tournaments." : "Não foi possível carregar os torneios."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
-    {query.data && <><ul>{query.data.items.map(event => <li key={event.id}><Link to={`/staff/tournaments/${event.id}`}>{event.name}</Link></li>)}</ul>
+    {query.data && <><ul className="staff-tournament-list">{query.data.items.map(event => <li key={event.id}><Link to={`/staff/tournaments/${event.id}`}><strong>{event.name}</strong><span aria-hidden="true">→</span></Link></li>)}</ul>
       {query.data.items.length === 0 && <p>{en ? "No tournaments found." : "Nenhum torneio encontrado."}</p>}
-      <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 20))}>{en ? "Previous" : "Anterior"}</button>{" "}
-      <button disabled={offset + 20 >= query.data.total} onClick={() => setOffset(offset + 20)}>{en ? "Next" : "Próxima"}</button></>}
+      <div className="staff-pagination"><button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 20))}>{en ? "Previous" : "Anterior"}</button>{" "}
+      <button disabled={offset + 20 >= query.data.total} onClick={() => setOffset(offset + 20)}>{en ? "Next" : "Próxima"}</button></div></>}
   </section>;
 }
 export function StaffTournamentCreateRoute() {
@@ -70,7 +71,9 @@ export function StaffTournamentDetailRoute() {
     {query.isLoading && <p role="status">{en ? "Loading tournament..." : "Carregando torneio..."}</p>}
     {query.isError && <p role="alert">{en ? "Could not load this tournament." : "Não foi possível carregar este torneio."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {query.data && !missing && <><h1>{query.data.name}</h1><StaffTournamentForm key={query.data.id} token={session!.access_token} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" }); if (isActiveVisit()) navigate("/staff/tournaments"); }} />
-      {!confirming ? <button onClick={() => setConfirming(true)}>{en ? "Delete tournament" : "Excluir torneio"}</button> : <div><p>{en ? "Delete this tournament? This cannot be undone." : "Excluir este torneio? Esta ação não pode ser desfeita."}</p><button disabled={deleting} onClick={remove}>{en ? "Confirm deletion" : "Confirmar exclusão"}</button>{" "}<button disabled={deleting} onClick={() => setConfirming(false)}>{en ? "Cancel" : "Cancelar"}</button></div>}
+      <div className="review-card staff-delete-panel">
+      {!confirming ? <button className="staff-danger-button" onClick={() => setConfirming(true)}>{en ? "Delete tournament" : "Excluir torneio"}</button> : <div><p>{en ? "Delete this tournament? This cannot be undone." : "Excluir este torneio? Esta ação não pode ser desfeita."}</p><button className="staff-danger-button" disabled={deleting} onClick={remove}>{en ? "Confirm deletion" : "Confirmar exclusão"}</button>{" "}<button disabled={deleting} onClick={() => setConfirming(false)}>{en ? "Cancel" : "Cancelar"}</button></div>}
+      </div>
       {error && <p role="alert">{error}</p>}</>}
   </section>;
 }

@@ -1,34 +1,357 @@
-.payment-reviews { max-width: 1200px; padding: 2rem; margin: auto; }
-.payment-reviews header, .review-actions, .review-search, .review-queue li { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.payment-reviews header { margin-bottom: 2rem; }
-.payment-reviews h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); }
-.payment-reviews h2 { font-size: 1.25rem; }
-.payment-reviews button, .payment-reviews input, .payment-reviews textarea { font: inherit; border: 1px solid #89919b; border-radius: 6px; padding: .7rem; min-height: 44px; }
-.payment-reviews button { background: #fff; cursor: pointer; color: #642226; font-weight: 600; }
-.payment-reviews button:disabled { cursor: default; opacity: .55; }
-.payment-reviews :focus-visible { outline: 3px solid #8b1e2d; outline-offset: 3px; }
-.payment-reviews label { display: grid; gap: .4rem; }
-.payment-reviews input, .payment-reviews textarea { width: 100%; min-width: 0; }
-.payment-reviews textarea { min-height: 100px; }
-.review-queue, .review-documents { list-style: none; padding: 0; }
-.review-queue li, .review-documents li { border-bottom: 1px solid #ddd; padding: 1rem 0; }
-.review-documents a { display: block; margin-top: .8rem; text-decoration: underline; }
-.review-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-.review-card { background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; overflow-wrap: anywhere; min-width: 0; }
-.review-card dl > div { margin: .7rem 0; }
-.review-card dt { font-weight: 600; }
-.review-card dd { margin-left: 0; white-space: pre-wrap; }
-.review-card fieldset { border: 0; padding: 0; margin-top: 1.5rem; display: grid; gap: 1rem; min-width: 0; }
-.review-card fieldset > button { background: #642226; color: white; }
-.review-card fieldset > .review-reject { background: #fff; color: #642226; }
-.review-card .review-check { display: flex; align-items: start; gap: .7rem; }
-.review-check input { width: 20px; min-height: 20px; flex-shrink: 0; }
-.review-notice { background: #fff6dc; border-left: 4px solid #8b6914; padding: 1rem; }
-.payment-reviews summary { cursor: pointer; padding: .8rem 0; font-weight: 600; }
-@media (max-width: 720px) {
-  .payment-reviews { padding: 1rem; }
-  .review-columns { grid-template-columns: minmax(0, 1fr); }
-  .review-card { padding: 1rem; }
-  .review-search { align-items: stretch; }
-  .review-search label { flex-basis: 100%; }
+.payment-reviews h1 {
+  margin: 20px 0 25px;
+}
+
+.payment-reviews h2 {
+  font-size: 17px;
+}
+
+.staff-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.staff-nav a {
+  padding: 12px 0;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+}
+
+.staff-nav a.active {
+  border-color: var(--wine);
+}
+
+.review-actions, .review-search, .review-queue li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.payment-reviews button, .payment-reviews input, .payment-reviews textarea, .payment-reviews select {
+  border: 1px solid #cbd0c6;
+  border-radius: 4px;
+  padding: 12px;
+  min-height: 42px;
+}
+
+.payment-reviews button {
+  background: white;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 17px;
+}
+
+.payment-reviews label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.payment-reviews input:not([type="checkbox"]), .payment-reviews textarea, .payment-reviews select {
+  width: 100%;
+  min-width: 0;
+  background: white;
+  color: var(--ink);
+}
+
+.payment-reviews textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.review-search {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 23px;
+  margin: 20px 0;
+  justify-content: flex-start;
+  align-items: end;
+}
+
+.review-search label {
+  flex: 1 1 100%;
+}
+
+.review-search button[type="submit"], .review-search button:not([type]) {
+  background: var(--wine);
+  color: white;
+  border-color: var(--wine);
+}
+
+.review-queue, .review-documents {
+  list-style: none;
+  padding: 0;
+}
+
+.review-queue {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 23px;
+}
+
+.review-queue li {
+  border-bottom: 1px solid var(--line);
+  padding: 20px 0;
+}
+
+.review-queue li:last-child {
+  border-bottom: 0;
+}
+
+.review-queue p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.review-queue small {
+  color: var(--muted);
+}
+
+.review-queue button {
+  color: var(--wine);
+}
+
+.review-documents li {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #f9faf6;
+}
+
+.review-documents p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 6px 0 12px;
+}
+
+.review-documents a {
+  display: block;
+  margin-top: 12px;
+  text-decoration: underline;
+}
+
+.review-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(230px, 1fr);
+  gap: 23px;
+  align-items: start;
+}
+
+.review-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 23px;
+  margin-bottom: 18px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.review-card dl {
+  margin: 0 0 18px;
+}
+
+.review-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eceee8;
+  font-size: 12px;
+}
+
+.review-card dl > div:last-child {
+  border: 0;
+}
+
+.review-card dt {
+  color: var(--muted);
+}
+
+.review-card dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  max-width: 65%;
+  white-space: pre-wrap;
+}
+
+.review-card fieldset {
+  border: 0;
+  padding: 0;
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.review-card fieldset > button, .payment-reviews .staff-primary-button {
+  background: var(--wine);
+  color: white;
+  border: 1px solid var(--wine);
+}
+
+.review-card fieldset > .review-reject {
+  background: white;
+  color: #842e31;
+  border-color: #b89190;
+}
+
+.payment-reviews .review-check {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  font-weight: 400;
+}
+
+.review-check input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.review-notice {
+  background: #f6eedb;
+  color: #735322;
+  border: 1px solid #e5d6b7;
+  border-left: 3px solid #9f793c;
+  border-radius: 4px;
+  padding: 15px 17px;
+  margin-bottom: 18px;
+}
+
+.payment-reviews summary {
+  cursor: pointer;
+  padding: 16px 0;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+}
+
+.payment-reviews [role="alert"] {
+  background: #f6e8e6;
+  color: #782e32;
+  border-left: 3px solid #aa5656;
+  border-radius: 4px;
+  padding: 15px 17px;
+}
+
+.staff-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin: 20px 0 25px;
+}
+
+.staff-page-heading h1 {
+  margin: 0;
+}
+
+.staff-primary-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 17px;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.staff-tournament-list {
+  list-style: none;
+  padding: 0 23px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  margin: 0 0 18px;
+}
+
+.staff-tournament-list:empty {
+  display: none;
+}
+
+.staff-tournament-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.staff-tournament-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+  color: var(--ink);
+}
+
+.staff-pagination {
+  display: flex;
+  gap: 10px;
+}
+
+.staff-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.staff-field-wide {
+  grid-column: 1 / -1;
+}
+
+.staff-tournament-options {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.staff-tournament-form > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.payment-reviews .staff-danger-button {
+  border-color: #b89190;
+  color: #842e31;
+  background: transparent;
+}
+
+@media (max-width: 700px) {
+  .review-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .review-card, .review-search {
+    padding: 20px;
+  }
+  .review-queue, .staff-tournament-list {
+    padding: 0 20px;
+  }
+  .review-search {
+    align-items: stretch;
+  }
+  .review-search button {
+    flex: 1;
+  }
+  .staff-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .staff-page-heading {
+    flex-wrap: wrap;
+  }
+  .review-card dl > div {
+    gap: 12px;
+  }
 }
