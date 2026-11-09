@@ -94,6 +94,34 @@
   margin-top: auto;
 }
 
+.application-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.legal-document {
+  max-width: 800px;
+  font-size: 15px;
+  overflow-wrap: break-word;
+}
+
+.legal-document h2 {
+  margin-top: 1.5em;
+}
+
+.legal-document ul {
+  padding-inline-start: 1.4em;
+}
+
+.legal-document li + li {
+  margin-top: 0.75em;
+}
+
+.legal-document a {
+  text-decoration: underline;
+}
+
 .app-language-toggle {
   display: flex;
   gap: 4px;

@@ -87,6 +87,28 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+describe('Public legal documents', () => {
+  it.each([
+    ['/terms-of-service', 'Termos de Uso do App Karlbrüder'],
+    ['/privacy-policy', 'Política de Privacidade do App Karlbrüder'],
+  ])('opens %s in Portuguese without a session', (path, title) => {
+    window.localStorage.setItem('registrationLanguage', 'en')
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
+
+    const heading = screen.getByRole('heading', { name: title, level: 1 })
+    expect(heading.closest('[lang]')).toHaveAttribute('lang', 'pt-BR')
+    expect(screen.getByText('8 de novembro de 2026')).toHaveAttribute('datetime', '2026-11-08')
+    expect(screen.queryByRole('button', { name: 'English' })).not.toBeInTheDocument()
+  })
+
+  it.each([accountRoutes.signIn, accountRoutes.signUp])('links both documents from %s before sign-in', (path) => {
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
+
+    expect(screen.getByRole('link', { name: 'Termos de Uso' })).toHaveAttribute('href', '/terms-of-service')
+    expect(screen.getByRole('link', { name: 'Política de Privacidade' })).toHaveAttribute('href', '/privacy-policy')
+  })
+})
+
 describe('Account email auth flows', () => {
   it('shows PT and EN on sign-in while signed out and switches visible copy to English', async () => {
     render(

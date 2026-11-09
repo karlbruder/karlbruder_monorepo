@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
+import { legalRoutes } from "@/config/legal-routes";
 
 import { StaffAccountsRoute } from "@/app/routes/staff-accounts-route";
 import { StaffLayout } from "@/app/routes/tournament/staff-layout";
@@ -7,6 +8,7 @@ import { StaffTournamentListRoute, StaffTournamentCreateRoute, StaffTournamentDe
 import { PaymentReviewRoute } from "@/app/routes/tournament/payment-review-route";
 import { AuthenticatedLayout } from "@/app/routes/authenticated-layout";
 import HomeRoute from "@/app/routes/home-route";
+import { LegalDocumentRoute } from "@/app/routes/legal-document-route";
 import RegistrationRoute from "@/app/routes/tournament/registration-route";
 import SignInRoute from "@/app/routes/auth/sign-in-route";
 import SignUpRoute from "@/app/routes/auth/sign-up-route";
@@ -18,6 +20,8 @@ import ChangePasswordRoute from "@/app/routes/auth/change-password-route";
 export default function AppRouter() {
   return (
     <Routes>
+      <Route path={legalRoutes.terms} element={<LegalDocumentRoute documentType="terms" />} />
+      <Route path={legalRoutes.privacy} element={<LegalDocumentRoute documentType="privacy" />} />
       <Route path="/tournaments/registration" element={<RegistrationRoute />} />
       <Route path={accountRoutes.signIn} element={<SignInRoute />} />
       <Route path={accountRoutes.signUp} element={<SignUpRoute />} />

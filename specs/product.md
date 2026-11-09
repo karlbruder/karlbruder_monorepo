@@ -1,7 +1,7 @@
 # Karlbrüder product
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-08
 
 | Field | Value |
 | --- | --- |
@@ -40,6 +40,7 @@ The initial application roles are regular user, guild member, and guild staff (a
 - **PROD-012:** Regular users can register only for public, non-internal tournaments. Internal tournament access and participation are limited to guild members, including guild staff, and remain subject to the event's other eligibility rules.
 - **PROD-013:** Initial tournament payments accept Pix only, in BRL, until an official gateway is implemented. Amount, destination, dates, venue, and event rules are Tournament/payment configuration, not hardcoded product values.
 - **PROD-014:** Terms disclose participant-directory and results visibility to authorized platform users; there is no participant-list opt-out. Shared views use limited display fields and preserve internal-event and private-data restrictions. Participants may edit their own permitted registration fields; staff-only notes and system-managed fields remain protected.
+- **PROD-015:** The app provides its Terms of Use at `/terms-of-service` and Privacy Policy at `/privacy-policy`. Both pages are public and available only in Brazilian Portuguese. The shared app footer links to both documents, including on the account access screens. These documents are separate from tournament terms and organizer notices.
 
 ## First-release tournament experience
 
@@ -79,6 +80,7 @@ Privacy, access control, and mandatory event terms apply to any released feature
 - **PROD-AC-009:** A guild member receives regular-user access plus member access, and guild staff receive both plus administrative access. Profile editing cannot elevate the caller's role.
 - **PROD-AC-010:** A public event's registration entry opens `/tournaments/registration`, and an authenticated valid submission uses POST to create a registration through the backend.
 - **PROD-AC-011:** The first release supports registration, proof upload, authorized proof review, waitlist-entry email when applicable, and rejected-evidence notification/resubmission without requiring results, a full administration suite, the broader messaging suite, or exports to be delivered first.
+- **PROD-AC-012:** A visitor can open either legal page directly or from the account access footer without signing in. The documents show their effective date and remain in Brazilian Portuguese regardless of the app language preference.
 
 ## Follow-up ownership
 

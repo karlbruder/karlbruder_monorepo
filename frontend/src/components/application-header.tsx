@@ -19,7 +19,7 @@ export function ApplicationHeader({ language, onLanguageChange, navigation, chil
         </a>
         {navigation}
         <div className="application-account">
-          <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
+          {onLanguageChange && <LanguageToggle language={language} onLanguageChange={onLanguageChange} />}
           {children}
         </div>
       </div>
