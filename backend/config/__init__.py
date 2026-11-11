@@ -6,7 +6,6 @@ from .base import (
     JWKS_REQUEST_TIMEOUT_SECONDS,
 )
 from .env import ENV_NAME
-from .sentry import setup_sentry
 
 match ENV_NAME:
     case "local":
@@ -22,7 +21,7 @@ match ENV_NAME:
 
         settings = AwsSettings()  # type: ignore[call-arg]
 
-setup_sentry(settings)
+settings.init_sentry(environment=settings.ENV_NAME, release=settings.GIT_SHA)
 
 __all__ = [
     "ALLOWED_JWT_ALGORITHMS",

@@ -1,4 +1,5 @@
 import logging
+import random
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI
@@ -13,7 +14,6 @@ from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from config import settings
 from config.base import Settings
-from config.sentry import _before_transaction, setup_sentry
 from config.test import TestSettings as BackendTestSettings
 
 
@@ -27,7 +27,7 @@ class MemoryTransport(Transport):
 
 
 @pytest.fixture
-def monitoring(monkeypatch):
+def monitoring(monkeypatch, request):
     transport = MemoryTransport()
     init = sentry_sdk.init
 
@@ -39,11 +39,11 @@ def monitoring(monkeypatch):
             "ENV_NAME": "test",
             "SENTRY_ENABLED": True,
             "SENTRY_DSN": "https://public@example.com/1",
-            "SENTRY_SUCCESS_TRANSACTION_SAMPLE_RATE": 0.0,
+            "SENTRY_SUCCESS_TRANSACTION_SAMPLE_RATE": getattr(request, "param", 0.0),
         }
     )
     monkeypatch.setattr(sentry_sdk, "init", init_with_memory_transport)
-    setup_sentry(configured)
+    configured.init_sentry(environment=configured.ENV_NAME, release=configured.GIT_SHA)
     yield transport
     sentry_sdk.get_client().close()
     sentry_sdk.get_global_scope().set_client(None)
@@ -65,7 +65,10 @@ def test_monitoring_enablement(monkeypatch, environment, overrides, expected):
     calls = []
     monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: calls.append(kwargs))
     configured = BackendTestSettings(_env_file=None, ENV_NAME=environment, **overrides)
-    assert setup_sentry(configured) is expected
+    assert (
+        configured.init_sentry(environment=environment, release=configured.GIT_SHA)
+        is expected
+    )
     assert bool(calls) is expected
 
 
@@ -115,16 +118,25 @@ def test_error_retains_transaction_when_success_sampling_is_zero(monitoring):
     assert "event" in types
 
 
-def test_successful_transaction_is_dropped_when_sampling_is_zero(monitoring):
-    """Drop successful transactions when retention is disabled."""
+@pytest.mark.parametrize(
+    ("monitoring", "retained"),
+    [(0.0, False), (0.1, False), (0.11, True), (1.0, True)],
+    indirect=["monitoring"],
+)
+def test_successful_transaction_is_sent_only_below_the_sample_rate(
+    monkeypatch, monitoring, retained
+):
+    """Check which completed transactions reach the Sentry transport."""
+    monkeypatch.setattr(random, "random", lambda: 0.1)
     with sentry_sdk.start_transaction(name="GET /example", op="http.server"):
         pass
     sentry_sdk.flush()
-    assert all(
-        item.type != "transaction"
+    sent = any(
+        item.type == "transaction"
         for envelope in monitoring.envelopes
         for item in envelope.items
     )
+    assert sent is retained
 
 
 def test_failed_http_request_emits_one_error_and_a_transaction(monitoring):
@@ -205,14 +217,6 @@ def test_sampling_rate_validation_rejects_invalid_values():
     for rate in (-0.1, 1.1, float("nan"), float("inf")):
         with pytest.raises(ValidationError):
             BackendTestSettings(SENTRY_SUCCESS_TRANSACTION_SAMPLE_RATE=rate)
-
-
-def test_success_rate_boundaries(monkeypatch):
-    """Keep successful transactions only when the draw falls below the rate."""
-    event = {"transaction": "GET /api/test", "contexts": {"trace": {"status": "ok"}}}
-    monkeypatch.setattr("config.sentry.random.random", lambda: 0.1)
-    for rate, expected in [(0, None), (0.1, None), (1, event)]:
-        assert _before_transaction(event, rate) is expected
 
 
 def test_marked_duplicate_error_still_emits_a_log(monitoring):
