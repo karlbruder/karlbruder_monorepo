@@ -34,8 +34,8 @@ afterEach(async () => {
 function enableMonitoring() {
   vi.stubEnv("VITE_SENTRY_ENABLED", "true");
   vi.stubEnv("VITE_SENTRY_DSN", "https://public@example.invalid/1");
-  vi.stubEnv("VITE_SENTRY_ENVIRONMENT", "test");
-  vi.stubEnv("VITE_SENTRY_RELEASE", "example-sha");
+  vi.stubEnv("VITE_ENV_NAME", "test");
+  vi.stubEnv("VITE_GIT_SHA", "example-sha");
 }
 
 it("starts without a Sentry client when monitoring is disabled or the DSN is missing", async () => {

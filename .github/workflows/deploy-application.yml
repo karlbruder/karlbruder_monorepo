@@ -143,9 +143,11 @@ jobs:
             fi
             case "${SERVICE}" in
               frontend)
+                echo "ENV_NAME=${DEPLOY_ENVIRONMENT}"
                 echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
                 ;;
               landing)
+                echo "ENV_NAME=${DEPLOY_ENVIRONMENT}"
                 echo "REACT_APP_APPLICATION_URL=${APPLICATION_BASE_URL}"
                 ;;
             esac

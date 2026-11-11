@@ -6,8 +6,8 @@ export function initSentry() {
 
   init({
     dsn,
-    environment: process.env.REACT_APP_SENTRY_ENVIRONMENT || undefined,
-    release: process.env.REACT_APP_SENTRY_RELEASE || undefined,
+    environment: process.env.REACT_APP_ENV_NAME || undefined,
+    release: process.env.REACT_APP_GIT_SHA || undefined,
     initialScope: { tags: { service: 'kb-landing' } },
     integrations: defaults => defaults.filter(integration => integration.name !== 'BrowserSession'),
     beforeBreadcrumb(breadcrumb) {

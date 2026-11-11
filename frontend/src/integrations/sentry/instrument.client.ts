@@ -18,8 +18,8 @@ const authCallback = /(?:^|[?#&])(?:code|token_hash|access_token|refresh_token)=
 if (env.VITE_SENTRY_ENABLED === "true" && dsn && !authCallback) {
   Sentry.init({
     dsn,
-    environment: env.VITE_SENTRY_ENVIRONMENT || undefined,
-    release: env.VITE_SENTRY_RELEASE || undefined,
+    environment: env.VITE_ENV_NAME || undefined,
+    release: env.VITE_GIT_SHA || undefined,
     initialScope: { tags: { service: "kb-frontend" } },
     dataCollection: {
       userInfo: false,

@@ -15,8 +15,8 @@ beforeEach(() => {
     ...originalEnv,
     REACT_APP_SENTRY_ENABLED: 'true',
     REACT_APP_SENTRY_DSN: 'https://public@example.invalid/1',
-    REACT_APP_SENTRY_ENVIRONMENT: 'test',
-    REACT_APP_SENTRY_RELEASE: 'example-sha',
+    REACT_APP_ENV_NAME: 'test',
+    REACT_APP_GIT_SHA: 'example-sha',
   };
   const { init } = jest.requireActual('@sentry/browser');
   Sentry.init.mockImplementation(options => init({

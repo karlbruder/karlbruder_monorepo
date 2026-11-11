@@ -123,9 +123,15 @@ tag or copies the environment tag onto that SHA. Every service must have an imag
 from an earlier build before it can be reused. Reused images retain their original
 build metadata.
 
-The pipeline generates one UTC `RELEASED_AT` per run. Backend, frontend, and landing
-production images embed it and `GIT_SHA`. Restarting a container does not change
-that metadata.
+The workflow passes the build commit as `GIT_SHA` and a UTC timestamp as
+`RELEASED_AT` to the backend, frontend, and landing images. It also passes the
+selected deployment environment as `ENV_NAME` to both browser images. The final
+browser images expose all three values through `docker inspect`.
+
+Browser code reads the same build inputs through the `VITE_` prefix in the
+frontend and `REACT_APP_` in landing. Sentry uses the environment and SHA for
+attribution. A metadata page can read the timestamp as `VITE_RELEASED_AT` or
+`REACT_APP_RELEASED_AT`. Both deployment environments use production mode.
 
 ```mermaid
 flowchart LR
