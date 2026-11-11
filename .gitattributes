@@ -1,0 +1,2 @@
+ministack/bootstrap-ministack.sh text eol=lf
+scripts/local_database.sh text eol=lf
