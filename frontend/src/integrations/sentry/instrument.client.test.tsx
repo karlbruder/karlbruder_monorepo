@@ -87,7 +87,12 @@ it("skips monitoring on a Supabase callback URL containing credentials", async (
 it("traces browser navigation using the matched React Router route", async () => {
   enableMonitoring();
   vi.stubEnv("VITE_SENTRY_TRACES_SAMPLE_RATE", "1");
+  vi.stubEnv("VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE", undefined);
   await import("@/integrations/sentry/instrument.client");
+  expect(Sentry.getClient()?.getOptions()).toMatchObject({
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 1,
+  });
   const TracedRoutes = Sentry.wrapReactRouterRouting(Routes);
 
   render(

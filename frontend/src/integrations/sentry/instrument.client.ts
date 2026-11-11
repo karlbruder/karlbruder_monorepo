@@ -11,11 +11,11 @@ const env = import.meta.env;
 const dsn = env.VITE_SENTRY_DSN;
 
 // Sentry can include the starting URL, including Supabase callback credentials.
-const authCallback = /(?:^|[?#&])(?:code|token_hash|access_token|refresh_token)=/.test(
+const hasAuthCredentialsInUrl = /(?:^|[?#&])(?:code|token_hash|access_token|refresh_token)=/.test(
   window.location.search + window.location.hash,
 );
 
-if (env.VITE_SENTRY_ENABLED === "true" && dsn && !authCallback) {
+if (env.VITE_SENTRY_ENABLED === "true" && dsn && !hasAuthCredentialsInUrl) {
   Sentry.init({
     dsn,
     environment: env.VITE_ENV_NAME || undefined,
@@ -49,7 +49,7 @@ if (env.VITE_SENTRY_ENABLED === "true" && dsn && !authCallback) {
     ],
     tracesSampleRate: Number(env.VITE_SENTRY_TRACES_SAMPLE_RATE || 0.1),
     tracePropagationTargets: [],
-    replaysSessionSampleRate: Number(env.VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE || 0.1),
+    replaysSessionSampleRate: Number(env.VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE || 0),
     replaysOnErrorSampleRate: 1,
   });
 }
