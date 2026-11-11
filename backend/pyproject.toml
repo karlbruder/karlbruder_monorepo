@@ -14,7 +14,6 @@ python = "^3.12"
 
 fastapi = "^0.110"
 uvicorn = { extras = ["standard"], version = "^0.27" }
-gunicorn = "^21.2"
 httpx = "^0.27"
 
 # Database
@@ -29,6 +28,7 @@ boto3 = "^1.35"
 pandas = "^3.0.0"
 psycopg2-binary = "^2.9.11"
 pyjwt = { extras = ["crypto"], version = "^2.13.0" }
+sentry-sdk = {version = ">=2.0,<3.0", extras = ["fastapi"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

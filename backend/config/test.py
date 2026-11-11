@@ -1,4 +1,4 @@
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, Field
 from pydantic_settings import SettingsConfigDict
 
 from .base import Settings
@@ -33,3 +33,5 @@ class TestSettings(Settings):
 
     SMTP_ENABLED: bool = False
     APP_BASE_URL: AnyHttpUrl = "https://app.example.test"
+
+    SENTRY_DSN: str = Field(default="https://test-project@example.invalid/1", min_length=1)

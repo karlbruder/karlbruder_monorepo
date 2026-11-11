@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     GIT_SHA: str = GIT_SHA
     RELEASED_AT: str = RELEASED_AT
 
+    def is_local_environment(self) -> bool:
+        return IS_LOCAL_ENV
+
     # Domain database
     DB_ENGINE: str = "postgresql"
     DB_DRIVER: str = "psycopg"
@@ -63,6 +66,63 @@ class Settings(BaseSettings):
     SUPABASE_URL: AnyHttpUrl
     SUPABASE_SERVICE_ROLE_KEY: str
 
+    @field_validator("SUPABASE_URL")
+    @classmethod
+    def require_secure_project_root(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+        if value.scheme != "https":
+            raise ValueError("SUPABASE_URL must use HTTPS")
+        if value.username is not None or value.password is not None:
+            raise ValueError("SUPABASE_URL must not contain credentials")
+        if value.path not in (None, "", "/") or value.query or value.fragment:
+            raise ValueError("SUPABASE_URL must be the project root URL")
+        return value
+
+    @property
+    def issuer(self) -> str:
+        return f"{str(self.SUPABASE_URL).rstrip('/')}/auth/v1"
+
+    @property
+    def jwks_url(self) -> str:
+        return f"{self.issuer}/.well-known/jwks.json"
+
+    def get_database_url(self) -> str:
+        """Build the domain database URL from host, name, user, and password."""
+        return self._build_database_url(
+            username=self.DB_USER,
+            password=self.DB_PASSWORD,
+            host=self.DB_HOST,
+            port=self.DB_PORT,
+            database=self.DB_NAME,
+        )
+
+    def get_auth_database_url(self) -> str:
+        """Build the Auth database URL for diagnostics and current-email lookup."""
+        return self._build_database_url(
+            username=self.AUTH_DB_USER,
+            password=self.AUTH_DB_PASSWORD,
+            host=self.AUTH_DB_HOST,
+            port=self.AUTH_DB_PORT,
+            database=self.AUTH_DB_NAME,
+        )
+
+    def _build_database_url(
+        self,
+        username: str,
+        password: str,
+        host: str,
+        port: int,
+        database: str,
+    ) -> str:
+        return URL.create(
+            drivername=f"{self.DB_ENGINE}+{self.DB_DRIVER}",
+            username=username,
+            password=password,
+            host=host,
+            port=port,
+            database=database,
+        ).render_as_string(hide_password=False)
+
+    # Email
     SMTP_FROM: str = "Suporte Karlbrüder <no-reply@karlbruder.com.br>"
     SMTP_ENABLED: bool = False
     SMTP_HOST: str | None = None
@@ -123,61 +183,18 @@ class Settings(BaseSettings):
     S3_ENDPOINT_URL: str | None = None
     S3_BROWSER_ENDPOINT_URL: str | None = None
 
-    @field_validator("SUPABASE_URL")
+    # Monitoring
+    SENTRY_DSN: str = Field(min_length=1)
+    SENTRY_ENABLED: bool = False
+    SENTRY_SUCCESS_TRANSACTION_SAMPLE_RATE: float = Field(
+        default=0.1, ge=0, le=1, allow_inf_nan=False
+    )
+    SENTRY_LOG_LEVEL: str = "INFO"
+
+    @field_validator("SENTRY_LOG_LEVEL")
     @classmethod
-    def require_secure_project_root(cls, value: AnyHttpUrl) -> AnyHttpUrl:
-        if value.scheme != "https":
-            raise ValueError("SUPABASE_URL must use HTTPS")
-        if value.username is not None or value.password is not None:
-            raise ValueError("SUPABASE_URL must not contain credentials")
-        if value.path not in (None, "", "/") or value.query or value.fragment:
-            raise ValueError("SUPABASE_URL must be the project root URL")
+    def validate_sentry_log_level(cls, value: str) -> str:
+        value = value.upper()
+        if value not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("SENTRY_LOG_LEVEL must be a standard logging level")
         return value
-
-    def is_local_environment(self) -> bool:
-        return IS_LOCAL_ENV
-
-    @property
-    def issuer(self) -> str:
-        return f"{str(self.SUPABASE_URL).rstrip('/')}/auth/v1"
-
-    @property
-    def jwks_url(self) -> str:
-        return f"{self.issuer}/.well-known/jwks.json"
-
-    def get_database_url(self) -> str:
-        """Build the domain database URL from host, name, user, and password."""
-        return self._build_database_url(
-            username=self.DB_USER,
-            password=self.DB_PASSWORD,
-            host=self.DB_HOST,
-            port=self.DB_PORT,
-            database=self.DB_NAME,
-        )
-
-    def get_auth_database_url(self) -> str:
-        """Build the Auth database URL for diagnostics and current-email lookup."""
-        return self._build_database_url(
-            username=self.AUTH_DB_USER,
-            password=self.AUTH_DB_PASSWORD,
-            host=self.AUTH_DB_HOST,
-            port=self.AUTH_DB_PORT,
-            database=self.AUTH_DB_NAME,
-        )
-
-    def _build_database_url(
-        self,
-        username: str,
-        password: str,
-        host: str,
-        port: int,
-        database: str,
-    ) -> str:
-        return URL.create(
-            drivername=f"{self.DB_ENGINE}+{self.DB_DRIVER}",
-            username=username,
-            password=password,
-            host=host,
-            port=port,
-            database=database,
-        ).render_as_string(hide_password=False)

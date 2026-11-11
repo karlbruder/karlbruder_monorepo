@@ -64,4 +64,4 @@ EXPOSE 8000
 
 ENTRYPOINT ["sh", "/app/entrypoint.production.sh"]
 
-CMD ["gunicorn", "app.main:karlbruder_app", "-k", "uvicorn.workers.UvicornWorker", "-w", "2", "-b", "0.0.0.0:8000"]
+CMD ["uvicorn", "app.main:karlbruder_app", "--workers", "2", "--host", "0.0.0.0", "--port", "8000"]

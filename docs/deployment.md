@@ -1,7 +1,7 @@
 # Application deployment
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-11
 
 This guide explains the deployment implemented by
 [the workflow](../.github/workflows/deploy-application.yml),
@@ -170,9 +170,9 @@ project. The backend requires this key at startup. Keep it out of frontend build
 settings.
 
 The production image includes the Secrets Manager dependencies. Its entrypoint
-runs `alembic upgrade head` once per container startup, before Gunicorn workers.
+runs `alembic upgrade head` once per container startup, before the Uvicorn workers.
 Failure prevents API startup. On success, the entrypoint replaces itself with
-Gunicorn so shutdown signals reach the server. Development and test startup do
+Uvicorn so shutdown signals reach the server. Development and test startup do
 not use that entrypoint. See [database migrations](database-migrations.md) for
 application, reset prerequisites, and verification. Never reset production data
 to make startup pass.
