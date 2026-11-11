@@ -87,22 +87,21 @@ def test_settings_reject_null_sentry_enabled():
         BackendTestSettings(SENTRY_ENABLED=None)
 
 
-def test_error_and_log_preserve_messages_without_frame_locals(monitoring):
-    """Preserve diagnostics while excluding local variables from frames."""
+def test_logged_exception_captures_message_and_traceback_without_frame_locals(monitoring):
     frame_local = uuid4().hex
     try:
         raise ValueError("exception-diagnostic")
     except ValueError:
-        sentry_sdk.capture_exception()
-    logging.getLogger("app.test").error("logging-diagnostic")
+        logging.getLogger("app.test").exception("logging-diagnostic")
     sentry_sdk.flush()
     items = [item for envelope in monitoring.envelopes for item in envelope.items]
-    assert sum(item.type == "event" for item in items) == 2
-    assert any(item.type == "log" for item in items)
-    serialized = b"".join(item.get_bytes() for item in items)
-    assert b"exception-diagnostic" in serialized
-    assert b"logging-diagnostic" in serialized
-    assert frame_local.encode() not in serialized
+    assert [item.type for item in items] == ["event"]
+    event = items[0].payload.json
+    exception = event["exception"]["values"][0]
+    assert exception["value"] == "exception-diagnostic"
+    assert exception["stacktrace"]["frames"]
+    assert event["logentry"]["formatted"] == "logging-diagnostic"
+    assert frame_local.encode() not in items[0].get_bytes()
 
 
 def test_error_retains_transaction_when_success_sampling_is_zero(monitoring):
@@ -116,6 +115,25 @@ def test_error_retains_transaction_when_success_sampling_is_zero(monitoring):
     types = [item.type for envelope in monitoring.envelopes for item in envelope.items]
     assert "transaction" in types
     assert "event" in types
+
+
+def test_http_errors_and_traces_exclude_request_bodies(monitoring):
+    app = FastAPI()
+
+    @app.post("/registration")
+    async def registration(payload: dict):
+        sentry_sdk.capture_message("registration diagnostic")
+        return {}
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/registration", json={"identity_document_number": "synthetic-document"}
+        )
+    assert response.is_success
+    sentry_sdk.flush()
+    items = [item for envelope in monitoring.envelopes for item in envelope.items]
+    assert {item.type for item in items} >= {"event", "transaction"}
+    assert all(b"synthetic-document" not in item.get_bytes() for item in items)
 
 
 @pytest.mark.parametrize(
@@ -160,10 +178,7 @@ def test_failed_http_request_emits_one_error_and_a_transaction(monitoring):
     items = [item for envelope in monitoring.envelopes for item in envelope.items]
     assert sum(item.type == "event" for item in items) == 1
     assert sum(item.type == "transaction" for item in items) == 1
-    assert any(
-        item.type == "log" and b"ASGI application failed" in item.get_bytes()
-        for item in items
-    )
+    assert all(b"ASGI application failed" not in item.get_bytes() for item in items)
 
 
 def test_error_identity_comes_from_the_current_verified_request(
@@ -219,33 +234,26 @@ def test_sampling_rate_validation_rejects_invalid_values():
             BackendTestSettings(SENTRY_SUCCESS_TRANSACTION_SAMPLE_RATE=rate)
 
 
-def test_marked_duplicate_error_still_emits_a_log(monitoring):
-    """Suppress only the duplicate error event for a marked record."""
+def test_marked_duplicate_error_emits_no_event(monitoring):
     logging.getLogger("app.test").error(
         "already reported", extra={"sentry_already_captured": True}
     )
     sentry_sdk.flush()
-    items = [item for envelope in monitoring.envelopes for item in envelope.items]
-    assert all(item.type != "event" for item in items)
-    assert any(
-        item.type == "log" and b"already reported" in item.get_bytes() for item in items
-    )
+    assert not monitoring.envelopes
 
 
-def test_uvicorn_loggers_emit_log_items_with_service_context(monitoring):
-    """Send both worker loggers through the standard logging integration."""
-    for name in ("uvicorn.error", "uvicorn.access"):
-        logging.getLogger(name).warning(f"diagnostic from {name}")
+def test_uvicorn_logs_stay_out_of_sentry_events_and_breadcrumbs(monitoring, caplog):
+    for name in ("uvicorn.access", "uvicorn.error"):
+        logging.getLogger(name).error("diagnostic from %s", name)
+    sentry_sdk.capture_message("application diagnostic")
     sentry_sdk.flush()
-    logs = b"".join(
-        item.get_bytes()
-        for envelope in monitoring.envelopes
-        for item in envelope.items
-        if item.type == "log"
-    )
-    assert b"diagnostic from uvicorn.error" in logs
-    assert b"diagnostic from uvicorn.access" in logs
-    assert b"kb-backend" in logs
+
+    items = [item for envelope in monitoring.envelopes for item in envelope.items]
+    assert [item.type for item in items] == ["event"]
+    for name in ("uvicorn.access", "uvicorn.error"):
+        diagnostic = f"diagnostic from {name}"
+        assert diagnostic in caplog.text
+        assert diagnostic.encode() not in items[0].get_bytes()
 
 
 def test_health_failures_report_errors_without_transactions(monitoring):
