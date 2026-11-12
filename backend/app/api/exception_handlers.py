@@ -1,5 +1,7 @@
 """Translate known failures into HTTP responses without defining domain rules."""
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -26,6 +28,8 @@ from app.tournaments.exceptions import (
     RegistrationResourceNotFoundError,
     TournamentError,
 )
+
+logger = logging.getLogger(__name__)
 
 _ERROR_STATUS = {
     SupabaseAccountNotFoundError: 404,
@@ -64,8 +68,9 @@ def register_api_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(FileStorageError)
     def handle_file_storage_error(
-        _request: Request, _error: FileStorageError
+        _request: Request, error: FileStorageError
     ) -> JSONResponse:
+        logger.error("File storage request failed", exc_info=error)
         return JSONResponse(
             status_code=503, content={"detail": "File storage unavailable"}
         )

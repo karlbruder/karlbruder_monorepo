@@ -10,8 +10,10 @@ import pytest
 import sentry_sdk
 from sentry_sdk.transport import Transport
 
+from app.api.exception_handlers import register_api_exception_handlers
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
+from app.core.files import FileStorageError
 from config import settings
 from config.base import Settings
 from config.test import TestSettings as BackendTestSettings
@@ -102,6 +104,37 @@ def test_logged_exception_captures_message_and_traceback_without_frame_locals(mo
     assert exception["stacktrace"]["frames"]
     assert event["logentry"]["formatted"] == "logging-diagnostic"
     assert frame_local.encode() not in items[0].get_bytes()
+
+
+def test_handled_storage_failure_reports_its_cause_once(monitoring):
+    """Keep the public 503 generic and send the exception chain to Sentry."""
+    app = FastAPI()
+    register_api_exception_handlers(app)
+
+    @app.post("/upload-url")
+    def create_upload_url():
+        try:
+            raise RuntimeError("synthetic signing failure")
+        except RuntimeError as error:
+            raise FileStorageError("Failed to create upload URL") from error
+
+    with TestClient(app) as client:
+        response = client.post("/upload-url")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "File storage unavailable"}
+
+    sentry_sdk.flush()
+    events = [
+        item.payload.json
+        for envelope in monitoring.envelopes
+        for item in envelope.items
+        if item.type == "event"
+    ]
+    assert len(events) == 1
+    assert [value["value"] for value in events[0]["exception"]["values"]] == [
+        "synthetic signing failure",
+        "Failed to create upload URL",
+    ]
 
 
 def test_error_retains_transaction_when_success_sampling_is_zero(monitoring):
