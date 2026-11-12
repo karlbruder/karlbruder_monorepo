@@ -86,6 +86,6 @@ Local SMTP is a deferred implementation choice, likely SES with real credentials
 
 ## Backend logging
 
-The backend writes structured console logs to stdout with Rich tracebacks in local and test environments. Tracebacks include exception type and frame locations. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
+The backend writes structured console logs to stdout with Rich tracebacks in local and test environments. Tracebacks include the full exception chain with messages and traceback locations. Frame locals are omitted. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
 
-The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Successful health checks are omitted. Responses include an `X-Request-ID` header.
+The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Startup and shutdown failures emit a structured diagnostic. Successful health checks are omitted. Responses include an `X-Request-ID` header.

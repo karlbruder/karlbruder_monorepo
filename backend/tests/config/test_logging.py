@@ -3,12 +3,12 @@ import logging
 import sys
 
 
-def test_cloud_output_formats_message_and_omits_exception_values(
+def test_cloud_output_includes_traceback_in_single_json_line(
     configure_log_formatter,
 ):
-    """Cloud logs keep the formatted message and safe exception locations."""
+    """Cloud logs keep the formatted message and traceback in one JSON record."""
     try:
-        raise ValueError("private exception value")
+        raise ValueError("synthetic exception message")
     except ValueError:
         record = logging.LogRecord(
             "app.test",
@@ -24,17 +24,18 @@ def test_cloud_output_formats_message_and_omits_exception_values(
     payload = json.loads(line)
     assert "\n" not in line
     assert payload["message"] == "First line\nsecond line"
-    assert "private exception value" not in line
     assert payload["logger"] == "app.test"
-    assert payload["exception"]["type"] == "ValueError"
-    assert payload["exception"]["frames"][0]["filename"] == "test_logging.py"
+    assert "ValueError: synthetic exception message" in payload["exception"]
+    assert "test_logging.py" in payload["exception"]
 
 
-def test_local_output_contains_safe_rich_traceback(configure_log_formatter):
-    """Local tracebacks show exception type and frames without locals or values."""
-    private_local = "private local value"
+def test_local_output_contains_rich_traceback_without_frame_locals(
+    configure_log_formatter,
+):
+    """Local tracebacks include the exception message and omit frame locals."""
+    private_local = "".join(("synthetic", " local value"))
     try:
-        raise RuntimeError(private_local)
+        raise RuntimeError("synthetic runtime failure")
     except RuntimeError:
         record = logging.LogRecord(
             "app.test",
@@ -48,7 +49,8 @@ def test_local_output_contains_safe_rich_traceback(configure_log_formatter):
     rendered = configure_log_formatter("test").format(record)
     assert "File storage request failed" in rendered
     assert "Traceback" in rendered
-    assert "RuntimeError" in rendered
+    assert "RuntimeError:" in rendered
+    assert "synthetic runtime failure" in rendered
     assert "test_logging.py" in rendered
     assert private_local not in rendered
 
@@ -99,3 +101,29 @@ def test_configure_logging_clears_uvicorn_handlers_and_quiets_dependencies(
     assert not logging.getLogger("uvicorn.access").propagate
     assert logging.getLogger("uvicorn.access").level == logging.CRITICAL
     assert logging.getLogger("httpx").level >= logging.WARNING
+
+
+def test_console_and_json_preserve_exception_chain_frames(configure_log_formatter):
+    """Both outputs retain the storage cause and its traceback."""
+    from botocore.exceptions import EndpointConnectionError
+
+    from app.core.files.storage import FileStorageError
+
+    try:
+        try:
+            raise EndpointConnectionError(endpoint_url="https://synthetic.example.org")
+        except EndpointConnectionError as cause:
+            raise FileStorageError("synthetic storage failure") from cause
+    except FileStorageError:
+        record = logging.LogRecord(
+            "app.test", logging.ERROR, __file__, 1, "Storage failed", (), sys.exc_info()
+        )
+
+    for environment in ("test", "prod"):
+        output = configure_log_formatter(environment).format(record)
+        assert "FileStorageError" in output
+        assert "EndpointConnectionError" in output
+        if environment == "prod":
+            exception = json.loads(output)["exception"]
+            assert "EndpointConnectionError" in exception
+            assert "test_logging.py" in exception

@@ -149,3 +149,34 @@ def test_lifespan_cleans_domain_resources_if_account_lookup_initialization_fails
     async_engine.dispose.assert_awaited_once()
     assert db.sync_engine is None and db.async_engine is None
     assert karlbruder_app.state.account_email_reader is None
+
+
+@pytest.mark.parametrize("phase", ["startup", "shutdown"])
+def test_lifespan_failure_emits_one_structured_diagnostic(monkeypatch, caplog, phase):
+    """The app logs startup and shutdown exceptions before propagating them."""
+    from unittest.mock import AsyncMock, Mock
+
+    from app.core import db
+
+    error = RuntimeError("synthetic engine failure")
+    sync_engine = Mock()
+    if phase == "startup":
+        monkeypatch.setattr(db, "create_sync_engine", Mock(side_effect=error))
+    else:
+        sync_engine.dispose.side_effect = error
+        monkeypatch.setattr(db, "create_sync_engine", Mock(side_effect=[sync_engine, Mock()]))
+        monkeypatch.setattr(db, "create_async_engine_instance", Mock(return_value=Mock(dispose=AsyncMock())))
+        monkeypatch.setattr(db, "create_sync_session_maker", Mock())
+        monkeypatch.setattr(db, "create_async_session_maker", Mock())
+
+    with pytest.raises(RuntimeError, match="synthetic engine failure"):
+        with TestClient(karlbruder_app):
+            pass
+
+    diagnostics = [
+        record.msg
+        for record in caplog.records
+        if isinstance(record.msg, dict) and record.msg.get("event") == "lifespan_failed"
+    ]
+    assert len(diagnostics) == 1
+    assert diagnostics[0]["phase"] == phase

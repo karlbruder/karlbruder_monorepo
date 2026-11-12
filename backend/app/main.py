@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,9 +14,23 @@ from app.core.mail import SmtpMailSender
 from app.middlewares.structlog_request_middleware import StructlogRequestMiddleware
 from config import settings
 
+logger = structlog.get_logger(__name__)
+
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(app: FastAPI):
+    phase = "startup"
+    try:
+        async with _manage_resources(app):
+            phase = "shutdown"
+            yield
+    except Exception:
+        logger.exception("lifespan_failed", phase=phase)
+        raise
+
+
+@asynccontextmanager
+async def _manage_resources(_app: FastAPI):
     database_url = settings.get_database_url()
     sync_engine = db.create_sync_engine(database_url)
     async_engine = None

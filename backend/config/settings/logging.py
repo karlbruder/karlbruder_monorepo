@@ -3,14 +3,10 @@
 import logging
 import sys
 from functools import partial
-from pathlib import Path
-from types import TracebackType
 
 import structlog
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from rich.console import Console
-from rich.traceback import Frame, Stack, Trace, Traceback
 from structlog.types import EventDict, Processor
 
 
@@ -32,73 +28,30 @@ def _add_log_metadata(
     return event
 
 
-def _format_exception_frames(_logger, _method, event):
-    info = event.pop("exc_info", None)
-    if info is True:
-        info = sys.exc_info()
-    elif isinstance(info, BaseException):
-        info = (type(info), info, info.__traceback__)
-    if isinstance(info, tuple) and info[0]:
-        exception_type = info[0].__name__
-        frames = []
-        tb: TracebackType | None = info[2]
-        while tb is not None:
-            code = tb.tb_frame.f_code
-            frames.append(
-                {
-                    "filename": Path(code.co_filename).name,
-                    "line": tb.tb_lineno,
-                    "function": code.co_name,
-                }
-            )
-            tb = tb.tb_next
-        event["exception"] = {"type": exception_type, "frames": frames}
-    return event
-
-
-def _render_console_log(logger, method, event):
-    exception = event.pop("exception", None)
-    line = structlog.dev.ConsoleRenderer(colors=False, event_key="message")(
-        logger, method, event
-    )
-    if exception is None:
-        return line
-    frames = [
-        Frame(
-            filename="",
-            lineno=frame["line"],
-            name=f'{frame["filename"]} ({frame["function"]})',
-            line="",
-        )
-        for frame in exception["frames"]
-    ]
-    console = Console(force_terminal=False, width=100)
-    with console.capture() as capture:
-        console.print(
-            Traceback(
-                trace=Trace(
-                    stacks=[
-                        Stack(exc_type=exception["type"], exc_value="", frames=frames)
-                    ]
-                )
-            )
-        )
-    return f"{line}\n{capture.get().rstrip()}"
-
-
 def _build_log_formatter(
     processors: list[Processor], *, local_output: bool
 ) -> structlog.stdlib.ProcessorFormatter:
+    render_processors: list[Processor] = [
+        structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+        structlog.processors.EventRenamer(to="message"),
+    ]
+    if local_output:
+        render_processors.append(
+            structlog.dev.ConsoleRenderer(
+                colors=False,
+                event_key="message",
+                exception_formatter=structlog.dev.RichTracebackFormatter(
+                    show_locals=False,
+                ),
+            )
+        )
+    else:
+        render_processors.extend(
+            [structlog.processors.format_exc_info, structlog.processors.JSONRenderer()]
+        )
     return structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=[structlog.stdlib.ExtraAdder(), *processors],
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.processors.EventRenamer(to="message"),
-            _format_exception_frames,
-            _render_console_log
-            if local_output
-            else structlog.processors.JSONRenderer(),
-        ],
+        processors=render_processors,
     )
 
 
