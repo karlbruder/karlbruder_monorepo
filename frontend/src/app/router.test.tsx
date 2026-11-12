@@ -89,8 +89,8 @@ afterEach(() => {
 
 describe('Public legal documents', () => {
   it.each([
-    ['/terms-of-service', 'Termos de Uso do App Karlbrüder'],
-    ['/privacy-policy', 'Política de Privacidade do App Karlbrüder'],
+    ['/terms-of-service', 'Termos de Uso'],
+    ['/privacy-policy', 'Política de Privacidade'],
   ])('opens %s in Portuguese without a session', (path, title) => {
     window.localStorage.setItem('registrationLanguage', 'en')
     render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
