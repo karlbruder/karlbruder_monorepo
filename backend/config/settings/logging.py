@@ -2,12 +2,14 @@
 
 import logging
 import sys
-from functools import partial
+from typing import Any
 
 import structlog
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from structlog.types import EventDict, Processor
+from structlog.types import Processor
+
+from config.env import IS_LOCAL_ENV
 
 
 _NOISY_LOGGERS = (
@@ -21,37 +23,44 @@ _NOISY_LOGGERS = (
 )
 
 
-def _add_log_metadata(
-    _logger, _method, event: EventDict, *, environment: str, release: str
-) -> EventDict:
-    event.update(service="kb-backend", environment=environment, release=release)
-    return event
+def _build_console_renderer() -> Processor:
+    options: dict[str, Any] = {
+        "colors": False,
+        "timestamp_key": "timestamp",
+        "event_key": "message",
+    }
+    if getattr(structlog.dev, "rich", None) is not None:
+        options["exception_formatter"] = structlog.dev.RichTracebackFormatter(
+            show_locals=False,
+            max_frames=2,
+        )
+    return structlog.dev.ConsoleRenderer(**options)
 
 
-def _build_log_formatter(
-    processors: list[Processor], *, local_output: bool
-) -> structlog.stdlib.ProcessorFormatter:
-    render_processors: list[Processor] = [
+def _build_formatter_processors(*, json_logs: bool) -> list[Processor]:
+    processors: list[Processor] = [
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
         structlog.processors.EventRenamer(to="message"),
     ]
-    if local_output:
-        render_processors.append(
-            structlog.dev.ConsoleRenderer(
-                colors=False,
-                event_key="message",
-                exception_formatter=structlog.dev.RichTracebackFormatter(
-                    show_locals=False,
-                ),
-            )
-        )
+    if json_logs:
+        if IS_LOCAL_ENV:
+            processors.append(structlog.processors.ExceptionPrettyPrinter())
+        else:
+            processors.append(structlog.processors.ExceptionRenderer())
+        processors.append(structlog.processors.JSONRenderer())
     else:
-        render_processors.extend(
-            [structlog.processors.format_exc_info, structlog.processors.JSONRenderer()]
-        )
+        processors.append(_build_console_renderer())
+    return processors
+
+
+def _build_log_formatter(
+    shared_processors: list[Processor], *, json_logs: bool
+) -> structlog.stdlib.ProcessorFormatter:
+    processors = _build_formatter_processors(json_logs=json_logs)
+    foreign_pre_chain = [structlog.stdlib.ExtraAdder(), *shared_processors]
     return structlog.stdlib.ProcessorFormatter(
-        foreign_pre_chain=[structlog.stdlib.ExtraAdder(), *processors],
-        processors=render_processors,
+        foreign_pre_chain=foreign_pre_chain,
+        processors=processors,
     )
 
 
@@ -74,6 +83,7 @@ def _configure_third_party_loggers(level: int) -> None:
 
 class LoggingSettings(BaseSettings):
     LOG_LEVEL: str = "INFO"
+    LOG_JSON: bool = False
 
     @field_validator("LOG_LEVEL")
     @classmethod
@@ -85,31 +95,31 @@ class LoggingSettings(BaseSettings):
             )
         return level
 
-    def init_logging(self, *, environment: str, release: str) -> None:
+    def init_logging(self) -> None:
         """Install the application's Structlog formatter on the root handler."""
-        processors: list[Processor] = [
+        shared_processors: list[Processor] = [
             structlog.contextvars.merge_contextvars,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,
-            partial(_add_log_metadata, environment=environment, release=release),
+        ]
+        structlog_processors: list[Processor] = [
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            *shared_processors,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ]
         structlog.configure(
-            processors=[
-                structlog.stdlib.filter_by_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
-                *processors,
-                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-            ],
+            processors=structlog_processors,
             logger_factory=structlog.stdlib.LoggerFactory(),
             wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
         )
+
+        formatter = _build_log_formatter(shared_processors, json_logs=self.LOG_JSON)
         handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(
-            _build_log_formatter(
-                processors, local_output=environment in ("local", "test")
-            )
-        )
+        handler.setFormatter(formatter)
+
         level = logging.getLevelNamesMapping()[self.LOG_LEVEL]
         logging.basicConfig(level=level, handlers=[handler], force=True)
         _configure_third_party_loggers(level)

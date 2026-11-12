@@ -21,7 +21,7 @@ match ENV_NAME:
 
         settings = AwsSettings()  # type: ignore[call-arg]
 
-settings.init_logging(environment=settings.ENV_NAME, release=settings.GIT_SHA)
+settings.init_logging()
 settings.init_sentry(
     environment=settings.ENV_NAME,
     release=settings.GIT_SHA,

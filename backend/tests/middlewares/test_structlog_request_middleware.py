@@ -188,7 +188,7 @@ def test_access_metadata_uses_request_url_and_headers(caplog, configure_log_form
         for record in caplog.records
         if record.name == LOGGER_NAME and record.msg["event"] == "request_finished"
     )
-    rendered = configure_log_formatter("prod").format(record)
+    rendered = configure_log_formatter(json_logs=True).format(record)
     payload = json.loads(rendered)
     assert payload["route"] == "/items/{item_id}"
     assert payload["path"] == "/items/42"

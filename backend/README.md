@@ -87,7 +87,7 @@ These endpoints are public. Database diagnostics report schema presence separate
 
 ### Logging
 
-The backend writes readable logs locally and JSON logs in deployed environments.
+The backend writes readable console logs by default. Set `LOG_JSON=true` for JSON output.
 Set `LOG_LEVEL` to change verbosity. The default is `INFO`.
 
 Use the response's `X-Request-ID` to find its logs. Successful health checks are
