@@ -1,7 +1,7 @@
 # Application deployment
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-11
+**Last updated**: 2026-11-12
 
 This guide explains the deployment implemented by
 [the workflow](../.github/workflows/deploy-application.yml),
@@ -140,6 +140,18 @@ flowchart LR
 ```
 
 ## Build inputs
+
+Set the browser Sentry configuration in the selected GitHub environment (`dev`
+or `prod`) under Environment variables. Each site uses its own public DSN.
+
+| Service | Public DSN | Enable monitoring |
+| --- | --- | --- |
+| Frontend | `VITE_SENTRY_DSN` | `VITE_SENTRY_ENABLED=true` |
+| Landing | `REACT_APP_SENTRY_DSN` | `REACT_APP_SENTRY_ENABLED=true` |
+
+The deploy workflow passes these variables to the Docker builder, which embeds
+them in the JavaScript bundle. Rebuild and deploy the site after changing a
+value. An unset DSN or enable flag leaves that site's monitoring off.
 
 The landing image receives `APPLICATION_BASE_URL` as `REACT_APP_APPLICATION_URL`.
 Use one HTTPS origin without a path, such as `https://app-dev.karlbruder.com` or

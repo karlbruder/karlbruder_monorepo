@@ -132,6 +132,10 @@ jobs:
         env:
           SERVICE: ${{ matrix.service }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENABLED: ${{ vars.VITE_SENTRY_ENABLED }}
+          REACT_APP_SENTRY_DSN: ${{ vars.REACT_APP_SENTRY_DSN }}
+          REACT_APP_SENTRY_ENABLED: ${{ vars.REACT_APP_SENTRY_ENABLED }}
           RELEASED_AT: ${{ needs.changes.outputs.released_at }}
         run: |
           set -euo pipefail
@@ -145,10 +149,14 @@ jobs:
               frontend)
                 echo "ENV_NAME=${DEPLOY_ENVIRONMENT}"
                 echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}"
+                echo "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}"
+                echo "VITE_SENTRY_ENABLED=${VITE_SENTRY_ENABLED}"
                 ;;
               landing)
                 echo "ENV_NAME=${DEPLOY_ENVIRONMENT}"
                 echo "REACT_APP_APPLICATION_URL=${APPLICATION_BASE_URL}"
+                echo "REACT_APP_SENTRY_DSN=${REACT_APP_SENTRY_DSN}"
+                echo "REACT_APP_SENTRY_ENABLED=${REACT_APP_SENTRY_ENABLED}"
                 ;;
             esac
             echo "EOF"
