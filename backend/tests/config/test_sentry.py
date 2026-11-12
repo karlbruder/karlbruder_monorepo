@@ -46,7 +46,15 @@ def monitoring(monkeypatch, request):
         }
     )
     monkeypatch.setattr(sentry_sdk, "init", init_with_memory_transport)
-    configured.init_sentry(environment=configured.ENV_NAME, release=configured.GIT_SHA)
+    configured.init_sentry(
+        environment=configured.ENV_NAME,
+        release=configured.GIT_SHA,
+        health_paths=(
+            configured.HEALTH_CHECK_PATH,
+            configured.HEALTH_DB_CHECK_PATH,
+            configured.HEALTH_AUTH_CHECK_PATH,
+        ),
+    )
     yield transport
     sentry_sdk.get_client().close()
     sentry_sdk.get_global_scope().set_client(None)
@@ -69,7 +77,11 @@ def test_monitoring_enablement(monkeypatch, environment, overrides, expected):
     monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: calls.append(kwargs))
     configured = BackendTestSettings(_env_file=None, ENV_NAME=environment, **overrides)
     assert (
-        configured.init_sentry(environment=environment, release=configured.GIT_SHA)
+        configured.init_sentry(
+            environment=environment,
+            release=configured.GIT_SHA,
+            health_paths=(),
+        )
         is expected
     )
     assert bool(calls) is expected
@@ -319,19 +331,22 @@ def test_health_failures_report_errors_without_transactions(monitoring):
     async def fail():
         raise RuntimeError("health diagnostic")
 
-    for prefix in ("", "/api"):
-        for suffix in ("", "/db", "/auth"):
-            app.add_api_route(f"{prefix}/health{suffix}", fail)
+    health_paths = (
+        settings.HEALTH_CHECK_PATH,
+        settings.HEALTH_DB_CHECK_PATH,
+        settings.HEALTH_AUTH_CHECK_PATH,
+    )
+    for path in health_paths:
+        app.add_api_route(path, fail)
     app.add_api_route("/api/health/other", fail)
 
     with TestClient(app, raise_server_exceptions=False) as client:
-        for prefix in ("", "/api"):
-            for suffix in ("", "/db", "/auth"):
-                assert client.get(f"{prefix}/health{suffix}").status_code == 500
+        for path in health_paths:
+            assert client.get(path).status_code == 500
         assert client.get("/api/health/other").status_code == 500
 
     items = [item for envelope in monitoring.envelopes for item in envelope.items]
-    assert sum(item.type == "event" for item in items) == 7
+    assert sum(item.type == "event" for item in items) == 4
     assert sum(item.type == "transaction" for item in items) == 1
 
 

@@ -2006,6 +2006,22 @@ files = [
 cli = ["click (>=5.0)"]
 
 [[package]]
+name = "python-ipware"
+version = "4.1.1"
+description = "A Python package to retrieve a client's real IP address."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "python_ipware-4.1.1-py3-none-any.whl", hash = "sha256:52eedd4cb7bb9e1bb6b9dd92db974e729fe54be22e1389703e21c60344b9f039"},
+    {file = "python_ipware-4.1.1.tar.gz", hash = "sha256:fd6102058e74c29112b4376f8abbae718852c95f8de6965801de88ca9780d22f"},
+]
+
+[package.extras]
+dev = ["build", "coverage[toml]", "ruff (==0.16.8)", "twine"]
+test = ["coverage[toml]", "ruff (==0.16.8)"]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 description = "YAML parser and emitter for Python"
@@ -2726,4 +2742,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "eb5c1c6b308bfc77fdcad19dfe96585e85cdd323f682cb86bf314d718546022a"
+content-hash = "cb0051ea5fe36859e985daceb76e126f2bdab8d48358fd9bc9124f15040c686d"

@@ -88,4 +88,4 @@ Local SMTP is a deferred implementation choice, likely SES with real credentials
 
 The backend writes structured console logs to stdout with Rich tracebacks in local and test environments. Tracebacks include the full exception chain with messages and traceback locations. Frame locals are omitted. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
 
-The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Startup and shutdown failures emit a structured diagnostic. Successful health checks are omitted. Responses include an `X-Request-ID` header.
+The application middleware emits a request-start event and an outcome event linked by request ID. The outcome includes the route template, status, and duration. Health requests skip the start event. Successful health responses and trailing-slash redirects also skip the outcome event. Startup and shutdown failures emit a structured diagnostic. Responses include an `X-Request-ID` header.

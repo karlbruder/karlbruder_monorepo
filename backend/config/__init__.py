@@ -22,7 +22,15 @@ match ENV_NAME:
         settings = AwsSettings()  # type: ignore[call-arg]
 
 settings.init_logging(environment=settings.ENV_NAME, release=settings.GIT_SHA)
-settings.init_sentry(environment=settings.ENV_NAME, release=settings.GIT_SHA)
+settings.init_sentry(
+    environment=settings.ENV_NAME,
+    release=settings.GIT_SHA,
+    health_paths=(
+        settings.HEALTH_CHECK_PATH,
+        settings.HEALTH_DB_CHECK_PATH,
+        settings.HEALTH_AUTH_CHECK_PATH,
+    ),
+)
 
 __all__ = [
     "ALLOWED_JWT_ALGORITHMS",

@@ -47,6 +47,11 @@ class Settings(
     APP_NAME: str = APP_NAME
     CONTAINER_NAME: str = CONTAINER_NAME
 
+    # Health
+    HEALTH_CHECK_PATH: str = "/api/health"
+    HEALTH_DB_CHECK_PATH: str = "/api/health/db"
+    HEALTH_AUTH_CHECK_PATH: str = "/api/health/auth"
+
     # Versioning
     VERSION: str = VERSION
     GIT_SHA: str = GIT_SHA

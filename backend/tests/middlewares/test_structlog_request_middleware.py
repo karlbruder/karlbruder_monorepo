@@ -1,6 +1,8 @@
 import asyncio
+from uuid import UUID
 
 import httpx
+import pytest
 import structlog
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -9,14 +11,15 @@ from app.api.exception_handlers import register_api_exception_handlers
 from app.main import karlbruder_app
 from app.middlewares.structlog_request_middleware import StructlogRequestMiddleware
 
-LOGGER_NAME = "app.middlewares.structlog_request_middleware"
+LOGGER_NAME = "app.middlewares.request"
 
 
-def test_healthy_requests_keep_valid_ids_and_omit_access_logs(caplog):
+@pytest.mark.parametrize("path", ["/api/health", "/api/health/"])
+def test_healthy_requests_keep_valid_ids_and_omit_access_logs(caplog, path):
     """Successful health requests return their ID without an access event."""
     with caplog.at_level("INFO", logger=LOGGER_NAME):
         response = TestClient(karlbruder_app).get(
-            "/api/health", headers={"X-Request-ID": "health-check"}
+            path, headers={"X-Request-ID": "health-check"}
         )
 
     assert response.status_code == 200
@@ -24,7 +27,7 @@ def test_healthy_requests_keep_valid_ids_and_omit_access_logs(caplog):
     assert not [record for record in caplog.records if record.name == LOGGER_NAME]
 
 
-def test_unexpected_failure_returns_id_and_emits_one_access_event(caplog):
+def test_unexpected_failure_returns_id_and_emits_start_and_failure(caplog):
     """FastAPI adds the ID to its 500 while the middleware logs the route template."""
     app = FastAPI()
     app.add_middleware(StructlogRequestMiddleware)
@@ -35,19 +38,21 @@ def test_unexpected_failure_returns_id_and_emits_one_access_event(caplog):
     async def fail():
         raise RuntimeError("private exception detail")
 
-    response = TestClient(app, raise_server_exceptions=False).get(
-        "/items/private-item?secret=value", headers={"X-Request-ID": "invalid id"}
-    )
+    with caplog.at_level("INFO", logger=LOGGER_NAME):
+        response = TestClient(app, raise_server_exceptions=False).get(
+            "/items/private-item?secret=value", headers={"X-Request-ID": "x" * 65}
+        )
 
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
     request_id = response.headers["x-request-id"]
-    assert len(request_id) == 32
+    assert str(UUID(request_id)) == request_id
+    assert UUID(request_id).version == 4
     events = [record.msg for record in caplog.records if record.name == LOGGER_NAME]
-    assert len(events) == 1
-    assert events[0]["event"] == "request_failed"
-    assert events[0]["route"] == "/items/{item_id}"
-    assert events[0]["status"] == 500
+    assert [event["event"] for event in events] == ["request_started", "request_failed"]
+    assert {event["request_id"] for event in events} == {request_id}
+    assert events[1]["route"] == "/items/{item_id}"
+    assert events[1]["code"] == 500
 
 
 def test_concurrent_requests_keep_separate_context_and_restore_caller_context():
@@ -86,7 +91,7 @@ def test_concurrent_requests_keep_separate_context_and_restore_caller_context():
 
 
 def test_access_event_includes_optional_correlation_ids(monkeypatch, caplog):
-    """Access events include a session UUID, the active trace, and verified identity."""
+    """Access events include a session ID, the active trace, and verified identity."""
     from types import SimpleNamespace
 
     from fastapi import Depends
@@ -95,7 +100,7 @@ def test_access_event_includes_optional_correlation_ids(monkeypatch, caplog):
     from app.auth.models import User
 
     user_id = "7fe26075-c08c-4917-9eca-8796e99ba9c6"
-    session_id = "0196cb4e-09ec-49ed-9e8c-7311849be9ed"
+    session_id = "browser-session"
     trace_id = "ae61d241a26c40578ac6284c2c22be8a"
     monkeypatch.setattr(dependencies, "verify_user", lambda _token: User(id=user_id))
     monkeypatch.setattr(
@@ -116,14 +121,18 @@ def test_access_event_includes_optional_correlation_ids(monkeypatch, caplog):
             headers={"Authorization": "Bearer test-token", "X-Session-ID": session_id},
         )
     assert response.status_code == 200
-    event = next(record.msg for record in caplog.records if record.name == LOGGER_NAME)
+    event = next(
+        record.msg
+        for record in caplog.records
+        if record.name == LOGGER_NAME and record.msg["event"] == "request_finished"
+    )
     assert event["session_id"] == session_id
     assert event["sentry_trace_id"] == trace_id
     assert event["user_id"] == user_id
 
 
-def test_access_event_extracts_only_valid_trace_ids(caplog):
-    """AWS and Sentry headers contribute only their validated trace identifiers."""
+def test_access_event_extracts_trace_ids_and_omits_empty_or_long_ids(caplog):
+    """AWS and Sentry headers contribute their trace IDs when present and bounded."""
     app = FastAPI()
     app.add_middleware(StructlogRequestMiddleware)
     client = TestClient(app)
@@ -141,14 +150,16 @@ def test_access_event_extracts_only_valid_trace_ids(caplog):
         client.get(
             "/missing",
             headers={
-                "X-Amzn-Trace-Id": "Root=invalid",
-                "X-Sentry-Trace": "invalid",
-                "X-Session-ID": "invalid",
+                "X-Amzn-Trace-Id": "Root=",
+                "X-Sentry-Trace": "x" * 65,
+                "X-Session-ID": "x" * 65,
             },
         )
 
     first, second = [
-        record.msg for record in caplog.records if record.name == LOGGER_NAME
+        record.msg
+        for record in caplog.records
+        if record.name == LOGGER_NAME and record.msg["event"] == "request_finished"
     ]
     assert first["amzn_trace_id"] == amzn_id
     assert first["sentry_trace_id"] == sentry_id
@@ -172,7 +183,11 @@ def test_access_metadata_uses_request_url_and_headers(caplog, configure_log_form
             headers={"Origin": "https://app.example.org", "User-Agent": "Test Agent"},
         )
 
-    record = next(record for record in caplog.records if record.name == LOGGER_NAME)
+    record = next(
+        record
+        for record in caplog.records
+        if record.name == LOGGER_NAME and record.msg["event"] == "request_finished"
+    )
     rendered = configure_log_formatter("prod").format(record)
     payload = json.loads(rendered)
     assert payload["route"] == "/items/{item_id}"
@@ -183,3 +198,56 @@ def test_access_metadata_uses_request_url_and_headers(caplog, configure_log_form
     assert payload["user_agent"] == "Test Agent"
     assert payload["host"] == "api.example.org"
     assert payload["origin"] == "https://app.example.org"
+
+
+def test_failed_health_check_emits_only_an_outcome(caplog):
+    """Health traffic stays quiet at request start and logs a failed response."""
+    from fastapi.responses import Response
+
+    app = FastAPI()
+    app.add_middleware(StructlogRequestMiddleware)
+
+    @app.get("/api/health/db")
+    async def unhealthy():
+        return Response(status_code=503)
+
+    with caplog.at_level("INFO", logger=LOGGER_NAME):
+        TestClient(app).get("/api/health/db")
+
+    events = [record.msg for record in caplog.records if record.name == LOGGER_NAME]
+    assert [event["event"] for event in events] == ["request_finished"]
+    assert events[0]["code"] == 503
+
+
+@pytest.mark.parametrize(
+    ("forwarded_for", "peer", "client_ip"),
+    [
+        ("192.0.2.11", "192.0.2.10", "192.0.2.11"),
+        ("invalid", "192.0.2.10", "192.0.2.10"),
+        ("invalid", "invalid", "unknown"),
+    ],
+)
+def test_start_and_outcome_log_the_ipware_client_address(
+    caplog, forwarded_for, peer, client_ip
+):
+    """Both events report the forwarded client, peer fallback, or unknown."""
+
+    app = FastAPI()
+    app.add_middleware(StructlogRequestMiddleware)
+
+    async def request():
+        transport = httpx.ASGITransport(app=app, client=(peer, 12345))
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
+            await client.get("/missing", headers={"X-Forwarded-For": forwarded_for})
+
+    with caplog.at_level("INFO", logger=LOGGER_NAME):
+        asyncio.run(request())
+
+    events = [record.msg for record in caplog.records if record.name == LOGGER_NAME]
+    assert [event["event"] for event in events] == [
+        "request_started",
+        "request_finished",
+    ]
+    assert {event["client_ip"] for event in events} == {client_ip}

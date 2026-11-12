@@ -85,6 +85,17 @@ are provided. Apply Alembic head before starting the API.
 
 These endpoints are public. Database diagnostics report schema presence separately from connectivity. Inspect the response body. They do not verify migrations. Connection failures return 503 and are logged.
 
+### Logging
+
+The backend writes readable logs locally and JSON logs in deployed environments.
+Set `LOG_LEVEL` to change verbosity. The default is `INFO`.
+
+Use the response's `X-Request-ID` to find its logs. Successful health checks are
+quiet. If you change a health route, update any deployment probe that calls it.
+
+See [backend logging in the deployment spec](../specs/platform/deployment.md#backend-logging)
+for log fields and CloudWatch behavior.
+
 ## Domain migrations
 
 Alembic manages domain tables in the database selected by `DB_*`. Follow the
@@ -175,13 +186,3 @@ A future issue will introduce a `concurrency` pytest marker and a shared race-te
 methodology. See the [testing specification](../specs/platform/testing.md).
 The dedicated payment-review concurrency suite is deferred. Existing tests remain.
 Transaction locks and atomic payment/capacity behavior remain in the implementation.
-
-## Logging
-
-Set `LOG_LEVEL` to DEBUG, INFO, WARNING, ERROR, or CRITICAL. The default is INFO. The API server writes structured logs to stdout with service `kb-backend`, environment from `ENV_NAME`, and release from `GIT_SHA` (default `NaN`). Local and test use readable console output with Rich tracebacks. Cloud environments use one JSON object per line. Exception output includes the full exception chain with messages and traceback locations. Frame locals are omitted.
-
-The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Startup and shutdown failures emit a structured diagnostic. Successful health checks are omitted. Responses include an `X-Request-ID` header.
-
-Access events can include a client-provided UUID from `X-Session-ID`, the AWS trace root from `X-Amzn-Trace-Id`, the Sentry trace ID, and the verified Supabase user UUID. The active Sentry span supplies the trace ID when available. The logger also accepts a valid `sentry-trace` or `x-sentry-trace` header. Use a dedicated correlation UUID for the session header.
-
-Access events include the path, query string, full path, absolute URI, user agent, host, and origin when available. The separate `route` field holds the matched route template.
