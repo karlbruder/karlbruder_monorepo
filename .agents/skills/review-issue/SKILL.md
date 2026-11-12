@@ -10,7 +10,7 @@ or names this skill and asks to use it. Continue an active invocation across tur
 but do not start another lifecycle skill automatically. Ordinary problem discussion,
 implementation, or review requests do not activate this skill.
 
-Adapt the adversarial review approach to the issue's actual delivery scope. Understand intent first, then challenge correctness, missing engineering, and unnecessary complexity. A review is evidence to evaluate, not an instruction to implement every suggestion.
+Adapt the adversarial review approach to the issue's actual delivery scope. Understand intent first, then check correctness and flag complexity that has a concrete cost. A review is evidence to evaluate, not an instruction to implement every suggestion.
 
 ## Establish the review boundary
 
@@ -28,11 +28,11 @@ Verify refs and record source SHA, target SHA, merge-base SHA, branch names, dat
 
 ## Review critically and proportionately
 
-State the intended outcome and any established acceptance criteria before judging implementation. Evaluate the complete scoped change, including authorization, failure behavior, integrations, tests, and documentation where relevant. Trace behavior beyond changed hunks when necessary to prove impact.
+State the intended outcome and any established acceptance criteria before judging implementation. Evaluate the scoped change against the agreed behavior and applicable rules. Check authorization and data handling when the change affects those boundaries. A security or privacy finding needs an applicable requirement or a reachable failure with practical impact. Rate its severity using actual access, data, and deployment conditions. Trace behavior beyond changed hunks when necessary to prove impact.
 
 For each actionable finding, identify a concrete trigger, expected requirement, observed behavior, affected file/symbol and line at the reviewed SHA, practical impact, and evidence. Distinguish introduced defects from pre-existing limitations and work explicitly deferred by the issue/specs. A closed ticket is not proof its behavior exists. Do not declare something deferred without a verified reference or developer confirmation; future scope does not excuse a current acceptance failure.
 
-Separate defects from preference, unnecessary abstraction, speculative hardening, and missing engineering that actually matters to this issue. Do not invent findings to fill sections. Tests or probes are useful when they resolve uncertainty; a sound static argument can suffice. A failing probe is not proof until its setup, assumptions, and expected result are justified.
+Keep speculative hardening and unrelated pre-existing limitations out of the fix list. Flag overengineering when extra code or workflow has a concrete maintenance cost without serving the scoped behavior. Tests or probes are useful when they resolve uncertainty; a sound static argument can suffice. A failing probe is not proof until its setup, assumptions, and expected result are justified.
 
 Assign stable IDs `R1`, `R2`, etc. Use priorities: P0 immediate critical harm/blocker, P1 serious issue to fix before merge, P2 material normal-priority issue, P3 optional improvement/nit. Explain priority from impact and likelihood, not reviewer confidence. Record confidence and scope separately. Flag unverified suspicions as unresolved, not confirmed defects.
 
@@ -47,15 +47,6 @@ For example, `--source feature/payments --target master` uses `.local/review-iss
 
 Sanitize branch labels by replacing `/` and other path-unsafe characters with `-`, retaining the original refs in report metadata. Use `<target>__<source>` as the branch namespace, matching GitHub base (target) then compare (source). New runs use this order; preserve older source-first reports without renaming them. If distinct refs map to a namespace already used by another pair, append the first 8 hexadecimal characters of SHA-256 of the UTF-8 string `target + \0 + source` (original refs separated by a NUL byte), and verify the stored pair before reusing it. Record the selected namespace in the report so debate-issue-review uses the same folder name. Use the same namespace calculation in both skills. Use sanitized model labels. Use a supplied model label or the actual known model; ask if unavailable rather than inventing it. Allocate the next free N for this branch pair and model, creating the directory exclusively and retrying on collision. Never overwrite an earlier run. Save `review.md` and any `probes/` files inside that run.
 
-The report begins with the recorded boundary metadata and uses these headings from the original review approach:
-
-- Intent
-- What was done right
-- What is wrong or lacking
-- What is underengineered
-- What is over engineered
-- Priority fixes
-
-Keep empty finding categories brief and honest. In issue mode, include an acceptance-coverage summary; in branch mode, summarize the verified behavior and review coverage, without inventing acceptance criteria. In either mode, distinguish verified, failed, and not-verified coverage. Each finding appears once with its ID and evidence; Priority fixes ranks those IDs rather than duplicating the full text. Add `Probes` when applicable, linking every saved reproducer, fixture, command, expected/actual result, and output. Record limitations and questions explicitly.
+Start the report with the recorded boundary metadata and summarize the intended behavior and verification coverage. List actionable findings once, in priority order. Omit empty categories. When applicable, link saved probes and record their expected and actual results. State material limitations and unresolved questions briefly.
 
 Review only: do not modify product code, stage, commit, push, post reviews/comments, or change issue/project state. Local report and isolated probe artifacts are allowed. Return clickable absolute report/probe paths and a short prioritized summary. Point the implementing agent to [debate-issue-review](../debate-issue-review/SKILL.md) for independent assessment; do not automatically accept or fix findings.

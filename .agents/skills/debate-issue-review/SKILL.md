@@ -150,10 +150,11 @@ Assign exactly one primary action category:
 | `already-addressed` | Previously valid and fixed in the inspected revision |
 | `solid-praise` | Supported positive claim that affects the decision |
 
-Rank actions by impact and likelihood. Prioritize correctness, data loss,
-authorization/security, and release failures. Performance claims need evidence of
-material cost at the product's realistic load. Neither severity nor action follows
-from reviewer confidence or probe exit status alone.
+Rank actions by practical impact and likelihood. For privacy and security claims,
+identify the applicable rule or reachable failure and assess actual access, data,
+and deployment conditions. Performance claims need evidence of material cost at
+realistic load. Reviewer confidence and probe exit status alone cannot establish
+severity or action.
 
 Every row explains why you agree or disagree and records probe status as passed,
 failed, not run, or blocked. Include supporting and contradicting evidence.

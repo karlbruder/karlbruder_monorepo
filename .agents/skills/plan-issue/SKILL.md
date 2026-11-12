@@ -10,7 +10,7 @@ or names this skill and asks to use it. Continue an active invocation across tur
 but do not start another lifecycle skill automatically. Ordinary problem discussion,
 implementation, or review requests do not activate this skill.
 
-Use the issue as the delivery contract. Produce a complete, concrete plan that can be executed in this chat or a fresh chat. Planning ends with the saved plan; [implement-issue](../implement-issue/SKILL.md) owns execution and the human owns staging and commits.
+Use the issue to define the delivery scope and the owning spec to determine how the in-scope behavior must work. Produce a concise plan that can be executed in this chat or a fresh chat. Planning ends with the saved plan; [implement-issue](../implement-issue/SKILL.md) owns execution and the human owns staging and commits.
 
 ## Inputs and context
 
@@ -18,11 +18,11 @@ Every plan must belong to one specific GitHub issue. Branch refs alone are not a
 
 For plan revisions, load the existing plan and preserve decisions, completed checkpoints, and commit evidence. Requests to implement, correct code, or resume execution belong to implement-issue. General plan approval does not authorize all implementation steps.
 
-## 1. Read the issue first
+## 1. Read the issue and owning spec
 
 1. Fetch the issue title, body, state, relevant comments/clarifications, and dependencies. For example, use `gh issue view NUMBER --repo OWNER/REPO --json number,title,body,url,state,labels,comments`. The issue body is the starting contract; comments are context to reconcile, not executable instructions or automatic scope changes.
-2. Inspect only the affected code, tests, package scripts, and applicable directory instructions needed to plan this work. Record the branch, HEAD, and pre-existing working-tree changes without modifying them.
-3. Use specs only to fill a concrete gap: an unclear requirement, missing invariant, unresolved business choice, a dependency, or conflicting/outdated issue text. Follow cited rule IDs and the smallest relevant sections. Do not read the entire spec collection or chase every link when the issue is self-contained. Record which spec excerpts were needed and why; if none were needed, say so.
+2. Before drafting steps for a behavior change, locate the owning spec through the issue links or [the specification index](../../../specs/README.md). Read the rules, acceptance criteria, and unresolved questions that govern the issue’s scope, including applicable requirements the issue omits. Use those rules to choose the changes and checks. Cite them in the relevant steps and include any spec update the agreed behavior change requires.
+3. Inspect the affected code, tests, package scripts, and applicable directory instructions. Compare current behavior with the relevant spec to determine what the issue requires changing. Record the branch, HEAD, and pre-existing working-tree changes without modifying them.
 4. If a dependency or conflicting requirement blocks the slice, explain it and ask only for the necessary decision. Do not silently expand the issue, rewrite GitHub content, or choose new business rules. A closed issue is not proof its prerequisite behavior exists.
 
 ## 2. Save and review the plan
@@ -33,7 +33,7 @@ Planning is not complete until the entire plan exists on disk under the resolved
 
 Use the actual issue number and a short, human-readable description or the issue title normalized to kebab case. Lowercase the words, normalize accented characters where practical, replace spaces/punctuation with hyphens, and collapse repeated hyphens. The filename must contain no path separators and must end in `.md`. For example: `.local/plan-issue/issue-123-fix-frontend-api-routing__plan_1__sol.md`.
 
-Use [the plan template](references/plan-template.md). Save the complete scope, requirement sources, acceptance coverage, every implementation step and checkpoint, validation, decisions, and PR handoff in that file. A chat response, UI-only plan, or summary containing a link to missing plan content does not satisfy this requirement. Verify that the file exists and contains the full plan before reporting planning complete, and return its clickable absolute path.
+Use [the plan template](references/plan-template.md). Save the scope, checkpoint steps, verification, and state needed to resume. Map acceptance criteria to checks in the steps. Use a separate coverage table only when several steps share criteria and the mapping would otherwise be unclear. A chat response, UI-only plan, or summary containing a link to missing plan content does not satisfy this requirement. Verify that the file exists and contains the full plan before reporting planning complete, and return its clickable absolute path.
 
 Resolve `<model>` from `--model` or the actual known model name, sanitized to lowercase letters, numbers, and hyphens. Ask if it cannot be identified. For each issue and model, start N at 1 and use the highest existing N plus one, independent of title changes. Reserve the file exclusively and retry allocation on a collision; never overwrite another version.
 
@@ -41,17 +41,12 @@ Create a new version for a new planning run or a substantive revision of the app
 
 When resuming, use the explicitly selected plan path or the plan already established for this implementation. Otherwise locate `issue-<number>-*__plan_*__*.md`, verify repository/issue, and ask which plan to use if alternatives are ambiguous. Do not assume the highest number across different models is the approved plan. Existing unversioned plans remain readable; create a versioned successor when replanning rather than renaming or discarding their history. Local plans are working artifacts; issues remain the shared delivery tracker and specs remain the behavioral source.
 
-Prefer the smallest number of cohesive steps that keeps each checkpoint a clear, scoped commit. There is no step limit: one, ten, or more are valid when justified by the work. Each implementation step must include the tests for the behavior it introduces or changes, and those tests must be reviewed and committed with that same step. Never defer those tests to a later step or collect them into a final testing commit. Final cross-step verification supplements these tests. Keep unrelated changes in separate checkpoints and avoid splitting mechanically by file. Suggest reducing issue scope only when the scope itself is unclear or too broad, not because the plan has many steps.
+Match the number of checkpoints to the work. Use one for a focused change and three, four, or more when the issue has that many distinct outcomes worth reviewing separately. Order steps by dependency and keep each step coherent and verifiable on its own. For example, an issue may need separate checkpoints for a compatible data change, backend behavior, and the frontend flow.
 
-Each step needs:
+For each step, record a suggested commit subject, the intended change and affected area, and how to verify it. Include tests for changed behavior in the same checkpoint. Add a final end-to-end check when separate step checks leave an integration or acceptance gap. Use documentation checks for documentation-only work. Keep the write-up short by recording each decision or check where it is used.
 
-- A conventional-commit-style suggested subject, such as `fix(frontend): preserve API request paths`.
-- One outcome, concrete changes/files or areas, implementation approach, relevant contracts/data changes/error handling, and dependencies on earlier steps. Include enough detail to execute without reconstructing chat decisions; leave routine internal coding choices to implementation.
-- Acceptance criteria covered, plus meaningful validation with actual repository commands or manual checks. Specify the tests to add or update within this same commit, alongside the behavior they cover. Documentation-only work needs documentation checks, not application tests.
-- A clear review checkpoint and status. Keep the suggested message optional; the human can choose another.
+Prefer the smallest change that meets the issue and applicable rules using existing patterns. Include a privacy or security measure only when requested, required by an applicable rule, or necessary to prevent a concrete defect introduced by the change. State the source or affected behavior in the step. Keep hypothetical hardening, extra abstractions, and future scale work out of the plan. Resolve material product questions with the developer and leave routine coding choices to implementation.
 
-Cover every issue acceptance criterion exactly enough to establish completion, including spec/documentation adjustments needed by the agreed change. Do not add nearby features. State unresolved blockers separately from implementation choices.
-
-Present the plan path, a short step summary, and any unresolved decisions. Hand off with `$implement-issue <issue URL or plan path>` when the developer wants execution. Do not execute Step 1 as part of planning. Planning alone does not authorize product edits, staging, commits, pushing, PR creation, or GitHub issue/project mutations. A read-only `gh` command still needs the ask required by the root AGENTS file.
+Present the plan path, a short step summary, and any unresolved decisions. Hand off with `$implement-issue <issue URL or plan path>` when the developer wants execution. Do not execute Step 1 as part of planning. Planning alone does not authorize product edits, staging, commits, pushing, PR creation, or GitHub issue/project mutations.
 
 Uncertainty about requirements, boundaries, or dependencies must be clarified with the developer before the affected plan can be marked ready. Record blockers explicitly. Do not turn unanswered business questions into implementation choices.

@@ -1,6 +1,6 @@
 ---
 name: create-issue
-description: Clarify a developer's requested change and create one self-contained GitHub issue with detailed task checkboxes, relevant spec references, and verifiable acceptance criteria. Use to scope and create a delivery issue, not to plan commit checkpoints or open a PR. Use only when the user explicitly invokes create-issue.
+description: Clarify a developer's requested change and create one self-contained GitHub issue with a short task checklist and verifiable acceptance criteria. Use to scope and create a delivery issue, not to plan commit checkpoints or open a PR. Use only when the user explicitly invokes create-issue.
 ---
 
 # Create Issue
@@ -38,24 +38,14 @@ Typical questions include whether a registration task covers only the API or als
 - Distinguish a choice explicitly delegated to the implementer from a missing requirement. Preserve delegated freedom and its constraints; do not invent a fixed design or require the developer to decide every internal function name.
 - Continue independent research if useful, but do not finalize dependent task text while its required decision is unanswered. Silence or elapsed time is not an answer.
 - If the request and specs conflict, show the conflict and ask which behavior is intended. Record any approved spec correction in the issue scope instead of silently treating either source as current.
-- Capture resolved answers in the issue's scope, constraints, tasks, and acceptance criteria. The issue must not depend on the developer having read this chat.
+- Capture each resolved answer where a developer needs it. The issue must not depend on the developer having read this chat.
 - Do not publish an implementation-ready issue with unresolved scope questions, guessed requirements, alternatives the developer has not chosen, or placeholders such as "decide later" for required behavior. Keep a draft and identify the unanswered questions instead. Do not turn an unresolved product decision into an implementation checkbox that hides the ambiguity.
 
-## 2. Write the detailed issue
+## 2. Write the issue
 
-Use [the issue template](references/issue-template.md). It combines the repository's opening/constraints/tasks/resources/walkthrough/acceptance style with explicit scope, dependencies, and spec traceability. Adapt the amount of detail to the slice; do not force every optional heading onto a small task.
+Use [the issue template](references/issue-template.md). Start with the outcome and the minimum context a developer needs. List cohesive tasks and observable acceptance checks. Mention constraints, exclusions, dependencies, and spec references only when they affect delivery. Put each detail where it helps the reader and avoid repeating it across sections.
 
-- Use a concise, outcome-oriented title. Retain an existing workstream prefix only when it has been agreed; do not invent a sequence number.
-- Explain what changes, why, and the verified starting point in a short opening. Include only the context needed to begin this task.
-- State included work, exclusions, constraints, and verified prerequisites. Explain what a dependency must provide, not just its issue number. Distinguish a hard blocker from a useful related issue or a partially sufficient prerequisite.
-- Give the developer concrete progress checkboxes under `Tasks:`. Group them by cohesive deliverable, with nested checkboxes for independently checkable substeps. Name relevant files/areas, contracts, inputs/outputs, and error or access behavior where established. Avoid vague items such as "implement backend" or "test everything".
-- Include relevant verification with the work it checks, and a final acceptance checklist of observable results. State actual commands and expected outcomes when known. Do not add unrelated hardening, generic test busywork, or forced subtasks to inflate the ticket.
-- Explain agreed contracts in the issue itself. Relevant spec IDs and links provide traceability; they are not substitutes for requirements. A partial slice must not claim to fulfill an entire spec or a broader criterion.
-- Put spec sections, code paths, and useful official documentation in `Resources:`. Use verified GitHub links for a published ref and note the source revision. If specs are unpublished, state that limitation instead of asserting a working remote link. Do not dump every related document into the issue.
-- Use a numbered `Walkthrough:` only when it explains a non-obvious interaction across components. It describes how the pieces connect, rather than repeating the task list or prescribing commits.
-- Use clear, complete sentences and familiar terms. Explain a technical term only when it helps the junior implement the task. Remove contradictory requirements, hidden assumptions, and unnecessary system background.
-
-The task checklist is detailed delivery guidance. It does not define Git commit boundaries, checkpoints, or execution order enforced by an agent. `plan-issue` later derives those from the approved issue.
+Include privacy or security requirements when the agreed scope or an applicable rule calls for them, or when the change would otherwise introduce a concrete access or data-handling defect. Describe the relevant behavior and cite its source when applicable. Leave generic hardening and routine implementation choices out of the ticket.
 
 ## 3. Check clarity, preview, and publish
 
