@@ -13,7 +13,7 @@ function ReviewDocument({ token, number, document, language }: {
     <p>{document.content_type} · {Math.ceil(document.size_bytes / 1024)} KB · {new Date(document.submitted_at).toLocaleString(language)}</p>
     <button disabled={link.isPending} onClick={() => link.mutate()}>{t(link.isPending ? "Preparando link..." : link.data ? "Renovar link" : "Abrir documento")}</button>
     {link.isError && <p role="alert">{t(link.error instanceof PaymentReviewRequestError && link.error.status === 403 ? "Acesso restrito à equipe." : "Não foi possível abrir o documento. Tente novamente.")}</p>}
-    {link.data && !link.isError && !link.isPending && <a href={link.data.download_url} target="_blank" rel="noopener noreferrer">{t("Consultar documento")} · {document.original_file_name}</a>}
+    {link.data && !link.isError && !link.isPending && <a data-sentry-block href={link.data.download_url} target="_blank" rel="noopener noreferrer">{t("Consultar documento")} · {document.original_file_name}</a>}
   </li>;
 }
 

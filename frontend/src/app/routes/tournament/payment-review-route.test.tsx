@@ -109,8 +109,13 @@ it("requests a fresh document link on renewal and handles unavailable downloads"
   openReview(); const file = (await screen.findByText("current.pdf")).closest("li")!;
   fireEvent.click(within(file).getByRole("button", { name: "Abrir documento" }));
   const first = await within(file).findByRole("link"); const url = first.getAttribute("href");
+  expect(first).toHaveAttribute("data-sentry-block");
   fireEvent.click(within(file).getByRole("button", { name: "Renovar link" }));
-  await waitFor(() => expect(within(file).getByRole("link").getAttribute("href")).not.toBe(url));
+  await waitFor(() => {
+    const renewed = within(file).getByRole("link");
+    expect(renewed.getAttribute("href")).not.toBe(url);
+    expect(renewed).toHaveAttribute("data-sentry-block");
+  });
   downloadStatus = 503; fireEvent.click(within(file).getByRole("button", { name: "Renovar link" }));
   await within(file).findByRole("alert"); expect(within(file).queryByRole("link")).not.toBeInTheDocument();
   expect(fetchMock.mock.calls.some(([url]) => url.includes("/T1-001/documents/20/download-url"))).toBe(true);
