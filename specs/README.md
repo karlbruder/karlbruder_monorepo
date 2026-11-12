@@ -1,7 +1,7 @@
 # Specifications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-11
 
 These living specifications describe required product behavior, architecture, and platform constraints. [Documentation](../docs/README.md) explains current implementation and operational procedures. [Decisions](decisions/README.md) retain significant choices and their rationale. Read only the relevant sections and decisions.
 
@@ -14,7 +14,7 @@ These living specifications describe required product behavior, architecture, an
 | [Architecture](architecture.md) | Service responsibilities, data flow, integrations, and observed implementation gaps |
 | [Open-question index](open-questions.md) | Deduplicated current-scope questions, deferred questions, and technical follow-up owners |
 | [Decisions](decisions/README.md) | Significant choices and superseded directions |
-| [Application wireframes](design/README.md) | Reviewable desktop/mobile journeys linked to rules and acceptance criteria |
+| [Web and application design](design/README.md) | Shared foundations, components, public-site experience and reviewable application wireframes linked to owning rules |
 | [Specification template](templates/spec.md) | Starting point for a capability or platform specification |
 
 ## Capability index
