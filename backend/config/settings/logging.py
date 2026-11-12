@@ -29,6 +29,12 @@ def _drop_uvicorn_color_message(_logger, _method, event: EventDict) -> EventDict
     return event
 
 
+def _keep_uvicorn_error(record: logging.LogRecord) -> bool:
+    if record.exc_info is None:
+        return True
+    return not getattr(record.exc_info[1], "_request_failure_logged", False)
+
+
 def _build_console_renderer() -> Processor:
     options: dict[str, Any] = {
         "colors": IS_LOCAL_ENV,
@@ -83,6 +89,8 @@ def _configure_third_party_loggers(level: int) -> None:
         logger.handlers.clear()
         logger.propagate = True
         logger.setLevel(level)
+
+    logging.getLogger("uvicorn.error").addFilter(_keep_uvicorn_error)
 
     # The ASGI middleware owns access logging.
     access_logger = logging.getLogger("uvicorn.access")

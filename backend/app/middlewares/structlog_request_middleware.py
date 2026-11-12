@@ -144,6 +144,8 @@ class StructlogRequestMiddleware:
                 )
                 if failure is not None:
                     logger.error("request_failed", exc_info=failure, **fields)
+                    # Uvicorn receives the same exception after the 500 response.
+                    vars(failure)["_request_failure_logged"] = True
                 elif not (is_health_check_request and code < 400):
                     log = logger.error if code >= 500 else logger.info
                     log("request_finished", **fields)

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from uuid import UUID
 
 import httpx
@@ -27,7 +28,7 @@ def test_healthy_requests_keep_valid_ids_and_omit_access_logs(caplog, path):
     assert not [record for record in caplog.records if record.name == LOGGER_NAME]
 
 
-def test_unexpected_failure_returns_id_and_emits_start_and_failure(caplog):
+def test_unexpected_failure_returns_id_and_logs_one_traceback(caplog):
     """FastAPI adds the ID to its 500 while the middleware logs the route template."""
     app = FastAPI()
     app.add_middleware(StructlogRequestMiddleware)
@@ -50,6 +51,16 @@ def test_unexpected_failure_returns_id_and_emits_start_and_failure(caplog):
     assert UUID(request_id).version == 4
     events = [record.msg for record in caplog.records if record.name == LOGGER_NAME]
     assert [event["event"] for event in events] == ["request_started", "request_failed"]
+    failure = events[1]["exc_info"]
+    assert isinstance(failure, RuntimeError)
+
+    server_logger = logging.getLogger("uvicorn.error")
+    server_logger.error("Exception in ASGI application", exc_info=failure)
+    server_logger.error("Independent server failure", exc_info=RuntimeError("server"))
+    server_messages = [
+        record.getMessage() for record in caplog.records if record.name == "uvicorn.error"
+    ]
+    assert server_messages == ["Independent server failure"]
     assert {event["request_id"] for event in events} == {request_id}
     assert events[1]["route"] == "/items/{item_id}"
     assert events[1]["code"] == 500
