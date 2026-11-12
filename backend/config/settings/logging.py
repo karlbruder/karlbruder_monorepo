@@ -72,7 +72,7 @@ def _configure_third_party_loggers(level: int) -> None:
         logger = logging.getLogger(name)
         logger.handlers.clear()
         logger.propagate = True
-        logger.setLevel(logging.CRITICAL)
+        logger.setLevel(level)
 
     # The ASGI middleware owns access logging.
     access_logger = logging.getLogger("uvicorn.access")

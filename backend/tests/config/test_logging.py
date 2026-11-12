@@ -100,6 +100,7 @@ def test_configure_logging_clears_uvicorn_handlers_and_quiets_dependencies(
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
         assert logging.getLogger(name).handlers == []
     assert logging.getLogger("uvicorn.error").propagate
+    assert logging.getLogger("uvicorn.error").level == logging.INFO
     assert not logging.getLogger("uvicorn.access").propagate
     assert logging.getLogger("uvicorn.access").level == logging.CRITICAL
     assert logging.getLogger("httpx").level >= logging.WARNING

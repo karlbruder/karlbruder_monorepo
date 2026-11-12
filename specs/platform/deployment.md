@@ -147,7 +147,7 @@ None about the selected stack, domains, application routing, DNS, or TLS. The re
 
 ## Backend logging
 
-Set `LOG_JSON=true` to write one JSON object per line to stdout. The default is console output. Records include timestamp, level, logger, and message. Exception output includes the full exception chain with messages and traceback locations. Frame locals are omitted. The renderer includes the caller’s message and structured fields provided by the caller.
+Set `LOG_JSON=true` to write one JSON object per line to stdout. The default is console output. Uvicorn server logs follow `LOG_LEVEL`. The application middleware owns request access logs. Records include timestamp, level, logger, and message. Exception output includes the full exception chain with messages and traceback locations. Frame locals are omitted. The renderer includes the caller’s message and structured fields provided by the caller.
 
 The application middleware emits a request-start event and an outcome event linked by request ID. The outcome includes the route template, status, and duration. The liveness, database, and auth health routes have separate backend settings. Their defaults match the deployment probes. Health requests skip the start event. Successful health responses and trailing-slash redirects also skip the outcome event. Startup and shutdown failures emit a structured diagnostic. Responses include an `X-Request-ID` header.
 
