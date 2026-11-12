@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-12
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -36,7 +36,7 @@ poetry install --no-root --with dev
 export ENV_NAME=local
 export DB_HOST=localhost
 export S3_ENDPOINT_URL=http://localhost:4566
-poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
+poetry run uvicorn app.main:karlbruder_app --no-access-log --log-level critical --reload --host localhost --port 8000
 ```
 
 PostgreSQL and Ministack must already be running. Keep the remaining settings in
@@ -84,6 +84,17 @@ are provided. Apply Alembic head before starting the API.
 - `/api/health/auth` checks the separately configured Auth database and reports whether `auth` exists. A local Supabase Auth stack is not included.
 
 These endpoints are public. Database diagnostics report schema presence separately from connectivity. Inspect the response body. They do not verify migrations. Connection failures return 503 and are logged.
+
+### Logging
+
+The backend writes readable console logs by default. Set `LOG_JSON=true` for JSON output.
+Set `LOG_LEVEL` to change verbosity. The default is `INFO`.
+
+Use the response's `X-Request-ID` to find its logs. Successful health checks are
+quiet. If you change a health route, update any deployment probe that calls it.
+
+See [backend logging in the deployment spec](../specs/platform/deployment.md#backend-logging)
+for log fields and CloudWatch behavior.
 
 ## Domain migrations
 

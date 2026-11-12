@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.db import create_sync_engine, get_session
 from app.main import karlbruder_app
 from config import settings
+from config.settings.logging import LoggingSettings
 
 ALEMBIC_DIR = Path(__file__).resolve().parents[1] / "alembic"
 
@@ -55,3 +56,22 @@ def db_session(migrated_database):
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def configure_log_formatter(monkeypatch):
+    """Get the formatter installed by the settings without replacing pytest handlers."""
+
+    def configure(*, json_logs=None):
+        handlers = []
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                "logging.basicConfig",
+                lambda **options: handlers.extend(options["handlers"]),
+            )
+            options = {} if json_logs is None else {"LOG_JSON": json_logs}
+            settings = LoggingSettings(**options)
+            settings.init_logging()
+        return handlers[0].formatter
+
+    return configure

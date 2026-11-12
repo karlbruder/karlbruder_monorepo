@@ -30,7 +30,7 @@ RUN poetry install --no-root --with dev
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:karlbruder_app", "--reload", "--reload-exclude", ".venv", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:karlbruder_app", "--no-access-log", "--reload", "--reload-exclude", ".venv", "--host", "0.0.0.0", "--port", "8000"]
 
 # ----
 # Test
@@ -64,4 +64,4 @@ EXPOSE 8000
 
 ENTRYPOINT ["sh", "/app/entrypoint.production.sh"]
 
-CMD ["uvicorn", "app.main:karlbruder_app", "--workers", "2", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:karlbruder_app", "--no-access-log", "--workers", "2", "--host", "0.0.0.0", "--port", "8000"]

@@ -29,6 +29,7 @@ def get_current_user(
     if credentials.scheme.lower() != "bearer":
         raise InvalidCredentialsException()
     user = verify_user(credentials.credentials)
+    request.state.user_id = str(user.id)
     sentry_sdk.set_user({"id": str(user.id), "email": user.email})
     return user
 

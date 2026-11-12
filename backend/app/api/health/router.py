@@ -6,17 +6,18 @@ from fastapi import APIRouter, Response, status
 from fastapi.responses import JSONResponse
 
 from app.api.health.checks import check_auth_database, check_domain_database
+from config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/api/health")
+@router.get(settings.HEALTH_CHECK_PATH)
 def health() -> Response:
     return Response(status_code=status.HTTP_200_OK)
 
 
-@router.get("/api/health/db")
+@router.get(settings.HEALTH_DB_CHECK_PATH)
 def health_db():
     try:
         return check_domain_database()
@@ -29,7 +30,7 @@ def health_db():
         )
 
 
-@router.get("/api/health/auth")
+@router.get(settings.HEALTH_AUTH_CHECK_PATH)
 def health_auth():
     try:
         return check_auth_database()

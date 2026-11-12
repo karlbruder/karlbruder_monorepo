@@ -13,6 +13,7 @@ from .env import (
 )
 from .settings.database import DatabaseSettings
 from .settings.email import EmailSettings
+from .settings.logging import LoggingSettings
 from .settings.sentry import SentrySettings
 from .settings.storage import StorageSettings
 from .settings.supabase import SupabaseSettings
@@ -30,6 +31,7 @@ class Settings(
     EmailSettings,
     StorageSettings,
     SentrySettings,
+    LoggingSettings,
 ):
     """Shared settings. Environment variables override the env file. AWS environments fill the rest from Secrets Manager."""
 
@@ -44,6 +46,11 @@ class Settings(
     ENV_NAME: str = ENV_NAME
     APP_NAME: str = APP_NAME
     CONTAINER_NAME: str = CONTAINER_NAME
+
+    # Health
+    HEALTH_CHECK_PATH: str = "/api/health"
+    HEALTH_DB_CHECK_PATH: str = "/api/health/db"
+    HEALTH_AUTH_CHECK_PATH: str = "/api/health/auth"
 
     # Versioning
     VERSION: str = VERSION
