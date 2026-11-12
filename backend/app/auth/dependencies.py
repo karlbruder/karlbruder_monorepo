@@ -2,6 +2,7 @@
 
 from typing import Annotated
 
+import sentry_sdk
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -27,7 +28,9 @@ def get_current_user(
         return AnonymousUser()
     if credentials.scheme.lower() != "bearer":
         raise InvalidCredentialsException()
-    return verify_user(credentials.credentials)
+    user = verify_user(credentials.credentials)
+    sentry_sdk.set_user({"id": str(user.id), "email": user.email})
+    return user
 
 
 def require_authenticated_user(

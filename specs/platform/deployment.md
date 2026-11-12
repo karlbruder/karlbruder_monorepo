@@ -1,7 +1,7 @@
 # Deployment
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-12
 
 | Field | Value |
 | --- | --- |
@@ -27,6 +27,8 @@ owns current infrastructure details and release mechanics.
 - **DEP-007:** Application file storage uses Amazon S3. Application email uses AWS SES via SMTP. Configure backend access to these services; the local Ministack emulator is not a production service.
 - **DEP-008:** Only Nginx publishes a production application host port: 443. The frontend and backend communicate over the Compose network and do not publish host ports. Port 80 redirection happens at Cloudflare, preserving the HTTPS-only EC2 origin.
 - **DEP-009:** Each cloud environment sends production container standard output and standard error to its service’s Terraform-managed CloudWatch log group. Retain logs indefinitely and protect the group from Terraform destruction.
+- **DEP-010:** Backend startup requires a Sentry DSN. Monitoring defaults to off in every environment. Deployed dev and prod explicitly enable it to send eligible errors and filtered traces. The SDK captures application error logs as error events. Identify telemetry by service, environment, and the built artifact release. Exclude health traces. Retain failed transactions and sample successful ones at a configurable rate that defaults to 10%. Do not enable profiling. Use Sentry’s default SDK data handling except for request bodies and frame locals, which are disabled. Associate authenticated events with the verified user. Keep Uvicorn access and server logs out of Sentry. Preserve CloudWatch delivery under DEP-009.
+- **DEP-011:** Browser Sentry defaults to off. Enable it with each site’s own public DSN. Browser builds use `ENV_NAME` for the deployment environment and `GIT_SHA` for the artifact release. A missing browser DSN leaves monitoring off. The landing site sends errors only. The authenticated frontend sends errors and React Router traces. Use the SDK’s trace sampling with a configurable 10% default. Use Session Replay only in the authenticated frontend. Mask text and input values, block media and signed document download links, and disable network body capture. Upload replays for sessions with a captured error by default. The ordinary session sample rate is configurable and defaults to 0%. Skip monitoring on authentication callback loads that carry credentials.
 
 ## Production Compose topology
 
@@ -121,6 +123,8 @@ They do not override decision 0003 or establish the live rollout state.
 - **DEP-AC-007:** The deployed application uses S3 for its files and AWS SES SMTP for application emails, with the required backend configuration.
 - **DEP-AC-008:** Application HTTP redirects to HTTPS at Cloudflare. The proxied A record's origin target is the EC2 Elastic IP, and Cloudflare reaches the self-signed Nginx origin over HTTPS 443. Production Compose publishes no frontend/backend host ports.
 - **DEP-AC-009:** Each production service sends container logs to its environment and service’s CloudWatch log group. Each group has indefinite retention and Terraform destruction protection.
+- **DEP-AC-010:** Enabled backend monitoring reports errors and eligible traces with the correct service, environment, and artifact release. Health traces are absent. Request bodies are absent from Sentry errors and traces. Uvicorn access and server logs are absent from Sentry. With a DSN and monitoring disabled, the backend starts without sending telemetry. A missing DSN fails startup validation. Verify live delivery separately from automated checks.
+- **DEP-AC-011:** Enabled browser monitoring delivers errors to the frontend and landing projects with their own service, environment, and release. The frontend sends sampled traces and masked replays. The landing site sends only errors. Verify live delivery and Replay masking separately from automated checks.
 
 ## Open questions
 

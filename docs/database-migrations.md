@@ -1,7 +1,7 @@
 # Application database migrations
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-11
 
 Alembic manages application domain tables and its version marker in PostgreSQL
 `public`. Connection settings select the database through `DB_HOST`, `DB_PORT`,
@@ -30,7 +30,7 @@ then `poetry run alembic current`. A running local backend container can use
 `docker compose exec -T backend alembic upgrade head` from the repository root.
 
 Production uses Supabase PostgreSQL. Its entrypoint applies migrations before
-starting Gunicorn. A migration failure prevents API startup. Never reset
+starting Uvicorn. A migration failure prevents API startup. Never reset
 production data to make startup pass.
 
 ## Verification

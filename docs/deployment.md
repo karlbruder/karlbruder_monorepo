@@ -1,7 +1,7 @@
 # Application deployment
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-12
 
 This guide explains the deployment implemented by
 [the workflow](../.github/workflows/deploy-application.yml),
@@ -123,9 +123,15 @@ tag or copies the environment tag onto that SHA. Every service must have an imag
 from an earlier build before it can be reused. Reused images retain their original
 build metadata.
 
-The pipeline generates one UTC `RELEASED_AT` per run. Backend, frontend, and landing
-production images embed it and `GIT_SHA`. Restarting a container does not change
-that metadata.
+The workflow passes the build commit as `GIT_SHA` and a UTC timestamp as
+`RELEASED_AT` to the backend, frontend, and landing images. It also passes the
+selected deployment environment as `ENV_NAME` to both browser images. The final
+browser images expose all three values through `docker inspect`.
+
+Browser code reads the same build inputs through the `VITE_` prefix in the
+frontend and `REACT_APP_` in landing. Sentry uses the environment and SHA for
+attribution. A metadata page can read the timestamp as `VITE_RELEASED_AT` or
+`REACT_APP_RELEASED_AT`. Both deployment environments use production mode.
 
 ```mermaid
 flowchart LR
@@ -134,6 +140,18 @@ flowchart LR
 ```
 
 ## Build inputs
+
+Set the browser Sentry configuration in the selected GitHub environment (`dev`
+or `prod`) under Environment variables. Each site uses its own public DSN.
+
+| Service | Public DSN | Enable monitoring |
+| --- | --- | --- |
+| Frontend | `VITE_SENTRY_DSN` | `VITE_SENTRY_ENABLED=true` |
+| Landing | `REACT_APP_SENTRY_DSN` | `REACT_APP_SENTRY_ENABLED=true` |
+
+The deploy workflow passes these variables to the Docker builder, which embeds
+them in the JavaScript bundle. Rebuild and deploy the site after changing a
+value. An unset DSN or enable flag leaves that site's monitoring off.
 
 The landing image receives `APPLICATION_BASE_URL` as `REACT_APP_APPLICATION_URL`.
 Use one HTTPS origin without a path, such as `https://app-dev.karlbruder.com` or
@@ -170,9 +188,9 @@ project. The backend requires this key at startup. Keep it out of frontend build
 settings.
 
 The production image includes the Secrets Manager dependencies. Its entrypoint
-runs `alembic upgrade head` once per container startup, before Gunicorn workers.
+runs `alembic upgrade head` once per container startup, before the Uvicorn workers.
 Failure prevents API startup. On success, the entrypoint replaces itself with
-Gunicorn so shutdown signals reach the server. Development and test startup do
+Uvicorn so shutdown signals reach the server. Development and test startup do
 not use that entrypoint. See [database migrations](database-migrations.md) for
 application, reset prerequisites, and verification. Never reset production data
 to make startup pass.

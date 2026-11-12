@@ -1,3 +1,4 @@
+import { isInitialized, wrapReactRouterRouting } from "@sentry/react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
 import { legalRoutes } from "@/config/legal-routes";
@@ -17,9 +18,11 @@ import CheckEmailRoute from "@/app/routes/auth/check-email-route";
 import ResetPasswordRoute from "@/app/routes/auth/reset-password-route";
 import ChangePasswordRoute from "@/app/routes/auth/change-password-route";
 
+const AppRoutes = isInitialized() ? wrapReactRouterRouting(Routes) : Routes;
+
 export default function AppRouter() {
   return (
-    <Routes>
+    <AppRoutes>
       <Route path={legalRoutes.terms} element={<LegalDocumentRoute documentType="terms" />} />
       <Route path={legalRoutes.privacy} element={<LegalDocumentRoute documentType="privacy" />} />
       <Route path="/tournaments/registration" element={<RegistrationRoute />} />
@@ -41,6 +44,6 @@ export default function AppRouter() {
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </AppRoutes>
   );
 }

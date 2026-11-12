@@ -21,6 +21,8 @@ match ENV_NAME:
 
         settings = AwsSettings()  # type: ignore[call-arg]
 
+settings.init_sentry(environment=settings.ENV_NAME, release=settings.GIT_SHA)
+
 __all__ = [
     "ALLOWED_JWT_ALGORITHMS",
     "EXPECTED_AUDIENCE",
