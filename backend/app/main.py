@@ -10,6 +10,7 @@ from app.api.router import router
 from app.auth.supabase.account_email import SupabaseAccountEmailReader
 from app.core import db
 from app.core.mail import SmtpMailSender
+from app.middlewares.structlog_request_middleware import StructlogRequestMiddleware
 from config import settings
 
 
@@ -78,3 +79,4 @@ karlbruder_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+karlbruder_app.add_middleware(StructlogRequestMiddleware)

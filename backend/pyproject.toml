@@ -29,6 +29,8 @@ pandas = "^3.0.0"
 psycopg2-binary = "^2.9.11"
 pyjwt = { extras = ["crypto"], version = "^2.13.0" }
 sentry-sdk = {version = ">=2.0,<3.0", extras = ["fastapi"]}
+structlog = "^25.4"
+rich = "^14"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.auth.exceptions import (
     AdminAccessRequiredException,
@@ -50,6 +50,15 @@ _ERROR_STATUS = {
 
 
 def register_api_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(500)
+    async def handle_unexpected_error(request: Request, _error: Exception):
+        # FastAPI produces this response outside the request logging middleware.
+        request_id = getattr(request.state, "request_id", None)
+        headers = {"X-Request-ID": request_id} if request_id else None
+        return PlainTextResponse(
+            "Internal Server Error", status_code=500, headers=headers
+        )
+
     @app.exception_handler(AuthenticationError)
     @app.exception_handler(TournamentError)
     def handle_domain_error(

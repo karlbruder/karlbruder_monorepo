@@ -15,6 +15,11 @@ HEALTH_PATHS = {
     for suffix in ("", "/db", "/auth")
 }
 
+def _is_structlog_log_record(record: LogRecord) -> bool:
+    """Recognize Structlog's event dictionary before console or JSON formatting."""
+    return bool(getattr(record, "_from_structlog", False)) or isinstance(
+        record.msg, dict
+    )
 
 def _traces_sampler(context: dict[str, Any]) -> float:
     scope = context.get("asgi_scope") or {}
@@ -25,8 +30,9 @@ def _traces_sampler(context: dict[str, Any]) -> float:
 
 def _before_send(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
     record = hint.get("log_record")
-    if isinstance(record, LogRecord) and getattr(
-        record, "sentry_already_captured", False
+    if isinstance(record, LogRecord) and (
+        _is_structlog_log_record(record)
+        or getattr(record, "sentry_already_captured", False)
     ):
         return None
     span = sentry_sdk.get_current_span()
@@ -67,6 +73,7 @@ class SentrySettings(BaseSettings):
 
         ignore_logger("uvicorn.access")
         ignore_logger("uvicorn.error")
+        ignore_logger("app.middlewares.structlog_request_middleware")
         sentry_sdk.init(
             dsn=self.SENTRY_DSN,
             environment=environment,

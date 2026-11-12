@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-12
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -36,7 +36,7 @@ poetry install --no-root --with dev
 export ENV_NAME=local
 export DB_HOST=localhost
 export S3_ENDPOINT_URL=http://localhost:4566
-poetry run uvicorn app.main:karlbruder_app --reload --host localhost --port 8000
+poetry run uvicorn app.main:karlbruder_app --no-access-log --log-level critical --reload --host localhost --port 8000
 ```
 
 PostgreSQL and Ministack must already be running. Keep the remaining settings in
@@ -175,3 +175,13 @@ A future issue will introduce a `concurrency` pytest marker and a shared race-te
 methodology. See the [testing specification](../specs/platform/testing.md).
 The dedicated payment-review concurrency suite is deferred. Existing tests remain.
 Transaction locks and atomic payment/capacity behavior remain in the implementation.
+
+## Logging
+
+Set `LOG_LEVEL` to DEBUG, INFO, WARNING, ERROR, or CRITICAL. The default is INFO. The API server writes structured logs to stdout with service `kb-backend`, environment from `ENV_NAME`, and release from `GIT_SHA` (default `NaN`). Local and test use readable console output with Rich tracebacks. Cloud environments use one JSON object per line. Exception output includes the exception type and frame locations.
+
+The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Successful health checks are omitted. Responses include an `X-Request-ID` header.
+
+Access events can include a client-provided UUID from `X-Session-ID`, the AWS trace root from `X-Amzn-Trace-Id`, the Sentry trace ID, and the verified Supabase user UUID. The active Sentry span supplies the trace ID when available. The logger also accepts a valid `sentry-trace` or `x-sentry-trace` header. Use a dedicated correlation UUID for the session header.
+
+Access events also include `path`, `query_string`, `full_path`, `absolute_uri`, `user_agent`, `host`, and `origin` where available. URL fields come from the request URL and include the original query string. The separate `route` field holds the matched route template.

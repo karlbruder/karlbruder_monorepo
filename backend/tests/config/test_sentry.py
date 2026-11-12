@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 import pytest
 import sentry_sdk
+import structlog
 from sentry_sdk.transport import Transport
 
 from app.api.exception_handlers import register_api_exception_handlers
@@ -89,7 +90,9 @@ def test_settings_reject_null_sentry_enabled():
         BackendTestSettings(SENTRY_ENABLED=None)
 
 
-def test_logged_exception_captures_message_and_traceback_without_frame_locals(monitoring):
+def test_logged_exception_captures_message_and_traceback_without_frame_locals(
+    monitoring,
+):
     frame_local = uuid4().hex
     try:
         raise ValueError("exception-diagnostic")
@@ -275,9 +278,29 @@ def test_marked_duplicate_error_emits_no_event(monitoring):
     assert not monitoring.envelopes
 
 
-def test_uvicorn_logs_stay_out_of_sentry_events_and_breadcrumbs(monitoring, caplog):
+def test_structlog_error_is_logged_without_creating_a_sentry_event(monitoring, caplog):
+    """Keep Structlog output and still report ordinary stdlib errors to Sentry."""
+    structlog.get_logger("app.test").error("structured diagnostic", status=503)
+    logging.getLogger("app.test").error("standard diagnostic")
+    sentry_sdk.flush()
+
+    assert "structured diagnostic" in caplog.text
+    events = [
+        item.payload.json
+        for envelope in monitoring.envelopes
+        for item in envelope.items
+        if item.type == "event"
+    ]
+    assert len(events) == 1
+    assert events[0]["logentry"]["message"] == "standard diagnostic"
+
+
+def test_uvicorn_logs_stay_out_of_sentry_events_and_breadcrumbs(
+    monitoring, caplog, monkeypatch
+):
     for name in ("uvicorn.access", "uvicorn.error"):
-        logging.getLogger(name).error("diagnostic from %s", name)
+        monkeypatch.setattr(logging.getLogger(name), "propagate", True)
+        logging.getLogger(name).critical("diagnostic from %s", name)
     sentry_sdk.capture_message("application diagnostic")
     sentry_sdk.flush()
 

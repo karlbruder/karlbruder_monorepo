@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-12
 
 | Field | Value |
 | --- | --- |
@@ -83,3 +83,9 @@ Local SMTP is a deferred implementation choice, likely SES with real credentials
 ## Related specifications
 
 [Architecture](../architecture.md), [data storage](data-storage.md), [identity](../identity/authentication-and-access.md), [runbooks](../../docs/runbooks/README.md).
+
+## Backend logging
+
+The backend writes structured console logs to stdout with Rich tracebacks in local and test environments. Tracebacks include exception type and frame locations. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
+
+The application middleware emits one access event with the request ID, HTTP method, route template, status and duration. Successful health checks are omitted. Responses include an `X-Request-ID` header.
