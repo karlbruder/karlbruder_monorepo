@@ -86,6 +86,6 @@ Local SMTP is a deferred implementation choice, likely SES with real credentials
 
 ## Backend logging
 
-The backend defaults to writing structured console logs to stdout with Rich tracebacks. Set `LOG_JSON=true` for JSON output. In local and test environments, JSON mode prints exception tracebacks separately from the JSON record. Tracebacks include the full exception chain with messages and traceback locations. Frame locals are omitted. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
+The backend defaults to writing structured console logs to stdout with Rich tracebacks. Console colors are enabled in local and test environments, including Docker output without a terminal. Set `LOG_JSON=true` for JSON output. In local and test environments, JSON mode prints exception tracebacks separately from the JSON record. Tracebacks include the full exception chain with messages and traceback locations. Frame locals are omitted. Set `LOG_LEVEL` to adjust verbosity. The default is INFO.
 
 The application middleware emits a request-start event and an outcome event linked by request ID. The outcome includes the route template, status, and duration. Health requests skip the start event. Successful health responses and trailing-slash redirects also skip the outcome event. Startup and shutdown failures emit a structured diagnostic. Responses include an `X-Request-ID` header.

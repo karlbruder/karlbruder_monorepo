@@ -7,7 +7,7 @@ from typing import Any
 import structlog
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from structlog.types import Processor
+from structlog.types import EventDict, Processor
 
 from config.env import IS_LOCAL_ENV
 
@@ -23,9 +23,15 @@ _NOISY_LOGGERS = (
 )
 
 
+def _drop_uvicorn_color_message(_logger, _method, event: EventDict) -> EventDict:
+    if event["_record"].name.startswith("uvicorn."):
+        event.pop("color_message", None)
+    return event
+
+
 def _build_console_renderer() -> Processor:
     options: dict[str, Any] = {
-        "colors": False,
+        "colors": IS_LOCAL_ENV,
         "timestamp_key": "timestamp",
         "event_key": "message",
     }
@@ -57,7 +63,11 @@ def _build_log_formatter(
     shared_processors: list[Processor], *, json_logs: bool
 ) -> structlog.stdlib.ProcessorFormatter:
     processors = _build_formatter_processors(json_logs=json_logs)
-    foreign_pre_chain = [structlog.stdlib.ExtraAdder(), *shared_processors]
+    foreign_pre_chain = [
+        structlog.stdlib.ExtraAdder(),
+        _drop_uvicorn_color_message,
+        *shared_processors,
+    ]
     return structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=foreign_pre_chain,
         processors=processors,

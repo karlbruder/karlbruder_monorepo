@@ -169,3 +169,21 @@ def test_local_json_prints_traceback_separately(
     assert payload["message"] == "Local failure"
     assert "exception" not in payload
     assert "ValueError: synthetic local exception" in capsys.readouterr().out
+
+
+def test_uvicorn_color_message_is_omitted_from_console_output(configure_log_formatter):
+    record = logging.LogRecord(
+        "uvicorn.error",
+        logging.INFO,
+        __file__,
+        1,
+        "Started server process [%d]",
+        (76,),
+        None,
+    )
+    record.color_message = "Started server process [\x1b[36m%d\x1b[0m]"
+
+    output = configure_log_formatter().format(record)
+
+    assert "Started server process [76]" in output
+    assert "color_message" not in output
