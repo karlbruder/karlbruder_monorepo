@@ -1,7 +1,7 @@
 # Application files S3 bucket
 
 **Created**: 2026-11-02
-**Last updated**: 2026-11-03
+**Last updated**: 2026-11-12
 
 This runbook covers the private Amazon S3 bucket that stores tournament uploads such as payment proofs and scanned parental consent forms. Local development uses Ministack instead. See [data storage](../../specs/platform/data-storage.md) for the environment split.
 
@@ -34,7 +34,7 @@ terraform output application_files_bucket_name
 
 ## Update the backend secret
 
-Terraform creates the Secrets Manager secret shell but does not write application settings. Before the next deploy that needs file uploads, add or update `S3_BUCKET_NAME` in the JSON secret for that environment (`kb-dev/backend` or `kb-prod/backend`). Use the full name from `application_files_bucket_name`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in both cloud secrets so the backend uses native AWS S3 for server calls and for presigned URLs.
+Terraform creates the Secrets Manager secret shell but does not write application settings. Before the next deploy that needs file uploads, add or update `S3_BUCKET_NAME` in the JSON secret for that environment (`kb-dev/backend` or `kb-prod/backend`). Use the full name from `application_files_bucket_name`. Leave `S3_ENDPOINT_URL` and `S3_BROWSER_ENDPOINT_URL` unset in both cloud secrets so the backend uses the regional AWS S3 endpoint selected by `AWS_REGION`. Presigned URLs include that region in the hostname so the browser can reach the bucket directly.
 
 Redeploy or restart the backend container after the secret change so production settings reload.
 

@@ -23,7 +23,12 @@ def build_s3_client(*, endpoint_url: str | None):
             endpoint_url=endpoint_url,
             config=Config(s3={"addressing_style": "path"}),
         )
-    return boto3.client("s3", region_name=region_name)
+    return boto3.client(
+        "s3",
+        region_name=region_name,
+        endpoint_url=f"https://s3.{region_name}.amazonaws.com",
+        config=Config(s3={"addressing_style": "virtual"}),
+    )
 
 
 class FileStorage:

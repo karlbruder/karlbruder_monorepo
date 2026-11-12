@@ -126,13 +126,21 @@ def test_build_s3_client_uses_path_style_addressing_for_a_local_endpoint(boto3_c
     assert kwargs["config"].s3["addressing_style"] == "path"
 
 
-@patch("app.core.files.storage.boto3.client")
-def test_build_s3_client_omits_endpoint_configuration_when_endpoint_is_none(
-    boto3_client,
-):
-    build_s3_client(endpoint_url=None)
+def test_cloud_presigned_urls_use_the_bucket_regional_hostname(monkeypatch):
+    """Sign both browser operations for the regional host to avoid redirects."""
+    monkeypatch.setattr("app.core.files.storage.IS_LOCAL_ENV", False)
+    monkeypatch.setattr("app.core.files.storage.AWS_REGION", "us-east-2")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    storage = FileStorage(bucket_name="kb-dev-test-bucket", endpoint_url=None)
 
-    boto3_client.assert_called_once_with("s3", region_name="us-east-2")
+    upload_url = storage.create_presigned_put_url(
+        "staging/key", content_type="application/octet-stream", expires_in=60
+    )
+    download_url = storage.create_presigned_get_url("final/key", expires_in=60)
+
+    assert urlparse(upload_url).hostname == "kb-dev-test-bucket.s3.us-east-2.amazonaws.com"
+    assert urlparse(download_url).hostname == "kb-dev-test-bucket.s3.us-east-2.amazonaws.com"
 
 
 def test_presigned_url_uses_the_browser_endpoint_while_object_calls_stay_on_the_server(
