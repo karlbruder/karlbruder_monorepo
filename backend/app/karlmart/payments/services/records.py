@@ -12,9 +12,11 @@ def add_payment_record(
     *,
     amount_received: Decimal,
     verified_by_user_id: UUID,
-    verified_at: datetime
+    verified_at: datetime,
+    order_id: int | None = None,
 ) -> Payment:
     payment = Payment(
+        order_id=order_id,
         amount_received=amount_received,
         verified_by_user_id=verified_by_user_id,
         verified_at=verified_at,

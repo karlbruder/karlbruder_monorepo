@@ -18,10 +18,12 @@ from app.tournaments.models import Tournament
 from app.tournaments.schemas import (
     TournamentList,
     TournamentRead,
+    TournamentProductRead,
 )
 from app.tournaments.services import (
     TOURNAMENT_LOCAL_TIMEZONE,
 )
+from app.tournaments.services.tournament_products import list_tournament_products
 from app.tournaments.services.tournament_policies import (
     project_tournament,
 )
@@ -106,3 +108,17 @@ def get_tournament(
     if tournament is None:
         raise HTTPException(status_code=404, detail="Tournament not found")
     return project_tournament(tournament, storage)
+
+
+@router.get("/{tournament_id}/products", response_model=list[TournamentProductRead])
+def get_tournament_products(
+    tournament_id: int,
+    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+) -> list[TournamentProductRead]:
+    query = select(Tournament.id).where(Tournament.id == tournament_id)
+    if not _can_view_internal(user):
+        query = query.where(Tournament.is_internal.is_(False))
+    if session.scalar(query) is None:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    return list_tournament_products(session, tournament_id)

@@ -1,15 +1,17 @@
 import { legalRoutes } from "@/config/legal-routes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   createRegistration,
   getTournament,
+  getTournamentProducts,
   requestParentalConsentFormUploadUrl,
   RegistrationRequestError,
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
 import type { RegistrationCreate, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
+import type { TournamentProduct } from "@/features/tournament/api/tournaments";
 import { isMinorAtTournamentStart } from "@/features/tournament/utils/is-minor-at-tournament-start";
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy } from "@/utils/app-copy";
@@ -42,11 +44,13 @@ function readRegistration(
   birthDateFallback: string,
   acceptanceToken: string,
   acceptanceLanguage: AppLanguage,
+  selectedProduct: TournamentProduct | undefined,
 ): { payload: RegistrationCreate | null; errors: Errors; parentalConsentFormFile: File | null } {
   const data = new FormData(form);
   const value = (key: string) => String(data.get(key) ?? "").trim();
   const optional = (key: string) => value(key) || null;
   const errors: Errors = {};
+  if (!selectedProduct || selectedProduct.price_id === null) errors.tournament_product_id = "Campo obrigatório.";
   const requiredText = [
     "full_name", "birth_date", "identity_document_number", "phone", "city", "country",
     "emergency_contact_name", "emergency_contact_phone",
@@ -110,6 +114,8 @@ function readRegistration(
     parentalConsentFormFile,
     payload: {
       acceptance_token: acceptanceToken,
+      tournament_product_id: selectedProduct!.id,
+      price_id: selectedProduct!.price_id!,
       acceptance_language: acceptanceLanguage,
       full_name: value("full_name"),
       social_name: optional("social_name"),
@@ -211,6 +217,7 @@ function Success({ result, tournament, language }: { result: RegistrationCreated
       <strong className="registration-number">{result.registration_number}</strong>
       <dl className="registration-success-facts">
         <div><dt>{t("Torneio")}</dt><dd>{tournament.name}</dd></div>
+        {result.product_name && <div><dt>{language === "en" ? "Registration type" : "Tipo de inscrição"}</dt><dd>{result.product_name}</dd></div>}
         <div><dt>{t("Participante")}</dt><dd>{result.full_name}</dd></div>
         <div><dt>{t("E-mail")}</dt><dd>{result.email}</dd></div>
         <div><dt>{t("Situação")}</dt><dd>{statusText}</dd></div>
@@ -235,7 +242,19 @@ export default function TournamentRegistrationForm({
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<RegistrationCreated | null>(null);
   const [birthDateForDisplay, setBirthDateForDisplay] = useState("");
+  const [products, setProducts] = useState<TournamentProduct[]>([]);
+  const [productsState, setProductsState] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const requestPending = useRef(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setProductsState("loading");
+    getTournamentProducts(tournament.id, session.access_token, controller.signal)
+      .then(options => { setProducts(options); setProductsState("ready"); })
+      .catch(() => { if (!controller.signal.aborted) setProductsState("error"); });
+    return () => controller.abort();
+  }, [tournament.id, session.access_token]);
 
   const showParentalConsentFormField = Boolean(birthDateForDisplay)
     && isMinorAtTournamentStart(birthDateForDisplay, tournament.starts_at);
@@ -258,6 +277,7 @@ export default function TournamentRegistrationForm({
       birthDateForDisplay,
       tournament.acceptance_tokens[language],
       language,
+      products.find(product => product.id === selectedProductId),
     );
     setErrors(nextErrors);
     setRequestError(null);
@@ -327,6 +347,17 @@ export default function TournamentRegistrationForm({
       {requestError && <p className="registration-error-summary" role="alert">{t(requestError)}</p>}
 
       <fieldset className="registration-fieldset" disabled={pending}>
+        <section className="registration-card registration-section" aria-labelledby="registration-option-title">
+          <h2 id="registration-option-title">{language === "en" ? "Registration type" : "Tipo de inscrição"}</h2>
+          {productsState === "loading" && <p role="status">{language === "en" ? "Loading options…" : "Carregando opções…"}</p>}
+          {productsState === "error" && <p role="alert">{language === "en" ? "Could not load options. Refresh the page to try again." : "Não foi possível carregar as opções. Atualize a página para tentar novamente."}</p>}
+          {productsState === "ready" && products.length === 0 && <p>{language === "en" ? "No registration types are available yet." : "Nenhum tipo de inscrição está disponível ainda."}</p>}
+          {products.map(product => <label key={product.id} className="registration-option">
+            <input type="radio" name="tournament_product_id" value={product.id} checked={selectedProductId === product.id} disabled={product.price_id === null} onChange={() => setSelectedProductId(product.id)} />
+            <span><strong>{product.name}</strong><br />{product.description}<br />{product.amount === null ? (language === "en" ? "Price not yet available" : "Valor ainda não disponível") : new Intl.NumberFormat(language === "en" ? "en-US" : "pt-BR", { style: "currency", currency: product.currency ?? "BRL" }).format(Number(product.amount))}</span>
+          </label>)}
+          {errors.tournament_product_id && <p role="alert">{language === "en" ? "Select an available registration type." : "Selecione um tipo de inscrição disponível."}</p>}
+        </section>
         <section className="registration-card registration-section" aria-labelledby="registration-personal-title">
           <h2 id="registration-personal-title"><span>01</span> {t("Dados pessoais")}</h2>
           <div className="registration-grid">

@@ -192,9 +192,12 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
   })
   it('posts only the fields the athlete fills, with the account token', async () => {
-    const request = vi.fn().mockResolvedValue(response(201, created))
+    const request = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => String(input).endsWith('/products')
+      ? response(200, [{ id: 1, product_id: 2, name: 'Inscrição Plena', description: 'Participação', price_id: 3, amount: '100.00', currency: 'BRL' }])
+      : response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    fireEvent.click(await screen.findByRole('radio', { name: /Inscrição Plena/ }))
     fillRequired()
     change(/Nome social/, ' Ana ')
     change(/Estado \/ província/, 'SP')
@@ -205,8 +208,9 @@ describe('Athlete submits their own registration and sees the result', () => {
     change(/Categoria \/ caso especial/, ' Categoria iniciante ')
     submit()
 
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
-    const [url, options] = request.mock.calls[0]
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2))
+    const [url, options] = request.mock.calls[1]
+    if (!options) throw new Error('Missing registration request options')
     expect(url).toBe('/api/tournaments/42/registrations')
     expect(options.method).toBe('POST')
     expect(options.headers).toEqual({
@@ -216,6 +220,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(JSON.parse(options.body as string)).toEqual({
       acceptance_token: acceptanceEvidence.acceptance_tokens.pt,
       acceptance_language: 'pt',
+      tournament_product_id: 1, price_id: 3,
       full_name: 'Ana Teste', social_name: 'Ana', birth_date: '2000-01-01',
       identity_document_type: 'passport', identity_document_number: 'AB-123', email: 'athlete@example.test',
       phone: '+55 11 0000-0000', city: 'São Carlos', state_or_province: 'SP', country: 'Brasil',
@@ -231,6 +236,16 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
     expect(screen.getByText('Aguardando pagamento')).toBeInTheDocument()
     expect(screen.getByText(/vaga ainda não está confirmada nem reservada/)).toBeInTheDocument()
+  })
+
+  it('displays an unpriced option without allowing it to be selected', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, [
+      { id: 1, product_id: 2, name: 'Inscrição Plus', description: 'Pacote', price_id: null, amount: null, currency: null },
+    ])))
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    const option = await screen.findByRole('radio', { name: /Inscrição Plus/ })
+    expect(option).toBeDisabled()
+    expect(option).toHaveAccessibleName(/Valor ainda não disponível/)
   })
 
   it('requires every declaration before sending', () => {

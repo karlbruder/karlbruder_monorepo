@@ -157,6 +157,8 @@ class RegistrationCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    tournament_product_id: int = Field(gt=0)
+    price_id: int = Field(gt=0)
     acceptance_token: str = Field(pattern=r"^[a-f0-9]{64}$")
     acceptance_language: Literal["pt", "en"]
     full_name: str = Field(min_length=1, max_length=200)
@@ -320,6 +322,8 @@ class RegistrationRead(BaseModel):
     tournament_id: int
     registration_number: str
     registration_status: str
+    product_name: str | None = None
+    product_description: str | None = None
     parental_consent_required: bool
     full_name: str
     social_name: str | None
@@ -451,3 +455,13 @@ class PaymentReviewDecisionRead(BaseModel):
     notification_result: Literal[
         "not_required", "sent", "lookup_failed", "unavailable", "send_failed"
     ]
+
+
+class TournamentProductRead(BaseModel):
+    id: int
+    product_id: int
+    name: str
+    description: str
+    price_id: int | None
+    amount: Decimal | None
+    currency: str | None

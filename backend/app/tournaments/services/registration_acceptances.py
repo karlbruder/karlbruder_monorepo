@@ -100,8 +100,10 @@ def project_registration(registration: TournamentRegistration, *, staff: bool = 
 
     values = {
         name: getattr(snapshot if name in evidence_fields else registration, name)
-        for name in schema.model_fields if name != "parental_consent_required"
+        for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}
     }
+    values["product_name"] = registration.order_item.product_name if registration.order_item else None
+    values["product_description"] = registration.order_item.product_description if registration.order_item else None
     values["parental_consent_required"] = (
         registration.registration_status != "cancelled"
         and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)

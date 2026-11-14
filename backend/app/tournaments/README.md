@@ -10,10 +10,10 @@ Account sign-up remains a separate Supabase Auth operation.
 
 ## Pricing transition
 
-The current registration workflow uses `registration_fee_amount`. The target is
-to offer multiple products through `TournamentProduct` and record the selected
-product and price on an order item. Those links are not yet used by registration
-or payment review. See [Karlmart](../karlmart/README.md).
+Registration selects a product through `TournamentProduct` and records the
+selected product and price on an order item. Payment review links the receipt to
+the order. Legacy fee and finance associations remain during the transition.
+See [Karlmart](../karlmart/README.md).
 
 ## Catalog and policies
 

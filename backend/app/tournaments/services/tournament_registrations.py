@@ -21,8 +21,11 @@ from app.tournaments.exceptions import (
     RegistrationResourceNotFoundError,
 )
 from app.core.files.models import StoredFile
+from app.karlmart.catalog.models import Price, Product
+from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.models import (
     Tournament,
+    TournamentProduct,
     TournamentRegistration,
     TournamentRegistrationDocument,
 )
@@ -109,6 +112,29 @@ def create_tournament_registration(
         raise RegistrationNotAllowedError("Registration email must match account email")
 
     tournament = visible_tournament(session, tournament_id, user, lock=True)
+    option = session.execute(
+        select(TournamentProduct, Product, Price)
+        .join(Product, Product.id == TournamentProduct.product_id)
+        .join(Price, Price.product_id == Product.id)
+        .where(
+            TournamentProduct.id == payload.tournament_product_id,
+            TournamentProduct.tournament_id == tournament.id,
+            Product.is_active.is_(True),
+            Price.id == payload.price_id,
+            Price.is_active.is_(True),
+            Price.id == (
+                select(Price.id)
+                .where(Price.product_id == Product.id, Price.is_active.is_(True))
+                .order_by(Price.id.desc())
+                .limit(1)
+                .correlate(Product)
+                .scalar_subquery()
+            ),
+        )
+        .with_for_update(of=(Product, Price))
+    ).one_or_none()
+    if option is None:
+        raise RegistrationNotAllowedError("Registration option is unavailable")
     today = tournament_local_dates.current_local_calendar_date()
     if (
         tournament.registration_opens_on is None
@@ -145,6 +171,20 @@ def create_tournament_registration(
         inspect_staged_parental_consent_form_upload(file_storage, staged_storage_key)
 
     acceptance = create_acceptance(tournament, user.id, payload, accepted_from_ip)
+    tournament_product, product, price = option
+    order = Order(user_id=user.id, status="pending", currency=price.currency)
+    session.add(order)
+    session.flush()
+    order_item = OrderItem(
+        order_id=order.id,
+        price_id=price.id,
+        product_name=product.name,
+        product_description=product.description,
+        unit_amount=price.amount,
+        currency=price.currency,
+    )
+    session.add(order_item)
+    session.flush()
     serial = tournament.next_registration_number
     tournament.next_registration_number = serial + 1
     tournament_registration = TournamentRegistration(
@@ -155,9 +195,13 @@ def create_tournament_registration(
                 "acceptance_language",
                 "parental_consent_form_storage_key",
                 "parental_consent_form_original_file_name",
+                "tournament_product_id",
+                "price_id",
             }
         ),
         tournament_id=tournament.id,
+        tournament_product_id=tournament_product.id,
+        order_item_id=order_item.id,
         user_id=user.id,
         registration_number=format_tournament_registration_number(
             tournament.id, serial

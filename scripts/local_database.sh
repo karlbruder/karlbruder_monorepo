@@ -76,6 +76,46 @@ WHERE NOT EXISTS (
     FROM public.tournaments
     WHERE slug = 'monomachia-a-confirmar-2027'
 );
+
+-- Development fixtures. The Social price remains tentative.
+DO $$
+DECLARE
+    event_id integer;
+    seed_product_id integer;
+    option_record record;
+BEGIN
+    SELECT id INTO STRICT event_id
+    FROM public.tournaments WHERE slug = 'monomachia-a-confirmar-2027';
+
+    FOR option_record IN
+        SELECT * FROM (VALUES
+            ('Inscrição Social', 'Valor provisório. Participação e troféu em caso de vitória. Não inclui outras premiações, cupons ou brindes de patrocinadores.', 50.00::numeric),
+            ('Inscrição Plena', 'Participação, premiações para ganhadores e distribuição de cupons e brindes de patrocinadores.', 100.00::numeric),
+            ('Inscrição Plus', 'Benefícios da Plena e pacote com camiseta, brindes e café da manhã. Conteúdo completo a confirmar.', 200.00::numeric)
+        ) AS options(name, description, amount)
+    LOOP
+        SELECT p.id INTO seed_product_id
+        FROM public.products p
+        JOIN public.tournament_products tp ON tp.product_id = p.id
+        WHERE tp.tournament_id = event_id AND p.name = option_record.name
+        LIMIT 1;
+
+        IF seed_product_id IS NULL THEN
+            INSERT INTO public.products (name, description)
+            VALUES (option_record.name, option_record.description)
+            RETURNING id INTO seed_product_id;
+            INSERT INTO public.tournament_products (tournament_id, product_id)
+            VALUES (event_id, seed_product_id);
+        END IF;
+
+        IF option_record.amount IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM public.prices WHERE prices.product_id = seed_product_id
+        ) THEN
+            INSERT INTO public.prices (product_id, amount)
+            VALUES (seed_product_id, option_record.amount);
+        END IF;
+    END LOOP;
+END $$;
 SQL
 }
 

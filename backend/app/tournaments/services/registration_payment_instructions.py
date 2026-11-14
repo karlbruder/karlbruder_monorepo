@@ -14,6 +14,7 @@ from app.tournaments.exceptions import (
 from app.auth.models import User
 from app.core.files.models import StoredFile
 from app.karlmart.payments.models import Payment
+from app.karlmart.orders.models import OrderItem
 from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,
@@ -252,7 +253,11 @@ def read_registration_payment_instructions(
         )
     return RegistrationPaymentInstructions(
         registration_number=tournament_registration.registration_number,
-        registration_fee_amount=payment_configuration.registration_fee_amount,
+        registration_fee_amount=(
+            session.scalar(select(OrderItem.unit_amount).where(OrderItem.id == tournament_registration.order_item_id))
+            if tournament_registration.order_item_id is not None
+            else payment_configuration.registration_fee_amount
+        ),
         amount_received=amount_received,
         payment_due_at=payment_configuration.payment_due_at,
         payment_options=RegistrationPaymentOptions(

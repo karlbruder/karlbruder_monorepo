@@ -143,6 +143,8 @@ open a creation form. Cancelled records remain read-only. Malformed identifiers
 fail without falling back to the default tournament. Without these parameters,
 the existing Monomachia entry remains unchanged.
 
+The participant sees the purchased registration option and its saved description in the registration view. Show the saved option after submission and in later status views. Do not substitute the current catalog description for the purchased snapshot.
+
 The payment panel shows Awaiting payment confirmation after proof upload. The
 notice explains that staff verify the payment manually and that this review
 may take one to two business days. The panel shows New proof needed and the

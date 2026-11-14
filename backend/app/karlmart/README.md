@@ -17,9 +17,10 @@ sell options with different prices and included benefits.
 registration, capacity, payment proof review, and tournament refund rules.
 Karlmart does not grant participation or move money.
 
-Catalog and order models exist, but registration and payment workflows do not yet
-use them. The application still uses the tournament's fixed fee and manual Pix
-proof review. See the [tournament guide](../tournaments/README.md) and
+Tournament registration loads available products and creates an order item for
+the selected price. Manual Pix proof review records the payment against the order.
+The legacy fixed fee and registration finance associations remain during the
+transition. See the [tournament guide](../tournaments/README.md) and
 [pricing requirements](../../../specs/tournaments/catalog.md).
 
 The same purchase records may later support merchandise and membership. A future

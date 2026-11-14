@@ -577,3 +577,19 @@
     padding: 20px;
   }
 }
+
+.registration-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid #d7dcd3;
+}
+
+.registration-option input {
+  margin-top: 0.25rem;
+}
+
+.registration-option span {
+  line-height: 1.5;
+}

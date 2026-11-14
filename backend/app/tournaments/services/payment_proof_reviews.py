@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.auth.account_email import AccountEmailReader
 from app.core.mail import MailSender
 from app.karlmart.payments.services.records import add_payment_record
+from app.karlmart.orders.models import OrderItem
 from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
 from app.tournaments.services.payment_review_notifications import (
     PaymentReviewNotice,
@@ -156,7 +157,11 @@ def read_payment_review(
     return StaffPaymentReviewDetail(
         registration=project_registration(registration, staff=True),
         tournament_name=tournament.name,
-        registration_fee_amount=tournament.registration_fee_amount,
+        registration_fee_amount=(
+            session.scalar(select(OrderItem.unit_amount).where(OrderItem.id == registration.order_item_id))
+            if registration.order_item_id is not None
+            else tournament.registration_fee_amount
+        ),
         payment_due_at=tournament.payment_due_at,
         competitor_capacity=tournament.competitor_capacity,
         confirmed_count=confirmed_count,
@@ -284,6 +289,7 @@ def _approve_registration_payment(
             raise ParentalConsentFormRequiredError("Parental consent form required")
     payment = add_payment_record(
         session,
+        order_id=session.scalar(select(OrderItem.order_id).where(OrderItem.id == registration.order_item_id)),
         amount_received=amount_received,
         verified_by_user_id=review.reviewed_by_user_id,
         verified_at=review.reviewed_at,

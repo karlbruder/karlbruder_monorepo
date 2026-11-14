@@ -33,7 +33,37 @@ export type Tournament = {
   equipment_requirements: string | null;
 };
 
+export type TournamentProduct = {
+  id: number;
+  product_id: number;
+  name: string;
+  description: string;
+  price_id: number | null;
+  amount: string | number | null;
+  currency: string | null;
+};
+
+export async function getTournamentProducts(id: number, token?: string, signal?: AbortSignal): Promise<TournamentProduct[]> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/products`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}, signal,
+  });
+  if (!response.ok) throw new Error(`http-${response.status}`);
+  const body: unknown = await response.json();
+  if (!Array.isArray(body) || !body.every((option: unknown) => {
+    if (!option || typeof option !== "object") return false;
+    const item = option as Record<string, unknown>;
+    return Number.isSafeInteger(item.id) && Number.isSafeInteger(item.product_id)
+      && typeof item.name === "string" && typeof item.description === "string"
+      && (item.price_id === null || Number.isSafeInteger(item.price_id))
+      && (item.amount === null || typeof item.amount === "string" || typeof item.amount === "number")
+      && (item.currency === null || typeof item.currency === "string");
+  })) throw new Error("invalid-tournament-products");
+  return body as TournamentProduct[];
+}
+
 export type RegistrationCreate = {
+  tournament_product_id: number;
+  price_id: number;
   acceptance_language: "pt" | "en";
   acceptance_token: string;
   full_name: string;
@@ -80,6 +110,8 @@ export type RegistrationCreated = {
   full_name: string;
   email: string;
   tournament_id: number;
+  product_name?: string | null;
+  product_description?: string | null;
 };
 
 export type OwnerRegistration = RegistrationCreated & {
@@ -294,6 +326,8 @@ function isOwnerRegistration(value: unknown): value is OwnerRegistration {
   const accountIdIsOptional = !("user_id" in record) || typeof record.user_id === "string";
   return (
     accountIdIsOptional &&
+    (record.product_name === undefined || isNullableString(record.product_name)) &&
+    (record.product_description === undefined || isNullableString(record.product_description)) &&
     typeof record.registration_number === "string" &&
     typeof record.registration_status === "string" &&
     typeof record.full_name === "string" &&

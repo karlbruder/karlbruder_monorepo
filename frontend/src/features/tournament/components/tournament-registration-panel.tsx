@@ -76,7 +76,11 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
     <section className="registration-card" aria-label={t("Sua inscrição")}>
       <h2>{t("Sua inscrição")}</h2><strong>{registration.registration_number}</strong>
       {transientRefreshError && <p role="alert">{t("Não foi possível atualizar sua inscrição. Tente novamente.")} <button type="button" onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></p>}
-      <dl className="registration-status-facts"><div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div></dl>
+      <dl className="registration-status-facts">
+        {registration.product_name && <div><dt>{language === "en" ? "Registration type" : "Tipo de inscrição"}</dt><dd>{registration.product_name}</dd></div>}
+        <div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div>
+      </dl>
+      {registration.product_description && <p>{registration.product_description}</p>}
       {registration.parental_consent_required && <form onSubmit={submitConsent}>
         <p role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
         <label htmlFor="parental_consent_form_existing">{t("Termo de responsabilidade assinado")}</label>

@@ -24,6 +24,7 @@ from app.core.db.base import BaseModel
 from app.tournaments.models.tournament import Tournament
 
 if TYPE_CHECKING:
+    from app.karlmart.orders.models import OrderItem
     from .registration_acceptance import RegistrationAcceptance
     from app.tournaments.models.tournament_registration_document import (
         TournamentRegistrationDocument,
@@ -95,6 +96,7 @@ class TournamentRegistration(BaseModel):
     order_item_id: Mapped[int | None] = mapped_column(
         ForeignKey("public.order_items.id", ondelete="RESTRICT"), unique=True
     )
+    order_item: Mapped[OrderItem | None] = relationship(lazy="selectin")
     user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     registration_number: Mapped[str] = mapped_column(String(50), nullable=False)
     registration_status: Mapped[str] = mapped_column(

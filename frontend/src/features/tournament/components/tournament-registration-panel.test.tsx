@@ -11,6 +11,16 @@ const registration = { tournament_id: 42, registration_number: "T42-1", registra
 const payment = { registration_number: "T42-1", registration_fee_amount: null, amount_received: "10.00", payment_due_at: null, payment_options: { pix: { pix_key: null } }, latest_payment_proof: null };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
+it("shows the purchased registration option and benefits", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/payment")
+    ? { ok: true, json: async () => payment }
+    : { ok: true, json: async () => ({ ...registration, product_name: "Inscrição Plena", product_description: "Participação e premiações" }) }));
+  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  expect(await screen.findByText("Inscrição Plena")).toBeInTheDocument();
+  expect(screen.getByText("Participação e premiações")).toBeInTheDocument();
+});
+
 it("shows registration and missing consent separately from payment and refreshes after upload", async () => {
   vi.stubEnv("VITE_API_BASE_URL", "/api");
   let required = true;

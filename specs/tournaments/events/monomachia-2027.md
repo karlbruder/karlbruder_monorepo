@@ -64,16 +64,16 @@ capacity rules are the same for all three options.
 | --- | --- | --- |
 | Social Registration | R$ 50 is tentative | Participation and a trophy if the athlete wins one. No other winner prizes or sponsor coupons and giveaways. |
 | Full Registration | R$ 100 | Participation, winner prizes, and participation in the distribution of sponsor coupons and giveaways. |
-| Plus Registration | Not yet provided | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
+| Plus Registration | R$ 200 | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
 
 Social is intended as a lower-cost option that contributes to the event's costs.
-The Social price and Plus price must be confirmed before being presented as final.
+The Social price must be confirmed before being presented as final.
 The product description identifies the benefits of each option. This specification
 does not define a separate perk inventory or fulfillment workflow.
 
 ## Open questions
 
-The Social price is tentative. The Plus price and full package contents are not yet provided. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
+The Social price is tentative. The full Plus package contents are not yet provided. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
 
 ## Acceptance criteria
 
