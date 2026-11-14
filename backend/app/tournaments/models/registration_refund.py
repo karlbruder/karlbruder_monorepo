@@ -5,7 +5,7 @@ from sqlalchemy import Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.base import BaseModel
-from app.payments.models import Refund
+from app.karlmart.payments.models import Refund
 from .registration_payment import RegistrationPayment
 
 

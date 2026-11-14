@@ -8,8 +8,8 @@ import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.payments.models import Payment, Refund
-from app.payments.services.records import add_payment_record, add_refund_record
+from app.karlmart.payments.models import Payment, Refund
+from app.karlmart.payments.services.records import add_payment_record, add_refund_record
 
 NOW = datetime(2026, 11, 4, 12, tzinfo=timezone.utc)
 

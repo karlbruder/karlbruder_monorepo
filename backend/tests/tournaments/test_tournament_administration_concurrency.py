@@ -161,7 +161,7 @@ def _cleanup(engine, tournament_id):
                 )
             )
         )
-        from app.payments.models import Payment
+        from app.karlmart.payments.models import Payment
 
         connection.execute(delete(Payment).where(Payment.id.in_(payment_ids)))
         connection.execute(delete(StoredFile).where(StoredFile.id.in_(file_ids)))

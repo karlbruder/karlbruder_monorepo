@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.account_email import AccountEmailReader
 from app.core.mail import MailSender
-from app.payments.services.records import add_payment_record
+from app.karlmart.payments.services.records import add_payment_record
 from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
 from app.tournaments.services.payment_review_notifications import (
     PaymentReviewNotice,

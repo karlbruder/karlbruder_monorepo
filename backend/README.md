@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-12
+**Last updated**: 2026-11-14
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -57,7 +57,7 @@ for protected requests.
 | `app/core/db/` | Model base, engine factories, and session scopes |
 
 [AGENTS.md](AGENTS.md) defines editing and dependency rules. Use the
-[tournament guide](app/tournaments/README.md) or [payment guide](app/payments/README.md)
+[tournament guide](app/tournaments/README.md) or [payment guide](app/karlmart/payments/README.md)
 when working on those contracts. Staff review and refund commands are not implemented.
 
 Swagger UI is at `/api/docs`, with its redirect helper at

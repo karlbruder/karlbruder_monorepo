@@ -879,7 +879,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
         RegistrationRefund,
     )
 
-    from app.payments.models import Payment, Refund
+    from app.karlmart.payments.models import Payment, Refund
 
     for model in (
         PaymentProofReview,
@@ -1607,7 +1607,7 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
     )
     session.add(review)
     session.flush()
-    from app.payments.services.records import add_payment_record, add_refund_record
+    from app.karlmart.payments.services.records import add_payment_record, add_refund_record
 
     receipt = add_payment_record(
         session,

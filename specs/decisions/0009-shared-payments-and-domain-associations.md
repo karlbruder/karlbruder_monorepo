@@ -1,7 +1,7 @@
 # 0009: Shared financial records and domain associations
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -20,7 +20,7 @@ references and rules, or require a second financial record design.
 
 ## Decision
 
-Keep `Payment` and `Refund` in the separate `app/payments/` domain. They are
+Keep `Payment` and `Refund` in the separate `app/karlmart/payments/` domain. They are
 financial records with monetary and evidence constraints, rather than general
 infrastructure for `core/`.
 
@@ -89,8 +89,8 @@ extension rather than assuming the records already model every kind of payment.
 
 [Payments and confirmation](../tournaments/payments-and-confirmation.md),
 [architecture](../architecture.md),
-[shared payment models](../../backend/app/payments/models/payment.py),
-[shared refund model](../../backend/app/payments/models/refund.py),
-[persistence helpers](../../backend/app/payments/services/records.py),
+[shared payment models](../../backend/app/karlmart/payments/models/payment.py),
+[shared refund model](../../backend/app/karlmart/payments/models/refund.py),
+[persistence helpers](../../backend/app/karlmart/payments/services/records.py),
 [tournament payment association](../../backend/app/tournaments/models/registration_payment.py),
 [tournament refund association](../../backend/app/tournaments/models/registration_refund.py).

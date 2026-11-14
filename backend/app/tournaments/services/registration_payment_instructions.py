@@ -13,7 +13,7 @@ from app.tournaments.exceptions import (
 )
 from app.auth.models import User
 from app.core.files.models import StoredFile
-from app.payments.models import Payment
+from app.karlmart.payments.models import Payment
 from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,

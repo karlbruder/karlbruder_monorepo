@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.base import BaseModel
-from app.payments.models import Payment
+from app.karlmart.payments.models import Payment
 from .payment_proof_review import PaymentProofReview
 from .tournament_registration import TournamentRegistration
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.payments.models import Payment, Refund
+from app.karlmart.payments.models import Payment, Refund
 
 
 def add_payment_record(

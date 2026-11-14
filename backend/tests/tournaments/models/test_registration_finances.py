@@ -9,7 +9,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.core.files.models import StoredFile
-from app.payments.services.records import add_payment_record, add_refund_record
+from app.karlmart.payments.services.records import add_payment_record, add_refund_record
 from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,

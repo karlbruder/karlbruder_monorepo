@@ -221,7 +221,7 @@ Tournaments owns these records:
 | RegistrationPayment | `registration_id`, approved `proof_review_id`, unique `payment_id`. The proof must belong to that registration. One receipt per registration/review |
 | RegistrationRefund | `registration_payment_id`, unique `refund_id`, `due_on`. The shared refund must reference that exact payment and owe its full received amount |
 
-Payments owns the linked [Payment and Refund facts](../payments/README.md),
+Payments owns the linked [Payment and Refund facts](../karlmart/payments/README.md),
 without duplicate amounts, actors, or progress on tournament associations. The
 received amount is independent of the advertised fee. No RegistrationRefund
 association means no recorded tournament refund obligation. Review, receipt,

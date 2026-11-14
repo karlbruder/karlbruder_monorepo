@@ -14,7 +14,7 @@ from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import User
 from app.core.mail import MailDeliveryError
 from app.main import karlbruder_app
-from app.payments.models import Payment
+from app.karlmart.payments.models import Payment
 from app.tournaments.models import (
     PaymentProofReview,
     RegistrationPayment,
