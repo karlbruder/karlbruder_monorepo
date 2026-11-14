@@ -89,15 +89,15 @@ afterEach(() => {
 
 describe('Public legal documents', () => {
   it.each([
-    ['/terms-of-service', 'Termos de Uso'],
-    ['/privacy-policy', 'Política de Privacidade'],
-  ])('opens %s in Portuguese without a session', (path, title) => {
+    ['/terms-of-service', 'Termos de Uso', '8 de novembro de 2026', '2026-11-08'],
+    ['/privacy-policy', 'Política de Privacidade', '14 de novembro de 2026', '2026-11-14'],
+  ])('opens %s in Portuguese without a session', (path, title, dateLabel, dateTime) => {
     window.localStorage.setItem('registrationLanguage', 'en')
     render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
 
     const heading = screen.getByRole('heading', { name: title, level: 1 })
     expect(heading.closest('[lang]')).toHaveAttribute('lang', 'pt-BR')
-    expect(screen.getByText('8 de novembro de 2026')).toHaveAttribute('datetime', '2026-11-08')
+    expect(screen.getByText(dateLabel)).toHaveAttribute('datetime', dateTime)
     expect(screen.queryByRole('button', { name: 'English' })).not.toBeInTheDocument()
   })
 

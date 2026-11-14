@@ -6,7 +6,6 @@ export type AcceptanceContent = {
     accepts_rules: string; accepts_data_processing: string; declares_truthful_information: string;
     acknowledges_inherent_risks: string; declares_has_required_equipment: string;
     declares_physically_fit: string; accepts_cancellation_policy: string;
-    image_use_choices: { yes: string; no: string };
   };
 };
 
@@ -64,7 +63,6 @@ export type RegistrationCreate = {
   accepts_data_processing: boolean;
   acknowledges_inherent_risks: boolean;
   accepts_cancellation_policy: boolean;
-  authorizes_image_use: boolean;
   parental_consent_form_storage_key?: string | null;
   parental_consent_form_original_file_name?: string | null;
 };
@@ -151,9 +149,7 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
     return typeof event.acceptance_tokens?.[key] === "string"
       && /^[a-f0-9]{64}$/.test(event.acceptance_tokens[key])
       && declarations !== undefined
-      && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string")
-      && typeof declarations.image_use_choices?.yes === "string"
-      && typeof declarations.image_use_choices?.no === "string";
+      && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string");
   }) && isNullableString(event.rules_archive_url) && isNullableString(event.cancellation_policy_archive_url);
 }
 

@@ -176,7 +176,6 @@ def _registration(*, email="fixture@example.test", document="AB-123", **override
         "accepts_data_processing": True,
         "acknowledges_inherent_risks": True,
         "accepts_cancellation_policy": True,
-        "authorizes_image_use": False,
         **overrides,
     }
 
@@ -224,7 +223,7 @@ def test_self_registration_owner_lookup_admin_listing_and_private_projection(set
     assert owner_view["registration_status"] == "awaiting_payment"
     assert owner_view["accepted_terms_version"] == "fixture-terms-v1"
     assert owner_view["declares_truthful_information"] is True
-    assert owner_view["authorizes_image_use"] is False
+    assert "authorizes_image_use" not in owner_view
     assert {
         "staff_safety_note",
         "accepted_from_ip",
@@ -1343,18 +1342,10 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
     assert created.status_code == 201
     row = session.scalar(select(TournamentRegistration))
     first = row.acceptances[0]
-    assert first.authorizes_image_use is False
     assert first.accepted_by_user_id == row.user_id
     assert first.content["policies"]["rules"]["text"] == "First rules"
-    assert (
-        first.content["declarations"]["image_use_choices"]["no"]
-        == "Não autorizo o uso da minha imagem."
-    )
-    original_time, original_ip, original_digest = (
-        first.accepted_at,
-        first.accepted_from_ip,
-        first.content_digest,
-    )
+    assert "image_use_choices" not in first.content["declarations"]
+    original_time, original_ip = first.accepted_at, first.accepted_from_ip
     event = session.get(Tournament, event_id)
     event.rules_text = "Second rules"
     event.rules_version = "rules-v2"
@@ -1362,7 +1353,7 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
     session.commit()
     view = client.get(f"/api/tournaments/{event_id}", headers=owner).json()
     payload = RegistrationCreate(
-        **_registration(authorizes_image_use=True),
+        **_registration(),
         acceptance_language="en",
         acceptance_token=view["acceptance_tokens"]["en"],
     )
@@ -1378,18 +1369,17 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
     assert (
         snapshots[0].accepted_at,
         snapshots[0].accepted_from_ip,
-        snapshots[0].content_digest,
-    ) == (original_time, original_ip, original_digest)
+    ) == (original_time, original_ip)
     assert snapshots[1].content["policies"]["rules"]["text"] == "Second rules"
     assert (
         snapshots[1].content["declarations"]["accepts_rules"]
-        == "I have read and accept the tournament rules."
+        == "I have read and accept the tournament rules, including the terms for official live coverage and publication of results."
     )
     response = client.get(
         f"/api/tournaments/{event_id}/registrations/{row.registration_number}",
         headers=owner,
     ).json()
-    assert response["authorizes_image_use"] is True
+    assert "authorizes_image_use" not in response
     assert response["accepted_rules_version"] == "rules-v2"
     assert {
         "accepted_from_ip",
@@ -1412,7 +1402,7 @@ def test_database_rejects_acceptance_mutation(setup, operation):
         with session.begin_nested():
             if operation == "orm_update":
                 snapshot = session.scalar(select(RegistrationAcceptance))
-                snapshot.authorizes_image_use = True
+                snapshot.accepts_rules = False
                 session.flush()
             else:
                 command = (
@@ -1421,7 +1411,7 @@ def test_database_rejects_acceptance_mutation(setup, operation):
                     else "DELETE FROM public.registration_acceptances"
                 )
                 session.execute(text(command))
-    assert session.scalar(select(RegistrationAcceptance)).authorizes_image_use is False
+    assert session.scalar(select(RegistrationAcceptance)).accepts_rules is True
 
 
 def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):

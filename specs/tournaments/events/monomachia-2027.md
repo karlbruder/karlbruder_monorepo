@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -31,7 +31,7 @@
 - **MONO-002:** The event uses shared tournament registration, payment review, capacity, privacy, communications, and results capabilities. Its configuration and branding must not create a second backend.
 - **MONO-003:** Event facts include fee, registration deadline, capacity, regulation, mandatory equipment, cancellation/refund policy, location/schedule, and prizes/categories once confirmed. Unknown facts remain unconfirmed rather than receiving invented defaults.
 - **MONO-004:** Beginner/special-category eligibility is confirmed by guild staff (admins) against the final regulation. A participant's self-selection is not sufficient.
-- **MONO-005:** Required declarations and versioned regulation acceptance follow the shared consent specification. Image authorization remains a separate choice.
+- **MONO-005:** Required declarations and versioned regulation acceptance follow the shared consent specification. The versioned rules set out official live coverage and named results. Before registration opens, publish the applicable coverage channels and youth participation terms.
 
 ## Tournament configuration
 

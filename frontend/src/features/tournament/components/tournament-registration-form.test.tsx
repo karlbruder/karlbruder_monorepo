@@ -43,9 +43,8 @@ function change(label: RegExp, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 }
 
-function fillRequired({ declarations = true, image = 'no', birthDate = '2000-01-01' }: {
+function fillRequired({ declarations = true, birthDate = '2000-01-01' }: {
   declarations?: boolean
-  image?: 'yes' | 'no' | null
   birthDate?: string
 } = {}) {
   change(/Nome completo/, ' Ana Teste ')
@@ -62,7 +61,6 @@ function fillRequired({ declarations = true, image = 'no', birthDate = '2000-01-
   if (declarations) {
     for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
   }
-  if (image) fireEvent.click(screen.getByRole('radio', { name: image === 'no' ? /Não autorizo/ : /^Autorizo/ }))
 }
 
 function fillRequiredEnglish() {
@@ -78,7 +76,6 @@ function fillRequiredEnglish() {
   change(/^Emergency contact \*/, 'Fixture Contact')
   change(/Emergency contact phone/, '000000001')
   for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
-  fireEvent.click(screen.getByRole('radio', { name: /I do not authorize/ }))
 }
 
 function submit() {
@@ -136,12 +133,17 @@ afterEach(() => {
 })
 
 describe('Athlete submits their own registration and sees the result', () => {
-  it('shows English draft controls and submits the same API values with image refusal', async () => {
+  it('shows English draft controls and submits the rules acceptance without an image choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
     expect(screen.getByText(/not ready for real registrations/)).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
+    expect(screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("name"))).toEqual([
+      "accepts_rules", "accepts_cancellation_policy", "accepts_data_processing",
+      "declares_truthful_information", "acknowledges_inherent_risks",
+      "declares_has_required_equipment", "declares_physically_fit",
+    ])
     fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
@@ -149,7 +151,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     const payload = JSON.parse(options.body as string)
     expect(payload.acceptance_token).toBe(acceptanceEvidence.acceptance_tokens.en)
     expect(payload.acceptance_language).toBe("en")
-    expect(payload.authorizes_image_use).toBe(false)
+    expect(payload).not.toHaveProperty("authorizes_image_use")
+    expect(screen.queryByRole("radio", { name: /authorize.*image/i })).not.toBeInTheDocument()
     expect(payload.accepts_rules).toBe(true)
     expect(payload.accepts_data_processing).toBe(true)
     expect(payload.full_name).toBe('Fixture Athlete')
@@ -167,7 +170,6 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('Review the highlighted fields')
     expect(screen.getAllByText('This declaration is required.')).toHaveLength(7)
-    expect(screen.getByText('Choose whether to authorize image use.')).toBeInTheDocument()
   })
 
   it.each([
@@ -189,7 +191,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
   })
-  it('posts only the fields the athlete fills, with the account token, and image refusal stays a separate choice', async () => {
+  it('posts only the fields the athlete fills, with the account token', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
@@ -225,23 +227,21 @@ describe('Athlete submits their own registration and sees the result', () => {
       declares_truthful_information: true, declares_has_required_equipment: true,
       declares_physically_fit: true, accepts_rules: true, accepts_data_processing: true,
       acknowledges_inherent_risks: true, accepts_cancellation_policy: true,
-      authorizes_image_use: false,
     })
     expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
     expect(screen.getByText('Aguardando pagamento')).toBeInTheDocument()
     expect(screen.getByText(/vaga ainda não está confirmada nem reservada/)).toBeInTheDocument()
   })
 
-  it('requires every declaration and an explicit image choice before sending', () => {
+  it('requires every declaration before sending', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ declarations: false, image: null })
+    fillRequired({ declarations: false })
     submit()
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('Revise os campos indicados')
     expect(screen.getAllByText('Esta declaração é obrigatória.')).toHaveLength(7)
-    expect(screen.getByText('Escolha autorizar ou não autorizar.')).toBeInTheDocument()
     expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
   })
 
@@ -249,7 +249,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ image: 'yes' })
+    fillRequired()
     change(/Tempo de prática em HEMA/, '')
     change(/Torneios anteriores/, '-1')
     submit()
@@ -265,7 +265,6 @@ describe('Athlete submits their own registration and sees the result', () => {
     const payload = JSON.parse(options.body as string)
     expect(payload.hema_experience_description).toBeNull()
     expect(payload.hema_started_year).toBe(2022)
-    expect(payload.authorizes_image_use).toBe(true)
   })
 
   it('sends only once while a request is pending', async () => {
@@ -402,7 +401,7 @@ it('refreshes changed terms, preserves personal fields and requires new choices 
     acceptance_tokens: { ...tournament.acceptance_tokens, pt: 'c'.repeat(64) },
     acceptance_content: {
       ...tournament.acceptance_content,
-      pt: { declarations: { ...tournament.acceptance_content.pt.declarations, accepts_rules: 'Updated rules choice' } },
+      pt: { ...tournament.acceptance_content.pt, declarations: { ...tournament.acceptance_content.pt.declarations, accepts_rules: 'Updated rules choice' } },
     },
     rules_text: 'Updated official rules',
   }
@@ -419,9 +418,7 @@ it('refreshes changed terms, preserves personal fields and requires new choices 
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
   expect(screen.getByLabelText(/Updated rules choice/)).toBeInTheDocument()
   expect(screen.getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true)
-  expect(screen.getAllByRole('radio').every(input => !(input as HTMLInputElement).checked)).toBe(true)
   for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
-  fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
   submit()
   expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
   expect(JSON.parse(request.mock.calls[2][1].body).acceptance_token).toBe('c'.repeat(64))
@@ -446,7 +443,6 @@ it.each(['pt', 'en'] as const)('renews expiring document links in %s without los
   expect(screen.getByRole('link', { name: /Consultar política de cancelamento|View cancellation policy/ })).toHaveAttribute('href', refreshed.cancellation_policy_archive_url)
   expect(screen.getByLabelText(/Nome completo|Full name/)).toHaveValue(language === 'pt' ? ' Ana Teste ' : 'Fixture Athlete')
   expect(screen.getAllByRole('checkbox').every(input => (input as HTMLInputElement).checked)).toBe(true)
-  expect(screen.getByRole('radio', { name: /Não autorizo|I do not authorize/ })).toBeChecked()
   expect(request.mock.calls[0][0]).toBe('/api/tournaments/42')
   expect(new Headers(request.mock.calls[0][1].headers).get('Authorization')).toBe('Bearer test-access-token')
   fireEvent.submit(screen.getByRole('form', { name: /Formulário de inscrição|Registration form/ }))
@@ -472,11 +468,9 @@ it('requires new acceptance when document-link renewal discovers changed content
   expect(screen.getByRole('alert')).toHaveTextContent(/Os termos mudaram/)
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
   expect(screen.getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true)
-  expect(screen.getAllByRole('radio').every(input => !(input as HTMLInputElement).checked)).toBe(true)
   submit()
   expect(request).toHaveBeenCalledTimes(1)
   for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
-  fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
   submit()
   expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
   expect(JSON.parse(request.mock.calls[1][1].body).acceptance_token).toBe('d'.repeat(64))
@@ -500,7 +494,6 @@ it('retains the selected parental form and answers after failed renewal and a su
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
   expect((screen.getByLabelText(/Termo de responsabilidade assinado/) as HTMLInputElement).files?.[0]).toBe(parentalForm)
   expect(screen.getAllByRole('checkbox').every(input => (input as HTMLInputElement).checked)).toBe(true)
-  expect(screen.getByRole('radio', { name: /Não autorizo/ })).toBeChecked()
 })
 
 it('prevents duplicate renewals and registration submission while document links are renewing', async () => {

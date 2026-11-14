@@ -82,18 +82,18 @@ def test_clean_baseline_rebuilds_registration_tables_and_separate_file_metadata(
         {"accepts_rules", "authorizes_image_use", "accepted_at", "accepted_from_ip"}
     )
     acceptance_columns = {
-        column["name"]
+        column["name"]: column
         for column in inspector.get_columns("registration_acceptances", schema="public")
     }
     assert {
         "accepted_by_user_id",
         "accepts_rules",
-        "authorizes_image_use",
         "content",
         "accepted_at",
         "accepted_from_ip",
         "rules_archive_id",
-    } <= acceptance_columns
+    } <= acceptance_columns.keys()
+    assert {"authorizes_image_use", "content_digest"}.isdisjoint(acceptance_columns)
 
     for table in tables - {"alembic_version"}:
         ordered_columns = inspector.get_columns(table, schema="public")

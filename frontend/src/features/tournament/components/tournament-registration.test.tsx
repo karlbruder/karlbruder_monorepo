@@ -180,7 +180,6 @@ describe('Tournament registration', () => {
     fill(/Contato de emergência/, 'Fixture Contact')
     fill(/Telefone de emergência/, '000000001')
     for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
-    fireEvent.click(screen.getByRole('radio', { name: /Não autorizo/ }))
     fireEvent.submit(form)
 
     await waitFor(() => {
@@ -443,7 +442,6 @@ describe('Tournament registration', () => {
     fill(/Contato de emergência/, "Fixture Contact")
     fill(/Telefone de emergência/, "000000001")
     for (const checkbox of screen.getAllByRole("checkbox")) fireEvent.click(checkbox)
-    fireEvent.click(screen.getByRole("radio", { name: /Não autorizo/ }))
     fireEvent.submit(form)
     expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument()
 

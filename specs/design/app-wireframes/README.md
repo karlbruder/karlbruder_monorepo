@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-08
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -86,7 +86,7 @@ Issue [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75) defers 
 
 ## Decisions deliberately not made here
 
-- [PRIV-Q1](../../tournaments/consent-and-privacy.md#open-questions): final policy/declaration wording. Choices are separate and image permission includes refusal; placeholders are not approved legal content and cannot ship as-is.
+- [PRIV-Q1](../../tournaments/consent-and-privacy.md#open-questions): final policy/declaration wording. WF-04 discloses live coverage and the results audience before required acceptance. The illustrated text remains draft material.
 - [PRIV-Q4](../../tournaments/consent-and-privacy.md#open-questions): correction/deletion requests beyond allowed self-service edits. No delete-account/data workflow is invented.
 - [RES-Q1–Q4](../../tournaments/results.md#deferred-questions): result format, entry/import, publication timing, and correction process. The published view is an unstructured reserved area, not an agreed ranking table.
 - [MEM-Q1–Q5](../../membership/overview.md#deferred-questions): membership lifecycle, status vocabulary, fees, exemptions, periods, and payment handling. All financial/status slots remain explicitly undefined.

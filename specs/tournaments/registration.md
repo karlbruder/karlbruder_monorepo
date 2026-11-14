@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -47,7 +47,7 @@ The product owner's answers establish the required personal and sporting fields 
 | Additional athlete information | Social name, HEMA Ratings reference, handedness, category/special-case information | Optional |
 | Safety | Emergency contact name and phone, equipment declaration, physical-fitness declaration | Required |
 | Restricted safety information | Safety note relevant to participation | Optional; collected only when needed and restricted to authorized staff |
-| Choices and evidence | Separate truthful-information declaration and other versioned declarations/consents, including disclosure of participant-directory and results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
+| Choices and evidence | Separate truthful-information declaration and other versioned declarations/consents, including disclosure of official live coverage and participant-directory and named-results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
 | System | Tournament reference, Supabase user UUID, registration number, registration status, refund progress when applicable, creation timestamp | System-managed; ownership is not chosen by the caller |
 
 Store previous tournament participation as the required `previous_tournament_count`, with `0` representing no prior tournaments. Avoid a second competing field for the same count. Beginner eligibility is confirmed by guild staff using the agreed event criteria, not just an athlete's self-selection.
@@ -75,7 +75,7 @@ Linked rules and cancellation policies are read from shared ArchivedFile
 copies. The form offers in-place renewal of expiring document links through the
 authorized tournament read. Renewal preserves participant fields and selected
 files. If the accepted content digest is unchanged, choices remain selected.
-Changed content clears declaration and image-use choices and requires explicit
+Changed content clears declarations and required acceptances and requires explicit
 acceptance again. Failed renewal allows a retry without discarding answers.
 Each tournament owns its policy purpose and access rules. Uploaded
 archives can also be reused by future legal-policy capabilities without creating
@@ -117,7 +117,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-016:** The registration owner UUID is the already authenticated Supabase user's ID; changing an account email does not require a new owner mapping or user identity.
 - **REG-AC-017:** A participant can correct their permitted registration fields but cannot edit ownership, identifiers, timestamps, or staff-controlled status, or retrieve staff-only safety notes. Edits cannot bypass duplicate constraints.
 - **REG-AC-018:** A staff-selected paid waitlisted registration can become `confirmed` without a second payment approval, subject to eligibility and available capacity. An available seat alone does not change its status.
-- **REG-AC-019:** An English choice on the Monomachia landing page opens the private registration route in English; the same language survives refresh and Google sign-in return. Both languages offer the same fields, independent declarations, explicit image choice, errors, and no-seat success outcome without changing the submitted payload.
+- **REG-AC-019:** An English choice on the Monomachia landing page opens the private registration route in English; the same language survives refresh and Google sign-in return. Both languages offer the same fields, independent declarations, coverage and results notices, errors, and no-seat success outcome without changing the submitted payload.
 - **REG-AC-020:** An admin opening the personal registration page sees their own registration, or the creation form when they have none, even when another participant's registration comes first in the staff list.
 
 

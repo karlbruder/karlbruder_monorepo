@@ -1,7 +1,7 @@
 # Open-question index
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
@@ -14,7 +14,7 @@ The counts refer to numbered entries, not individual question marks or subchoice
 | [Consent and privacy](tournaments/consent-and-privacy.md#open-questions) | PRIV-Q1, PRIV-Q4 | 2 |
 | **Total** | | **2** |
 
-The remaining decisions are final declarations/privacy/image-use content and staff handling of correction/deletion requests beyond participant self-service edits. Each owning question includes concrete examples. Exact message copy is staff-maintained content, not a separate product-policy question.
+The remaining decisions are final declaration and privacy wording, coverage channels, youth coverage and result visibility and staff handling of correction/deletion requests beyond participant self-service edits. Each owning question includes concrete examples. Exact message copy is staff-maintained content, not a separate product-policy question.
 
 Tournament fee, Pix destination, dates, venue, equipment, regulation, and eligibility are [event configuration](tournaments/events/monomachia-2027.md#tournament-configuration), not open product questions. No actual event values were invented. The former draft/published/archived catalog question introduced a lifecycle absent from the agreed resource; it is not a prerequisite for listing Tournament records.
 

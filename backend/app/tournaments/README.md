@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
@@ -87,14 +87,14 @@ URLs remain configuration metadata. The form reads the preserved copy and render
 inline content as text.
 
 Registration creation requires `acceptance_language` and `acceptance_token`.
-The digest binds the exact draft declaration labels, both image choices, policy
+The digest binds the exact draft declaration labels, policy
 text/archive references, equipment requirements and configured versions.
 Changed content returns 409 with `Registration terms changed; refresh before accepting`.
 The form refreshes the event, retains personal fields and clears declaration/image
 choices. It never silently retries acceptance of changed content.
 
 RegistrationAcceptance owns the eight individual choices, accepted versions,
-verified user UUID, language, exact content, digest, server time and source IP.
+verified user UUID, language, exact content, server time and source IP.
 Registration, first acceptance and required parental document commit together.
 Database triggers prevent updating or deleting acceptances and policy archives,
 and prevent changing metadata of files referenced by policy archives. Later
@@ -122,7 +122,7 @@ available. Category notes do not constitute staff eligibility approval.
 
 The declarations retain separate truthful-information, equipment, physical-fitness,
 risk, data-processing, rules, and cancellation-policy choices. Field names include
-`declares_has_required_equipment`, `accepts_rules`, and `authorizes_image_use`.
+`declares_has_required_equipment` and `accepts_rules`. The accepted rules preserve the coverage terms and results audience.
 The backend records accepted versions, acceptance time, and `accepted_from_ip`.
 Clients select a displayed language and content digest. The server supplies
 versions, time, IP and ownership. Clients cannot choose the owner, `registration_status`,

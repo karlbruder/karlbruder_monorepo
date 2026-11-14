@@ -182,7 +182,6 @@ describe('Monomachia registration entry', () => {
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     expect(screen.getAllByRole('checkbox').every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true)
-    expect(screen.getByRole('radio', { name: /I do not authorize/ })).not.toBeChecked()
     expect(window.location.search).toBe('?lang=en')
   })
   it('loads the unique Monomachia catalog match through /api and leaves unknown event facts unconfirmed', async () => {

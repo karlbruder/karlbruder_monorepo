@@ -30,7 +30,6 @@ CHOICE_FIELDS = (
     "accepts_data_processing",
     "acknowledges_inherent_risks",
     "accepts_cancellation_policy",
-    "authorizes_image_use",
 )
 
 
@@ -72,8 +71,7 @@ def create_acceptance(
     tournament: Tournament, user_id: UUID, payload: RegistrationCreate, source_ip: str
 ) -> RegistrationAcceptance:
     content = acceptance_content(tournament, payload.acceptance_language)
-    digest = content_digest(content)
-    if digest != payload.acceptance_token:
+    if content_digest(content) != payload.acceptance_token:
         raise RegistrationConflictError(
             "Registration terms changed; refresh before accepting"
         )
@@ -85,7 +83,6 @@ def create_acceptance(
         accepted_at=datetime.now(timezone.utc),
         accepted_from_ip=source_ip,
         language=payload.acceptance_language,
-        content_digest=digest,
         content=content,
         rules_archive_id=tournament.rules_archive_id,
         cancellation_policy_archive_id=tournament.cancellation_policy_archive_id,

@@ -186,7 +186,6 @@ class RegistrationCreate(BaseModel):
     accepts_data_processing: StrictBool
     acknowledges_inherent_risks: StrictBool
     accepts_cancellation_policy: StrictBool
-    authorizes_image_use: StrictBool
     parental_consent_form_storage_key: str | None = Field(default=None, max_length=512)
     parental_consent_form_original_file_name: str | None = Field(
         default=None, max_length=255
@@ -349,7 +348,6 @@ class RegistrationRead(BaseModel):
     accepts_data_processing: bool
     acknowledges_inherent_risks: bool
     accepts_cancellation_policy: bool
-    authorizes_image_use: bool
     accepted_terms_version: str
     accepted_rules_version: str
     accepted_at: datetime

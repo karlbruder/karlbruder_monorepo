@@ -1,3 +1,4 @@
+import { legalRoutes } from "@/config/legal-routes";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -26,12 +27,12 @@ type Errors = Record<string, AppCopyKey>;
 
 const requiredDeclarations = [
   ["accepts_rules"],
+  ["accepts_cancellation_policy"],
   ["accepts_data_processing"],
   ["declares_truthful_information"],
   ["acknowledges_inherent_risks"],
   ["declares_has_required_equipment"],
   ["declares_physically_fit"],
-  ["accepts_cancellation_policy"],
 ] as const;
 
 function readRegistration(
@@ -80,11 +81,6 @@ function readRegistration(
   for (const [key] of requiredDeclarations) {
     if (data.get(key) !== "on") errors[key] = "Esta declaração é obrigatória.";
   }
-  const imageChoice = value("authorizes_image_use");
-  if (imageChoice !== "yes" && imageChoice !== "no") {
-    errors.authorizes_image_use = "Escolha autorizar ou não autorizar.";
-  }
-
   const needsParentalConsentForm = Boolean(birthDate) && isMinorAtTournamentStart(birthDate, tournamentStartsAt);
   let parentalConsentFormFile: File | null = null;
   if (needsParentalConsentForm) {
@@ -142,7 +138,6 @@ function readRegistration(
       accepts_data_processing: true,
       acknowledges_inherent_risks: true,
       accepts_cancellation_policy: true,
-      authorizes_image_use: imageChoice === "yes",
     },
   };
 }
@@ -251,7 +246,7 @@ export default function TournamentRegistrationForm({
     const refreshed = await getTournament(tournament.id, session.access_token);
     setTournament(refreshed);
     if (requireAcceptance || refreshed.acceptance_tokens[language] !== tournament.acceptance_tokens[language]) {
-      form.querySelectorAll<HTMLInputElement>('.registration-declarations input, .registration-image-choice input').forEach(input => { input.checked = false; });
+      form.querySelectorAll<HTMLInputElement>('.registration-declarations input').forEach(input => { input.checked = false; });
       setRequestError("Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.");
     }
   };
@@ -432,6 +427,9 @@ export default function TournamentRegistrationForm({
                 {t("Envie o termo assinado pelo responsável. No evento, você deverá estar acompanhado e ambos apresentarão documentos para conferência.")}
               </p>
               <p className="registration-help registration-grid-wide">
+                {t("O termo informa se a categoria terá transmissão e quem poderá consultar seu nome e seus resultados.")}
+              </p>
+              <p className="registration-help registration-grid-wide">
                 {t("A idade no dia do torneio orienta este campo. O servidor confirma se o envio é obrigatório.")}
               </p>
               <div className="registration-field registration-grid-wide">
@@ -464,6 +462,9 @@ export default function TournamentRegistrationForm({
             </div>
           )}
           <p className="registration-help">{t("Os termos e o regulamento são registrados pelas versões configuradas para este torneio.")}</p>
+          <div className="registration-help">
+            <a href={legalRoutes.privacy} target="_blank" rel="noreferrer">{t("Política de Privacidade (abre em outra aba)")}</a>
+          </div>
           <div className="registration-declarations">
             {requiredDeclarations.map(([name]) => (
               <div key={name}>
@@ -475,12 +476,6 @@ export default function TournamentRegistrationForm({
               </div>
             ))}
           </div>
-          <fieldset className="registration-image-choice">
-            <legend>{t("Uso de imagem")} *</legend>
-            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="yes" /> {tournament.acceptance_content[language].declarations.image_use_choices.yes}</label>
-            <label className="registration-choice"><input type="radio" name="authorizes_image_use" value="no" /> {tournament.acceptance_content[language].declarations.image_use_choices.no}</label>
-            {errors.authorizes_image_use && <span className="registration-field-error">{t(errors.authorizes_image_use)}</span>}
-          </fieldset>
         </section>
 
         <div className="registration-submit-row">

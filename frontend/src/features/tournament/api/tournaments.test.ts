@@ -31,7 +31,6 @@ const payload: RegistrationCreate = {
   accepts_data_processing: true,
   acknowledges_inherent_risks: true,
   accepts_cancellation_policy: true,
-  authorizes_image_use: false,
 }
 
 describe('tournament registration API', () => {

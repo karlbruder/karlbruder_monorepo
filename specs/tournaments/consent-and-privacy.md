@@ -1,7 +1,7 @@
 # Tournament consent and privacy
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -16,17 +16,39 @@ Collect the necessary participant declarations, preserve their evidence, and res
 
 ## Rules
 
-- **PRIV-001:** Present separate choices for regulation acceptance, required data processing, and image-use authorization. Image authorization is recorded separately as consent or refusal. A single blanket checkbox must not replace the individual choices.
-- **PRIV-002:** Required event declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation/refund/disqualification rules. Truthful information is a separate required choice, recorded independently from the other declarations. Emergency contact and participation declarations are required by the registration answers. Final wording is still needed; image authorization remains a separate choice rather than a bundled required consent.
+- **PRIV-001:** Require acceptance of the versioned tournament rules. The rules state whether the organizer and its authorized providers will capture and transmit athletes’ image and voice live during matches and official ceremonies, and identify the official channels. Authorization for that live coverage is a condition of participation when specified in the rules. Replays, including automatic public archives, highlights, and advertising require specific authorization. New registrations have no separate image choice. Acknowledge the privacy information independently.
+- **PRIV-002:** Required declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation, refund, and disqualification rules. Record truthful information independently. Require answers for emergency contact and participation declarations.
 - **PRIV-003:** Record the accepted regulation/terms version, acceptance time, choices, and the IP evidence requested by the source. The handling and retention of that evidence must be defined in the privacy policy.
 - **PRIV-004:** Private fields include document number, date of birth, email, phone, emergency contacts, payment proofs, staff notes, and safety information. Public representations must use explicit permitted fields rather than exposing complete registration records.
 - **PRIV-005:** Participants may retrieve and correct their own TournamentRegistration fields except `staff_safety_note`, `id`, `tournament_id`, `user_id`, `registration_number`, `created_at`, `updated_at`, and `registration_status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules; changing declarations must preserve earlier acceptance evidence.
-- **PRIV-006:** Remove `show_on_public_list` and its opt-out choice. A limited participant directory and published results are visible to other authorized platform users under the event's public/internal access boundary. Terms must explain that participation and results are visible. Directory fields remain limited to display name, school/team, city/country, and confirmation status; private registration records are not exposed. This does not make private contact, payment, or safety fields public or change internal-event restrictions. Existing permitted guest access to published non-internal results remains unchanged.
+- **PRIV-006:** Remove `show_on_public_list` and its opt-out choice. A limited participant directory and published results are visible to other authorized platform users under the event's public/internal access boundary. Terms must explain who can see the directory and named results before registration. Published results can include the athlete’s display name, category, match outcomes, and placement. Directory fields remain limited to display name, school/team, city/country, and confirmation status; private registration records are not exposed. This does not make private contact, payment, or safety fields public or change internal-event restrictions. Existing permitted guest access to published non-internal results remains unchanged.
 - **PRIV-007:** Proof files require validated type/size, restricted storage, and authorized retrieval. Sensitive records and proofs are not email attachments or files in public website directories.
 - **PRIV-008:** Released data-handling flows require HTTPS, appropriate protection against automated submissions, controlled administrative access, backups, and defined correction/deletion and retention processes.
 - **PRIV-009:** Collect only data required for the event's agreed purpose. Administratively editable forms and terms must preserve the meaning and version of earlier acceptances.
-- **PRIV-010:** Minors register themselves. Participation requires a signed parental consent form, scanned and uploaded through the platform, and parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff to verify both in person. Store the scanned term privately with authorized staff access. This in-person check does not require additional identity-document uploads or copies.
+- **PRIV-010:** Minors register themselves. Participation requires a signed parental consent form, scanned and uploaded through the platform, and parental accompaniment during the event. At the event, both the minor and parent present their identity documents for staff to verify both in person. The signed term states whether the category has live coverage and who can see the athlete’s name and results. Assess publication in the minor’s best interests. Store the scanned term privately with authorized staff access. This in-person check does not require additional identity-document uploads or copies.
 - **PRIV-011:** The interim retention policy is indefinite for registrations, every submitted payment proof, safety information, and acceptance/IP evidence. Do not add automatic expiry or deletion under an invented period. A final retention schedule remains deferred for policy review; correction/deletion requests remain subject to PRIV-Q4.
+
+## Tournament rule template
+
+For events with official live coverage, identify the channels and results
+audience before registration opens. Adapt the text to the event’s actual scope.
+
+> A participação no torneio está condicionada à aceitação deste regulamento.
+> Ao aceitá-lo, o atleta autoriza a organização a captar sua imagem e voz
+> durante as lutas e cerimônias oficiais e a transmiti-las ao vivo pelos
+> canais oficiais indicados na página do torneio. Reprises, melhores momentos
+> e campanhas publicitárias exigem autorização específica.
+>
+> A plataforma publicará o nome de exibição do atleta, a categoria, os
+> resultados das lutas e a classificação. A página do torneio informará,
+> antes da inscrição, quem poderá consultar esses resultados.
+>
+> Para atletas menores de idade, o termo assinado pelo responsável legal
+> informará se a categoria terá transmissão ao vivo e quem poderá consultar
+> o nome e os resultados do atleta.
+>
+> O Aviso de Privacidade informa as finalidades do tratamento, os critérios
+> de conservação dos dados e o canal para exercer os direitos previstos na LGPD.
 
 ## Acceptance evidence
 
@@ -43,9 +65,9 @@ Owner responses project permitted latest choices and omit source IP and staff no
 
 The registration form uses server-provided draft declarations in the selected
 interface language. Its submitted content digest must match the current content.
-A mismatch requires refreshing and accepting the changed content again.
-Personal fields are retained while declaration and image choices are cleared.
-This preserves the existing draft wording. PRIV-Q1 and PRIV-Q4 remain unresolved.
+The digest is a request token. The database stores the accepted content itself. A mismatch requires refreshing and accepting the changed content again.
+Personal fields are retained while required acceptances and declarations are cleared.
+The snapshot preserves coverage terms and the results audience through the accepted tournament rules. Apply updated rules to registrations that accept them and obtain fresh acceptance before relying on changed rules for earlier registrations. PRIV-Q1 and PRIV-Q4 remain unresolved.
 
 ## Delivery boundary
 
@@ -53,7 +75,7 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 
 ## Acceptance criteria
 
-- **PRIV-AC-001:** Required missing acceptances, including the separate truthful-information declaration, prevent completion, while an image-use choice is recorded independently from other acceptances under the agreed policy.
+- **PRIV-AC-001:** Missing required acceptances prevent completion. Before submitting, athletes see the coverage scope, named results and their audience, plus a link to the privacy policy. No standalone image choice is required or recorded for new registrations.
 - **PRIV-AC-002:** A completed registration can be associated with the exact accepted terms version and acceptance evidence.
 - **PRIV-AC-003:** Public APIs, participant lists, event pages, and routine exports exclude restricted fields.
 - **PRIV-AC-004:** Registration offers no participant-directory opt-out. Authorized platform users see the permitted directory projection, while restricted fields and internal-event boundaries remain protected.
@@ -66,8 +88,8 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 
 ## Open questions
 
-- **PRIV-Q1:** Do you already have the actual texts or documents participants must read and accept? We still need the wording for the separate truthful-information declaration, the risk/equipment/fitness declarations, the explanation of how registration data is used and visible to other platform users, and the separate permission or refusal to use their image. The types of declarations and separate choices are already decided; this asks for the approved content to display, or who will provide it before release. The event's own regulation remains Tournament configuration.
-- **PRIV-Q4:** If a participant asks staff to delete their registration data or payment proofs, how should they submit that request, and what should staff delete versus keep? For example, should a completed event's registration be deleted, anonymized, or retained with its payment history? Participants already may edit their allowed fields themselves; this asks how staff handles requests beyond that access. The interim default remains indefinite retention until this exception process is decided.
+- **PRIV-Q1:** Who supplies the approved event rules, official coverage channels, youth coverage and result visibility, and final declaration and privacy wording? Confirm the legal basis for each processing purpose before release, including mandatory live coverage and named results. Rules acceptance records participation terms. The privacy acknowledgment records receipt of information.
+- **PRIV-Q4:** If a participant asks staff to delete their registration data or payment proofs, how should they submit that request, and what should staff delete versus keep? For example, should a completed event's registration be deleted, anonymized, or retained with its payment history? Participants already may edit their allowed fields themselves; this asks how staff handles requests beyond that access. Define retention criteria per purpose and record type. Account closure and published-result removal require independent decisions. The interim storage behavior remains in effect until a schedule and controlled purge are implemented.
 
 
 ## Related specifications
