@@ -1,7 +1,7 @@
 # Application database migrations
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-11
+**Last updated**: 2026-11-14
 
 Alembic manages application domain tables and its version marker in PostgreSQL
 `public`. Connection settings select the database through `DB_HOST`, `DB_PORT`,
@@ -45,5 +45,7 @@ immutable acceptance/archive evidence, archived file metadata, reviewed proof
 associations and their file metadata, verified receipts, and payment/refund
 consistency. Downgrade removes the evidence guards with their tables.
 
-The reasons for using trigger functions, their alternatives and their limits are
-recorded in [decision 0010](../specs/decisions/0010-database-evidence-guards.md).
+The [database guard inventory](database-guards.md) lists every migration-defined
+trigger and function and explains its purpose.
+[Decision 0010](../specs/decisions/0010-database-evidence-guards.md) records the
+original evidence-guard rationale.

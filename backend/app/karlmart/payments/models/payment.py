@@ -28,8 +28,8 @@ class Payment(BaseModel):
         {"schema": "public"},
     )
 
-    order_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.orders.id", ondelete="RESTRICT")
+    order_id: Mapped[int] = mapped_column(
+        ForeignKey("public.orders.id", ondelete="RESTRICT"), nullable=False, unique=True
     )
     amount_received: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     verified_by_user_id: Mapped[UUID] = mapped_column(

@@ -131,7 +131,7 @@ def create_tournament_registration(
                 .scalar_subquery()
             ),
         )
-        .with_for_update(of=(Product, Price))
+        .with_for_update(of=(TournamentProduct, Product, Price))
     ).one_or_none()
     if option is None:
         raise RegistrationNotAllowedError("Registration option is unavailable")

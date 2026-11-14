@@ -17,7 +17,7 @@ from app.main import karlbruder_app
 from app.karlmart.payments.models import Payment
 from app.tournaments.models import (
     PaymentProofReview,
-    RegistrationPayment,
+    PaymentProofPayment,
     TournamentRegistration,
     TournamentRegistrationDocument,
 )
@@ -80,21 +80,21 @@ def test_approval_records_exact_proof_receipt_and_capacity_outcome(
         f"{registration.registration_number}/payment"
     )
     pending = client.get(path, headers=owner).json()
-    assert pending["registration_fee_amount"] == "99.00"
+    assert pending["registration_fee_amount"] == "100.00"
     assert pending["amount_received"] is None
     accounts, sender = _clients()
     response = _decide(setup, registration, documents[-1])
     assert response.status_code == 200, response.text
     assert response.json()["registration_status"] == status
     review = session.scalar(select(PaymentProofReview))
-    receipt = session.scalar(select(RegistrationPayment))
+    receipt = session.scalar(select(PaymentProofPayment))
     payment = session.get(Payment, receipt.payment_id)
     assert receipt.proof_review_id == review.id
     assert review.document_id == documents[-1].id
     assert payment.amount_received == Decimal("123.45")
     approved = client.get(path, headers=owner).json()
     assert approved["amount_received"] == "123.45"
-    assert approved["registration_fee_amount"] == "99.00"
+    assert approved["registration_fee_amount"] == "100.00"
     assert payment.verified_by_user_id == review.reviewed_by_user_id
     assert payment.verified_at == review.reviewed_at
     assert registration.registration_status == status
@@ -313,3 +313,17 @@ def test_database_failure_after_receipt_flush_rolls_back_all_review_changes(
         session.get(TournamentRegistration, registration.id).registration_status
         == "awaiting_payment_confirmation"
     )
+
+
+def test_payment_approval_marks_the_registration_order_paid(setup):
+    from app.karlmart.orders.models import Order
+
+    registration, documents = _pending(setup)
+    session = setup[2]
+    order = session.get(Order, registration.order_item.order_id)
+    assert order.status == "pending"
+    _clients()
+    response = _decide(setup, registration, documents[-1])
+    assert response.status_code == 200, response.text
+    session.refresh(order)
+    assert order.status == "paid"

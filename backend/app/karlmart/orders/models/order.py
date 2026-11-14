@@ -10,6 +10,7 @@ class Order(BaseModel):
     __tablename__ = "orders"
     __table_args__ = (
         CheckConstraint("currency = 'BRL'", name="ck_orders_currency_brl"),
+        CheckConstraint("status IN ('pending', 'paid')", name="ck_orders_status"),
         {"schema": "public"},
     )
 

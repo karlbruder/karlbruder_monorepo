@@ -17,7 +17,7 @@ from app.karlmart.payments.models import Payment
 from app.karlmart.orders.models import OrderItem
 from app.tournaments.models import (
     PaymentProofReview,
-    RegistrationPayment,
+    PaymentProofPayment,
     Tournament,
     TournamentPaymentSettings,
     TournamentRegistration,
@@ -202,7 +202,6 @@ def read_registration_payment_instructions(
         raise RegistrationResourceNotFoundError("Registration not found")
     payment_configuration = session.execute(
         select(
-            Tournament.registration_fee_amount,
             Tournament.payment_due_at,
             TournamentPaymentSettings.pix_key,
         )
@@ -245,18 +244,15 @@ def read_registration_payment_instructions(
     if review is not None and review.decision == "approved":
         amount_received = session.scalar(
             select(Payment.amount_received)
-            .join(RegistrationPayment, RegistrationPayment.payment_id == Payment.id)
+            .join(PaymentProofPayment, PaymentProofPayment.payment_id == Payment.id)
             .where(
-                RegistrationPayment.registration_id == tournament_registration.id,
-                RegistrationPayment.proof_review_id == review.id,
+                PaymentProofPayment.proof_review_id == review.id,
             )
         )
     return RegistrationPaymentInstructions(
         registration_number=tournament_registration.registration_number,
-        registration_fee_amount=(
-            session.scalar(select(OrderItem.unit_amount).where(OrderItem.id == tournament_registration.order_item_id))
-            if tournament_registration.order_item_id is not None
-            else payment_configuration.registration_fee_amount
+        registration_fee_amount=session.scalar(
+            select(OrderItem.unit_amount).where(OrderItem.id == tournament_registration.order_item_id)
         ),
         amount_received=amount_received,
         payment_due_at=payment_configuration.payment_due_at,

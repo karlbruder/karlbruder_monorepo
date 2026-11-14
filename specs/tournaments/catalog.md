@@ -27,7 +27,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Pix destination and receiving-account details are payment configuration.
 - **CAT-010:** Staff may change products and prices for future registrations. An existing order retains the selected product name, description, and agreed amount. A price already used by an order is not changed. A new amount uses a new price record.
 
-The current implementation still uses `Tournament.registration_fee_amount`. Catalog and order models exist, but product configuration, package selection, and purchase workflows are not yet connected.
+Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
 Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
 

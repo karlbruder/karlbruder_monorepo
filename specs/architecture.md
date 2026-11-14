@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -132,9 +132,9 @@ Shared file infrastructure lives in `app/core/files/`: StoredFile owns object
 metadata, and ArchivedFile records immutable captured content. Source URLs are optional
 so a consuming domain can archive an uploaded document too.
 Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
-RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview,
-RegistrationPayment and RegistrationRefund. The last two are associations to
-shared Payment and Refund records owned by payments. Domain associations
+RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview, and
+PaymentProofPayment. Karlmart owns orders, payments, and refunds. The proof
+association connects an approved review to the payment for its registration order. Domain associations
 control file purpose and access. Generic file metadata grants no access by itself.
 Settings, submitted proof, evidence decision, actual receipt, participation and
 refund progress remain separate facts. See the [tournament API guide](../backend/app/tournaments/README.md).

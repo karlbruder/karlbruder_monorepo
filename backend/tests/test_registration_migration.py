@@ -35,10 +35,11 @@ def test_clean_baseline_rebuilds_registration_tables_and_separate_file_metadata(
         "payments",
         "refunds",
         "payment_proof_reviews",
-        "registration_payments",
-        "registration_refunds",
+        "payment_proof_payments",
         "tournament_payment_settings",
     } <= tables
+    assert "registration_payments" not in tables
+    assert "registration_refunds" not in tables
     tournament_columns = {
         column["name"]
         for column in inspector.get_columns("tournaments", schema="public")

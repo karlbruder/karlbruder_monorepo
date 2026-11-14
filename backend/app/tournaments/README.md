@@ -12,7 +12,7 @@ Account sign-up remains a separate Supabase Auth operation.
 
 Registration selects a product through `TournamentProduct` and records the
 selected product and price on an order item. Payment review links the receipt to
-the order. Legacy fee and finance associations remain during the transition.
+the order. The legacy tournament fee remains during the transition.
 See [Karlmart](../karlmart/README.md).
 
 ## Catalog and policies
@@ -220,20 +220,11 @@ is `/tournaments/registration`.
 
 ## Financial evidence records
 
-Tournaments owns these records:
-
-| Record | Fields and constraints |
-| --- | --- |
-| PaymentProofReview | `document_id`, `decision`, `reviewed_by_user_id`, `reviewed_at`, `rejection_reason`. Review only an exact `payment_proof`. Decisions are `approved` or `rejected`, with a nonblank reason for rejection |
-| RegistrationPayment | `registration_id`, approved `proof_review_id`, unique `payment_id`. The proof must belong to that registration. One receipt per registration/review |
-| RegistrationRefund | `registration_payment_id`, unique `refund_id`, `due_on`. The shared refund must reference that exact payment and owe its full received amount |
-
-Payments owns the linked [Payment and Refund facts](../karlmart/payments/README.md),
-without duplicate amounts, actors, or progress on tournament associations. The
-received amount is independent of the advertised fee. No RegistrationRefund
-association means no recorded tournament refund obligation. Review, receipt,
-and association history is retained. These records do not change participation,
-reserve a seat, or transfer money.
+Tournaments owns the proof review and its link to the verified payment.
+`PaymentProofPayment` requires an approved review of a proof from the same
+registration order. Karlmart owns the [payment and refund facts](../karlmart/payments/README.md).
+A tournament refund owes the full amount received and records its deadline on
+`Refund`. An absent refund means there is no recorded obligation.
 
 The staff payment-review workflow authorizes the actor and commits review, receipt,
 association, and participation changes atomically. Cancellation/refund workflows
@@ -297,7 +288,7 @@ receipt, or notice. Minor approval also requires a stored parental form. Passed
 payment deadlines and closed registration windows do not prevent staff review.
 
 The workflow locks Tournament then TournamentRegistration and reloads locked
-values. Approval saves PaymentProofReview, shared Payment, RegistrationPayment,
+values. Approval saves PaymentProofReview, shared Payment, PaymentProofPayment,
 and `confirmed` or `waitlist` in one transaction. Only confirmed rows consume
 capacity. Rejection writes a review, sets `awaiting_payment`, and creates no receipt.
 Its current-proof reason appears in the owner payment response as `current_review`.

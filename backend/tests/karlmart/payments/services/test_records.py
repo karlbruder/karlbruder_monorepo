@@ -1,6 +1,6 @@
 """Financial facts are independent of tournament registration and membership policy."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -8,15 +8,25 @@ import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
+from app.karlmart.orders.models import Order
 from app.karlmart.payments.models import Payment, Refund
 from app.karlmart.payments.services.records import add_payment_record, add_refund_record
 
 NOW = datetime(2026, 11, 4, 12, tzinfo=timezone.utc)
+DUE_ON = date(2026, 11, 18)
+
+
+def _order_id(session):
+    order = Order(user_id=uuid4(), status="pending")
+    session.add(order)
+    session.flush()
+    return order.id
 
 
 def test_shared_payment_and_partial_refund_need_no_domain_association(db_session):
     payment = add_payment_record(
         db_session,
+        order_id=_order_id(db_session),
         amount_received=Decimal("100.00"),
         verified_by_user_id=uuid4(),
         verified_at=NOW,
@@ -26,6 +36,7 @@ def test_shared_payment_and_partial_refund_need_no_domain_association(db_session
         payment_id=payment.id,
         amount_owed=Decimal("25.00"),
         obligated_at=NOW,
+        due_on=DUE_ON,
     )
     db_session.expire_all()
     assert payment.amount_received == Decimal("100.00")
@@ -33,7 +44,7 @@ def test_shared_payment_and_partial_refund_need_no_domain_association(db_session
     assert refund.refund_status == "awaiting_refund"
     assert refund.payment_id == payment.id
     assert "registration_id" not in Payment.__table__.columns
-    assert refund.due_on is None
+    assert refund.due_on == DUE_ON
 
 
 def test_caller_rollback_removes_shared_payment_and_refund_together(db_session):
@@ -41,6 +52,7 @@ def test_caller_rollback_removes_shared_payment_and_refund_together(db_session):
         with db_session.begin_nested():
             payment = add_payment_record(
                 db_session,
+                order_id=_order_id(db_session),
                 amount_received=Decimal("0.00"),
                 verified_by_user_id=uuid4(),
                 verified_at=NOW,
@@ -50,6 +62,7 @@ def test_caller_rollback_removes_shared_payment_and_refund_together(db_session):
                 payment_id=payment.id,
                 amount_owed=Decimal("0.00"),
                 obligated_at=NOW,
+                due_on=DUE_ON,
             )
             raise RuntimeError("Rollback fixture")
     assert db_session.scalar(select(func.count()).select_from(Payment)) == 0
@@ -69,6 +82,7 @@ def test_recorded_refund_source_amount_and_obligation_time_cannot_change(
 ):
     payment = add_payment_record(
         db_session,
+        order_id=_order_id(db_session),
         amount_received=Decimal("100.00"),
         verified_by_user_id=uuid4(),
         verified_at=NOW,
@@ -78,6 +92,7 @@ def test_recorded_refund_source_amount_and_obligation_time_cannot_change(
         payment_id=payment.id,
         amount_owed=Decimal("25.00"),
         obligated_at=NOW,
+        due_on=DUE_ON,
     )
     with pytest.raises(IntegrityError, match="immutable"):
         with db_session.begin_nested():

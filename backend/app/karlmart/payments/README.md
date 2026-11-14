@@ -7,8 +7,8 @@ Payments owns generic financial facts in BRL:
 
 | Record | Fields |
 | --- | --- |
-| Payment | Optional `order_id`, `amount_received`, `verified_by_user_id`, `verified_at` |
-| Refund | `payment_id`, `amount_owed`, `obligated_at`, optional `due_on`, `refund_status`, `completed_at`, `completed_by_user_id` |
+| Payment | `order_id`, `amount_received`, `verified_by_user_id`, `verified_at` |
+| Refund | `payment_id`, `amount_owed`, `obligated_at`, `due_on`, `refund_status`, `completed_at`, `completed_by_user_id` |
 
 Neither model references tournaments, membership, fee schedules, eligibility, or
 capacity. Payment facts and the refund's source, amount, and obligation time are
@@ -22,11 +22,9 @@ session. The consuming workflow authorizes the actor, applies its business rules
 and commits or rolls back its domain association and financial facts together.
 These functions persist facts. They do not initiate or verify a bank transfer.
 
-The new order and deadline fields are not yet used by tournament workflows.
-Tournaments owns settings, proof reviews, and RegistrationPayment / RegistrationRefund
-associations. Its rules require an approved exact proof, one receipt, a full refund,
-and a deadline. Generic refunds do not impose those tournament rules on other
-consumers. See the [tournament guide](../../tournaments/README.md#financial-evidence-records)
-for associations and [decision 0009](../../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
-for rationale and future membership reuse. Financial commands, provider integration,
-other currencies, and membership billing are not implemented.
+Tournaments owns settings, proof reviews, and the link from an approved review to
+its payment. Its rules require a full refund and a deadline. Generic refunds do
+not impose tournament rules on other consumers. See the
+[tournament guide](../../tournaments/README.md#financial-evidence-records).
+Financial commands, provider integration, other currencies, and membership billing
+are not implemented.

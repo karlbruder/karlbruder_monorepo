@@ -53,7 +53,7 @@ class Refund(BaseModel):
     obligated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    due_on: Mapped[date | None] = mapped_column(Date)
+    due_on: Mapped[date] = mapped_column(Date, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_by_user_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
 

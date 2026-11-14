@@ -90,11 +90,11 @@ class TournamentRegistration(BaseModel):
     tournament_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False
     )
-    tournament_product_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.tournament_products.id", ondelete="RESTRICT")
+    tournament_product_id: Mapped[int] = mapped_column(
+        ForeignKey("public.tournament_products.id", ondelete="RESTRICT"), nullable=False
     )
-    order_item_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.order_items.id", ondelete="RESTRICT"), unique=True
+    order_item_id: Mapped[int] = mapped_column(
+        ForeignKey("public.order_items.id", ondelete="RESTRICT"), unique=True, nullable=False
     )
     order_item: Mapped[OrderItem | None] = relationship(lazy="selectin")
     user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)

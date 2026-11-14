@@ -20,6 +20,10 @@ references and rules, or require a second financial record design.
 
 ## Decision
 
+The original registration payment and refund associations below were replaced by
+order-linked payments, direct refunds, and `PaymentProofPayment`. This record
+retains the rationale for the original shared-finance boundary.
+
 Keep `Payment` and `Refund` in the separate `app/karlmart/payments/` domain. They are
 financial records with monetary and evidence constraints, rather than general
 infrastructure for `core/`.
@@ -92,5 +96,5 @@ extension rather than assuming the records already model every kind of payment.
 [shared payment models](../../backend/app/karlmart/payments/models/payment.py),
 [shared refund model](../../backend/app/karlmart/payments/models/refund.py),
 [persistence helpers](../../backend/app/karlmart/payments/services/records.py),
-[tournament payment association](../../backend/app/tournaments/models/registration_payment.py),
-[tournament refund association](../../backend/app/tournaments/models/registration_refund.py).
+[tournament payment association](../../backend/app/tournaments/models/payment_proof_payment.py),
+[refund model](../../backend/app/karlmart/payments/models/refund.py).

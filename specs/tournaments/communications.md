@@ -1,7 +1,7 @@
 # Tournament communications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -35,9 +35,9 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 ## Persisted outcome references
 
 Message workflows use `registration_number` as the participant reference.
-PaymentProofReview records evidence decisions. RegistrationPayment links the
-actual verified Payment. RegistrationRefund links the shared Refund and its
-completion evidence separately from cancelled participation. Notify from the committed
+PaymentProofReview records evidence decisions. PaymentProofPayment links the
+actual verified Payment. Refund references the payment and retains its completion
+evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
 new trigger. Payment-review decisions now invoke the notification helper after
 commit for rejection or paid waitlist. Confirmed approval sends no email in this

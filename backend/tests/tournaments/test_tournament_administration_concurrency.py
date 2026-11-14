@@ -13,12 +13,14 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.core.files.models import StoredFile
+from app.karlmart.catalog.models import Price, Product
 from app.tournaments.exceptions import RegistrationConflictError
 from app.tournaments.models import (
     RegistrationAcceptance,
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
+    TournamentProduct,
 )
 from app.tournaments.schemas import (
     PaymentReviewDecisionCreate,
@@ -66,6 +68,14 @@ def _event_and_payload(engine):
             terms_version="v1",
         )
         session.add(tournament)
+        session.flush()
+        product = Product(name="Entry", description="Tournament entry")
+        session.add(product)
+        session.flush()
+        session.add_all([
+            TournamentProduct(tournament_id=tournament.id, product_id=product.id),
+            Price(product_id=product.id, amount=Decimal("100.00")),
+        ])
         session.commit()
         token = content_digest(acceptance_content(tournament, "pt"))
         payload = TournamentCreate(
@@ -84,8 +94,11 @@ def _event_and_payload(engine):
 
 def _register(session, tournament_id, token):
     user = User(id=uuid4(), email="fixture@example.test")
+    offering = session.scalar(select(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
+    price = session.scalar(select(Price).where(Price.product_id == offering.product_id))
     payload = RegistrationCreate(
-        **_registration(), acceptance_language="pt", acceptance_token=token
+        **_registration(), acceptance_language="pt", acceptance_token=token,
+        tournament_product_id=offering.id, price_id=price.id,
     )
     return create_tournament_registration(
         session, tournament_id, user, payload, "127.0.0.1"
@@ -119,13 +132,19 @@ def _cleanup(engine, tournament_id):
         payment_ids = (
             connection.execute(
                 text(
-                    f"SELECT payment_id FROM public.registration_payments WHERE registration_id IN ({registration_ids})"
+                    f"SELECT pp.payment_id FROM public.payment_proof_payments pp JOIN public.payment_proof_reviews r ON r.id = pp.proof_review_id WHERE r.document_id IN ({document_ids})"
                 ),
                 params,
             )
             .scalars()
             .all()
         )
+        order_ids = connection.execute(
+            text(f"SELECT oi.order_id FROM public.order_items oi JOIN public.tournament_registrations tr ON tr.order_item_id = oi.id WHERE tr.id IN ({registration_ids})"), params
+        ).scalars().all()
+        product_ids = connection.execute(
+            text("SELECT product_id FROM public.tournament_products WHERE tournament_id = :tournament_id"), params
+        ).scalars().all()
         file_ids = (
             connection.execute(
                 text(
@@ -136,13 +155,13 @@ def _cleanup(engine, tournament_id):
             .scalars()
             .all()
         )
-        for table in ("registration_payments", "payment_proof_reviews", "payments"):
+        for table in ("payment_proof_payments", "payment_proof_reviews", "payments"):
             connection.execute(
                 text(f"ALTER TABLE public.{table} DISABLE TRIGGER immutable_evidence")
             )
         connection.execute(
             text(
-                f"DELETE FROM public.registration_payments WHERE registration_id IN ({registration_ids})"
+                f"DELETE FROM public.payment_proof_payments WHERE proof_review_id IN (SELECT id FROM public.payment_proof_reviews WHERE document_id IN ({document_ids}))"
             ),
             params,
         )
@@ -165,7 +184,7 @@ def _cleanup(engine, tournament_id):
 
         connection.execute(delete(Payment).where(Payment.id.in_(payment_ids)))
         connection.execute(delete(StoredFile).where(StoredFile.id.in_(file_ids)))
-        for table in ("registration_payments", "payment_proof_reviews", "payments"):
+        for table in ("payment_proof_payments", "payment_proof_reviews", "payments"):
             connection.execute(
                 text(f"ALTER TABLE public.{table} ENABLE TRIGGER immutable_evidence")
             )
@@ -174,6 +193,15 @@ def _cleanup(engine, tournament_id):
                 TournamentRegistration.tournament_id == tournament_id
             )
         )
+        from app.karlmart.orders.models import Order, OrderItem
+
+        connection.execute(text("ALTER TABLE public.order_items DISABLE TRIGGER immutable_order_item"))
+        connection.execute(delete(OrderItem).where(OrderItem.order_id.in_(order_ids)))
+        connection.execute(text("ALTER TABLE public.order_items ENABLE TRIGGER immutable_order_item"))
+        connection.execute(delete(Order).where(Order.id.in_(order_ids)))
+        connection.execute(delete(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
+        connection.execute(delete(Price).where(Price.product_id.in_(product_ids)))
+        connection.execute(delete(Product).where(Product.id.in_(product_ids)))
         connection.execute(delete(Tournament).where(Tournament.id == tournament_id))
 
 

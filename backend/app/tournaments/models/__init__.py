@@ -7,8 +7,7 @@ from .tournament_registration_document import TournamentRegistrationDocument
 from .registration_acceptance import RegistrationAcceptance
 from .tournament_payment_settings import TournamentPaymentSettings
 from .payment_proof_review import PaymentProofReview
-from .registration_payment import RegistrationPayment
-from .registration_refund import RegistrationRefund
+from .payment_proof_payment import PaymentProofPayment
 
 __all__ = [
     "Tournament",
@@ -18,6 +17,5 @@ __all__ = [
     "RegistrationAcceptance",
     "TournamentPaymentSettings",
     "PaymentProofReview",
-    "RegistrationPayment",
-    "RegistrationRefund",
+    "PaymentProofPayment",
 ]

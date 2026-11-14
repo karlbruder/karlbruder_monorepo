@@ -19,8 +19,7 @@ Karlmart does not grant participation or move money.
 
 Tournament registration loads available products and creates an order item for
 the selected price. Manual Pix proof review records the payment against the order.
-The legacy fixed fee and registration finance associations remain during the
-transition. See the [tournament guide](../tournaments/README.md) and
+The legacy fixed fee remains during the transition. See the [tournament guide](../tournaments/README.md) and
 [pricing requirements](../../../specs/tournaments/catalog.md).
 
 The same purchase records may later support merchandise and membership. A future

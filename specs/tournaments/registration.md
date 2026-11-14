@@ -37,7 +37,7 @@ Allow an authenticated user to register for a tournament, retain a registration 
 
 - **REG-019:** An athlete selects one available registration product for the tournament. Registration creates an order and an order item for that selection. The order item retains the product name, description, and agreed price. The backend verifies that the selected product belongs to the tournament.
 
-Product selection and order creation are not yet implemented. The existing workflow still uses the tournament fee.
+Registration creates an order and item for the selected product. Each registration uses its order item price.
 
 ## Registration information
 
@@ -153,8 +153,7 @@ proof. After approval it shows Payment confirmed separately from the place statu
 Before approval the panel shows the registration’s agreed price. After approval it
 shows the amount staff recorded, including zero, for both confirmed places and
 paid waitlist entries. If no recorded amount is available, it shows the agreed
-price. The current implementation still shows the tournament fee and does not
-snapshot it at registration.
+price. The order item price is retained with the registration.
 After a valid upload, it refreshes the saved status and hides the obsolete reason.
 Confirmed participation means a seat is assigned. Paid waitlist means payment was
 approved without a seat, with no second payment or automatic promotion. Approved

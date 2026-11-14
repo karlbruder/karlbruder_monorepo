@@ -1,7 +1,7 @@
 # 0010: Database guards for immutable evidence
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -32,6 +32,12 @@ they express the requirement. The functions cover protected changes to existing
 rows and relationships that need values from other records.
 
 ## What each function protects
+
+The table below records the original design. For the current migration-defined
+inventory, including Karlmart guards and functions retained for downgrade, see
+[database triggers and functions](../../docs/database-guards.md). The owner
+considers database-side guards a concession for immutability, not the default
+design. Prefer ordinary constraints and services, and justify each exception.
 
 | Function | Invariant and reason for a function |
 | --- | --- |

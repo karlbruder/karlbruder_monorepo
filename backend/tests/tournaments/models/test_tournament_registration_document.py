@@ -1,6 +1,7 @@
 """Database constraints on tournament registration file metadata."""
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -8,10 +9,13 @@ from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 
 from app.core.files.models import StoredFile
+from app.karlmart.catalog.models import Price, Product
+from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.models import (
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
+    TournamentProduct,
 )
 
 
@@ -25,9 +29,24 @@ def _persist_registration(db_session) -> TournamentRegistration:
     )
     db_session.add(tournament)
     db_session.flush()
+    user_id = uuid4()
+    product = Product(name="Entry", description="Tournament entry")
+    order = Order(user_id=user_id, status="pending")
+    db_session.add_all([product, order])
+    db_session.flush()
+    price = Price(product_id=product.id, amount=Decimal("100.00"))
+    offering = TournamentProduct(tournament_id=tournament.id, product_id=product.id)
+    db_session.add_all([price, offering])
+    db_session.flush()
+    item = OrderItem(order_id=order.id, price_id=price.id, product_name=product.name,
+                     product_description=product.description, unit_amount=price.amount)
+    db_session.add(item)
+    db_session.flush()
     registration = TournamentRegistration(
         tournament_id=tournament.id,
-        user_id=uuid4(),
+        tournament_product_id=offering.id,
+        order_item_id=item.id,
+        user_id=user_id,
         registration_number=f"KB-{tournament.id}-000001",
         registration_status="awaiting_payment",
         full_name="Fixture Competitor",

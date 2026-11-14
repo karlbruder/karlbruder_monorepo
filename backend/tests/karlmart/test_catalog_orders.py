@@ -68,3 +68,26 @@ def test_payment_and_refund_can_reference_order_and_deadline(db_session):
     assert payment.order_id == order.id
     assert refund.payment_id == payment.id
     assert refund.due_on == date(2026, 12, 1)
+
+
+def test_purchased_price_terms_cannot_change_but_price_can_be_deactivated(db_session):
+    product = Product(name="Entry", description="Tournament entry")
+    order = Order(user_id=uuid4(), status="pending")
+    db_session.add_all([product, order])
+    db_session.flush()
+    price = Price(product_id=product.id, amount=Decimal("100.00"))
+    db_session.add(price)
+    db_session.flush()
+    db_session.add(OrderItem(
+        order_id=order.id, price_id=price.id, product_name=product.name,
+        product_description=product.description, unit_amount=price.amount,
+    ))
+    db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        price.amount = Decimal("200.00")
+        db_session.flush()
+    db_session.refresh(price)
+    price.is_active = False
+    db_session.flush()
+    assert price.amount == Decimal("100.00")
+    assert not price.is_active

@@ -9,11 +9,15 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select, update
+from decimal import Decimal
 
 import app.tournaments.services.tournament_local_dates as tournament_local_dates
 from app.auth.supabase import tokens
 from app.core.files import FileStorageError, get_file_storage
 from app.core.files.models import StoredFile
+from app.core.db import get_session
+from app.karlmart.catalog.models import Price, Product
+from app.tournaments.models import TournamentProduct
 from app.main import karlbruder_app
 from app.tournaments.models import (
     Tournament,
@@ -89,6 +93,21 @@ def _post_registration(
     staged_parental_consent_form_name=None,
 ):
     payload = dict(registration or _registration())
+    session = next(karlbruder_app.dependency_overrides[get_session]())
+    event_row = session.get(Tournament, tournament_id)
+    if event_row is not None and "tournament_product_id" not in payload:
+        offering = session.scalar(select(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
+        if offering is None:
+            product = Product(name="Fixture entry", description="Tournament entry")
+            session.add(product)
+            session.flush()
+            offering = TournamentProduct(tournament_id=tournament_id, product_id=product.id)
+            session.add(offering)
+            session.add(Price(product_id=product.id, amount=event_row.registration_fee_amount or Decimal("100.00")))
+            session.flush()
+        price = session.scalar(select(Price).where(Price.product_id == offering.product_id))
+        payload["tournament_product_id"] = offering.id
+        payload["price_id"] = price.id
     if staged_parental_consent_form_key is not None:
         payload["parental_consent_form_storage_key"] = staged_parental_consent_form_key
         payload["parental_consent_form_original_file_name"] = (
@@ -875,16 +894,14 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
     assert len(proof_rows) == 2
     from app.tournaments.models import (
         PaymentProofReview,
-        RegistrationPayment,
-        RegistrationRefund,
+        PaymentProofPayment,
     )
 
     from app.karlmart.payments.models import Payment, Refund
 
     for model in (
         PaymentProofReview,
-        RegistrationPayment,
-        RegistrationRefund,
+        PaymentProofPayment,
         Payment,
         Refund,
     ):
@@ -1172,6 +1189,15 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
             rules_version="fixture-v1",
         )
         session.add(event)
+        session.flush()
+        product = Product(name="Concurrent entry", description="Tournament entry")
+        session.add(product)
+        session.flush()
+        offering = TournamentProduct(tournament_id=event.id, product_id=product.id)
+        price = Price(product_id=product.id, amount=Decimal("100.00"))
+        session.add_all([offering, price])
+        session.flush()
+        offering_id, price_id = offering.id, price.id
         session.commit()
         event_id = event.id
         from app.tournaments.services.registration_acceptances import (
@@ -1188,6 +1214,8 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
             **_registration(email=email, document=f"CONCURRENT-{index}"),
             acceptance_language="pt",
             acceptance_token=token,
+            tournament_product_id=offering_id,
+            price_id=price_id,
         )
         with Session(engine) as session:
             barrier.wait(timeout=10)
@@ -1212,31 +1240,8 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
         with Session(engine) as session:
             assert session.get(Tournament, event_id).next_registration_number == 3
     finally:
-        with engine.begin() as connection:
-            from sqlalchemy import text
-
-            connection.execute(
-                text(
-                    "ALTER TABLE public.registration_acceptances DISABLE TRIGGER immutable_evidence"
-                )
-            )
-            connection.execute(
-                text(
-                    "DELETE FROM public.registration_acceptances WHERE registration_id IN (SELECT id FROM public.tournament_registrations WHERE tournament_id = :event)"
-                ),
-                {"event": event_id},
-            )
-            connection.execute(
-                text(
-                    "ALTER TABLE public.registration_acceptances ENABLE TRIGGER immutable_evidence"
-                )
-            )
-            connection.execute(
-                delete(TournamentRegistration).where(
-                    TournamentRegistration.tournament_id == event_id
-                )
-            )
-            connection.execute(delete(Tournament).where(Tournament.id == event_id))
+        from tests.tournaments.test_tournament_administration_concurrency import _cleanup
+        _cleanup(engine, event_id)
 
 
 def test_minor_file_metadata_and_document_roll_back_on_database_failure(
@@ -1356,6 +1361,8 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
         **_registration(),
         acceptance_language="en",
         acceptance_token=view["acceptance_tokens"]["en"],
+        tournament_product_id=row.tournament_product_id,
+        price_id=row.order_item.price_id,
     )
     second = create_acceptance(event, row.user_id, payload, "192.0.2.8")
     row.acceptances.append(second)
@@ -1577,8 +1584,7 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
     from decimal import Decimal
     from app.tournaments.models import (
         PaymentProofReview,
-        RegistrationPayment,
-        RegistrationRefund,
+        PaymentProofPayment,
     )
 
     client, key, session, _storage = setup
@@ -1611,12 +1617,13 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
 
     receipt = add_payment_record(
         session,
+        order_id=original.order_item.order_id,
         amount_received=Decimal("125.50"),
         verified_by_user_id=uuid4(),
         verified_at=now,
     )
-    payment = RegistrationPayment(
-        registration_id=original.id, proof_review_id=review.id, payment_id=receipt.id
+    payment = PaymentProofPayment(
+        proof_review_id=review.id, payment_id=receipt.id
     )
     session.add(payment)
     session.flush()
@@ -1626,17 +1633,12 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
         payment_id=receipt.id,
         amount_owed=receipt.amount_received,
         obligated_at=now,
+        due_on=now.date() + timedelta(days=14),
     )
     if refund_status == "completed":
         shared_refund.refund_status = "completed"
         shared_refund.completed_at = now
         shared_refund.completed_by_user_id = uuid4()
-    refund = RegistrationRefund(
-        registration_payment_id=payment.id,
-        refund=shared_refund,
-        due_on=now.date() + timedelta(days=14),
-    )
-    session.add(refund)
     session.commit()
     replacement = _post_registration(client, event_id, owner)
     assert replacement.status_code == 201, replacement.text
@@ -1647,9 +1649,9 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
         == "cancelled"
     )
     assert (
-        session.get(RegistrationRefund, refund.id).refund.refund_status == refund_status
+        session.get(type(shared_refund), shared_refund.id).refund_status == refund_status
     )
-    assert refund.refund.amount_owed == Decimal("125.50")
+    assert shared_refund.amount_owed == Decimal("125.50")
 
 
 def _staff_update_payload(client, event_id, key, **changes):

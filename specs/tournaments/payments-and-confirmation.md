@@ -32,48 +32,24 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 
 ## Persistence contract
 
-The current implementation uses the records below. The target links each registration
-to its selected tournament product and order item, and each payment to its order.
-The refund records its deadline. The approved proof remains linked to the payment.
-The existing associations and fixed tournament fee remain in use until the new
-workflows replace them.
-
-These records keep distinct facts. Their presence alone does not change
-participation, consume capacity, send a message or move money.
+Each registration references its tournament product and order item. The order item
+retains the agreed product details and price. Each verified payment belongs to its
+order. Approval changes the order from `pending` to `paid` in the same transaction
+as the review and participation outcome.
 
 | Record | Evidence retained |
 | --- | --- |
-| TournamentRegistrationDocument | One exact submitted proof and its StoredFile reference. |
-| PaymentProofReview | `document_id`, approved/rejected `decision`, `reviewed_by_user_id`, `reviewed_at` and a nonblank `rejection_reason` when rejected. |
-| RegistrationPayment, tournaments | `registration_id`, approved `proof_review_id`, unique shared `payment_id`. |
-| Payment, payments | Actual BRL `amount_received`, `verified_by_user_id`, `verified_at`. No registration or membership reference. |
-| RegistrationRefund, tournaments | `registration_payment_id`, unique shared `refund_id`, deadline `due_on`. |
-| Refund, payments | `payment_id`, `amount_owed`, `obligated_at`, `refund_status`, `completed_at` / `completed_by_user_id`. |
+| TournamentRegistrationDocument | One submitted proof and its StoredFile reference. |
+| PaymentProofReview | Exact document, decision, reviewer, time, and rejection reason when rejected. |
+| PaymentProofPayment | Approved review and payment for the same registration order. |
+| Payment | Order, actual BRL amount received, verifier, and verification time. |
+| Refund | Payment, amount owed, obligation time, deadline, status, and completion evidence. |
 
-TournamentPaymentSettings and PaymentProofReview belong to tournaments. A review
-must identify an exact payment-proof document. Its RegistrationPayment association
-must reference an approved review of the same registration and a shared Payment.
-Reviews, verified receipts and domain associations are immutable. Reviewed document
-associations and their referenced StoredFile metadata are protected too. A review
-cannot be redirected to different evidence by changing a storage key or other file
-metadata. Tournament-owned persistence guards enforce this without adding domain
-dependencies to shared file code. The current tournament schema permits one receipt
-per registration/review and one refund association per receipt. Received and owed
-amounts are finite, nonnegative BRL decimals.
-
-Tournament refund associations require the shared Refund to refer to the same
-shared Payment and owe its exact received amount, even when that differs from the
-fee. The full-refund and 10-business-day rules stay in tournaments. Shared refunds
-retain financial facts without imposing tournament policy on future consumers.
-They contain no domain ID, fee/capacity rule or deadline calculation. The financial
-source payment, amount and obligation time cannot be rewritten. No duplicate
-amount, actor or progress columns live on the tournament associations.
-
-An absent RegistrationRefund association means no recorded tournament obligation. `awaiting_refund` and
-`completed` represent separate refund states. Pending refunds have no completion evidence. Completed refunds require both the actual time and
-recording admin UUID. They do not reactivate cancelled participation or prevent
-an otherwise valid replacement registration. These constraints also apply to
-direct database writes.
+Reviews, verified receipts, and proof associations are immutable. Reviewed file
+metadata remains protected. A tournament payment may have one refund obligation.
+It must equal the amount received. The deadline is calculated by tournaments.
+`awaiting_refund` and `completed` are separate states. Completion requires the
+actual time and recording admin. These checks also apply to direct database writes.
 
 The API supports proof submission, authorized retrieval, and exact-proof staff
 approval/rejection. Approval atomically saves the review, shared receipt, association,
@@ -88,7 +64,7 @@ not implement those workflows or authorize their actors.
 
 For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
 
-When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The agreed order-item price is authoritative before payment is recorded. The current implementation still returns the tournament fee.
+When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The agreed order-item price is authoritative before payment is recorded. The order item price is retained with the registration.
 
 When payment details show that the current proof was rejected, the participant sees the reason and can submit a new proof even while an older registration status is being refreshed. A successful proof submission immediately updates an awaiting-payment registration to awaiting review. A temporary registration refresh failure leaves the previously loaded payment details visible and offers a retry. Access denial or a missing registration still hides those details.
 

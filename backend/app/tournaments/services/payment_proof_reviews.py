@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.auth.account_email import AccountEmailReader
 from app.core.mail import MailSender
 from app.karlmart.payments.services.records import add_payment_record
-from app.karlmart.orders.models import OrderItem
+from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
 from app.tournaments.services.payment_review_notifications import (
     PaymentReviewNotice,
@@ -28,7 +28,7 @@ from app.tournaments.exceptions import (
 )
 from app.tournaments.models import (
     PaymentProofReview,
-    RegistrationPayment,
+    PaymentProofPayment,
     Tournament,
     TournamentRegistration,
     TournamentRegistrationDocument,
@@ -157,10 +157,8 @@ def read_payment_review(
     return StaffPaymentReviewDetail(
         registration=project_registration(registration, staff=True),
         tournament_name=tournament.name,
-        registration_fee_amount=(
-            session.scalar(select(OrderItem.unit_amount).where(OrderItem.id == registration.order_item_id))
-            if registration.order_item_id is not None
-            else tournament.registration_fee_amount
+        registration_fee_amount=session.scalar(
+            select(OrderItem.unit_amount).where(OrderItem.id == registration.order_item_id)
         ),
         payment_due_at=tournament.payment_due_at,
         competitor_capacity=tournament.competitor_capacity,
@@ -256,8 +254,10 @@ def _require_reviewable_proof(
         .limit(1)
     )
     receipt = session.scalar(
-        select(RegistrationPayment.id)
-        .where(RegistrationPayment.registration_id == registration.id)
+        select(PaymentProofPayment.id)
+        .join(PaymentProofReview, PaymentProofReview.id == PaymentProofPayment.proof_review_id)
+        .join(TournamentRegistrationDocument, TournamentRegistrationDocument.id == PaymentProofReview.document_id)
+        .where(TournamentRegistrationDocument.registration_id == registration.id)
         .limit(1)
     )
     if (
@@ -287,20 +287,26 @@ def _approve_registration_payment(
         )
         if parental_form is None:
             raise ParentalConsentFormRequiredError("Parental consent form required")
+    order_id = session.scalar(
+        select(OrderItem.order_id).where(OrderItem.id == registration.order_item_id)
+    )
     payment = add_payment_record(
         session,
-        order_id=session.scalar(select(OrderItem.order_id).where(OrderItem.id == registration.order_item_id)),
+        order_id=order_id,
         amount_received=amount_received,
         verified_by_user_id=review.reviewed_by_user_id,
         verified_at=review.reviewed_at,
     )
     session.add(
-        RegistrationPayment(
-            registration_id=registration.id,
+        PaymentProofPayment(
             proof_review_id=review.id,
             payment_id=payment.id,
         )
     )
+    order = session.scalar(select(Order).where(Order.id == order_id).with_for_update())
+    if order is None or order.status != "pending":
+        raise RegistrationConflictError("Order is not awaiting payment")
+    order.status = "paid"
     confirmed = (
         session.scalar(
             select(func.count())
