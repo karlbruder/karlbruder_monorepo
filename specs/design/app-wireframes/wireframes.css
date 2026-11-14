@@ -9,3 +9,5 @@
 
 .home-inline-links{display:flex;flex-wrap:wrap;gap:12px 24px;margin-top:18px}.home-inline-links a{color:var(--wine);font-weight:600;text-decoration:none}.home-inline-links a:hover{text-decoration:underline}.home-inline-links a:focus-visible{outline:3px solid #642226;outline-offset:3px}
 .staff-nav{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 24px;padding:12px 0;border-bottom:1px solid var(--line)}.staff-nav a{color:var(--wine);font-weight:600;text-decoration:none}.staff-nav a:hover{text-decoration:underline}.staff-nav a:focus-visible{outline:3px solid #642226;outline-offset:3px}
+
+.registration-options{border:0;padding:0;margin:0}.registration-options legend{font-size:17px;font-weight:600;margin-bottom:8px}.registration-option{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.5}.registration-option input{accent-color:var(--wine);margin-top:4px}.registration-option span span{display:block;margin-top:4px}.registration-option .option-price{font-weight:600;color:var(--wine)}

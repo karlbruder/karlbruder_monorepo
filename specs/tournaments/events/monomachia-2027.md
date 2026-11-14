@@ -50,13 +50,30 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | Record creation | `created_at` |
 | Pix destination | Receiving account and Pix key are payment configuration, not fixed product-spec values |
 
-No concrete fee, Pix destination, registration dates, capacity, venue, schedule, or final regulation is asserted here. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
+Registration prices are listed below. Pix destination, registration dates, capacity, venue, schedule, and final regulation remain unconfirmed. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
 
 The table lists event configuration, not the full schema. `Tournament.is_registration_closed` and `RegistrationAcceptance` already support staff closure and versioned acceptance evidence. Their presence does not implement staff editing, confirmation, or refund workflows. See the [registration baseline](../registration.md#implementation-baseline).
 
+## Registration options
+
+Monomachia offers three registration products. The selection is part of the
+registration and follows [REG-019](../registration.md#rules). Participation and
+capacity rules are the same for all three options.
+
+| Option | Price | Included benefits |
+| --- | --- | --- |
+| Social Registration | R$ 50 is tentative | Participation and a trophy if the athlete wins one. No other winner prizes or sponsor coupons and giveaways. |
+| Full Registration | R$ 100 | Participation, winner prizes, and participation in the distribution of sponsor coupons and giveaways. |
+| Plus Registration | Not yet provided | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
+
+Social is intended as a lower-cost option that contributes to the event's costs.
+The Social price and Plus price must be confirmed before being presented as final.
+The product description identifies the benefits of each option. This specification
+does not define a separate perk inventory or fulfillment workflow.
+
 ## Open questions
 
-None specific to Monomachia product behavior. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
+The Social price is tentative. The Plus price and full package contents are not yet provided. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
 
 ## Acceptance criteria
 
