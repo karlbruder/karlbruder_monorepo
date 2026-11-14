@@ -8,6 +8,13 @@ The application stores reusable `Tournament`, `TournamentRegistration`, and
 using the same capability as later tournaments. Staff access applies globally.
 Account sign-up remains a separate Supabase Auth operation.
 
+## Pricing transition
+
+The current registration workflow uses `registration_fee_amount`. The target is
+to offer multiple products through `TournamentProduct` and record the selected
+product and price on an order item. Those links are not yet used by registration
+or payment review. See [Karlmart](../karlmart/README.md).
+
 ## Catalog and policies
 
 `GET /api/tournaments` returns `items`, `total`, `limit`, and `offset`.

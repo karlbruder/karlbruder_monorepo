@@ -42,7 +42,7 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | Identity and description | `id`, `name`, `description`, `discipline`, `is_internal` |
 | Event dates | `starts_at`, `ends_at` |
 | Registration window | `registration_opens_on`, `registration_closes_on`. Inclusive GMT-3 calendar days |
-| Payment deadline and fee | `payment_due_at`, `registration_fee_amount`. Currency is always BRL |
+| Payment deadline and prices | `payment_due_at` and tournament registration products with prices in BRL. The current implementation uses `registration_fee_amount` |
 | Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |
 | Regulation | `rules_text` and `rules_url`. Retain versioned acceptance evidence |

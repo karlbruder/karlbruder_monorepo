@@ -35,6 +35,10 @@ Allow an authenticated user to register for a tournament, retain a registration 
 - **REG-017:** Staff may close new registrations independently of the date window. Full capacity alone does not close registrations; warn applicants about the paid waitlist while creation remains open. Unconfigured capacity means unlimited, and the paid waitlist has no size limit.
 - **REG-018:** The Monomachia private registration route supports Portuguese and English interface copy, including validation, request errors, and the registration result. A language choice on the public Monomachia page carries to the application through the registration URL and survives sign-in; switching languages does not discard entered fields or change API values. Official event terms and regulation remain in their configured source language until approved translations exist.
 
+- **REG-019:** An athlete selects one available registration product for the tournament. Registration creates an order and an order item for that selection. The order item retains the product name, description, and agreed price. The backend verifies that the selected product belongs to the tournament.
+
+Product selection and order creation are not yet implemented. The existing workflow still uses the tournament fee.
+
 ## Registration information
 
 The product owner's answers establish the required personal and sporting fields below. Issue #20 remains the starting data shape. Requirements for declarations and safety information are governed by the linked privacy/event specifications.
@@ -144,10 +148,11 @@ notice explains that staff verify the payment manually and that this review
 may take one to two business days. The panel shows New proof needed and the
 rejection reason when staff reject the current
 proof. After approval it shows Payment confirmed separately from the place status.
-Before approval the panel shows the current tournament fee. After approval it
+Before approval the panel shows the registration’s agreed price. After approval it
 shows the amount staff recorded, including zero, for both confirmed places and
-paid waitlist entries. If no recorded amount is available, it shows the current
-tournament fee. The workflow does not snapshot a fee at registration.
+paid waitlist entries. If no recorded amount is available, it shows the agreed
+price. The current implementation still shows the tournament fee and does not
+snapshot it at registration.
 After a valid upload, it refreshes the saved status and hides the obsolete reason.
 Confirmed participation means a seat is assigned. Paid waitlist means payment was
 approved without a seat, with no second payment or automatic promotion. Approved

@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 
 ## Rules
 
-- **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Fees are configured through Tournament `registration_fee_amount`, always in BRL. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
+- **PAY-001:** Until an official payment gateway is implemented, Pix is the only accepted payment method. Registration products have prices in BRL. The order item retains the agreed amount. Pix key and receiving account are operational payment configuration, not values hardcoded in these specs.
 - **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally. They are not public site files.
 - **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `awaiting_payment_confirmation` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
 - **PAY-004:** Guild staff (admins) review payment evidence and record decisions. Rejection records a reason, shows a rejected-evidence outcome and message to the participant, and notifies them. The participant may submit another proof for review. Rejection does not confirm a seat or cancel participation by itself. Representing the review outcome separately from registration status is an implementation decision.
@@ -31,6 +31,12 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a paid waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses the paid cancellation/refund workflow; rejecting proof alone is a different evidence-review action.
 
 ## Persistence contract
+
+The current implementation uses the records below. The target links each registration
+to its selected tournament product and order item, and each payment to its order.
+The refund records its deadline. The approved proof remains linked to the payment.
+The existing associations and fixed tournament fee remain in use until the new
+workflows replace them.
 
 These records keep distinct facts. Their presence alone does not change
 participation, consume capacity, send a message or move money.
@@ -82,7 +88,7 @@ not implement those workflows or authorize their actors.
 
 For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
 
-When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The fee in the current payment details is authoritative. If it is unknown, the application shows it as unconfirmed rather than using an older catalog value.
+When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The agreed order-item price is authoritative before payment is recorded. The current implementation still returns the tournament fee.
 
 When payment details show that the current proof was rejected, the participant sees the reason and can submit a new proof even while an older registration status is being refreshed. A successful proof submission immediately updates an awaiting-payment registration to awaiting review. A temporary registration refresh failure leaves the previously loaded payment details visible and offers a retry. Access denial or a missing registration still hides those details.
 
@@ -109,7 +115,7 @@ Waitlisted participants have already had payment approved. Staff later selects a
 
 None for the initial manual-payment flow. Late transfers are judged by staff under PAY-006 and PAY-013, not an automatic deadline policy.
 
-Event fee and dates are [Tournament configuration](events/monomachia-2027.md#tournament-configuration). Retention is defined in [privacy rules](consent-and-privacy.md#rules). Bucket and SDK configuration belong in the [storage implementation decisions](../platform/data-storage.md#implementation-and-operations-decisions).
+Event products and dates are [Tournament configuration](events/monomachia-2027.md#tournament-configuration). Retention is defined in [privacy rules](consent-and-privacy.md#rules). Bucket and SDK configuration belong in the [storage implementation decisions](../platform/data-storage.md#implementation-and-operations-decisions).
 
 ## Deferred questions
 

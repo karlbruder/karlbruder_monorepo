@@ -24,7 +24,10 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
 - **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier regulation acceptances when text changes.
-- **CAT-009:** The catalog is the listing and detail experience for `Tournament` resources, not a separate domain object. Fees, dates, venue, schedule, equipment, regulation, and capacity are staff-managed configuration. Currency is BRL. Pix destination and receiving-account details are payment configuration, not fixed product-spec values.
+- **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Pix destination and receiving-account details are payment configuration.
+- **CAT-010:** Staff may change products and prices for future registrations. An existing order retains the selected product name, description, and agreed amount. A price already used by an order is not changed. A new amount uses a new price record.
+
+The current implementation still uses `Tournament.registration_fee_amount`. Catalog and order models exist, but product configuration, package selection, and purchase workflows are not yet connected.
 
 Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
 
@@ -55,6 +58,8 @@ Guild staff (admins) can create and manage all tournaments. API naming and displ
 - **CAT-AC-005:** A guest can view public tournament listings and details, while a guest or non-member regular user cannot list or retrieve internal tournaments.
 - **CAT-AC-006:** A guild member or guild staff user can view internal tournaments. Administrative event changes require the admin role.
 - **CAT-AC-007:** Tournament edits preserve prior acceptance evidence. Notifications about changed tournament facts remain future work.
+- **CAT-AC-009:** Staff can configure multiple registration products with distinct prices and descriptions for a tournament.
+- **CAT-AC-010:** Changing a product or price does not alter an existing registration’s agreed product description or amount.
 - **CAT-AC-008:** Explicitly closing new registrations rejects new submissions even within the date window. A full event that remains open displays a waitlist warning without claiming that form submission itself assigns waitlist status.
 
 ## Open questions
