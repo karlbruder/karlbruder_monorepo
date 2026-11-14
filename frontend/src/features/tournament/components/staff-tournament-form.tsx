@@ -73,6 +73,11 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   const [error, setError] = useState<unknown>(null);
   const [invalidTime, setInvalidTime] = useState<string | null>(null);
   const en = language === "en";
+  const rulesHaveBothFormats = Boolean(values.rules_url.trim() && values.rules_text.trim());
+  const cancellationPolicyHasBothFormats = Boolean(
+    values.cancellation_policy_url.trim() && values.cancellation_policy_text.trim(),
+  );
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (pending) return;
@@ -106,6 +111,12 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
       {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} step={field.key === "registration_fee_amount" ? "0.01" : field.type === "datetime-local" ? "1" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
     </label>)}
     </div>
+    {rulesHaveBothFormats && <p role="status">{en
+      ? "Athletes will see the rules link when both a URL and text are set."
+      : "Quando houver link e texto do regulamento, os atletas verão o link."}</p>}
+    {cancellationPolicyHasBothFormats && <p role="status">{en
+      ? "Athletes will see the cancellation policy link when both a URL and text are set."
+      : "Quando houver link e texto da política de cancelamento, os atletas verão o link."}</p>}
     <div className="staff-tournament-options">
     <label className="review-check"><input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {en ? "Internal tournament" : "Torneio interno"}</label>
     <label className="review-check"><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>

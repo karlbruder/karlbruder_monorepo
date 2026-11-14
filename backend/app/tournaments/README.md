@@ -64,7 +64,7 @@ file before attaching it. A successful submission does not change registration s
 ## Preserved policies and acceptance
 
 Tournament creation captures each configured policy URL before saving the event.
-Inline text remains separate and both forms may be present.
+Staff can save both formats. Registration displays the archived link when present and falls back to inline text.
 Each URL capture creates a shared ArchivedFile referencing StoredFile metadata.
 The capture retains source/final URLs, SHA-256 and capture time. Private stored
 bytes use a fresh key. Reads do not fetch the source again. A new capture preserves

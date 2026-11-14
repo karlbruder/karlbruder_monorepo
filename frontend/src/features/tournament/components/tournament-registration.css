@@ -370,7 +370,7 @@
   padding: 12px 17px;
 }
 
-.registration-policy-renewal, .registration-card button:not(.registration-submit) {
+.registration-card button:not(.registration-submit) {
   background: transparent;
   border: 1px solid #c2c7be;
   border-radius: 5px;

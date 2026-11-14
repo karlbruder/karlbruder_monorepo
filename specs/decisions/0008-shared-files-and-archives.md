@@ -1,7 +1,7 @@
 # 0008: Shared files and archived content
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -48,7 +48,7 @@ Tournament configuration captures linked rules and cancellation policies before
 offering them for acceptance. Tournament owns the URL-fetch safeguards and its
 current archive references. RegistrationAcceptance retains those archive IDs,
 exact inline text, declarations and choices. The form reads authorized preserved
-copies through expiring attachment links, with in-place link renewal.
+copies through expiring attachment links. Athletes can reload the page to obtain current links.
 
 Inline policy text remains text in the acceptance snapshot. It does not need to
 be converted into a file. ArchivedFile preserves uploaded or fetched bytes when
