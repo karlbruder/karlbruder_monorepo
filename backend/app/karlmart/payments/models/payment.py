@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Numeric,
     Uuid,
 )
@@ -27,6 +28,9 @@ class Payment(BaseModel):
         {"schema": "public"},
     )
 
+    order_id: Mapped[int | None] = mapped_column(
+        ForeignKey("public.orders.id", ondelete="RESTRICT")
+    )
     amount_received: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     verified_by_user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), nullable=False

@@ -1,6 +1,7 @@
 """Tournament-owned records and associations in PostgreSQL public."""
 
 from .tournament import Tournament
+from .tournament_product import TournamentProduct
 from .tournament_registration import TournamentRegistration
 from .tournament_registration_document import TournamentRegistrationDocument
 from .registration_acceptance import RegistrationAcceptance
@@ -11,6 +12,7 @@ from .registration_refund import RegistrationRefund
 
 __all__ = [
     "Tournament",
+    "TournamentProduct",
     "TournamentRegistration",
     "TournamentRegistrationDocument",
     "RegistrationAcceptance",

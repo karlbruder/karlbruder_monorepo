@@ -1,12 +1,13 @@
 """A refund obligation and separately recorded evidence of its completion."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Date,
     ForeignKey,
     Numeric,
     String,
@@ -52,6 +53,7 @@ class Refund(BaseModel):
     obligated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
+    due_on: Mapped[date | None] = mapped_column(Date)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_by_user_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
 

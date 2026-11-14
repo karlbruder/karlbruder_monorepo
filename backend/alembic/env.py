@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 import app.core.files.models  # noqa: F401 - metadata registry
+import app.karlmart.catalog.models  # noqa: F401 - metadata registry
+import app.karlmart.orders.models  # noqa: F401 - metadata registry
 import app.karlmart.payments.models  # noqa: F401 - metadata registry
 import app.tournaments.models  # noqa: F401 - metadata registry
 from app.core.db.base import Base

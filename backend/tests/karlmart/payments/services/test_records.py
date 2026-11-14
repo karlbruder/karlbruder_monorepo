@@ -33,7 +33,7 @@ def test_shared_payment_and_partial_refund_need_no_domain_association(db_session
     assert refund.refund_status == "awaiting_refund"
     assert refund.payment_id == payment.id
     assert "registration_id" not in Payment.__table__.columns
-    assert "due_on" not in Refund.__table__.columns
+    assert refund.due_on is None
 
 
 def test_caller_rollback_removes_shared_payment_and_refund_together(db_session):
