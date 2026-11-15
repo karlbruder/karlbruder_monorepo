@@ -30,12 +30,12 @@ from app.tournaments.schemas import (
 from app.tournaments.services.payment_proof_reviews import (
     record_payment_review_decision,
 )
-from app.tournaments.services.registration_payment_instructions import (
+from app.tournaments.services.registration_payments import (
     read_registration_payment_instructions,
 )
 from app.tournaments.services.registration_acceptances import (
-    acceptance_content,
-    content_digest,
+    build_registration_acceptance_content,
+    calculate_registration_acceptance_digest,
 )
 from app.tournaments.services.tournament_administration import (
     delete_tournament,
@@ -77,7 +77,7 @@ def _event_and_payload(engine):
             Price(product_id=product.id, amount=Decimal("100.00")),
         ])
         session.commit()
-        token = content_digest(acceptance_content(tournament, "pt"))
+        token = calculate_registration_acceptance_digest(build_registration_acceptance_content(tournament, "pt"))
         payload = TournamentCreate(
             name=tournament.name,
             slug=tournament.slug,

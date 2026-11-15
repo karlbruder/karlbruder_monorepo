@@ -15,7 +15,7 @@ from app.tournaments.services.tournament_local_dates import (
     is_minor_at_tournament_start,
     local_calendar_date,
 )
-from app.tournaments.services.registration_payment_instructions import (
+from app.tournaments.services.registration_payments import (
     create_registration_payment_proof_upload_url,
     read_registration_payment_instructions,
     read_registration_payment_proof_download,
@@ -26,8 +26,8 @@ from app.tournaments.services.tournament_registrations import (
     is_duplicate_tournament_registration,
     normalize_tournament_registration_identity,
     read_tournament_registration_parental_consent_form_download,
-    visible_tournament,
 )
+from app.tournaments.services.tournament_catalog import load_visible_tournament
 from app.tournaments.services.tournament_slugs import (
     TOURNAMENT_SLUG_PATTERN,
     build_tournament_slug,
@@ -54,5 +54,5 @@ __all__ = [
     "read_registration_payment_proof_download",
     "resolve_tournament_slug",
     "submit_registration_payment_proof",
-    "visible_tournament",
+    "load_visible_tournament",
 ]

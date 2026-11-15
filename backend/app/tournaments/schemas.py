@@ -569,3 +569,10 @@ class StaffRegistrationSummaryRead(BaseModel):
     social_name: str | None
     registration_status: str
     tags: list[TagRead]
+
+
+class PersonalRegistrationSummary(BaseModel):
+    tournament_id: int
+    tournament_name: str
+    registration_number: str
+    registration_status: str

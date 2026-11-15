@@ -3,13 +3,15 @@
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
+from app.auth.models import AnonymousUser, User
+from app.tournaments.services.tournament_catalog import can_view_internal_tournaments
 from app.karlmart.catalog.models import Price, Product
 from app.tournaments.models import Tournament, TournamentProduct
 from app.tournaments.schemas import TournamentProductRead
 
 
 def list_tournament_products(
-    session: Session, tournament_id: int, *, can_view_internal: bool
+    session: Session, tournament_id: int, user: User | AnonymousUser
 ) -> list[TournamentProductRead] | None:
     latest_price = (
         select(Price.id)
@@ -29,7 +31,7 @@ def list_tournament_products(
         .where(Tournament.id == tournament_id)
         .order_by(TournamentProduct.id)
     )
-    if not can_view_internal:
+    if not can_view_internal_tournaments(user):
         query = query.where(Tournament.is_internal.is_(False))
     rows = session.execute(query).all()
     if not rows:

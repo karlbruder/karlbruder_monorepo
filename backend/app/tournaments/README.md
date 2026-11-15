@@ -16,6 +16,8 @@ does not change ownership, status, purchased options, or acceptance evidence.
 Normalized duplicate email and document checks remain in force. A correction to
 birth date can make a parental consent form necessary before participation.
 
+`GET /api/tournaments/registrations` lists only the authenticated account’s registrations across tournaments, including cancelled registrations. The summary contains the tournament ID and name, registration number, and status. Admins receive only their own registrations on this endpoint.
+
 ## Tournament tags
 
 Authenticated users can read visible tournament tag definitions at

@@ -29,9 +29,9 @@ from app.tournaments.schemas import (
     TournamentCreate,
     TournamentRead,
 )
-from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration, tournament_registrations, tournament_tags
+from app.tournaments.services import payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
 from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
-from app.tournaments.services.tournament_policies import (
+from app.tournaments.services.tournament_administration import (
     create_tournament_configuration,
 )
 from config import settings
@@ -137,7 +137,7 @@ def list_pending_registration_refunds(
     offset: Annotated[int, Query(ge=0)] = 0,
     registration_number: Annotated[str | None, Query(min_length=1, max_length=50)] = None,
 ) -> StaffRegistrationRefundQueue:
-    return registration_refunds.list_pending_registration_refunds(
+    return registration_cancellations.list_pending_registration_refunds(
         session, admin, limit=limit, offset=offset, registration_number=registration_number
     )
 
@@ -151,7 +151,7 @@ def record_registration_refund_completion(
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
 ) -> RefundCompletionRead:
-    result = registration_refunds.record_registration_refund_completion(
+    result = registration_cancellations.record_registration_refund_completion(
         session, tournament_id, registration_number, admin, payload.completed_at,
         accounts=request.app.state.account_email_reader,
         sender=request.app.state.mail_sender,

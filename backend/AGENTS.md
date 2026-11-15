@@ -181,7 +181,6 @@ Use settings, not `os.getenv` in routers or services. Bootstrap selects the envi
 These existing paths and behaviors are migration gaps, not precedents for new boundaries:
 
 - Auth settings still live in `config/`. Moving them into auth requires preserving startup validation and environment-specific defaults. Leave them there during unrelated work.
-- Tournament routers still contain queries and record-access decisions. New workflows belong in services.
 
 ## Migrations, queries, and external calls
 

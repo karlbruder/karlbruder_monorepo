@@ -16,8 +16,8 @@ from app.tournaments.exceptions import (
 from app.tournaments.models.registration_acceptance import RegistrationAcceptance
 
 if TYPE_CHECKING:
-    from app.tournaments.models import Tournament, TournamentRegistration
-    from app.tournaments.schemas import RegistrationCreate, RegistrationRead
+    from app.tournaments.models import Tournament
+    from app.tournaments.schemas import RegistrationCreate
 
 DECLARATIONS = json.loads(
     (Path(__file__).parents[1] / "declaration_content.json").read_text()
@@ -33,7 +33,7 @@ CHOICE_FIELDS = (
 )
 
 
-def acceptance_content(tournament: Tournament, language: str) -> dict:
+def build_registration_acceptance_content(tournament: Tournament, language: str) -> dict:
     policies = {}
     for name in ("rules", "cancellation_policy"):
         source = getattr(tournament, f"{name}_url")
@@ -59,7 +59,7 @@ def acceptance_content(tournament: Tournament, language: str) -> dict:
     }
 
 
-def content_digest(content: dict) -> str:
+def calculate_registration_acceptance_digest(content: dict) -> str:
     return hashlib.sha256(
         json.dumps(
             content, sort_keys=True, ensure_ascii=False, separators=(",", ":")
@@ -67,11 +67,11 @@ def content_digest(content: dict) -> str:
     ).hexdigest()
 
 
-def create_acceptance(
+def create_registration_acceptance(
     tournament: Tournament, user_id: UUID, payload: RegistrationCreate, source_ip: str
 ) -> RegistrationAcceptance:
-    content = acceptance_content(tournament, payload.acceptance_language)
-    if content_digest(content) != payload.acceptance_token:
+    content = build_registration_acceptance_content(tournament, payload.acceptance_language)
+    if calculate_registration_acceptance_digest(content) != payload.acceptance_token:
         raise RegistrationConflictError(
             "Registration terms changed; refresh before accepting"
         )
@@ -87,30 +87,3 @@ def create_acceptance(
         rules_archive_id=tournament.rules_archive_id,
         cancellation_policy_archive_id=tournament.cancellation_policy_archive_id,
     )
-
-
-def parental_consent_required(registration: TournamentRegistration) -> bool:
-    from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
-
-    return (
-        registration.registration_status != "cancelled"
-        and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)
-        and not any(document.document_type == "parental_consent_form" for document in registration.documents)
-    )
-
-
-def project_registration(registration: TournamentRegistration, *, staff: bool = False) -> RegistrationRead:
-    """Read the latest snapshot through the established owner or staff allowlist."""
-    from app.tournaments.schemas import RegistrationRead, StaffRegistrationRead
-
-    schema = StaffRegistrationRead if staff else RegistrationRead
-    snapshot = registration.acceptances[-1]
-    evidence_fields = {*CHOICE_FIELDS, "accepted_terms_version", "accepted_rules_version", "accepted_at", "accepted_from_ip"}
-    values = {
-        name: getattr(snapshot if name in evidence_fields else registration, name)
-        for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}
-    }
-    values["product_name"] = registration.order_item.product_name if registration.order_item else None
-    values["product_description"] = registration.order_item.product_description if registration.order_item else None
-    values["parental_consent_required"] = parental_consent_required(registration)
-    return schema(**values)

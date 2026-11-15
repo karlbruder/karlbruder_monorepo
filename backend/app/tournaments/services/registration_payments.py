@@ -31,7 +31,7 @@ from app.tournaments.services.registration_documents import (
     promote_staged_payment_proof_to_registration,
     validate_staged_payment_proof_storage_key,
 )
-from app.tournaments.services.tournament_registrations import visible_tournament
+from app.tournaments.services.tournament_catalog import load_visible_tournament
 
 _PAYMENT_PROOF_UPLOAD_STATUSES = frozenset({"awaiting_payment", "awaiting_payment_confirmation"})
 
@@ -42,7 +42,7 @@ def load_owner_tournament_registration(
     registration_number: str,
     user: User,
 ) -> TournamentRegistration:
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     tournament_registration = session.scalar(
         select(TournamentRegistration).where(
             TournamentRegistration.tournament_id == tournament_id,
@@ -84,7 +84,7 @@ def submit_registration_payment_proof(
     original_file_name: str,
     file_storage: FileStorage,
 ) -> TournamentRegistration:
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     tournament_registration = session.scalar(
         select(TournamentRegistration)
         .where(
@@ -191,7 +191,7 @@ def read_registration_payment_instructions(
         CurrentPaymentProofReview,
     )
 
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     tournament_registration = session.scalar(
         select(TournamentRegistration).where(
             TournamentRegistration.tournament_id == tournament_id,

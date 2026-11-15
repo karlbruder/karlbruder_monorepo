@@ -43,7 +43,7 @@ from app.tournaments.schemas import (
     StaffPaymentReviewQueueItem,
     StaffReviewDocumentRead,
 )
-from app.tournaments.services.registration_acceptances import project_registration
+from app.tournaments.services.tournament_registrations import build_tournament_registration_read
 from app.tournaments.services.registration_documents import (
     create_parental_consent_form_download_url,
     create_payment_proof_download_url,
@@ -155,7 +155,7 @@ def read_payment_review(
         or 0
     )
     return StaffPaymentReviewDetail(
-        registration=project_registration(registration, staff=True),
+        registration=build_tournament_registration_read(registration, staff=True),
         tournament_name=tournament.name,
         registration_fee_amount=session.scalar(
             select(OrderItem.unit_amount).where(OrderItem.id == registration.order_item_id)

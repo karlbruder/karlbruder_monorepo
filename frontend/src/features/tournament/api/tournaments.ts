@@ -528,7 +528,7 @@ export type PersonalRegistrationSummary = {
 };
 
 export async function listPersonalRegistrations(token: string, signal?: AbortSignal): Promise<PersonalRegistrationSummary[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/me/registrations`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/registrations`, { headers: { Authorization: `Bearer ${token}` }, signal });
   if (!response.ok) throw new Error(`http-${response.status}`);
   const body: unknown = await response.json();
   if (!Array.isArray(body) || !body.every(item => item && Number.isSafeInteger(item.tournament_id) && typeof item.tournament_name === "string" && typeof item.registration_number === "string" && typeof item.registration_status === "string")) throw new Error("invalid-registration-list");

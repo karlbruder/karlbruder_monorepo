@@ -12,7 +12,7 @@ from app.tournaments.exceptions import (
 )
 from app.tournaments.models import RegistrationTag, TournamentRegistration, TournamentTag
 from app.tournaments.services import tournament_local_dates
-from app.tournaments.services.tournament_registrations import visible_tournament
+from app.tournaments.services.tournament_catalog import load_visible_tournament
 
 
 def _admin(actor: User) -> None:
@@ -21,13 +21,13 @@ def _admin(actor: User) -> None:
 
 
 def list_tags(session: Session, tournament_id: int, actor: User) -> list[TournamentTag]:
-    visible_tournament(session, tournament_id, actor)
+    load_visible_tournament(session, tournament_id, actor)
     return list(session.scalars(select(TournamentTag).where(TournamentTag.tournament_id == tournament_id).order_by(TournamentTag.id)))
 
 
 def save_tag(session: Session, tournament_id: int, actor: User, name: str, description: str, tag_id: int | None = None) -> TournamentTag:
     _admin(actor)
-    visible_tournament(session, tournament_id, actor, lock=True)
+    load_visible_tournament(session, tournament_id, actor, lock=True)
     tag = session.get(TournamentTag, tag_id) if tag_id is not None else None
     if tag_id is not None and (tag is None or tag.tournament_id != tournament_id):
         raise RegistrationResourceNotFoundError("Tag not found")
@@ -44,7 +44,7 @@ def save_tag(session: Session, tournament_id: int, actor: User, name: str, descr
 
 def delete_tag(session: Session, tournament_id: int, tag_id: int, actor: User) -> None:
     _admin(actor)
-    visible_tournament(session, tournament_id, actor, lock=True)
+    load_visible_tournament(session, tournament_id, actor, lock=True)
     tag = session.get(TournamentTag, tag_id)
     if tag is None or tag.tournament_id != tournament_id:
         raise RegistrationResourceNotFoundError("Tag not found")
@@ -65,7 +65,7 @@ def validate_tags(session: Session, tournament_id: int, tag_ids: list[int]) -> N
 def registration_tags(session: Session, tournament_id: int, number: str, actor: User, tag_ids: list[int] | None = None, *, staff: bool = False) -> list[TournamentTag]:
     if staff:
         _admin(actor)
-    tournament = visible_tournament(session, tournament_id, actor, lock=tag_ids is not None)
+    tournament = load_visible_tournament(session, tournament_id, actor, lock=tag_ids is not None)
     registration = session.scalar(select(TournamentRegistration).where(TournamentRegistration.tournament_id == tournament_id, TournamentRegistration.registration_number == number))
     if registration is None or (not staff and registration.user_id != actor.id):
         raise RegistrationResourceNotFoundError("Registration not found")

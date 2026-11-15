@@ -235,7 +235,7 @@ def test_refund_read_service_and_route_enforce_internal_visibility_after_change(
     """CAT-005: owners retain access only while their role can view the tournament."""
     from app.auth.models import User
     from app.tournaments.exceptions import RegistrationResourceNotFoundError
-    from app.tournaments.services.registration_refunds import read_registration_refund
+    from app.tournaments.services.registration_cancellations import read_registration_refund
 
     registration, documents = _pending(setup, **REFUNDABLE_POLICY)
     client, key, session, _ = setup

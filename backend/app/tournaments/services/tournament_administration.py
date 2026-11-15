@@ -23,15 +23,17 @@ from app.tournaments.schemas import (
     StaffTournamentList,
     StaffTournamentRead,
     TournamentCreate,
+    TournamentRead,
 )
 from app.tournaments.services.policy_fetch import PolicyFetcher
 from app.tournaments.services.registration_documents import (
     delete_storage_object_quietly,
 )
 from app.tournaments.services.tournament_policies import (
-    prepare_policy_archives,
-    project_tournament,
+    prepare_tournament_policy_archives,
 )
+from app.tournaments.services.tournament_catalog import build_tournament_read
+from app.tournaments.services.tournament_payment_settings import create_tournament_payment_settings
 from app.tournaments.services.tournament_slugs import resolve_tournament_slug
 
 
@@ -44,7 +46,7 @@ def _staff_projection(
     tournament: Tournament, pix_key: str | None, storage: FileStorage
 ) -> StaffTournamentRead:
     return StaffTournamentRead(
-        **project_tournament(tournament, storage).model_dump(),
+        **build_tournament_read(tournament, storage).model_dump(),
         pix_key=pix_key,
     )
 
@@ -112,7 +114,7 @@ def update_tournament(
     created_keys: list[str] = []
     try:
         # Capture external policies before taking the tournament lock.
-        prepare_policy_archives(draft, storage, fetcher, created_keys)
+        prepare_tournament_policy_archives(draft, storage, fetcher, created_keys)
         tournament = session.scalar(
             select(Tournament)
             .where(Tournament.id == tournament_id)
@@ -207,3 +209,39 @@ def delete_tournament(session: Session, actor: User, tournament_id: int) -> None
     except Exception:
         session.rollback()
         raise
+
+def create_tournament_configuration(
+    session: Session,
+    payload: TournamentCreate,
+    actor: User,
+    storage: FileStorage,
+    fetcher: PolicyFetcher,
+) -> TournamentRead:
+    if get_application_role(actor) != "admin":
+        raise RegistrationNotAllowedError("Guild staff access is required")
+    slug = resolve_tournament_slug(
+        payload.name, payload.discipline, payload.starts_at, payload.slug
+    )
+    if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
+        raise RegistrationConflictError("Tournament slug already exists")
+    tournament = Tournament(**{**payload.model_dump(exclude={"pix_key"}), "slug": slug})
+    created_keys = []
+    try:
+        prepare_tournament_policy_archives(tournament, storage, fetcher, created_keys)
+        session.add(tournament)
+        session.flush()
+        create_tournament_payment_settings(session, tournament.id, payload.pix_key)
+        response = build_tournament_read(tournament, storage)
+        session.commit()
+    except Exception as error:
+        session.rollback()
+        for key in created_keys:
+            delete_storage_object_quietly(storage, key)
+        if (
+            isinstance(error, IntegrityError)
+            and getattr(getattr(error.orig, "diag", None), "constraint_name", None)
+            == "uq_tournaments_slug"
+        ):
+            raise RegistrationConflictError("Tournament slug already exists") from error
+        raise
+    return response

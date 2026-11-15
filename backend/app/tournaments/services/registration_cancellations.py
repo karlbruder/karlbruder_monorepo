@@ -23,7 +23,7 @@ from app.tournaments.models import (
 )
 from app.tournaments.schemas import StaffRegistrationRefundQueue, StaffRegistrationRefundRead
 from app.tournaments.services.tournament_local_dates import refund_due_date
-from app.tournaments.services.tournament_registrations import visible_tournament
+from app.tournaments.services.tournament_catalog import load_visible_tournament
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 def _lock_registration_for_refund(
     session: Session, tournament_id: int, number: str, user: User
 ) -> tuple[Tournament, TournamentRegistration]:
-    tournament = visible_tournament(session, tournament_id, user, lock=True)
+    tournament = load_visible_tournament(session, tournament_id, user, lock=True)
     registration = session.scalar(
         select(TournamentRegistration)
         .where(TournamentRegistration.tournament_id == tournament_id,
@@ -55,7 +55,7 @@ def _find_registration_payment(session: Session, registration: TournamentRegistr
 def read_registration_refund(
     session: Session, tournament_id: int, registration_number: str, user: User
 ) -> Refund | None:
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     registration = session.scalar(
         select(TournamentRegistration).where(
             TournamentRegistration.tournament_id == tournament_id,

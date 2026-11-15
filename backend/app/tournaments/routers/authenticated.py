@@ -3,15 +3,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AuthenticatedUser, require_authenticated_user
-from app.auth.supabase.roles import get_application_role
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
-from app.tournaments.models import TournamentRegistration
 from app.tournaments.schemas import (
+    PersonalRegistrationSummary,
     TagRead,
     TagSelection,
     ParentalConsentFormDownloadUrlRead,
@@ -34,11 +32,14 @@ from app.tournaments.services import (
     read_registration_payment_proof_download,
     read_tournament_registration_parental_consent_form_download,
     submit_registration_payment_proof,
-    visible_tournament,
+    load_visible_tournament,
 )
-from app.tournaments.services import registration_refunds, tournament_tags
-from app.tournaments.services.registration_acceptances import project_registration
+from app.tournaments.services import registration_cancellations, tournament_tags
+from app.tournaments.services.tournament_registrations import build_tournament_registration_read
 from app.tournaments.services.tournament_registrations import (
+    list_personal_registrations,
+    list_tournament_registrations,
+    read_tournament_registration,
     submit_registration_parental_consent_form,
     update_tournament_registration,
 )
@@ -47,12 +48,12 @@ from app.tournaments.services.registration_documents import (
 )
 
 router = APIRouter(
-    prefix="/api/tournaments", dependencies=[Depends(require_authenticated_user)]
+    prefix="/api", dependencies=[Depends(require_authenticated_user)]
 )
 
 
 @router.post(
-    "/{tournament_id}/registrations/parental-consent-form/upload-url",
+    "/tournaments/{tournament_id}/registrations/parental-consent-form/upload-url",
     response_model=ParentalConsentFormUploadUrlRead,
 )
 def issue_parental_consent_form_upload_url(
@@ -61,7 +62,7 @@ def issue_parental_consent_form_upload_url(
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> ParentalConsentFormUploadUrlRead:
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     storage_key, upload_url, expires_in_seconds, required_headers = (
         create_parental_consent_form_upload_url(
             file_storage,
@@ -78,7 +79,7 @@ def issue_parental_consent_form_upload_url(
 
 
 @router.post(
-    "/{tournament_id}/registrations",
+    "/tournaments/{tournament_id}/registrations",
     response_model=RegistrationRead,
     status_code=status.HTTP_201_CREATED,
 )
@@ -100,11 +101,11 @@ def register_for_tournament(
         request.client.host,
         file_storage=file_storage,
     )
-    return project_registration(tournament_registration)
+    return build_tournament_registration_read(tournament_registration)
 
 
 @router.get(
-    "/{tournament_id}/registrations",
+    "/tournaments/{tournament_id}/registrations",
     response_model=list[RegistrationRead | StaffRegistrationRead],
 )
 def list_registrations(
@@ -112,29 +113,10 @@ def list_registrations(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[RegistrationRead | StaffRegistrationRead]:
-    visible_tournament(session, tournament_id, user)
-    query = (
-        select(TournamentRegistration)
-        .options(joinedload(TournamentRegistration.tournament), selectinload(TournamentRegistration.documents))
-        .where(TournamentRegistration.tournament_id == tournament_id)
-        .order_by(TournamentRegistration.id)
-    )
-    if get_application_role(user) != "admin":
-        query = query.where(TournamentRegistration.user_id == user.id)
-    registrations = session.scalars(query)
-    if get_application_role(user) == "admin":
-        return [
-            project_registration(tournament_registration, staff=True)
-            for tournament_registration in registrations
-        ]
-    return [
-        project_registration(tournament_registration)
-        for tournament_registration in registrations
-    ]
-
+    return list_tournament_registrations(session, tournament_id, user)
 
 @router.get(
-    "/{tournament_id}/registrations/{registration_number}",
+    "/tournaments/{tournament_id}/registrations/{registration_number}",
     response_model=RegistrationRead | StaffRegistrationRead,
 )
 def get_registration(
@@ -143,25 +125,10 @@ def get_registration(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> RegistrationRead | StaffRegistrationRead:
-    visible_tournament(session, tournament_id, user)
-    tournament_registration = session.scalar(
-        select(TournamentRegistration).where(
-            TournamentRegistration.tournament_id == tournament_id,
-            TournamentRegistration.registration_number == registration_number,
-        )
-    )
-    if tournament_registration is None or (
-        tournament_registration.user_id != user.id
-        and get_application_role(user) != "admin"
-    ):
-        raise HTTPException(status_code=404, detail="Registration not found")
-    if get_application_role(user) == "admin":
-        return project_registration(tournament_registration, staff=True)
-    return project_registration(tournament_registration)
-
+    return read_tournament_registration(session, tournament_id, registration_number, user)
 
 @router.put(
-    "/{tournament_id}/registrations/{registration_number}",
+    "/tournaments/{tournament_id}/registrations/{registration_number}",
     response_model=RegistrationRead,
 )
 def update_registration(
@@ -174,11 +141,11 @@ def update_registration(
     registration = update_tournament_registration(
         session, tournament_id, registration_number, user, payload
     )
-    return project_registration(registration)
+    return build_tournament_registration_read(registration)
 
 
 @router.post(
-    "/{tournament_id}/registrations/{registration_number}/cancel",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/cancel",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def cancel_registration(
@@ -187,13 +154,13 @@ def cancel_registration(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> None:
-    registration_refunds.cancel_tournament_registration(
+    registration_cancellations.cancel_tournament_registration(
         session, tournament_id, registration_number, user
     )
 
 
 @router.get(
-    "/{tournament_id}/registrations/{registration_number}/refund",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/refund",
     response_model=RegistrationRefundRead | None,
 )
 def get_registration_refund(
@@ -202,14 +169,14 @@ def get_registration_refund(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> RegistrationRefundRead | None:
-    refund = registration_refunds.read_registration_refund(
+    refund = registration_cancellations.read_registration_refund(
         session, tournament_id, registration_number, user
     )
     return RegistrationRefundRead.model_validate(refund, from_attributes=True) if refund else None
 
 
 @router.post(
-    "/{tournament_id}/registrations/{registration_number}/parental-consent-form",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form",
     response_model=RegistrationRead,
 )
 def submit_parental_consent_form(
@@ -225,11 +192,11 @@ def submit_parental_consent_form(
         storage_key=payload.storage_key, original_file_name=payload.original_file_name,
         file_storage=file_storage,
     )
-    return project_registration(registration)
+    return build_tournament_registration_read(registration)
 
 
 @router.get(
-    "/{tournament_id}/registrations/{registration_number}/parental-consent-form",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form",
     response_model=ParentalConsentFormDownloadUrlRead,
 )
 def get_parental_consent_form_download_url(
@@ -252,7 +219,7 @@ def get_parental_consent_form_download_url(
 
 
 @router.get(
-    "/{tournament_id}/registrations/{registration_number}/payment",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/payment",
     response_model=RegistrationPaymentInstructions,
 )
 def get_registration_payment_instructions(
@@ -270,7 +237,7 @@ def get_registration_payment_instructions(
 
 
 @router.post(
-    "/{tournament_id}/registrations/{registration_number}/payment-proof/upload-url",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/payment-proof/upload-url",
     response_model=PaymentProofUploadUrlRead,
 )
 def create_payment_proof_upload_url_route(
@@ -298,7 +265,7 @@ def create_payment_proof_upload_url_route(
 
 
 @router.post(
-    "/{tournament_id}/registrations/{registration_number}/payment-proof",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/payment-proof",
     response_model=RegistrationRead,
 )
 def submit_payment_proof(
@@ -318,11 +285,11 @@ def submit_payment_proof(
         original_file_name=payload.original_file_name,
         file_storage=file_storage,
     )
-    return project_registration(tournament_registration)
+    return build_tournament_registration_read(tournament_registration)
 
 
 @router.get(
-    "/{tournament_id}/registrations/{registration_number}/payment-proof",
+    "/tournaments/{tournament_id}/registrations/{registration_number}/payment-proof",
     response_model=PaymentProofDownloadUrlRead,
 )
 def get_payment_proof_download_url(
@@ -348,7 +315,7 @@ def get_payment_proof_download_url(
     )
 
 
-@router.get("/{tournament_id}/tags", response_model=list[TagRead])
+@router.get("/tournaments/{tournament_id}/tags", response_model=list[TagRead])
 def list_tags(
     tournament_id: int,
     user: AuthenticatedUser,
@@ -357,7 +324,7 @@ def list_tags(
     return tournament_tags.list_tags(session, tournament_id, user)
 
 
-@router.get("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+@router.get("/tournaments/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
 def get_registration_tags(
     tournament_id: int,
     number: str,
@@ -367,7 +334,7 @@ def get_registration_tags(
     return tournament_tags.registration_tags(session, tournament_id, number, user)
 
 
-@router.put("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+@router.put("/tournaments/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
 def set_registration_tags(
     tournament_id: int,
     number: str,
@@ -376,3 +343,10 @@ def set_registration_tags(
     session: Annotated[Session, Depends(get_session)],
 ):
     return tournament_tags.registration_tags(session, tournament_id, number, user, payload.tag_ids)
+
+
+@router.get("/tournaments/registrations", response_model=list[PersonalRegistrationSummary])
+def list_my_registrations(
+    user: AuthenticatedUser, session: Annotated[Session, Depends(get_session)]
+):
+    return list_personal_registrations(session, user)

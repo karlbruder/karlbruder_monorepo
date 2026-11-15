@@ -1202,11 +1202,11 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
         session.commit()
         event_id = event.id
         from app.tournaments.services.registration_acceptances import (
-            acceptance_content,
-            content_digest,
+            build_registration_acceptance_content,
+            calculate_registration_acceptance_digest,
         )
 
-        token = content_digest(acceptance_content(event, "pt"))
+        token = calculate_registration_acceptance_digest(build_registration_acceptance_content(event, "pt"))
 
     def create(index):
         email = f"concurrent{index}@example.test"
@@ -1334,7 +1334,7 @@ def test_proof_file_metadata_document_and_status_roll_back_on_database_failure(
 def test_acceptance_preserves_exact_choices_content_and_history(setup):
     from app.tournaments.models import RegistrationAcceptance
     from app.tournaments.schemas import RegistrationCreate
-    from app.tournaments.services.registration_acceptances import create_acceptance
+    from app.tournaments.services.registration_acceptances import create_registration_acceptance
 
     client, key, session, _storage = setup
     event_id = _create_event(
@@ -1365,7 +1365,7 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
         tournament_product_id=row.tournament_product_id,
         price_id=row.order_item.price_id,
     )
-    second = create_acceptance(event, row.user_id, payload, "192.0.2.8")
+    second = create_registration_acceptance(event, row.user_id, payload, "192.0.2.8")
     row.acceptances.append(second)
     session.commit()
     session.expire_all()
@@ -1450,7 +1450,7 @@ def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):
 def test_archived_policies_survive_source_and_configuration_changes(setup, monkeypatch):
     from app.core.files.models import ArchivedFile
     from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.tournaments.services.tournament_policies import prepare_policy_archives
+    from app.tournaments.services.tournament_policies import prepare_tournament_policy_archives
     from sqlalchemy import text
     from sqlalchemy.exc import IntegrityError
 
@@ -1476,7 +1476,7 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     event = session.get(Tournament, event_id)
     event.rules_version = "rules-v2"
     keys = []
-    prepare_policy_archives(event, storage, PolicyFetcher(), keys)
+    prepare_tournament_policy_archives(event, storage, PolicyFetcher(), keys)
     session.commit()
     assert event.rules_archive_id != first.rules_archive_id
     assert storage.objects[original_key][0] == b"<html>Original policy</html>"
@@ -2165,3 +2165,54 @@ def test_registration_correction_rejects_duplicate_document_and_preserves_previo
     path = f"/api/tournaments/{event_id}/registrations/{created.json()['registration_number']}"
     assert client.put(path, headers=second, json=details).status_code == 409
     assert client.get(path, headers=second).json()["identity_document_number"] == "OTHER"
+
+
+def test_personal_registration_list_is_owner_scoped_across_tournaments_even_for_admin(setup):
+    client, key, session, _ = setup
+    owner_id, other_id = uuid4(), uuid4()
+    owner = _headers(key, user_id=owner_id)
+    admin_owner = _headers(key, user_id=owner_id, role="admin")
+    other = _headers(key, user_id=other_id, email="other@example.test")
+    first, second = _create_event(client, key), _create_event(client, key)
+    first_registration = _post_registration(client, first, owner)
+    second_registration = _post_registration(client, second, owner)
+    assert first_registration.status_code == second_registration.status_code == 201
+    other_registration = _post_registration(client, first, other, _registration(email="other@example.test", document="other"))
+    assert other_registration.status_code == 201
+    row = session.scalar(select(TournamentRegistration).where(TournamentRegistration.registration_number == first_registration.json()["registration_number"]))
+    row.registration_status = "cancelled"
+    session.flush()
+    assert client.get("/api/tournaments/registrations").status_code == 401
+    response = client.get("/api/tournaments/registrations", headers=owner)
+    assert response.status_code == 200
+    results = response.json()
+    assert client.get("/api/tournaments/registrations", headers=admin_owner).json() == results
+    assert {item["registration_number"] for item in results} == {first_registration.json()["registration_number"], second_registration.json()["registration_number"]}
+    assert {item["registration_status"] for item in results} == {"cancelled", "awaiting_payment"}
+    assert all(set(item) == {"tournament_id", "tournament_name", "registration_number", "registration_status"} for item in results)
+    assert len(client.get("/api/tournaments/registrations", headers=other).json()) == 1
+    assert client.get("/api/tournaments/registrations", headers=_headers(key)).json() == []
+
+
+def test_registration_read_services_enforce_ownership_and_staff_projection(setup):
+    from app.auth.models import User
+    from app.tournaments.exceptions import RegistrationResourceNotFoundError
+    from app.tournaments.services.tournament_registrations import (
+        list_tournament_registrations,
+        read_tournament_registration,
+    )
+
+    client, key, session, _ = setup
+    event_id = _create_event(client, key)
+    owner_id = uuid4()
+    response = _post_registration(client, event_id, _headers(key, user_id=owner_id))
+    number = response.json()["registration_number"]
+    owner = User(id=owner_id)
+    stranger = User(id=uuid4())
+    admin = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+
+    assert [row.registration_number for row in list_tournament_registrations(session, event_id, owner)] == [number]
+    assert list_tournament_registrations(session, event_id, stranger) == []
+    with pytest.raises(RegistrationResourceNotFoundError):
+        read_tournament_registration(session, event_id, number, stranger)
+    assert read_tournament_registration(session, event_id, number, admin).user_id == owner_id

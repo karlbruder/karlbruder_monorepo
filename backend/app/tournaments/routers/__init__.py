@@ -5,5 +5,5 @@ from fastapi import APIRouter
 from . import anonymous, authenticated, staff
 
 router = APIRouter(tags=["tournaments"])
-for access_router in (staff.router, anonymous.router, authenticated.router):
+for access_router in (staff.router, authenticated.router, anonymous.router):
     router.include_router(access_router)

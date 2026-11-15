@@ -31,7 +31,8 @@ from app.tournaments.models import (
     TournamentRegistrationDocument,
     TournamentTag,
 )
-from .registration_acceptances import CHOICE_FIELDS, create_acceptance, parental_consent_required
+from .registration_acceptances import CHOICE_FIELDS, create_registration_acceptance
+from .tournament_catalog import load_visible_tournament
 from . import tournament_local_dates
 from .tournament_local_dates import is_minor_at_tournament_start
 from .registration_numbers import (
@@ -47,7 +48,7 @@ from .registration_documents import (
 )
 
 if TYPE_CHECKING:
-    from app.tournaments.schemas import RegistrationCreate, RegistrationDetails
+    from app.tournaments.schemas import RegistrationCreate, RegistrationDetails, RegistrationRead
 
 _DUPLICATE_CONSTRAINTS = {
     "uq_tournament_registrations_active_user",
@@ -70,30 +71,27 @@ def normalize_tournament_registration_identity(value: str) -> str:
     return re.sub(r"[\s.\-]", "", value).lower()
 
 
-def visible_tournament(
-    session: Session, tournament_id: int, user: User, *, lock: bool = False
-) -> Tournament:
-    """Load a tournament the caller may see, optionally with a row lock.
-
-    Regular users receive 404 for internal events. Missing rows also return 404.
-    """
-
-    query = select(Tournament).where(Tournament.id == tournament_id)
-    if get_application_role(user) not in ("guild_member", "admin"):
-        query = query.where(Tournament.is_internal.is_(False))
-    if lock:
-        query = query.with_for_update(of=Tournament)
-    tournament = session.scalar(query)
-    if tournament is None:
-        raise RegistrationResourceNotFoundError("Tournament not found")
-    return tournament
+def list_personal_registrations(session: Session, user: User) -> list[dict]:
+    """List only the authenticated account's registrations across tournaments."""
+    rows = session.execute(
+        select(TournamentRegistration, Tournament.name)
+        .join(Tournament, Tournament.id == TournamentRegistration.tournament_id)
+        .where(TournamentRegistration.user_id == user.id)
+        .order_by(TournamentRegistration.id.desc())
+    ).all()
+    return [
+        {"tournament_id": registration.tournament_id, "tournament_name": name,
+         "registration_number": registration.registration_number,
+         "registration_status": registration.registration_status}
+        for registration, name in rows
+    ]
 
 
 def list_tournament_registrations_for_staff(session: Session, tournament_id: int, actor: User) -> list[dict]:
     """Return registration summaries for staff without private contact details."""
     if get_application_role(actor) != "admin":
         raise RegistrationNotAllowedError("Guild staff access is required")
-    visible_tournament(session, tournament_id, actor)
+    load_visible_tournament(session, tournament_id, actor)
     registrations = session.scalars(
         select(TournamentRegistration)
         .options(selectinload(TournamentRegistration.documents), selectinload(TournamentRegistration.tournament))
@@ -115,7 +113,7 @@ def list_tournament_registrations_for_staff(session: Session, tournament_id: int
             "full_name": registration.full_name,
             "social_name": registration.social_name,
             "registration_status": registration.registration_status,
-            "parental_consent_required": parental_consent_required(registration),
+            "parental_consent_required": is_registration_parental_consent_required(registration),
             "tags": tags_by_registration.get(registration.id, []),
         }
         for registration in registrations
@@ -127,7 +125,7 @@ def update_tournament_registration(
     payload: RegistrationDetails,
 ) -> TournamentRegistration:
     """Correct a registration for its owner or guild staff without changing evidence."""
-    visible_tournament(session, tournament_id, user, lock=True)
+    load_visible_tournament(session, tournament_id, user, lock=True)
     registration = session.scalar(
         select(TournamentRegistration)
         .where(
@@ -184,7 +182,7 @@ def create_tournament_registration(
     if email_normalized != account_email_normalized:
         raise RegistrationNotAllowedError("Registration email must match account email")
 
-    tournament = visible_tournament(session, tournament_id, user, lock=True)
+    tournament = load_visible_tournament(session, tournament_id, user, lock=True)
     from .tournament_tags import validate_tags
     validate_tags(session, tournament_id, payload.tag_ids)
     option = session.execute(
@@ -245,7 +243,7 @@ def create_tournament_registration(
         )
         inspect_staged_parental_consent_form_upload(file_storage, staged_storage_key)
 
-    acceptance = create_acceptance(tournament, user.id, payload, accepted_from_ip)
+    acceptance = create_registration_acceptance(tournament, user.id, payload, accepted_from_ip)
     tournament_product, product, price = option
     order = Order(user_id=user.id, status="pending", currency=price.currency)
     session.add(order)
@@ -346,7 +344,7 @@ def read_tournament_registration_parental_consent_form_download(
 ) -> tuple[str, str, int]:
     """Return a presigned download URL for the parental consent form when the caller may read it."""
 
-    visible_tournament(session, tournament_id, user)
+    load_visible_tournament(session, tournament_id, user)
     tournament_registration = session.scalar(
         select(TournamentRegistration).where(
             TournamentRegistration.tournament_id == tournament_id,
@@ -405,7 +403,7 @@ def submit_registration_parental_consent_form(
     """Attach missing consent to an existing minor's own active registration."""
     final_key = None
     try:
-        tournament = visible_tournament(session, tournament_id, user, lock=True)
+        tournament = load_visible_tournament(session, tournament_id, user, lock=True)
         registration = session.scalar(
             select(TournamentRegistration)
             .where(
@@ -451,3 +449,55 @@ def submit_registration_parental_consent_form(
         if final_key is not None:
             delete_storage_object_quietly(file_storage, final_key)
         raise
+
+def is_registration_parental_consent_required(registration: TournamentRegistration) -> bool:
+    return (
+        registration.registration_status != "cancelled"
+        and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)
+        and not any(document.document_type == "parental_consent_form" for document in registration.documents)
+    )
+
+
+def build_tournament_registration_read(registration: TournamentRegistration, *, staff: bool = False) -> RegistrationRead:
+    """Read the latest snapshot through the established owner or staff allowlist."""
+    from app.tournaments.schemas import RegistrationRead, StaffRegistrationRead
+
+    schema = StaffRegistrationRead if staff else RegistrationRead
+    snapshot = registration.acceptances[-1]
+    evidence_fields = {*CHOICE_FIELDS, "accepted_terms_version", "accepted_rules_version", "accepted_at", "accepted_from_ip"}
+    values = {
+        name: getattr(snapshot if name in evidence_fields else registration, name)
+        for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}
+    }
+    values["product_name"] = registration.order_item.product_name if registration.order_item else None
+    values["product_description"] = registration.order_item.product_description if registration.order_item else None
+    values["parental_consent_required"] = is_registration_parental_consent_required(registration)
+    return schema(**values)
+
+
+def list_tournament_registrations(
+    session: Session, tournament_id: int, user: User
+) -> list[RegistrationRead]:
+    load_visible_tournament(session, tournament_id, user)
+    query = (select(TournamentRegistration)
+        .options(joinedload(TournamentRegistration.tournament), selectinload(TournamentRegistration.documents))
+        .where(TournamentRegistration.tournament_id == tournament_id)
+        .order_by(TournamentRegistration.id))
+    staff = get_application_role(user) == "admin"
+    if not staff:
+        query = query.where(TournamentRegistration.user_id == user.id)
+    return [build_tournament_registration_read(registration, staff=staff) for registration in session.scalars(query)]
+
+
+def read_tournament_registration(
+    session: Session, tournament_id: int, number: str, user: User
+) -> RegistrationRead:
+    load_visible_tournament(session, tournament_id, user)
+    registration = session.scalar(select(TournamentRegistration).where(
+        TournamentRegistration.tournament_id == tournament_id,
+        TournamentRegistration.registration_number == number,
+    ))
+    staff = get_application_role(user) == "admin"
+    if registration is None or (registration.user_id != user.id and not staff):
+        raise RegistrationResourceNotFoundError("Registration not found")
+    return build_tournament_registration_read(registration, staff=staff)
