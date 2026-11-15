@@ -42,14 +42,11 @@ reused as a trigger name on several different tables.
 | `prices` | `immutable_purchased_price` | Update | `protect_purchased_price` | Prevent changing a purchased price's product, amount, or currency. Deactivation remains allowed. |
 | `order_items` | `valid_order_item_price` | Insert | `lock_order_item_price` | Require the item amount and currency to match the referenced price and lock that price during insertion. |
 
-## Functions retained for downgrade
+## Downgrade-only functions
 
-The initial migration creates `validate_registration_payment` and
-`validate_registration_refund`. The Karlmart migration drops the old association
-tables and their triggers, but retains these functions in `public` without active
-trigger attachments. The Karlmart
-downgrade recreates the old tables and reattaches `valid_payment_review` and
-`valid_refund_amount`. They are not part of the new payment workflow.
+The Karlmart migration removes the unused `validate_registration_payment` and
+`validate_registration_refund` functions after dropping their association tables.
+Its downgrade recreates the functions and their triggers for the earlier schema.
 
 There are no application-defined stored procedures in these migrations. The
 functions above are trigger functions. Application services do not call them as

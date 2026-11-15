@@ -29,7 +29,7 @@ type Props = {
 };
 
 function formatMoney(
-  value: Tournament["registration_fee_amount"] | string | number | null,
+  value: string | number | null,
   language: AppLanguage,
 ): string {
   if (value === null) return appCopy(language, "A confirmar");

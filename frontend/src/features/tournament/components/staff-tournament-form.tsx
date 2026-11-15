@@ -15,7 +15,6 @@ const fields: Field[] = [
   { key: "competitor_capacity", pt: "Capacidade de participantes", en: "Competitor capacity", type: "number" },
   { key: "registration_opens_on", pt: "Abertura das inscrições", en: "Registration opens", type: "date" },
   { key: "registration_closes_on", pt: "Encerramento das inscrições", en: "Registration closes", type: "date" },
-  { key: "registration_fee_amount", pt: "Valor da inscrição (BRL)", en: "Registration fee (BRL)", type: "number" },
   { key: "payment_due_at", pt: "Prazo de pagamento", en: "Payment deadline", type: "datetime-local" },
   { key: "pix_key", pt: "Chave Pix", en: "Pix key" },
   { key: "rules_text", pt: "Texto do regulamento", en: "Rules text", multiline: true },
@@ -108,7 +107,7 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     <p>{en ? "Date and time fields use your browser time zone:" : "Os campos de data e hora usam o fuso horário do navegador:"} {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
     <div className="staff-form-grid">
     {fields.map(field => <label key={field.key} className={field.multiline ? "staff-field-wide" : undefined}>{en ? field.en : field.pt}{" "}
-      {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} step={field.key === "registration_fee_amount" ? "0.01" : field.type === "datetime-local" ? "1" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
+      {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} step={field.type === "datetime-local" ? "1" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
     </label>)}
     </div>
     {rulesHaveBothFormats && <p role="status">{en

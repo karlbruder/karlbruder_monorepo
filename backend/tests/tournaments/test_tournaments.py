@@ -92,7 +92,7 @@ def _event(name="Fixture Tournament", *, internal=False, **overrides):
 
 
 def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(client):
-    """An admin can create more than one tournament, and the public catalog returns each one with its own fee and discipline.
+    """An admin can create more than one tournament, and the public catalog returns each one with its own discipline.
 
     Registration rows and the next inscription serial stay out of that response.
     """
@@ -104,7 +104,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     second = test_client.post(
         "/api/staff/tournaments",
         json=_event(
-            "Second Fixture", registration_fee_amount="75.00", discipline="sabre"
+            "Second Fixture", discipline="sabre"
         ),
         headers=admin,
     )
@@ -113,8 +113,8 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     assert first_data["id"] != second_data["id"]
     assert first_data["name"] == "Monomachia Fixture"
     assert first_data["slug"].startswith("fixture-")
-    assert first_data["registration_fee_amount"] is None
-    assert second_data["registration_fee_amount"] == "75.00"
+    assert "registration_fee_amount" not in first_data
+    assert "registration_fee_amount" not in second_data
     assert second_data["discipline"] == "sabre"
     assert "next_registration_number" not in first_data
     assert "registrations" not in first_data
@@ -129,7 +129,7 @@ def test_admin_creates_two_generic_tournaments_and_public_reads_are_scoped(clien
     assert detail.status_code == 200
     assert detail.json()["name"] == first_data["name"]
     assert detail.json()["slug"] == first_data["slug"]
-    assert detail.json()["registration_fee_amount"] is None
+    assert "registration_fee_amount" not in detail.json()
 
 
 def test_internal_event_is_hidden_from_guest_and_regular_user(client):
@@ -312,8 +312,7 @@ def test_guest_catalog_does_not_fetch_jwks_and_supplied_token_outage_is_503(
         {"ends_at": "2027-01-16T12:00:00Z"},
         {"registration_opens_on": "2027-02-01", "registration_closes_on": "2027-01-01"},
         {"competitor_capacity": -1},
-        {"registration_fee_amount": "-0.01"},
-        {"registration_fee_amount": "1.001"},
+        {"registration_fee_amount": "75.00"},
         {"id": 999},
         {"next_registration_number": 500},
     ],

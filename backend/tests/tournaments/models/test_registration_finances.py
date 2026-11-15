@@ -141,7 +141,6 @@ def evidence(db_session):
         starts_at=NOW,
         is_internal=False,
         competitor_capacity=0,
-        registration_fee_amount=Decimal("100.00"),
     )
     db_session.add(tournament)
     db_session.flush()
@@ -206,7 +205,7 @@ def test_verified_payment_preserves_actual_brl_amount_independently_of_fee_and_s
     payment = _payment(db_session, registration, review)
     db_session.expire_all()
     assert payment.payment.amount_received == Decimal("125.50")
-    assert payment.payment.amount_received != tournament.registration_fee_amount
+    assert payment.payment.amount_received != registration.order_item.unit_amount
     assert payment.proof_review.document.id == document.id
     assert payment.payment.verified_at == NOW
     assert payment.payment.verified_by_user_id is not None

@@ -29,7 +29,6 @@ const tournament = {
   discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,
@@ -107,7 +106,6 @@ describe('Monomachia registration entry', () => {
   it('uses the URL language before the saved preference, localizes facts, and keeps OAuth on that route', async () => {
     window.localStorage.setItem('registrationLanguage', 'pt')
     window.history.replaceState({}, '', '/tournaments/registration?source=landing&lang=en')
-    mockTournament({ ...tournament, registration_fee_amount: '125.50' })
     renderApp()
 
     expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
@@ -115,7 +113,6 @@ describe('Monomachia registration entry', () => {
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'English' }).closest('[lang]')).toHaveAttribute('lang', 'en-US')
     expect(screen.getByText(/January 17, 2027/)).toBeInTheDocument()
-    expect(screen.getByText(/R\$125\.50/)).toBeInTheDocument()
     expect(window.localStorage.getItem('registrationLanguage')).toBe('en')
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }))
     await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
@@ -155,13 +152,6 @@ describe('Monomachia registration entry', () => {
     expect(screen.getByRole('button', { name: 'Sign in with Google' })).toBeInTheDocument()
   })
 
-  it('formats the fee in Brazilian reais for the default Portuguese route', async () => {
-    mockTournament({ ...tournament, registration_fee_amount: '125.50' })
-    renderApp()
-    expect(await screen.findByText(/17 de janeiro de 2027/)).toBeInTheDocument()
-    expect(screen.getByText(/R\$\s?125,50/)).toBeInTheDocument()
-  })
-
   it('translates sign-out errors on the English private route', async () => {
     window.history.replaceState({}, '', '/tournaments/registration?lang=en')
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
@@ -192,7 +182,7 @@ describe('Monomachia registration entry', () => {
     expect(request).toHaveBeenCalledWith(monomachiaListUrl, expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(screen.getByText('Espada longa (longsword)')).toBeInTheDocument()
     expect(screen.getByText(/17 de janeiro de 2027/)).toBeInTheDocument()
-    expect(screen.getAllByText('A confirmar')).toHaveLength(2)
+    expect(screen.getAllByText('A confirmar')).toHaveLength(1)
     expect(screen.getByText(/inclusive \(GMT-3\)/)).toBeInTheDocument()
     expect(screen.getByText(/não confirma uma vaga/)).toBeInTheDocument()
   })

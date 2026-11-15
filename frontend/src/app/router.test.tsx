@@ -41,7 +41,6 @@ const tournament = {
   discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,

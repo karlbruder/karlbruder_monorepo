@@ -17,9 +17,9 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 ## Rules
 
 - **CAT-001:** The catalog supports multiple tournaments with stable identifiers. Each tournament has a required unique slug. When staff omit the slug, it is derived from the display name, discipline, and the year of `starts_at`. The list is paginated and can be filtered by display name and by the event start date. `starts_at` and `ends_at` are the event dates. The registration window is separate. Selecting an event scopes its information, registration, and results to that event.
-- **CAT-002:** A tournament can describe name, description, discipline, start/end date and time, location, schedule, fee, registration window, payment deadline, capacity, rules, equipment requirements, and cancellation policy.
+- **CAT-002:** A tournament can describe name, description, discipline, start/end date and time, location, schedule, registration window, payment deadline, capacity, rules, equipment requirements, and cancellation policy.
 - **CAT-003:** Event details communicate the registration date range and capacity status. When capacity is full, the registration page warns that approved payment will lead to the waitlist unless a seat becomes available. Being full does not itself prevent submission or proof upload. Staff may explicitly close new registrations; the backend enforces that closure. Submission never guarantees a seat.
-- **CAT-004:** Published information must distinguish confirmed facts from unknown details. Unknown fees, dates, policies, or locations are not presented as final values.
+- **CAT-004:** Published information must distinguish confirmed facts from unknown details. Unknown prices, dates, policies, or locations are not presented as final values.
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
@@ -52,7 +52,7 @@ Guild staff (admins) can create and manage all tournaments. API naming and displ
 ## Acceptance criteria
 
 - **CAT-AC-001:** At least two configured tournaments can be listed and opened without duplicating event-specific application code.
-- **CAT-AC-002:** Selecting one tournament never displays another tournament's fee, rules, registration, or results by mistake.
+- **CAT-AC-002:** Selecting one tournament never displays another tournament's prices, rules, registration, or results by mistake.
 - **CAT-AC-003:** A closed registration window prevents registration through the API even if a stale page displays an active button.
 - **CAT-AC-004:** Unknown event facts remain visibly unconfirmed until configured.
 - **CAT-AC-005:** A guest can view public tournament listings and details, while a guest or non-member regular user cannot list or retrieve internal tournaments.

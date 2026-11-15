@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -13,7 +12,6 @@ from sqlalchemy import (
     DateTime,
     Integer,
     ForeignKey,
-    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -34,10 +32,6 @@ class Tournament(BaseModel):
         CheckConstraint(
             "competitor_capacity IS NULL OR competitor_capacity >= 0",
             name="ck_tournaments_capacity_nonnegative",
-        ),
-        CheckConstraint(
-            "registration_fee_amount IS NULL OR registration_fee_amount >= 0",
-            name="ck_tournaments_fee_nonnegative",
         ),
         CheckConstraint(
             "registration_opens_on IS NULL OR registration_closes_on IS NULL "
@@ -71,7 +65,6 @@ class Tournament(BaseModel):
         Boolean, nullable=False, server_default=text("false")
     )
     payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    registration_fee_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     location: Mapped[str | None] = mapped_column(String(300))
     schedule: Mapped[str | None] = mapped_column(Text)
     rules_text: Mapped[str | None] = mapped_column(Text)

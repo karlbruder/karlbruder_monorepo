@@ -103,7 +103,7 @@ def _post_registration(
             session.flush()
             offering = TournamentProduct(tournament_id=tournament_id, product_id=product.id)
             session.add(offering)
-            session.add(Price(product_id=product.id, amount=event_row.registration_fee_amount or Decimal("100.00")))
+            session.add(Price(product_id=product.id, amount=Decimal("100.00")))
             session.flush()
         price = session.scalar(select(Price).where(Price.product_id == offering.product_id))
         payload["tournament_product_id"] = offering.id
@@ -744,7 +744,6 @@ def test_owner_reads_payment_instructions_and_pix_stays_private(setup):
         client,
         key,
         pix_key=fixture_pix,
-        registration_fee_amount="150.00",
         payment_due_at="2027-02-01T23:59:59+00:00",
     )
     owner_id = uuid4()
@@ -763,7 +762,7 @@ def test_owner_reads_payment_instructions_and_pix_stays_private(setup):
     assert registration["registration_status"] == "awaiting_payment"
     assert registration["parental_consent_required"] is False
     assert "parental_consent_required" not in payload
-    assert payload["registration_fee_amount"] == "150.00"
+    assert payload["registration_fee_amount"] == "100.00"
     assert payload["payment_due_at"] is not None
     assert payload["payment_options"]["pix"]["pix_key"] == fixture_pix
     assert payload["latest_payment_proof"] is None
@@ -1588,7 +1587,7 @@ def test_paid_cancellation_allows_replacement_while_refund_remains_independent(
     )
 
     client, key, session, _storage = setup
-    event_id = _create_event(client, key, registration_fee_amount="100.00")
+    event_id = _create_event(client, key)
     owner = _headers(key)
     first = _post_registration(client, event_id, owner).json()
     original = session.scalar(select(TournamentRegistration))

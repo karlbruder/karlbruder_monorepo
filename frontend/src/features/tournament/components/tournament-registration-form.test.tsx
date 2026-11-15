@@ -12,7 +12,6 @@ const tournament: Tournament = {
   discipline: 'longsword',
   starts_at: '2027-01-17T12:00:00Z',
   location: null,
-  registration_fee_amount: null,
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,
@@ -192,9 +191,10 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
   })
   it('posts only the fields the athlete fills, with the account token', async () => {
-    const request = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => String(input).endsWith('/products')
-      ? response(200, [{ id: 1, product_id: 2, name: 'Inscrição Plena', description: 'Participação', price_id: 3, amount: '100.00', currency: 'BRL' }])
-      : response(201, created))
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/products')) return response(200, [{ id: 1, product_id: 2, name: 'Inscrição Plena', description: 'Participação', price_id: 3, amount: '100.00', currency: 'BRL' }])
+      return response(init?.method === 'POST' ? 201 : 404, created)
+    })
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     fireEvent.click(await screen.findByRole('radio', { name: /Inscrição Plena/ }))

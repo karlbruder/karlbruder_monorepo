@@ -22,6 +22,7 @@ def _base_columns():
 
 
 def upgrade():
+    op.drop_column("tournaments", "registration_fee_amount", schema="public")
     op.create_table(
         "products", *_base_columns(),
         sa.Column("name", sa.String(255), nullable=False),
@@ -79,6 +80,8 @@ def upgrade():
     op.add_column("refunds", sa.Column("due_on", sa.Date(), nullable=False), schema="public")
     op.drop_table("registration_refunds", schema="public")
     op.drop_table("registration_payments", schema="public")
+    op.execute("DROP FUNCTION public.validate_registration_payment()")
+    op.execute("DROP FUNCTION public.validate_registration_refund()")
     op.create_table(
         "payment_proof_payments", *_base_columns(),
         sa.Column("proof_review_id", sa.Integer(), sa.ForeignKey("public.payment_proof_reviews.id", ondelete="RESTRICT"), nullable=False),
@@ -220,6 +223,8 @@ def upgrade():
 
 
 def downgrade():
+    op.add_column("tournaments", sa.Column("registration_fee_amount", sa.Numeric(12, 2), nullable=True), schema="public")
+    op.create_check_constraint("ck_tournaments_fee_nonnegative", "tournaments", "registration_fee_amount IS NULL OR registration_fee_amount >= 0", schema="public")
     op.execute("DROP TRIGGER immutable_purchased_tournament_product ON public.tournament_products")
     op.execute("DROP FUNCTION public.protect_purchased_tournament_product()")
     op.execute("DROP TRIGGER valid_registration_order ON public.tournament_registrations")
@@ -254,6 +259,39 @@ def downgrade():
         sa.Column("due_on", sa.Date(), nullable=False),
         sa.UniqueConstraint("registration_payment_id", name="uq_registration_refunds_registration_payment"),
         sa.UniqueConstraint("refund_id", name="uq_registration_refunds_refund"), schema="public",
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.validate_registration_payment() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            PERFORM 1 FROM public.payment_proof_reviews r
+                JOIN public.tournament_registration_documents d ON d.id = r.document_id
+                WHERE r.id = NEW.proof_review_id AND r.decision = 'approved'
+                    AND d.registration_id = NEW.registration_id AND d.document_type = 'payment_proof'
+                FOR SHARE OF r, d;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Payment requires an approved proof review for the same registration' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
+    )
+    op.execute(
+        """
+        CREATE FUNCTION public.validate_registration_refund() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            PERFORM 1 FROM public.registration_payments rp
+                JOIN public.payments p ON p.id = rp.payment_id
+                JOIN public.refunds f ON f.id = NEW.refund_id
+                WHERE rp.id = NEW.registration_payment_id
+                    AND f.payment_id = p.id AND f.amount_owed = p.amount_received
+                FOR SHARE OF rp, p, f;
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Tournament refund must match its registration payment and exact amount received' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """
     )
     op.execute("CREATE TRIGGER valid_payment_review BEFORE INSERT ON public.registration_payments FOR EACH ROW EXECUTE FUNCTION public.validate_registration_payment()")
     op.execute("CREATE TRIGGER valid_refund_amount BEFORE INSERT OR UPDATE ON public.registration_refunds FOR EACH ROW EXECUTE FUNCTION public.validate_registration_refund()")

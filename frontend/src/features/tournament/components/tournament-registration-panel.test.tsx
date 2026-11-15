@@ -5,7 +5,7 @@ import { renderWithQuery as render } from "@/testing/render-with-query";
 import type { Tournament } from "@/features/tournament/api/tournaments";
 import TournamentRegistrationPanel from "@/features/tournament/components/tournament-registration-panel";
 
-const tournament = { id: 42, registration_fee_amount: null } as Tournament;
+const tournament = { id: 42 } as Tournament;
 const session = { access_token: "token", user: { id: "owner" } } as Session;
 const registration = { tournament_id: 42, registration_number: "T42-1", registration_status: "confirmed", full_name: "Fixture", email: "fixture@example.test", parental_consent_required: true };
 const payment = { registration_number: "T42-1", registration_fee_amount: null, amount_received: "10.00", payment_due_at: null, payment_options: { pix: { pix_key: null } }, latest_payment_proof: null };

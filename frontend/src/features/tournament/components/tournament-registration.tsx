@@ -49,12 +49,6 @@ function registrationWindow(tournament: Tournament, language: AppLanguage): stri
   return `${t("De")} ${calendarDate(tournament.registration_opens_on, language)} ${t("a")} ${calendarDate(tournament.registration_closes_on, language)}, ${t("inclusive (GMT-3).")}`;
 }
 
-function fee(value: Tournament["registration_fee_amount"], language: AppLanguage): string {
-  if (value === null) return appCopy(language, "A confirmar");
-  const amount = Number(value);
-  return Number.isFinite(amount) ? new Intl.NumberFormat(locale(language), { style: "currency", currency: "BRL" }).format(amount) : appCopy(language, "A confirmar");
-}
-
 function selectOwnActiveRegistration(registrations: OwnerRegistration[] | undefined, accountId: string): OwnerRegistration | null {
   const activeRegistrations = (registrations ?? []).filter((registration) => registration.registration_status !== "cancelled");
   if (activeRegistrations.some((registration) => registration.user_id !== undefined)) {
@@ -195,7 +189,6 @@ export default function TournamentRegistration({
                   <div><dt>{t("Data")}</dt><dd>{eventDate(tournament.starts_at, language)}</dd></div>
                   <div><dt>{t("Modalidade")}</dt><dd>{tournament.discipline === "longsword" ? t("Espada longa (longsword)") : tournament.discipline || t("A confirmar")}</dd></div>
                   <div><dt>{t("Local")}</dt><dd>{tournament.location || t("A confirmar")}</dd></div>
-                  <div><dt>{t("Valor")}</dt><dd>{fee(tournament.registration_fee_amount, language)}</dd></div>
                   <div><dt>{t("Inscrições")}</dt><dd>{registrationWindow(tournament, language)}</dd></div>
                 </dl>
                 {!session && !registrationNumber && <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>}

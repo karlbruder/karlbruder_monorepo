@@ -69,7 +69,6 @@ def test_approval_records_exact_proof_receipt_and_capacity_outcome(
 ):
     registration, documents = _pending(setup)
     session = setup[2]
-    registration.tournament.registration_fee_amount = Decimal("99.00")
     registration.tournament.competitor_capacity = capacity
     registration.tournament.payment_due_at = datetime(2020, 1, 1, tzinfo=UTC)
     session.flush()

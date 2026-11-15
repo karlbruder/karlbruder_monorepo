@@ -10,7 +10,7 @@ import { createQueryClient } from "@/lib/query-client";
 
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
 const admin = { access_token: "staff-token", user: { id: "staff", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
-const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, registration_fee_amount: "10.00", pix_key: "fixture", rules_url: "https://example.test/rules" };
+const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const fetchMock = vi.fn();
 function tree(path: string, session: Session | null = admin, ready = true, client: QueryClient = createQueryClient()) {
@@ -36,7 +36,8 @@ it("lists multiple tournaments and saves an edit with null fields and policy lin
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
-  expect(JSON.parse(init.body)).toMatchObject({ name: "Updated event", competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules", registration_fee_amount: "10.00" });
+  expect(JSON.parse(init.body)).toMatchObject({ name: "Updated event", competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules" });
+  expect(JSON.parse(init.body)).not.toHaveProperty("registration_fee_amount");
   expect(init.headers.Authorization).toBe("Bearer staff-token");
   await screen.findByRole("link", { name: "Second event" });
 });

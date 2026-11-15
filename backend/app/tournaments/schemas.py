@@ -35,9 +35,6 @@ class TournamentCreate(BaseModel):
     registration_closes_on: date | None = None
     is_registration_closed: bool = False
     payment_due_at: AwareDatetime | None = None
-    registration_fee_amount: Decimal | None = Field(
-        default=None, ge=0, max_digits=12, decimal_places=2
-    )
     location: str | None = Field(default=None, max_length=300)
     schedule: str | None = None
     rules_text: str | None = None
@@ -117,7 +114,6 @@ class TournamentRead(BaseModel):
     registration_closes_on: date | None
     is_registration_closed: bool
     payment_due_at: datetime | None
-    registration_fee_amount: Decimal | None
     location: str | None
     schedule: str | None
     rules_text: str | None

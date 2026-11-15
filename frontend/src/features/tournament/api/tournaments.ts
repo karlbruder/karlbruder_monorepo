@@ -20,7 +20,6 @@ export type Tournament = {
   discipline: string | null;
   starts_at: string;
   location: string | null;
-  registration_fee_amount: string | number | null;
   registration_opens_on: string | null;
   registration_closes_on: string | null;
   is_registration_closed: boolean;
@@ -205,7 +204,6 @@ function isTournament(value: unknown): value is Tournament {
     typeof event.is_registration_closed === "boolean" &&
     isNullableString(event.discipline) &&
     isNullableString(event.location) &&
-    (event.registration_fee_amount === null || typeof event.registration_fee_amount === "string" || typeof event.registration_fee_amount === "number") &&
     isNullableString(event.registration_opens_on) &&
     isNullableString(event.registration_closes_on) &&
     isNullableString(event.rules_text) &&

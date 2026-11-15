@@ -42,7 +42,7 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | Identity and description | `id`, `name`, `description`, `discipline`, `is_internal` |
 | Event dates | `starts_at`, `ends_at` |
 | Registration window | `registration_opens_on`, `registration_closes_on`. Inclusive GMT-3 calendar days |
-| Payment deadline and prices | `payment_due_at` and tournament registration products with prices in BRL. The current implementation uses `registration_fee_amount` |
+| Payment deadline and prices | `payment_due_at` and tournament registration products with prices in BRL |
 | Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |
 | Regulation | `rules_text` and `rules_url`. Retain versioned acceptance evidence |
@@ -62,7 +62,7 @@ capacity rules are the same for all three options.
 
 | Option | Price | Included benefits |
 | --- | --- | --- |
-| Social Registration | R$ 50 is tentative | Participation and a trophy if the athlete wins one. No other winner prizes or sponsor coupons and giveaways. |
+| Social Registration | R$ 50 | Participation and a trophy if the athlete wins one. No other winner prizes or sponsor coupons and giveaways. |
 | Full Registration | R$ 100 | Participation, winner prizes, and participation in the distribution of sponsor coupons and giveaways. |
 | Plus Registration | R$ 200 | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
 
@@ -73,7 +73,7 @@ does not define a separate perk inventory or fulfillment workflow.
 
 ## Open questions
 
-The Social price is tentative. The full Plus package contents are not yet provided. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
+The full Plus package contents are not yet provided. Shared unresolved policies remain in the [question index](../../open-questions.md). Results and export details remain deferred in their owning specifications.
 
 ## Acceptance criteria
 

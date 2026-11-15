@@ -340,7 +340,7 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
     old_deadline = datetime(2027, 1, 5, 12, tzinfo=UTC)
     new_deadline = datetime(2027, 1, 10, 12, tzinfo=UTC)
 
-    def update(fee, deadline, pix):
+    def update(deadline, pix):
         with Session(engine) as writer:
             update_tournament(
                 writer,
@@ -348,7 +348,6 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
                 tournament_id,
                 payload.model_copy(
                     update={
-                        "registration_fee_amount": Decimal(fee),
                         "payment_due_at": deadline,
                         "pix_key": pix,
                     }
@@ -365,14 +364,14 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
         )
 
     try:
-        update("10.00", old_deadline, "old-fixture-key")
+        update(old_deadline, "old-fixture-key")
         with Session(engine) as session:
             registration = _register(session, tournament_id, token)
             number = registration.registration_number
             owner = User(id=registration.user_id, email=registration.email)
 
-        old = (Decimal("10.00"), old_deadline, "old-fixture-key")
-        new = (Decimal("20.00"), new_deadline, "new-fixture-key")
+        old = (Decimal("100.00"), old_deadline, "old-fixture-key")
+        new = (Decimal("100.00"), new_deadline, "new-fixture-key")
         with Session(engine) as session:
             assert values(read_registration_payment_instructions(
                 session, tournament_id, number, owner
@@ -381,7 +380,7 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
         with Session(engine) as reader:
             # Keep the ORM instance alive to expose stale identity-map reads.
             loaded_tournament = reader.get(Tournament, tournament_id)
-            assert loaded_tournament.registration_fee_amount == Decimal("10.00")
+            assert loaded_tournament.payment_due_at == old_deadline
             updated = False
 
             @event.listens_for(reader, "do_orm_execute", retval=True)
@@ -394,7 +393,7 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
                     for item in descriptions
                 ):
                     updated = True
-                    update("20.00", new_deadline, "new-fixture-key")
+                    update(new_deadline, "new-fixture-key")
                 return result
 
             during = read_registration_payment_instructions(
@@ -402,7 +401,7 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
             )
             assert updated
             assert values(during) == old
-            assert loaded_tournament.registration_fee_amount == Decimal("10.00")
+            assert loaded_tournament.payment_due_at == old_deadline
             assert values(read_registration_payment_instructions(
                 reader, tournament_id, number, owner
             )) == new

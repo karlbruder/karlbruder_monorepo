@@ -12,7 +12,7 @@ Account sign-up remains a separate Supabase Auth operation.
 
 Registration selects a product through `TournamentProduct` and records the
 selected product and price on an order item. Payment review links the receipt to
-the order. The legacy tournament fee remains during the transition.
+the order.
 See [Karlmart](../karlmart/README.md).
 
 ## Catalog and policies
@@ -31,7 +31,7 @@ A duplicate slug returns 409.
 Event timestamps are `starts_at` and `ends_at`. Registration windows use inclusive
 `registration_opens_on` and `registration_closes_on` dates. `is_registration_closed`
 is an independent staff closure flag. `competitor_capacity` may be null for unlimited
-capacity. `registration_fee_amount` is in BRL. `payment_due_at` is a timestamp.
+capacity. `payment_due_at` is a timestamp.
 
 Policies have explicit `rules_text`, `rules_url`, `cancellation_policy_text`, and
 `cancellation_policy_url` fields. Text and HTTP(S) URLs may be configured together
@@ -201,7 +201,7 @@ Pix configuration. Admins may supply `pix_key` at tournament creation.
 
 `RegistrationPaymentInstructions` is an assembled response, not a table.
 `GET .../registrations/{registration_number}/payment` combines the registration
-number/status, tournament fee/deadline, optional `payment_options.pix.pix_key`,
+number/status, purchased price and payment deadline, optional `payment_options.pix.pix_key`,
 and metadata for the latest proof. Only the owner may read these instructions.
 Other callers, including admins, receive 404. An absent destination is returned
 as null and shown as unconfigured. No key is invented or bundled in the frontend.
@@ -256,7 +256,7 @@ in `awaiting_payment_confirmation` whose latest proof has no decision. Results a
 current proof ID. The queue excludes contact, identity, safety, and storage fields.
 
 `GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
-registration projection, fee, deadline, equipment requirements, capacity, confirmed
+registration projection, purchased price, deadline, equipment requirements, capacity, confirmed
 count, proof versions, parental form metadata, and review history. Decided records
 remain readable. Reads do not allocate seats or record decisions.
 
@@ -279,7 +279,7 @@ availability, message composition, and delivery-result logging.
 requires an admin and the displayed `document_id`. Use `decision=approved` with an
 explicit nonnegative finite BRL `amount_received` (at most two decimal places,
 Numeric(12,2) range) and `requirements_checked=true`. Received amount is independent
-of the configured fee. Use `decision=rejected` with a nonblank `rejection_reason`
+of the purchased price. Use `decision=rejected` with a nonblank `rejection_reason`
 and no amount. Actors and timestamps are server-owned.
 
 Only the latest undecided payment proof of a registration in `awaiting_payment_confirmation`

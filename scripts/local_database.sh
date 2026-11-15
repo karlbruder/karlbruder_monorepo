@@ -77,7 +77,7 @@ WHERE NOT EXISTS (
     WHERE slug = 'monomachia-a-confirmar-2027'
 );
 
--- Development fixtures. The Social price remains tentative.
+-- Development fixtures for Monomachia registration products.
 DO $$
 DECLARE
     event_id integer;
@@ -89,7 +89,7 @@ BEGIN
 
     FOR option_record IN
         SELECT * FROM (VALUES
-            ('Inscrição Social', 'Valor provisório. Participação e troféu em caso de vitória. Não inclui outras premiações, cupons ou brindes de patrocinadores.', 50.00::numeric),
+            ('Inscrição Social', 'Participação e troféu em caso de vitória. Não inclui outras premiações, cupons ou brindes de patrocinadores.', 50.00::numeric),
             ('Inscrição Plena', 'Participação, premiações para ganhadores e distribuição de cupons e brindes de patrocinadores.', 100.00::numeric),
             ('Inscrição Plus', 'Benefícios da Plena e pacote com camiseta, brindes e café da manhã. Conteúdo completo a confirmar.', 200.00::numeric)
         ) AS options(name, description, amount)

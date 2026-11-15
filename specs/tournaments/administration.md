@@ -89,7 +89,7 @@ in `awaiting_payment_confirmation` whose latest proof has no decision. Results a
 current proof ID. The queue excludes contact, identity, safety, and storage fields.
 
 `GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
-registration projection, fee, deadline, equipment requirements, capacity, confirmed
+registration projection, purchased price, deadline, equipment requirements, capacity, confirmed
 count, proof versions, parental form metadata, and review history. Decided records
 remain readable. Reads do not allocate seats or record decisions.
 
