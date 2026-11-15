@@ -121,3 +121,64 @@ def test_staff_cannot_enable_refunds_without_a_cancellation_policy(setup):
     )
     assert response.status_code == 422
     assert "Refunds require a cancellation policy" in response.text
+
+
+@pytest.mark.parametrize("decision", ["approved", "rejected"])
+def test_cancelled_pending_proof_remains_reviewable_without_restoring_participation(setup, decision):
+    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    client, key, session, _ = setup
+    owner = _headers(key, user_id=registration.user_id)
+    path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}"
+    assert client.post(f"{path}/cancel", headers=owner).status_code == 204
+    cancelled_at = registration.refundable_cancelled_at
+    registration.tournament.refunds_allowed = False
+    session.commit()
+    admin = _headers(key, role="admin")
+    queue = client.get("/api/staff/tournaments/payment-reviews", headers=admin).json()
+    assert registration.registration_number in [item["registration_number"] for item in queue["items"]]
+    changes = {} if decision == "approved" else {"decision": "rejected", "amount_received": None, "rejection_reason": "Invalid proof"}
+    assert _decide(setup, registration, documents[-1], **changes).status_code == 200
+    assert registration.registration_status == "cancelled"
+    refund = session.scalar(select(Refund))
+    if decision == "approved":
+        assert refund.amount_owed == Decimal("123.45")
+        assert refund.obligated_at == cancelled_at
+    else:
+        assert refund is None
+    assert client.get("/api/staff/tournaments/payment-reviews", headers=admin).json()["total"] == 0
+
+
+def test_internal_cancellation_requires_current_guild_access(setup):
+    registration, _ = _pending(setup, internal=True, **REFUNDABLE_POLICY)
+    client, key, session, _ = setup
+    session.commit()
+    path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
+    assert client.post(path, headers=_headers(key, user_id=registration.user_id)).status_code == 404
+    assert registration.registration_status == "awaiting_payment_confirmation"
+    assert client.post(path, headers=_headers(key, role="admin")).status_code == 204
+
+
+def test_tournament_refund_evidence_cannot_be_deleted(setup):
+    from sqlalchemy import delete
+    from sqlalchemy.exc import IntegrityError
+
+    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    client, key, session, _ = setup
+    assert _decide(setup, registration, documents[-1]).status_code == 200
+    path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
+    assert client.post(path, headers=_headers(key, user_id=registration.user_id)).status_code == 204
+    refund = session.scalar(select(Refund))
+    with pytest.raises(IntegrityError), session.begin_nested():
+        session.execute(delete(Refund).where(Refund.id == refund.id))
+    assert session.get(Refund, refund.id) is not None
+
+
+def test_staff_declines_late_payment_in_nonrefundable_tournament_without_obligation(setup):
+    registration, documents = _pending(setup)
+    client, key, session, _ = setup
+    registration.tournament.payment_due_at = datetime(2020, 1, 1, tzinfo=UTC)
+    assert _decide(setup, registration, documents[-1]).status_code == 200
+    path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
+    assert client.post(path, headers=_headers(key, role="admin")).status_code == 204
+    assert registration.registration_status == "cancelled"
+    assert session.scalar(select(Refund)) is None

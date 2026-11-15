@@ -26,7 +26,7 @@ Give guild staff (admins) control over tournament participation, payment review,
 - **ADM-008:** Event rules, payment instructions, and communication templates should be maintainable by authorized staff where the relevant capability is delivered. Their editing and versioning rules must preserve prior acceptance records.
 - **ADM-009:** Cancelled registrations may be reopened only by admins manually in the Supabase UI. Reopening is not an application control and must preserve the non-cancelled uniqueness and confirmed-capacity invariants. A cancelled registration otherwise permits a new registration for the same tournament.
 - **ADM-010:** Staff may close new registrations even while the registration window is open. Staff cannot reduce configured capacity below confirmed participation; no admin override or automatic cancellation bypasses that invariant. Notifications for tournament-fact changes are deferred under CAT-008.
-- **ADM-011:** Staff decides whether to accept a late Pix transfer or decline participation and arrange a refund. Staff may explicitly increase capacity before confirming additional participants. The deadline does not force a decision, and admin discretion does not bypass the configured capacity limit or refund-recording requirements.
+- **ADM-011:** Staff decides whether to accept a late Pix transfer or decline participation. A refund obligation requires a refundable tournament policy. Staff may explicitly increase capacity before confirming additional participants. The deadline does not force a decision, and admin discretion does not bypass the configured capacity limit or refund-recording requirements.
 
 ## Lifecycle boundary
 

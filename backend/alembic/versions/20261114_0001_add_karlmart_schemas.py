@@ -23,6 +23,11 @@ def _base_columns():
 
 def upgrade():
     op.add_column(
+        "tournament_registrations",
+        sa.Column("refundable_cancelled_at", sa.DateTime(timezone=True), nullable=True),
+        schema="public",
+    )
+    op.add_column(
         "tournaments",
         sa.Column("refunds_allowed", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         schema="public",
@@ -140,6 +145,21 @@ def upgrade():
     """)
     op.execute("CREATE TRIGGER valid_tournament_refund BEFORE INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION public.validate_tournament_refund()")
     op.execute("""
+        CREATE FUNCTION public.protect_tournament_refund_deletion() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF EXISTS (
+                SELECT 1 FROM public.payments p
+                JOIN public.order_items oi ON oi.order_id = p.order_id
+                JOIN public.tournament_registrations tr ON tr.order_item_id = oi.id
+                WHERE p.id = OLD.payment_id
+            ) THEN
+                RAISE EXCEPTION 'Tournament refund evidence cannot be deleted' USING ERRCODE = '23514';
+            END IF;
+            RETURN OLD;
+        END $$
+    """)
+    op.execute("CREATE TRIGGER protect_tournament_refund_deletion BEFORE DELETE ON public.refunds FOR EACH ROW EXECUTE FUNCTION public.protect_tournament_refund_deletion()")
+    op.execute("""
         CREATE OR REPLACE FUNCTION public.protect_refund_obligation() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
             IF ROW(NEW.payment_id, NEW.amount_owed, NEW.obligated_at, NEW.due_on)
@@ -244,6 +264,9 @@ def upgrade():
 
 
 def downgrade():
+    op.execute("DROP TRIGGER protect_tournament_refund_deletion ON public.refunds")
+    op.execute("DROP FUNCTION public.protect_tournament_refund_deletion()")
+    op.drop_column("tournament_registrations", "refundable_cancelled_at", schema="public")
     op.drop_column("tournaments", "refunds_allowed", schema="public")
     op.add_column("tournaments", sa.Column("registration_fee_amount", sa.Numeric(12, 2), nullable=True), schema="public")
     op.create_check_constraint("ck_tournaments_fee_nonnegative", "tournaments", "registration_fee_amount IS NULL OR registration_fee_amount >= 0", schema="public")

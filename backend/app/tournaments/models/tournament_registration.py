@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -86,6 +87,8 @@ class TournamentRegistration(BaseModel):
         ),
         {"schema": "public"},
     )
+
+    refundable_cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     tournament_id: Mapped[int] = mapped_column(
         ForeignKey("public.tournaments.id", ondelete="RESTRICT"), nullable=False

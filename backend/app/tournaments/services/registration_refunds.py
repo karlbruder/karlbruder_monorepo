@@ -20,6 +20,7 @@ from app.tournaments.exceptions import RegistrationConflictError, RegistrationRe
 from app.tournaments.models import Tournament, TournamentRegistration
 from app.tournaments.schemas import StaffRegistrationRefundQueue, StaffRegistrationRefundRead
 from app.tournaments.services.tournament_local_dates import refund_due_date
+from app.tournaments.services.tournament_registrations import visible_tournament
 
 
 logger = logging.getLogger(__name__)
@@ -28,14 +29,7 @@ logger = logging.getLogger(__name__)
 def _lock_registration_for_refund(
     session: Session, tournament_id: int, number: str, user: User
 ) -> tuple[Tournament, TournamentRegistration]:
-    tournament = session.scalar(
-        select(Tournament)
-        .where(Tournament.id == tournament_id)
-        .with_for_update(of=Tournament)
-        .execution_options(populate_existing=True)
-    )
-    if tournament is None:
-        raise RegistrationResourceNotFoundError("Registration not found")
+    tournament = visible_tournament(session, tournament_id, user, lock=True)
     registration = session.scalar(
         select(TournamentRegistration)
         .where(TournamentRegistration.tournament_id == tournament_id,
@@ -132,8 +126,10 @@ def cancel_tournament_registration(session: Session, tournament_id: int, number:
             raise RegistrationConflictError("Self-service cancellation is unavailable for this tournament")
         payment = _find_registration_payment(session, registration) if tournament.refunds_allowed else None
         registration.registration_status = "cancelled"
+        now = datetime.now(UTC)
+        if tournament.refunds_allowed:
+            registration.refundable_cancelled_at = now
         if payment is not None:
-            now = datetime.now(UTC)
             add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
                               obligated_at=now, due_on=refund_due_date(now))
         session.commit()

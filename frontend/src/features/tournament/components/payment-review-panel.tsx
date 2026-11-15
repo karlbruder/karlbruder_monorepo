@@ -60,7 +60,8 @@ function ReviewForm({ detail, token, language, reload }: {
   const r = detail.registration;
   const forbidden = mutation.error instanceof PaymentReviewRequestError && mutation.error.status === 403;
   const changed = stale || documentId !== detail.latest_document_id;
-  const reviewable = r.registration_status === "awaiting_payment_confirmation" && documentId !== null && !detail.reviews.some(review => review.document_id === documentId);
+  const cancelled = r.registration_status === "cancelled";
+  const reviewable = (r.registration_status === "awaiting_payment_confirmation" || cancelled) && documentId !== null && !detail.reviews.some(review => review.document_id === documentId);
   const busy = mutation.isPending || refreshing;
   const yes = (value: boolean) => t(value ? "Sim" : "Não");
   const fact = (label: AppCopyKey, value: string | number | null) => <div><dt>{t(label)}</dt><dd>{value ?? t("Não informado")}</dd></div>;
@@ -79,7 +80,7 @@ function ReviewForm({ detail, token, language, reload }: {
     if (decision === "approved") {
       const normalized = amount.trim().replace(",", ".");
       if (!/^\d{1,10}(\.\d{1,2})?$/.test(normalized) || Number(normalized) > 9999999999.99) { setError("Informe um valor válido, não negativo, com até duas casas decimais."); return; }
-      if (!received || !requirements) { setError("Confira o recebimento e os requisitos antes de aprovar."); return; }
+      if (!received || (!cancelled && !requirements)) { setError("Confira o recebimento e os requisitos antes de aprovar."); return; }
       mutation.mutate({ document_id: documentId, decision, amount_received: normalized, requirements_checked: true });
     } else {
       if (!reason.trim()) { setError("Informe o motivo da recusa."); return; }
@@ -91,7 +92,7 @@ function ReviewForm({ detail, token, language, reload }: {
     <h2>{r.full_name}</h2><p>{r.registration_number} · {detail.tournament_name}</p>
     {mutation.data && <section role="status" className="review-notice">
       <h2>{t("Análise registrada.")}</h2>
-      <p>{t(mutation.data.registration_status === "confirmed" ? "Participação confirmada." : mutation.data.registration_status === "waitlist" ? "Pagamento aprovado. Lista de espera, sem vaga confirmada." : "Comprovante rejeitado. Aguardando novo envio.")}</p>
+      <p>{t(mutation.data.registration_status === "cancelled" ? "A inscrição permanece cancelada." : mutation.data.registration_status === "confirmed" ? "Participação confirmada." : mutation.data.registration_status === "waitlist" ? "Pagamento aprovado. Lista de espera, sem vaga confirmada." : "Comprovante rejeitado. Aguardando novo envio.")}</p>
       {mutation.data.notification_result === "sent" && <p>{t("E-mail enviado.")}</p>}
       {!["sent", "not_required"].includes(mutation.data.notification_result) && <p>{t("A análise foi registrada, mas o e-mail não foi enviado.")}</p>}
     </section>}
@@ -117,8 +118,8 @@ function ReviewForm({ detail, token, language, reload }: {
     </div><aside className="review-card"><h2>{t("Conferência do pagamento")}</h2><dl>
       {fact("Valor da inscrição", money(detail.registration_fee_amount))}{fact("Prazo para pagamento", detail.payment_due_at ? new Date(detail.payment_due_at).toLocaleString(language) : null)}
       {fact("Confirmados", detail.confirmed_count)}{fact("Capacidade", detail.competitor_capacity ?? t("Sem limite"))}
-    </dl><p>{t("A capacidade será conferida novamente ao salvar.")}</p>
-      {detail.competitor_capacity !== null && detail.confirmed_count >= detail.competitor_capacity && <p className="review-notice">{t("Sem vaga disponível. Aprovar inclui na lista de espera, sem confirmar vaga.")}</p>}
+    </dl>{cancelled ? <p>{t("A inscrição permanece cancelada após a análise.")}</p> : <p>{t("A capacidade será conferida novamente ao salvar.")}</p>}
+      {!cancelled && detail.competitor_capacity !== null && detail.confirmed_count >= detail.competitor_capacity && <p className="review-notice">{t("Sem vaga disponível. Aprovar inclui na lista de espera, sem confirmar vaga.")}</p>}
       {detail.payment_due_at && Date.parse(detail.payment_due_at) < openedAt && <p>{t("O prazo passou. A equipe ainda pode analisar. Rejeitar comprovante não cancela participação nem registra reembolso.")}</p>}
       {changed && !mutation.data && <p role="alert">{t("O comprovante ou a análise mudou. Atualize e confira a evidência antes de tentar novamente.")}</p>}
       {!mutation.data && <button disabled={busy} onClick={() => void refresh()}>{t("Atualizar análise")}</button>}
@@ -128,11 +129,11 @@ function ReviewForm({ detail, token, language, reload }: {
         <label>{t("Valor recebido (BRL)")}<input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} /></label>
         <p>{t("Informe o valor real recebido, mesmo se diferente da inscrição.")}</p>
         <label className="review-check"><input type="checkbox" checked={received} onChange={event => setReceived(event.target.checked)} />{t("Conferi o recebimento e o valor do pagamento.")}</label>
-        <label className="review-check"><input type="checkbox" checked={requirements} onChange={event => setRequirements(event.target.checked)} />{t("Conferi os requisitos de participação e a documentação aplicável.")}</label>
+        {!cancelled && <label className="review-check"><input type="checkbox" checked={requirements} onChange={event => setRequirements(event.target.checked)} />{t("Conferi os requisitos de participação e a documentação aplicável.")}</label>}
         <button onClick={() => submit("approved")}>{t("Aprovar pagamento")}</button>
         <label>{t("Motivo da recusa")}<textarea value={reason} onChange={event => setReason(event.target.value)} /></label>
-        <p>{t("O motivo será mostrado ao participante e enviado por e-mail.")}</p>
-        <button className="review-reject" onClick={() => submit("rejected")}>{t("Recusar comprovante e solicitar novo envio")}</button>
+        {!cancelled && <p>{t("O motivo será mostrado ao participante e enviado por e-mail.")}</p>}
+        <button className="review-reject" onClick={() => submit("rejected")}>{t(cancelled ? "Recusar comprovante" : "Recusar comprovante e solicitar novo envio")}</button>
       </fieldset> : <p>{t("Esta evidência já foi decidida ou não está em análise.")}</p>)}
       {busy && <p role="status">{t(refreshing ? "Carregando análises..." : "Registrando análise...")}</p>}{error && <p role="alert">{t(error)}</p>}
     </aside></div>

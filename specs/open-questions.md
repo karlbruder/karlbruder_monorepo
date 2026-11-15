@@ -55,7 +55,7 @@ Do not re-ask about the three application roles, global admin access, self-regis
 
 The local/production stack split, Supabase UUID ownership, seat assignment only at staff approval, cancellation/refund progression, S3/Ministack storage, SES SMTP, and Cloudflare/EC2 TLS path are also established in the specs. Parental evidence is uploaded as a scanned signed term; at the event, staff verifies identity documents presented by both the minor and accompanying parent. Recording that verification is implementation work. Final policy wording and live deployment verification may still need work without making settled choices undecided again.
 
-Late Pix transfers are a staff judgment: staff may accept them subject to ordinary capacity checks or decline participation and arrange a refund. Staff may explicitly increase capacity, but the system does not increase it or make late-payment judgments automatically.
+Late Pix transfers are a staff judgment: staff may accept them subject to ordinary capacity checks or decline participation. A refund obligation requires a refundable tournament policy. Staff may explicitly increase capacity, but the system does not increase it or make late-payment judgments automatically.
 
 Waitlist selection is also a staff judgment based on the event, participants, and capacity. The system imposes no queue priority, automatic promotion, mandatory invitation acceptance, or invitation expiry. Staff confirmation of a selected already-paid waitlisted participant checks and assigns available capacity without a second payment approval.
 

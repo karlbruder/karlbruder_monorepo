@@ -1711,6 +1711,20 @@ def test_staff_configuration_crud_and_direct_access_boundaries(setup):
     )
 
 
+def test_staff_can_delete_configured_tournament_without_registrations(setup):
+    client, key, session, _ = setup
+    event_id = _create_event(client, key)
+    product = Product(name="Entry", description="Tournament entry")
+    session.add(product)
+    session.flush()
+    product_id = product.id
+    session.add(TournamentProduct(tournament_id=event_id, product_id=product_id))
+    session.commit()
+    assert client.delete(f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin")).status_code == 204
+    assert session.scalar(select(TournamentProduct).where(TournamentProduct.tournament_id == event_id)) is None
+    assert session.get(Product, product_id) is not None
+
+
 def test_staff_capacity_and_deletion_preserve_closed_registered_tournament(setup):
     client, key, session, _storage = setup
     event_id = _create_event(client, key)

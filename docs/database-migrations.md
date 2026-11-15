@@ -24,8 +24,9 @@ the previous baseline need to be rebuilt before running this version. Future
 revisions published on `master` remain immutable.
 
 The owner authorized editing the Karlmart revision `20261114_0001` before the
-launch reset. It now includes `tournaments.refunds_allowed`. Local databases
-that applied the earlier revision need a rebuild to pick up the column.
+launch reset. It includes `tournaments.refunds_allowed`, cancellation eligibility evidence,
+and the tournament refund deletion guard. Local databases that applied an earlier
+form of the revision need a rebuild to pick up these changes.
 
 ## Applying migrations
 

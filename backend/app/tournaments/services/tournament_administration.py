@@ -1,6 +1,6 @@
 """Staff tournament configuration with serialized capacity and deletion checks."""
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from app.tournaments.exceptions import (
 from app.tournaments.models import (
     Tournament,
     TournamentPaymentSettings,
+    TournamentProduct,
     TournamentRegistration,
 )
 from app.tournaments.schemas import (
@@ -198,6 +199,7 @@ def delete_tournament(session: Session, actor: User, tournament_id: int) -> None
             raise RegistrationConflictError(
                 "Tournament with registrations cannot be deleted"
             )
+        session.execute(delete(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
         session.delete(tournament)
         session.commit()
     except Exception:

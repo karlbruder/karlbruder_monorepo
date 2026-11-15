@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.account_email import AccountEmailReader
 from app.core.mail import MailSender
-from app.karlmart.payments.services.records import add_payment_record
+from app.karlmart.payments.services.records import add_payment_record, add_refund_record
 from app.karlmart.orders.models import Order, OrderItem
-from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
+from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start, refund_due_date
 from app.tournaments.services.payment_review_notifications import (
     PaymentReviewNotice,
     send_payment_review_notice,
@@ -88,7 +88,7 @@ def list_pending_payment_proofs(
             TournamentRegistrationDocument, TournamentRegistrationDocument.id == latest
         )
         .where(
-            TournamentRegistration.registration_status == "awaiting_payment_confirmation",
+            TournamentRegistration.registration_status.in_(["awaiting_payment_confirmation", "cancelled"]),
             ~select(PaymentProofReview.id)
             .where(PaymentProofReview.document_id == TournamentRegistrationDocument.id)
             .exists(),
@@ -261,7 +261,7 @@ def _require_reviewable_proof(
         .limit(1)
     )
     if (
-        registration.registration_status != "awaiting_payment_confirmation"
+        registration.registration_status not in ("awaiting_payment_confirmation", "cancelled")
         or latest_id != document_id
         or reviewed is not None
         or receipt is not None
@@ -276,7 +276,7 @@ def _approve_registration_payment(
     review: PaymentProofReview,
     amount_received: Decimal,
 ) -> None:
-    if is_minor_at_tournament_start(registration.birth_date, tournament.starts_at):
+    if registration.registration_status != "cancelled" and is_minor_at_tournament_start(registration.birth_date, tournament.starts_at):
         parental_form = session.scalar(
             select(TournamentRegistrationDocument.id)
             .where(
@@ -307,6 +307,12 @@ def _approve_registration_payment(
     if order is None or order.status != "pending":
         raise RegistrationConflictError("Order is not awaiting payment")
     order.status = "paid"
+    if registration.registration_status == "cancelled":
+        if registration.refundable_cancelled_at is not None:
+            add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
+                              obligated_at=registration.refundable_cancelled_at,
+                              due_on=refund_due_date(registration.refundable_cancelled_at))
+        return
     confirmed = (
         session.scalar(
             select(func.count())
@@ -358,7 +364,7 @@ def record_payment_review_decision(
             _approve_registration_payment(
                 session, tournament, registration, review, payload.amount_received
             )
-        else:
+        elif registration.registration_status != "cancelled":
             registration.registration_status = "awaiting_payment"
         response = PaymentReviewDecisionRead(
             review=PaymentProofReviewRead.model_validate(review),
@@ -366,7 +372,7 @@ def record_payment_review_decision(
             notification_result="not_required",
         )
         if (
-            payload.decision == "rejected"
+            (payload.decision == "rejected" and registration.registration_status != "cancelled")
             or registration.registration_status == "waitlist"
         ):
             notice = PaymentReviewNotice(

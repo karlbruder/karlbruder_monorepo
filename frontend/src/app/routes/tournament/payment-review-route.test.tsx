@@ -242,3 +242,16 @@ it("preserves the blocked draft if refreshing a conflict fails", async () => {
   expect(screen.getByLabelText("Valor recebido (BRL)")).toHaveValue("123,45");
   expect(screen.getByRole("button", { name: "Aprovar pagamento" })).toBeDisabled();
 });
+
+it("reviews a cancelled registration without restoring participation", async () => {
+  current.registration.registration_status = "cancelled";
+  outcome = "cancelled";
+  delivery = "not_required";
+  openReview();
+  await screen.findByText("A inscrição permanece cancelada após a análise.");
+  fireEvent.change(screen.getByLabelText("Valor recebido (BRL)"), { target: { value: "123,45" } });
+  fireEvent.click(screen.getByLabelText("Conferi o recebimento e o valor do pagamento."));
+  fireEvent.click(screen.getByRole("button", { name: "Aprovar pagamento" }));
+  await screen.findByText("A inscrição permanece cancelada.");
+  expect(decisions()).toHaveLength(1);
+});

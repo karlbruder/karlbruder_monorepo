@@ -182,7 +182,7 @@ def test_notification_failure_preserves_committed_decision(setup, failure, expec
 
 
 @pytest.mark.parametrize(
-    "status", ["awaiting_payment", "confirmed", "waitlist", "cancelled"]
+    "status", ["awaiting_payment", "confirmed", "waitlist"]
 )
 def test_invalid_status_does_not_record_a_decision(setup, status):
     registration, documents = _pending(setup)

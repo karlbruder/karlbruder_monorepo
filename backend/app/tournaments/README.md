@@ -331,7 +331,12 @@ released at commit. A verified payment in an eligible tournament creates an
 obligation for the full amount received. Eligibility defaults to false and
 requires cancellation policy text or a policy URL when enabled. Its deadline
 is the tenth weekday after cancellation in fixed UTC−03:00, ignoring holidays.
-Cancellation leaves the order, proof, and payment evidence intact.
+Cancellation leaves the order, proof, and payment evidence intact. Pending proof
+remains in the staff review queue. Approval records the receipt without restoring
+participation. If refunds were allowed at cancellation, it creates the obligation
+using the cancellation time and policy eligibility. Rejection keeps participation
+cancelled. Declined late transfers in non-refundable tournaments create no refund
+obligation.
 
 `GET /api/tournaments/{tournament_id}/registrations/{registration_number}/refund`
 returns the refund amount, status, deadline, and completion time to the owner

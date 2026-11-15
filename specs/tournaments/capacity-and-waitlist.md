@@ -1,7 +1,7 @@
 # Tournament capacity and waitlist
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-14
 
 | Field | Value |
 | --- | --- |
@@ -25,7 +25,7 @@ Keep confirmed participation within event limits and provide an explicit path fo
 - **CAP-007:** Only confirmed participation consumes capacity. Neither `awaiting_payment` nor `awaiting_payment_confirmation` reserves a seat. Proof can be stored for manual review even when the event is full. Approval without an available seat produces `waitlist` and an email notification.
 - **CAP-008:** The paid waitlist has no size limit. Staff may close new registrations to control queue growth and refund workload. When the event is full but registrations remain open, warn users before submission that payment approval will lead to the waitlist unless a seat becomes available. Form submission still starts in `awaiting_payment`.
 - **CAP-009:** Reject any capacity change below the number already confirmed, including a change from unlimited capacity to a finite limit. This constraint applies to admins without an override. A rejected capacity edit must not cancel registrations or release seats. To lower capacity further, staff must first handle cancellations through the normal workflow.
-- **CAP-010:** Staff may explicitly increase configured capacity, including when deciding whether to accept late Pix payments. The system never increases capacity automatically or confirms more participants than the configured limit. Late-payment acceptance or refund remains a staff judgment under PAY-006 and PAY-013.
+- **CAP-010:** Staff may explicitly increase configured capacity, including when deciding whether to accept late Pix payments. The system never increases capacity automatically or confirms more participants than the configured limit. Late-payment acceptance or declined participation remains a staff judgment under PAY-006 and PAY-013. Refund eligibility follows the tournament policy.
 
 ## Confirmed allocation policy
 
