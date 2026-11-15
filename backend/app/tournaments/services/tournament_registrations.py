@@ -218,8 +218,6 @@ def create_tournament_registration(
         <= tournament.registration_closes_on
     ):
         raise RegistrationNotAllowedError("Registration is closed")
-    if not tournament.terms_version or not tournament.rules_version:
-        raise RegistrationNotAllowedError("Registration terms are not configured")
     if tournament.next_registration_number > MAX_TOURNAMENT_REGISTRATION_NUMBER:
         raise RegistrationConflictError("Registration number capacity exhausted")
 
@@ -464,7 +462,7 @@ def build_tournament_registration_read(registration: TournamentRegistration, *, 
 
     schema = StaffRegistrationRead if staff else RegistrationRead
     snapshot = registration.acceptances[-1]
-    evidence_fields = {*CHOICE_FIELDS, "accepted_terms_version", "accepted_rules_version", "accepted_at", "accepted_from_ip"}
+    evidence_fields = {*CHOICE_FIELDS, "accepted_at", "accepted_from_ip"}
     values = {
         name: getattr(snapshot if name in evidence_fields else registration, name)
         for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}

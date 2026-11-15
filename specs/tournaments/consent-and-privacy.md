@@ -16,9 +16,9 @@ Collect the necessary participant declarations, preserve their evidence, and res
 
 ## Rules
 
-- **PRIV-001:** Require acceptance of the versioned tournament rules. The rules state whether the organizer and its authorized providers will capture and transmit athletes’ image and voice live during matches and official ceremonies, and identify the official channels. Authorization for that live coverage is a condition of participation when specified in the rules. Replays, including automatic public archives, highlights, and advertising require specific authorization. New registrations have no separate image choice. Acknowledge the privacy information independently.
+- **PRIV-001:** Require acceptance of the tournament rules. The rules state whether the organizer and its authorized providers will capture and transmit athletes’ image and voice live during matches and official ceremonies, and identify the official channels. Authorization for that live coverage is a condition of participation when specified in the rules. Replays, including automatic public archives, highlights, and advertising require specific authorization. New registrations have no separate image choice. Acknowledge the privacy information independently.
 - **PRIV-002:** Required declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation, refund, and disqualification rules. Record truthful information independently. Require answers for emergency contact and participation declarations.
-- **PRIV-003:** Record the accepted regulation/terms version, acceptance time, choices, and the IP evidence requested by the source. The handling and retention of that evidence must be defined in the privacy policy.
+- **PRIV-003:** Record the accepted regulation and terms content, acceptance time, choices, and the IP evidence requested by the source. The handling and retention of that evidence must be defined in the privacy policy.
 - **PRIV-004:** Private fields include document number, date of birth, email, phone, emergency contacts, payment proofs, staff notes, and safety information. Public representations must use explicit permitted fields rather than exposing complete registration records.
 - **PRIV-005:** Participants may retrieve and correct their own TournamentRegistration fields except `staff_safety_note`, `id`, `tournament_id`, `user_id`, `registration_number`, `created_at`, `updated_at`, and `registration_status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules. Recorded declarations are read-only on the registration edit page. The page provides organizer contact and a privacy-policy link for questions and requests. A future reacceptance flow must preserve earlier acceptance evidence.
 - **PRIV-006:** Remove `show_on_public_list` and its opt-out choice. A limited participant directory and published results are visible to other authorized platform users under the event's public/internal access boundary. Terms must explain who can see the directory and named results before registration. Published results can include the athlete’s display name, category, match outcomes, and placement. Directory fields remain limited to display name, school/team, city/country, and confirmation status; private registration records are not exposed. This does not make private contact, payment, or safety fields public or change internal-event restrictions. Existing permitted guest access to published non-internal results remains unchanged.
@@ -53,7 +53,7 @@ audience before registration opens. Adapt the text to the event’s actual scope
 ## Acceptance evidence
 
 RegistrationAcceptance is append-only history. It records all separate choices,
-accepted versions, exact displayed declaration and policy content, language,
+exact displayed declaration and policy content, language,
 verified user UUID, server time and source IP. The initial snapshot is atomic
 with registration and any required parental document. Registration does not keep
 a competing mutable copy. Later snapshots preserve earlier evidence.
@@ -76,7 +76,7 @@ Issue #21 deferred the full consent package to a later issue. That is a delivery
 ## Acceptance criteria
 
 - **PRIV-AC-001:** Missing required acceptances prevent completion. Before submitting, athletes see the coverage scope, named results and their audience, plus a link to the privacy policy. No standalone image choice is required or recorded for new registrations.
-- **PRIV-AC-002:** A completed registration can be associated with the exact accepted terms version and acceptance evidence.
+- **PRIV-AC-002:** A completed registration can be associated with the exact accepted terms and acceptance evidence.
 - **PRIV-AC-003:** Public APIs, participant lists, event pages, and routine exports exclude restricted fields.
 - **PRIV-AC-004:** Registration offers no participant-directory opt-out. Authorized platform users see the permitted directory projection, while restricted fields and internal-event boundaries remain protected.
 - **PRIV-AC-005:** Unauthorized users cannot retrieve a proof or safety note through an identifier or storage link.

@@ -69,8 +69,6 @@ class Tournament(BaseModel):
     schedule: Mapped[str | None] = mapped_column(Text)
     rules_text: Mapped[str | None] = mapped_column(Text)
     rules_url: Mapped[str | None] = mapped_column(Text)
-    rules_version: Mapped[str | None] = mapped_column(String(100))
-    terms_version: Mapped[str | None] = mapped_column(String(100))
     equipment_requirements: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_text: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_url: Mapped[str | None] = mapped_column(Text)

@@ -39,8 +39,6 @@ class TournamentCreate(BaseModel):
     schedule: str | None = None
     rules_text: str | None = None
     rules_url: str | None = None
-    rules_version: str | None = Field(default=None, max_length=100)
-    terms_version: str | None = Field(default=None, max_length=100)
     equipment_requirements: str | None = None
     cancellation_policy_text: str | None = None
     cancellation_policy_url: str | None = None
@@ -127,8 +125,6 @@ class TournamentRead(BaseModel):
     schedule: str | None
     rules_text: str | None
     rules_url: str | None
-    rules_version: str | None
-    terms_version: str | None
     equipment_requirements: str | None
     cancellation_policy_text: str | None
     cancellation_policy_url: str | None
@@ -430,8 +426,6 @@ class RegistrationRead(BaseModel):
     accepts_data_processing: bool
     acknowledges_inherent_risks: bool
     accepts_cancellation_policy: bool
-    accepted_terms_version: str
-    accepted_rules_version: str
     accepted_at: datetime
     created_at: datetime
     updated_at: datetime

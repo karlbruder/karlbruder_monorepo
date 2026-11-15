@@ -52,8 +52,6 @@ def build_registration_acceptance_content(tournament: Tournament, language: str)
         "declarations_version": "draft-1",
         "language": language,
         "declarations": DECLARATIONS[language],
-        "terms_version": tournament.terms_version,
-        "rules_version": tournament.rules_version,
         "equipment_requirements": tournament.equipment_requirements,
         "policies": policies,
     }
@@ -78,8 +76,6 @@ def create_registration_acceptance(
     return RegistrationAcceptance(
         accepted_by_user_id=user_id,
         **{name: getattr(payload, name) for name in CHOICE_FIELDS},
-        accepted_terms_version=tournament.terms_version,
-        accepted_rules_version=tournament.rules_version,
         accepted_at=datetime.now(timezone.utc),
         accepted_from_ip=source_ip,
         language=payload.acceptance_language,

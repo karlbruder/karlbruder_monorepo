@@ -30,8 +30,6 @@ const tournament: Tournament = {
   rules_text: null,
   rules_url: 'https://example.test/rules_text',
   ...acceptanceEvidence,
-  rules_version: 'draft-rules_text-v1',
-  terms_version: 'draft-terms-v1',
   cancellation_policy_text: 'Policy fixture',
   cancellation_policy_url: null,
   equipment_requirements: null,
@@ -205,7 +203,6 @@ describe('Athlete submits their own registration and sees the result', () => {
 
   it.each([
     [400, 'Registration is closed', 'Registration is closed.'],
-    [400, 'Registration terms are not configured', 'Tournament terms have not been configured'],
     [400, 'Registration email must match account email', 'The registration email must match'],
     [400, 'Other reason', 'We could not accept the registration'],
     [409, 'Registration already exists', 'An active registration already exists'],

@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -29,7 +29,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
-Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured. `rules_version` identifies the event rules version.
+Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured.
 
 Linked policies are automatically archived when their configuration is saved,
 before they are offered for acceptance. Each capture preserves private bytes,

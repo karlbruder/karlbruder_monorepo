@@ -19,8 +19,6 @@ const tournament = {
   rules_text: null,
   rules_url: 'https://example.test/rules',
   ...acceptanceEvidence,
-  rules_version: 'draft-rules_text-v1',
-  terms_version: 'draft-terms-v1',
   cancellation_policy_text: 'Policy fixture',
   cancellation_policy_url: null,
   equipment_requirements: null,

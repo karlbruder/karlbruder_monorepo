@@ -168,8 +168,6 @@ def _event(*, internal=False, **overrides):
         "is_internal": internal,
         "registration_opens_on": "2026-10-01",
         "registration_closes_on": "2026-10-31",
-        "terms_version": "fixture-terms-v1",
-        "rules_version": "fixture-rules_text-v1",
         **overrides,
     }
 
@@ -240,7 +238,7 @@ def test_self_registration_owner_lookup_admin_listing_and_private_projection(set
     number = owner_view["registration_number"]
     assert number.startswith(f"T{event_id}-000001-")
     assert owner_view["registration_status"] == "awaiting_payment"
-    assert owner_view["accepted_terms_version"] == "fixture-terms-v1"
+    assert {"accepted_terms_version", "accepted_rules_version"}.isdisjoint(owner_view)
     assert owner_view["declares_truthful_information"] is True
     assert "authorizes_image_use" not in owner_view
     assert {
@@ -283,7 +281,6 @@ def test_self_registration_owner_lookup_admin_listing_and_private_projection(set
     assert staff_view["staff_safety_note"] == "Staff-only fixture"
     assert staff_view["accepted_from_ip"] == "testclient"
     assert staff_view["declares_truthful_information"] is True
-    assert staff_view["accepted_terms_version"] == "fixture-terms-v1"
     assert staff_view["accepted_at"] == owner_view["accepted_at"]
     assert staff_view["user_id"] == str(owner_id)
     assert client.get(
@@ -397,7 +394,7 @@ def test_authentication_owner_claims_and_required_input(setup):
         {"user_id": str(uuid4())},
         {"registration_status": "confirmed"},
         {"registration_number": "chosen"},
-        {"accepted_terms_version": "chosen"},
+        {"accepted_at": "2026-01-01T00:00:00Z"},
         {"staff_safety_note": "client-supplied"},
         {"full_name": "   "},
         {"identity_document_number": "...--"},
@@ -438,10 +435,10 @@ def test_authentication_owner_claims_and_required_input(setup):
     )
 
 
-def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
+def test_registration_window_and_staff_closure(setup, monkeypatch):
     """Registration is accepted only on the inclusive registration dates.
 
-    Staff closure, missing dates, or missing terms and rules_text versions reject it. An unknown tournament is not found.
+    Staff closure or missing dates reject it. An unknown tournament is not found.
     """
     client, key, db_session, _storage = setup
     event_id = _create_event(client, key)
@@ -483,8 +480,6 @@ def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
         {"is_registration_closed": True},
         {"registration_opens_on": None},
         {"registration_closes_on": None},
-        {"terms_version": None},
-        {"rules_version": None},
     ):
         event = _create_event(client, key, **changes)
         assert _post_registration(client, event, owner).status_code == 400
@@ -1186,8 +1181,6 @@ def test_concurrent_registration_allocates_distinct_numbers_without_seats(setup)
             competitor_capacity=0,
             registration_opens_on=date(2026, 10, 1),
             registration_closes_on=date(2026, 10, 31),
-            terms_version="fixture-v1",
-            rules_version="fixture-v1",
         )
         session.add(event)
         session.flush()
@@ -1354,8 +1347,6 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
     original_time, original_ip = first.accepted_at, first.accepted_from_ip
     event = session.get(Tournament, event_id)
     event.rules_text = "Second rules"
-    event.rules_version = "rules-v2"
-    event.terms_version = "terms-v2"
     session.commit()
     view = client.get(f"/api/tournaments/{event_id}", headers=owner).json()
     payload = RegistrationCreate(
@@ -1388,7 +1379,6 @@ def test_acceptance_preserves_exact_choices_content_and_history(setup):
         headers=owner,
     ).json()
     assert "authorizes_image_use" not in response
-    assert response["accepted_rules_version"] == "rules-v2"
     assert {
         "accepted_from_ip",
         "content",
@@ -1474,7 +1464,6 @@ def test_archived_policies_survive_source_and_configuration_changes(setup, monke
     source["body"] = b"<html>Replaced source</html>"
     assert storage.objects[original_key][0] == b"<html>Original policy</html>"
     event = session.get(Tournament, event_id)
-    event.rules_version = "rules-v2"
     keys = []
     prepare_tournament_policy_archives(event, storage, PolicyFetcher(), keys)
     session.commit()

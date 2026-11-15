@@ -48,8 +48,6 @@ class RegistrationAcceptance(BaseModel):
     accepts_data_processing: Mapped[bool] = mapped_column(Boolean, nullable=False)
     acknowledges_inherent_risks: Mapped[bool] = mapped_column(Boolean, nullable=False)
     accepts_cancellation_policy: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    accepted_terms_version: Mapped[str] = mapped_column(String(100), nullable=False)
-    accepted_rules_version: Mapped[str] = mapped_column(String(100), nullable=False)
     accepted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

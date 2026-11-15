@@ -58,9 +58,7 @@ INSERT INTO public.tournaments (
     ends_at,
     location,
     registration_opens_on,
-    registration_closes_on,
-    terms_version,
-    rules_version
+    registration_closes_on
 )
 SELECT
     'Monomachia',
@@ -71,9 +69,7 @@ SELECT
     TIMESTAMPTZ '2027-01-17 00:00:00-03',
     'A confirmar',
     CURRENT_DATE - 1,
-    DATE '2027-01-16',
-    'dev-local',
-    'dev-local'
+    DATE '2027-01-16'
 WHERE NOT EXISTS (
     SELECT 1
     FROM public.tournaments

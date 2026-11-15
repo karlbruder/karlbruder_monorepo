@@ -69,7 +69,7 @@ The product owner's answers establish the required personal and sporting fields 
 | Additional athlete information | Social name, HEMA Ratings reference, handedness, category/special-case information | Optional |
 | Safety | Emergency contact name and phone, equipment declaration, physical-fitness declaration | Required |
 | Restricted safety information | Safety note relevant to participation | Optional; collected only when needed and restricted to authorized staff |
-| Choices and evidence | Separate truthful-information declaration and other versioned declarations/consents, including disclosure of official live coverage and participant-directory and named-results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
+| Choices and evidence | Separate truthful-information declaration and other declarations/consents, including disclosure of official live coverage and participant-directory and named-results visibility | Follow the consent/privacy requirements; no `show_on_public_list` choice |
 | System | Tournament reference, Supabase user UUID, registration number, registration status, refund progress when applicable, creation timestamp | System-managed; ownership is not chosen by the caller |
 
 Store previous tournament participation as the required `previous_tournament_count`, with `0` representing no prior tournaments. Avoid a second competing field for the same count. Beginner eligibility is confirmed by guild staff using the agreed event criteria, not just an athlete's self-selection.
@@ -90,7 +90,7 @@ Creation requires the displayed `acceptance_language` and `acceptance_token` fro
 the tournament read response. The server checks the token against current
 preserved content. A stale form returns 409 and requires explicit acceptance of
 the refreshed content. The initial RegistrationAcceptance and any required
-parental document are saved in the registration transaction. Choices, versions,
+parental document are saved in the registration transaction. Choices,
 content, source IP and time live in immutable acceptance history.
 Participant and staff reads project the latest permitted acceptance fields.
 Linked rules and cancellation policies are read from shared ArchivedFile

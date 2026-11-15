@@ -161,7 +161,6 @@ function messageForRequest(error: unknown): AppCopyKey {
     }
     if (error.status === 400) {
       if (error.detail === "Registration is closed") return "As inscrições estão encerradas. Nenhum dado foi enviado.";
-      if (error.detail === "Registration terms are not configured") return "Os termos do torneio ainda não estão configurados.";
       if (error.detail === "Registration email must match account email") return "O e-mail da inscrição precisa corresponder ao da sua conta.";
       return "Não foi possível aceitar a inscrição. Confira os dados e o período de inscrição.";
     }
@@ -490,7 +489,7 @@ export default function TournamentRegistrationForm({
             <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_archive_url} language={language} />
             {tournament.equipment_requirements && <PolicyContent label={t("Equipamento obrigatório")} text={tournament.equipment_requirements} language={language} />}
           </div>
-          <p className="registration-help">{t("Os termos e o regulamento são registrados pelas versões configuradas para este torneio.")}</p>
+          <p className="registration-help">{t("O conteúdo dos termos e do regulamento aceitos é registrado com sua inscrição.")}</p>
           <div className="registration-help">
             <a href={legalRoutes.privacy} target="_blank" rel="noreferrer">{t("Política de Privacidade (abre em outra aba)")}</a>
           </div>

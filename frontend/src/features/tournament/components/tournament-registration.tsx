@@ -107,7 +107,7 @@ function SignedInRegistration({
         />
       ) : tournament.is_registration_closed ? (
         <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
-      ) : !tournament.registration_opens_on || !tournament.registration_closes_on || !tournament.terms_version || !tournament.rules_version ? (
+      ) : !tournament.registration_opens_on || !tournament.registration_closes_on ? (
         <p className="registration-notice" role="status">{t("A inscrição aguarda a configuração do período e dos termos do torneio.")}</p>
       ) : (
         <TournamentRegistrationForm

@@ -27,8 +27,6 @@ export type Tournament = {
   refunds_allowed?: boolean;
   rules_text: string | null;
   rules_url: string | null;
-  rules_version: string | null;
-  terms_version: string | null;
   cancellation_policy_text: string | null;
   cancellation_policy_url: string | null;
   equipment_requirements: string | null;
@@ -224,8 +222,6 @@ function isTournament(value: unknown): value is Tournament {
     isNullableString(event.registration_closes_on) &&
     isNullableString(event.rules_text) &&
     isNullableString(event.rules_url) &&
-    isNullableString(event.rules_version) &&
-    isNullableString(event.terms_version) &&
     isNullableString(event.cancellation_policy_text) &&
     isNullableString(event.cancellation_policy_url) &&
     isNullableString(event.equipment_requirements)

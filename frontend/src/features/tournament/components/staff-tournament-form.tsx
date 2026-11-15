@@ -19,8 +19,6 @@ const fields: Field[] = [
   { key: "pix_key", pt: "Chave Pix", en: "Pix key" },
   { key: "rules_text", pt: "Texto do regulamento", en: "Rules text", multiline: true },
   { key: "rules_url", pt: "Link do regulamento", en: "Rules URL", type: "url" },
-  { key: "rules_version", pt: "Versão do regulamento", en: "Rules version" },
-  { key: "terms_version", pt: "Versão dos termos", en: "Terms version" },
   { key: "equipment_requirements", pt: "Equipamento obrigatório", en: "Required equipment", multiline: true },
   { key: "cancellation_policy_text", pt: "Política de cancelamento", en: "Cancellation policy", multiline: true },
   { key: "cancellation_policy_url", pt: "Link da política de cancelamento", en: "Cancellation policy URL", type: "url" },

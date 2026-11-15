@@ -62,8 +62,7 @@ capacity. `payment_due_at` is a timestamp.
 Policies have explicit `rules_text`, `rules_url`, `cancellation_policy_text`, and
 `cancellation_policy_url` fields. Text and HTTP(S) URLs may be configured together
 or separately. Missing content remains visibly unconfigured. Text is displayed as
-text even when it resembles a URL. `rules_version` and `terms_version` identify
-accepted versions. Approved legal wording remains unresolved under PRIV-Q1.
+text even when it resembles a URL. Approved legal wording remains unresolved under PRIV-Q1.
 
 ## Staff tournament configuration
 
@@ -121,12 +120,12 @@ inline content as text.
 
 Registration creation requires `acceptance_language` and `acceptance_token`.
 The digest binds the exact draft declaration labels, policy
-text/archive references, equipment requirements and configured versions.
+text/archive references and equipment requirements.
 Changed content returns 409 with `Registration terms changed; refresh before accepting`.
 The form refreshes the event, retains personal fields and clears declaration/image
 choices. It never silently retries acceptance of changed content.
 
-RegistrationAcceptance owns the eight individual choices, accepted versions,
+RegistrationAcceptance owns the individual choices,
 verified user UUID, language, exact content, server time and source IP.
 Registration, first acceptance and required parental document commit together.
 Database triggers prevent updating or deleting acceptances and policy archives,
@@ -156,12 +155,12 @@ available. Category notes do not constitute staff eligibility approval.
 The declarations retain separate truthful-information, equipment, physical-fitness,
 risk, data-processing, rules, and cancellation-policy choices. Field names include
 `declares_has_required_equipment` and `accepts_rules`. The accepted rules preserve the coverage terms and results audience.
-The backend records accepted versions, acceptance time, and `accepted_from_ip`.
+The backend records accepted content, acceptance time, and `accepted_from_ip`.
 Clients select a displayed language and content digest. The server supplies
-versions, time, IP and ownership. Clients cannot choose the owner, `registration_status`,
+content, time, IP and ownership. Clients cannot choose the owner, `registration_status`,
 `registration_number`, or `staff_safety_note`.
 
-Creation requires configured terms/rules versions and an open registration window.
+Creation requires an open registration window.
 Missing configuration, staff closure, or dates outside that window return 400.
 Active duplicate owners, normalized emails, or normalized identity documents within
 a tournament return 409. Cancelled registrations permit replacement.

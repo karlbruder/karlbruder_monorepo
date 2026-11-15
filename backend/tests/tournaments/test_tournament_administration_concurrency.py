@@ -64,8 +64,6 @@ def _event_and_payload(engine):
             is_internal=False,
             registration_opens_on=date(2026, 10, 1),
             registration_closes_on=date(2026, 10, 31),
-            rules_version="v1",
-            terms_version="v1",
         )
         session.add(tournament)
         session.flush()
@@ -85,8 +83,6 @@ def _event_and_payload(engine):
             is_internal=False,
             registration_opens_on=tournament.registration_opens_on,
             registration_closes_on=tournament.registration_closes_on,
-            rules_version="v1",
-            terms_version="v1",
             competitor_capacity=0,
         )
         return tournament.id, token, payload
