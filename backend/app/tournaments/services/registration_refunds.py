@@ -55,6 +55,7 @@ def _find_registration_payment(session: Session, registration: TournamentRegistr
 def read_registration_refund(
     session: Session, tournament_id: int, registration_number: str, user: User
 ) -> Refund | None:
+    visible_tournament(session, tournament_id, user)
     registration = session.scalar(
         select(TournamentRegistration).where(
             TournamentRegistration.tournament_id == tournament_id,

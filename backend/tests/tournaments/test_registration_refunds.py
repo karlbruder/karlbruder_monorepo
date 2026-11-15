@@ -229,3 +229,32 @@ def test_existing_unlinked_refund_remains_visible_and_completable(setup):
     path = f"/api/staff/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/refund/complete"
     assert client.post(path, headers=admin, json={"completed_at": datetime.now(UTC).isoformat()}).status_code == 200
     assert refund.refund_status == "completed"
+
+
+def test_refund_read_service_and_route_enforce_internal_visibility_after_change(setup):
+    """CAT-005: owners retain access only while their role can view the tournament."""
+    from app.auth.models import User
+    from app.tournaments.exceptions import RegistrationResourceNotFoundError
+    from app.tournaments.services.registration_refunds import read_registration_refund
+
+    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    client, key, session, _ = setup
+    assert _decide(setup, registration, documents[-1]).status_code == 200
+    tournament_id = registration.tournament_id
+    number = registration.registration_number
+    owner_id = registration.user_id
+    path = f"/api/tournaments/{tournament_id}/registrations/{number}"
+    assert client.post(f"{path}/cancel", headers=_headers(key, user_id=owner_id)).status_code == 204
+    regular = User(id=owner_id)
+    member = User(id=owner_id, app_metadata={"karlbruder_role": "guild_member"})
+    admin = User(id=owner_id, app_metadata={"karlbruder_role": "admin"})
+    assert read_registration_refund(session, tournament_id, number, regular) is not None
+    session.get(Tournament, tournament_id).is_internal = True
+    session.commit()
+    with pytest.raises(RegistrationResourceNotFoundError):
+        read_registration_refund(session, tournament_id, number, regular)
+    assert read_registration_refund(session, tournament_id, number, member) is not None
+    assert read_registration_refund(session, tournament_id, number, admin) is not None
+    assert client.get(f"{path}/refund", headers=_headers(key, user_id=owner_id)).status_code == 404
+    assert client.get(f"{path}/refund", headers=_headers(key, user_id=owner_id, role="guild_member")).status_code == 200
+    assert client.get(f"{path}/refund", headers=_headers(key, role="admin")).status_code == 200

@@ -181,7 +181,6 @@ def get_registration_refund(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
 ) -> RegistrationRefundRead | None:
-    visible_tournament(session, tournament_id, user)
     refund = registration_refunds.read_registration_refund(
         session, tournament_id, registration_number, user
     )
