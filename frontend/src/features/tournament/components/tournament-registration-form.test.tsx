@@ -1,10 +1,13 @@
+vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: vi.fn(), getSelection: async () => [] }));
+import { renderWithQuery as render } from "@/testing/render-with-query";
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import TournamentRegistrationForm from '@/features/tournament/components/tournament-registration-form'
 import type { Tournament } from '@/features/tournament/api/tournaments'
 import { getTournamentProducts } from '@/features/tournament/api/tournaments'
+import { getTags } from '@/features/tournament/api/tournament-tags'
 
 vi.mock('@/features/tournament/api/tournaments', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/features/tournament/api/tournaments')>(),
@@ -136,6 +139,7 @@ function attachParentalConsentForm(file: File) {
 beforeEach(() => {
   vi.stubEnv('VITE_API_BASE_URL', '/api')
   vi.mocked(getTournamentProducts).mockResolvedValue([product])
+  vi.mocked(getTags).mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -146,6 +150,18 @@ afterEach(() => {
 })
 
 describe('Athlete submits their own registration and sees the result', () => {
+  it('includes the selected tournament tags in the registration request', async () => {
+    vi.mocked(getTags).mockResolvedValue([{ id: 3, tournament_id: 42, name: 'Mystai', eligibility_description: 'Primeira competição' }])
+    const request = mockPresignedRegistrationFlow()
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    await screen.findByRole('checkbox', { name: /Mystai Primeira competição/ })
+    await fillRequired()
+    submit()
+    await waitFor(() => expect(request).toHaveBeenCalled())
+    const registration = request.mock.calls.find(([url, init]) => String(url).endsWith('/registrations') && init?.method === 'POST')
+    expect(JSON.parse(String(registration?.[1]?.body)).tag_ids).toEqual([3])
+  })
   it('shows English draft controls and submits the rules acceptance without an image choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
@@ -233,6 +249,7 @@ describe('Athlete submits their own registration and sees the result', () => {
       'Content-Type': 'application/json',
     })
     expect(JSON.parse(options.body as string)).toEqual({
+      tag_ids: [],
       acceptance_token: acceptanceEvidence.acceptance_tokens.pt,
       acceptance_language: 'pt',
       tournament_product_id: 1, price_id: 3,

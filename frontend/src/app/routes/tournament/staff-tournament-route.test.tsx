@@ -1,3 +1,4 @@
+vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -132,12 +133,12 @@ it("preserves all untouched timestamp instants including fractional seconds", as
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => init?.method === "PUT" ? json(event) : url.includes("?") ? json({ items: [], total: 0 }) : json({ ...event, ...dates }));
   render(tree("/staff/tournaments/1"));
   await screen.findByLabelText("Descrição");
+  expect(screen.getByText(/fuso horário do navegador/)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Descrição"), { target: { value: "Edited" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
   expect(JSON.parse(init.body)).toMatchObject(dates);
-  expect(screen.queryByText(/fuso horário do navegador/)).toBeInTheDocument();
 });
 
 it("converts an edited timestamp using the browser time zone", async () => {

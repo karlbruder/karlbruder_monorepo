@@ -62,6 +62,7 @@ export async function getTournamentProducts(id: number, token?: string, signal?:
 }
 
 export type RegistrationCreate = {
+  tag_ids?: number[];
   tournament_product_id: number;
   price_id: number;
   acceptance_language: "pt" | "en";

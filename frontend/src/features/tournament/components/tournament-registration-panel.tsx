@@ -10,6 +10,7 @@ import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { RegistrationRefundStatus } from "@/features/tournament/components/registration-refund-status";
+import { RegistrationTags } from "@/features/tournament/components/tournament-tags";
 
 function statusLabel(status: string): AppCopyKey {
   if (status === "awaiting_payment") return "Aguardando pagamento";
@@ -100,6 +101,8 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);
   if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
   const cancelled = registration.registration_status === "cancelled";
+  const today = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const tagsClosed = cancelled || tournament.is_registration_closed || !tournament.registration_opens_on || !tournament.registration_closes_on || today < tournament.registration_opens_on || today > tournament.registration_closes_on;
   return <>
     {!cancelled && <RegistrationProgress current={registration.registration_status === "awaiting_payment" ? 2 : 3} language={language} />}
     <section className="registration-card" aria-label={t("Sua inscrição")}>
@@ -120,6 +123,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       </form>}
       {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p className="registration-notice registration-notice-success" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
+    {!confirmingCancellation && <RegistrationTags token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registrationNumber} language={language} closed={tagsClosed} />}
     {cancelled ? <RegistrationRefundStatus token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registrationNumber} language={language} /> : <>
       {!confirmingCancellation && <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
       {tournament.refunds_allowed === true && <section className="registration-card">

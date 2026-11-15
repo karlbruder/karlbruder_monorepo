@@ -116,6 +116,23 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- Illustrative development fixtures. Existing tag records are not overwritten.
+INSERT INTO public.tournament_tags (tournament_id, name, eligibility_description)
+SELECT tournament.id, fixture.name, fixture.description
+FROM public.tournaments AS tournament
+CROSS JOIN (VALUES
+    ('Mystai', 'Atletas que disputam sua primeira competição.'),
+    ('Neophytoi', 'Atletas com menos de um ano de prática de esgrima histórica.'),
+    ('Amazones', 'Atletas mulheres cisgênero.'),
+    ('Poikilia', 'Atletas de gêneros sub-representados.'),
+    ('Hoplitai', 'Atletas experientes que atendam a pelo menos dois dos critérios: 35 anos ou mais, um ou mais filhos, emprego com carteira assinada.')
+) AS fixture(name, description)
+WHERE tournament.slug = 'monomachia-a-confirmar-2027'
+  AND NOT EXISTS (
+      SELECT 1 FROM public.tournament_tags AS existing
+      WHERE existing.tournament_id = tournament.id AND existing.name = fixture.name
+  );
 SQL
 }
 

@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -16,6 +16,15 @@
 Use **Tela** to choose a screen by journey: home and account, tournament discovery, registration, staff operations, or other future concepts. The initial screen is the signed-in home. The selector numbers follow the journey order. Stable `WF-xx` identifiers in notes and `#WF-xx/state` links remain unchanged, so existing references still open their original screens. Use **Estado** to compare variants, **Celular** to preview a narrow layout, and **Notas da spec** to show source rules. Buttons connect the principal journeys and open illustrative decision dialogs. Browser print can export the current screen and notes.
 
 The controls above the application frame and the spec notes are design-review tools, not proposed product UI. All displayed people, documents, amounts, counts, deadlines, and secondary events are fictional examples. Monomachia's name, longsword discipline, and supplied 17 January 2027 date come from its event spec; venue, final schedule, capacity, registration window, and Pix destination remain configuration inputs. Social is R$ 50, Plena is R$ 100, and Plus is R$ 200. The **Informações não configuradas** state shows unknown values instead of treating examples as final facts.
+
+## Proposed tournament tags
+
+Review [registration selection](index.html#WF-04/adult), [participant editing](index.html#WF-08/edit) and [the closed window](index.html#WF-08/tagsclosed), [tournament tag configuration](index.html#WF-12/edit), and [tournament detail](index.html#WF-20/detail) → [staff athlete list](index.html#WF-26/list) and [staff eligibility review](index.html#WF-25/review), including [adding tags](index.html#WF-25/add). These screens are a design proposal. They do not implement the feature or settle outstanding product decisions. The prototype uses fixed examples and does not persist changes.
+
+The agreed rules allow zero tags and close athlete editing when staff close new
+registrations early. Tag assignments stay in the authenticated application.
+Changes do not require notifications or an audit history. Staff check eligibility
+at the event. The notes in the prototype may still describe earlier proposals.
 
 ## Visual identity from the landing site
 

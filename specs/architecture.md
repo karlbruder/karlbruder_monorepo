@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -162,7 +162,7 @@ Source inspection on 4 November 2026 established the following implementation ba
 - `backend/app/auth/` owns verified identities, token services, route dependencies, and auth exception definitions. Its router exposes `GET /api/users/me`. Domain exceptions remain with their owners and are translated into HTTP responses by the API package.
 - `frontend/src/app/router.tsx` mounts account sign-in, sign-up, confirmation, recovery, and password-change routes, the authenticated home, and tournament registration. The auth feature uses Supabase for Google and email/password authentication, session restoration, and sign-out.
 - `landing/src/App.js` serves the homepage and `/monomachia`. Tournament registration and private document handling live in the application.
-- Local Compose runs landing, frontend, backend, PostgreSQL, and Ministack. The frontend uses Vite on 5173 for serving, health checks, and `/api` forwarding to the backend. The API prefix is preserved. Local Compose runs no Nginx service. See [local development](platform/local-development.md#observed-configuration-and-gaps) for configuration details and remaining gaps.
+- Local Compose runs landing, frontend, backend, PostgreSQL, Ministack, and small nginx server for the frontend wireframes. The frontend uses Vite on 5173 for serving, health checks, and `/api` forwarding to the backend. The API prefix is preserved. See [local development](platform/local-development.md#observed-configuration-and-gaps) for configuration details and remaining gaps.
 - Production Compose uses the separate `nginx` service to send application `/api` requests directly to the backend, preserving the prefix. Other application requests go to the frontend image, whose own Nginx serves the built assets. The API path does not pass through the frontend container.
 - Health and metadata endpoints are documented in the [backend README](../backend/README.md#diagnostics). Frontend production build configuration is documented in the [frontend README](../frontend/README.md#configuration).
 - Tournament registration, private uploads, preserved policies, acceptance snapshots, and financial evidence records are implemented. Staff payment-review commands now persist exact-proof decisions and capacity outcomes atomically. Refund commands remain future work. The [tournament API guide](../backend/app/tournaments/README.md) describes the implemented routes and persistence boundaries.

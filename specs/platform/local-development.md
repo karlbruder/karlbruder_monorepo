@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-12
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -27,6 +27,7 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 - **DEV-009:** Local Compose includes Ministack for S3 emulation. Configure the backend's S3 endpoint for Ministack, using local buckets and credentials. Production uses AWS S3 instead. Ministack does not replace the ordinary local PostgreSQL container.
 - **DEV-010:** The application's browser-facing `/api` prefix is preserved when forwarding to backend routes, matching production. The local frontend may use its development-server proxy; the production Nginx container does not need to be copied into the local stack.
 - **DEV-011:** Application email integration uses SMTP, with AWS SES as the production provider. The local SMTP decision is deferred; the likely approach is real SES with real AWS/SES credentials supplied through local backend configuration. Do not add a mail emulator or require a decision now. Ministack remains the selected local S3 emulator.
+- **DEV-012:** Local Compose serves the application wireframes with Nginx on port 4000. This avoid the agent browser tool blocking the wireframes through file:// URLs.
 
 ## Intended local stack
 
@@ -38,14 +39,15 @@ Let a contributor understand the monorepo, configure the relevant applications, 
 | PostgreSQL container | Local domain tables in `public` |
 | Hosted Supabase Auth | Application sign-in and verified user identity; still external in local development |
 | Ministack | Local S3 on port 4566. The backend calls `http://ministack:4566`. Presigned URLs use `http://localhost:4566`. `ministack/bootstrap-ministack.sh` creates `kb-local-bucket` and allows browser `PUT` from `http://localhost:5173`. |
+| Specs container | Serves the application wireframes at `http://localhost:4000` using Nginx. |
 
 Production mode uses `compose.production.yml` with Nginx, landing, frontend, and backend containers, no PostgreSQL container, and Supabase's hosted `public` schema for domain data. The `dev` and `prod` environments both use that file. See the [stack comparison and diagrams](../architecture.md#stack-comparison).
 
 ## Observed configuration and gaps
 
-Local Compose uses Vite for frontend serving and `/api` forwarding. It runs no
-Nginx service. Production uses a separate edge Nginx and the frontend's static
-Nginx image. Both preserve the API prefix.
+Local Compose uses Vite for frontend serving and `/api` forwarding. A separate
+Nginx service serves the application wireframes. Production uses a separate edge Nginx
+and the frontend's static Nginx image. Both application paths preserve the API prefix.
 
 Use the [root setup guide](../../README.md#local-setup-with-docker-compose) for
 service addresses, environment files, source mounts, and rebuild commands.

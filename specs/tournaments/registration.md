@@ -39,6 +39,16 @@ Allow an authenticated user to register for a tournament, retain a registration 
 
 - **REG-020:** A tournament can define any number of tags, each with a name and eligibility description. An athlete may select zero or more of its tags during registration. Selections belong to the registration, not the global profile. The owner can change them on the registration edit page through the closing day in fixed GMT-3. Staff closure of new registrations also closes athlete tag editing. The backend enforces ownership, the deadline, tournament scope, and uniqueness. Tags are visible only inside the authenticated application.
 
+Staff enter tag names and eligibility descriptions in the language chosen for
+the event. The interface shows staff-entered tournament content as entered,
+including descriptions and policies. It does not translate that content when
+the user changes the interface language. When a tournament has no tags, the
+athlete-facing tag section is hidden.
+
+The current registration page provides tag editing while the general registration
+correction screen remains deferred. Tag changes save independently. Move the
+control to the registration edit screen when that screen is delivered.
+
 Registration creates an order and item for the selected product. Each registration uses its order item price.
 
 ## Registration information

@@ -17,6 +17,8 @@ import { validateParentalConsentFormFile } from "@/features/tournament/utils/val
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
+import { TagChoices } from "@/features/tournament/components/tournament-tags";
+import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
 
 type Props = {
   tournament: Tournament;
@@ -246,6 +248,8 @@ export default function TournamentRegistrationForm({
   const [products, setProducts] = useState<TournamentProduct[]>([]);
   const [productsState, setProductsState] = useState<"loading" | "ready" | "error">("loading");
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const tags = useTournamentTags({ token: session.access_token, userId: session.user.id, tournamentId: tournament.id });
   const requestPending = useRef(false);
 
   useEffect(() => {
@@ -282,7 +286,7 @@ export default function TournamentRegistrationForm({
     );
     setErrors(nextErrors);
     setRequestError(null);
-    if (!payload) return;
+    if (!payload || !tags.data) return;
 
     if (parentalConsentFormFile) {
       const clientFileError = await validateParentalConsentFormFile(parentalConsentFormFile);
@@ -295,7 +299,7 @@ export default function TournamentRegistrationForm({
     requestPending.current = true;
     setPending(true);
     try {
-      let registrationPayload = payload;
+      let registrationPayload = { ...payload, tag_ids: selectedTags };
       if (parentalConsentFormFile) {
         const uploadInfo = await requestParentalConsentFormUploadUrl(tournament.id, session.access_token);
         await uploadFileToPresignedUrl(
@@ -304,7 +308,7 @@ export default function TournamentRegistrationForm({
           uploadInfo.required_headers,
         );
         registrationPayload = {
-          ...payload,
+          ...registrationPayload,
           parental_consent_form_storage_key: uploadInfo.storage_key,
           parental_consent_form_original_file_name: parentalConsentFormFile.name,
         };
@@ -424,6 +428,10 @@ export default function TournamentRegistrationForm({
               <span className="registration-help">{t("A equipe confirma a elegibilidade conforme o regulamento.")}</span>
             </div>
           </div>
+          {(!tags.data || tags.data.length > 0) && <h3>{language === "en" ? "Your tags" : "Suas tags"}</h3>}
+          {tags.isPending && <p role="status">{language === "en" ? "Loading tags..." : "Carregando tags..."}</p>}
+          {tags.isError && <p role="alert">{language === "en" ? "Could not load tags." : "Não foi possível carregar as tags."} <button type="button" onClick={() => void tags.refetch()}>{language === "en" ? "Try again" : "Tentar novamente"}</button></p>}
+          {Boolean(tags.data?.length) && <><TagChoices tags={tags.data!} selected={selectedTags} onChange={setSelectedTags} language={language} /><p>{language === "en" ? "You can change your selection until registration closes. Staff will check eligibility at the event." : "Você pode alterar sua seleção até o encerramento das inscrições. A equipe verificará a elegibilidade no evento."}</p></>}
         </section>
 
         <section className="registration-card registration-section" aria-labelledby="registration-safety-title">
@@ -483,7 +491,7 @@ export default function TournamentRegistrationForm({
         </section>
 
         <div className="registration-submit-row">
-          <button className="registration-submit" type="submit" disabled={pending}>{t(pending ? "Enviando inscrição..." : "Enviar minha inscrição")}</button>
+          <button className="registration-submit" type="submit" disabled={pending || !tags.data}>{t(pending ? "Enviando inscrição..." : "Enviar minha inscrição")}</button>
           <p>{t("Ao enviar, você ainda não terá uma vaga confirmada ou reservada.")}</p>
         </div>
       </fieldset>

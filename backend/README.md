@@ -1,7 +1,7 @@
 # Karlbrüder backend
 
 **Created**: 2026-01-09
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 FastAPI service for the Karlbrüder application, using PostgreSQL for persistence and Poetry for dependency management.
 
@@ -120,7 +120,9 @@ Those targets call `scripts/local_database.sh`.
 `reset` recreates `public`, migrates to head, and seeds Monomachia if missing.
 `drop` recreates the schema at head without seed data. `seed` adds the event without
 deleting rows. The local seed uses 17 January 2027, an open registration window,
-and terms/rules version `dev-local`. Compose `db` and `backend` must be running.
+and terms/rules version `dev-local`. It also adds the five illustrative tags from
+the application wireframes when they are missing. Existing tags are not updated.
+Compose `db` and `backend` must be running.
 
 ## Tests and lint
 
