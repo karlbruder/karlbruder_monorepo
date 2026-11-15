@@ -11,12 +11,13 @@ from app.auth.supabase.services import change_account_role, list_staff_accounts
 router = APIRouter(prefix="/api/staff")
 
 
-@router.get("/users", dependencies=[Depends(require_admin)])
+@router.get("/users")
 def list_accounts(
+    actor: Annotated[User, Depends(require_admin)],
     page: Annotated[int, Query(ge=1, le=2_147_483_647)] = 1,
     per_page: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> StaffAccountPage:
-    return list_staff_accounts(page, per_page)
+    return list_staff_accounts(actor, page, per_page)
 
 
 @router.patch("/users/{user_id}")

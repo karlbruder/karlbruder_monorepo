@@ -6,8 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import dependencies
+from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import User
-from app.auth.supabase import admin
+from app.auth.supabase import admin, services
 from app.main import karlbruder_app
 
 
@@ -61,6 +62,23 @@ def test_both_staff_account_routes_reject_guests_and_non_admins(
         == status
     )
 
+
+
+@pytest.mark.parametrize("role", [None, "regular_user", "guild_member", "unknown"])
+def test_staff_account_services_reject_non_admin_before_accessing_provider(monkeypatch, role):
+    actor = User(
+        id=uuid4(),
+        app_metadata={"karlbruder_role": role},
+        user_metadata={"karlbruder_role": "admin"},
+    )
+    monkeypatch.setattr(
+        admin, "admin_client", lambda: pytest.fail("Unexpected provider access")
+    )
+
+    with pytest.raises(AdminAccessRequiredException):
+        services.list_staff_accounts(actor, 1, 50)
+    with pytest.raises(AdminAccessRequiredException):
+        services.change_account_role(actor, uuid4(), "admin")
 
 def test_admin_lists_provider_pages_with_only_account_fields(
     client, actor, monkeypatch

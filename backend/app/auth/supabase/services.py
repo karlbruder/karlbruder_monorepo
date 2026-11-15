@@ -3,6 +3,7 @@
 import logging
 from uuid import UUID
 
+from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import User
 from app.auth.supabase import admin
 from app.auth.supabase.exceptions import SupabaseAdminUnavailableError
@@ -18,7 +19,13 @@ def _staff_account(user: User) -> StaffAccount:
     )
 
 
-def list_staff_accounts(page: int, per_page: int) -> StaffAccountPage:
+def _require_admin(actor: User) -> None:
+    if get_application_role(actor) != "admin":
+        raise AdminAccessRequiredException()
+
+
+def list_staff_accounts(actor: User, page: int, per_page: int) -> StaffAccountPage:
+    _require_admin(actor)
     with admin.admin_client() as client:
         users, next_page = admin.list_users(client, page, per_page)
     return StaffAccountPage(
@@ -29,6 +36,7 @@ def list_staff_accounts(page: int, per_page: int) -> StaffAccountPage:
 def change_account_role(
     actor: User, user_id: UUID, role: ApplicationRole
 ) -> StaffAccount:
+    _require_admin(actor)
     with admin.admin_client() as client:
         previous = admin.get_user(client, user_id)
         updated = admin.update_role(client, user_id, role)
