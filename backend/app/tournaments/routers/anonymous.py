@@ -116,9 +116,9 @@ def get_tournament_products(
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> list[TournamentProductRead]:
-    query = select(Tournament.id).where(Tournament.id == tournament_id)
-    if not _can_view_internal(user):
-        query = query.where(Tournament.is_internal.is_(False))
-    if session.scalar(query) is None:
+    products = list_tournament_products(
+        session, tournament_id, can_view_internal=_can_view_internal(user)
+    )
+    if products is None:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    return list_tournament_products(session, tournament_id)
+    return products

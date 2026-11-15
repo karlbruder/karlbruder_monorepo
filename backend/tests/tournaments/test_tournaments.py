@@ -418,3 +418,38 @@ def test_policy_url_rejects_non_web_links(client, field, value):
         headers=_headers(key, "admin"),
     )
     assert response.status_code == 422
+
+
+def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, db_session):
+    from decimal import Decimal
+    from app.karlmart.catalog.models import Price, Product
+    from app.tournaments.models import Tournament, TournamentProduct
+
+    test_client, key = client
+    admin = _headers(key, "admin")
+    public_id = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    internal_id = test_client.post("/api/staff/tournaments", json=_event(internal=True), headers=admin).json()["id"]
+    product = Product(name="Internal entry", description="Members only")
+    db_session.add(product)
+    db_session.flush()
+    db_session.add_all([
+        TournamentProduct(tournament_id=internal_id, product_id=product.id),
+        Price(product_id=product.id, amount=Decimal("50.00")),
+    ])
+    db_session.flush()
+
+    assert test_client.get(f"/api/tournaments/{public_id}/products").json() == []
+    assert test_client.get("/api/tournaments/999999999/products").status_code == 404
+    for headers in ({}, _headers(key, "regular_user")):
+        assert test_client.get(f"/api/tournaments/{internal_id}/products", headers=headers).status_code == 404
+    for headers in (_headers(key, "guild_member"), admin):
+        response = test_client.get(f"/api/tournaments/{internal_id}/products", headers=headers)
+        assert response.status_code == 200
+        assert [item["name"] for item in response.json()] == ["Internal entry"]
+    tournament = db_session.get(Tournament, internal_id)
+    tournament.is_internal = False
+    db_session.flush()
+    assert test_client.get(f"/api/tournaments/{internal_id}/products").status_code == 200
+    tournament.is_internal = True
+    db_session.flush()
+    assert test_client.get(f"/api/tournaments/{internal_id}/products").status_code == 404
