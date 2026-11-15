@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { RegistrationRequestError, updateRegistrationDetails } from "@/features/tournament/api/tournaments";
 import { RegistrationTags } from "@/features/tournament/components/tournament-tags";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
+import { legalRoutes } from "@/config/legal-routes";
 import type { AppLanguage } from "@/utils/app-copy";
 
 type Field = { key: string; pt: string; en: string; type?: string; required?: boolean };
@@ -81,6 +82,9 @@ export function RegistrationEdit({ registration, tournament, session, language, 
       ["accepts_data_processing", "Tratamento de dados", "Data processing"],
       ["acknowledges_inherent_risks", "Ciência dos riscos", "Acknowledgment of risks"],
       ["accepts_cancellation_policy", "Política de cancelamento", "Cancellation policy"],
-    ].map(([key, pt, english]) => <li key={key}>{en ? english : pt}: {record[key] ? (en ? "Accepted" : "Aceita") : (en ? "Not accepted" : "Não aceita")}</li>)}</ul></details>}
+     ].map(([key, pt, english]) => <li key={key}>{en ? english : pt}: {record[key] ? (en ? "Accepted" : "Aceita") : (en ? "Not accepted" : "Não aceita")}</li>)}</ul>
+      <p>{en ? "If your circumstances change or you have questions about your declarations, contact the organizers at " : "Se suas circunstâncias mudarem ou você tiver dúvidas sobre suas declarações, entre em contato com a organização: "}<a href="mailto:suporte@karlbruder.com">suporte@karlbruder.com</a>.</p>
+      <p>{en ? "For requests about personal data, see the " : "Para solicitações sobre dados pessoais, consulte a "}<a href={legalRoutes.privacy}>{en ? "Privacy Policy" : "Política de Privacidade"}</a>.</p>
+    </details>}
   </div>;
 }

@@ -1,7 +1,7 @@
 # Tournament consent and privacy
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -20,7 +20,7 @@ Collect the necessary participant declarations, preserve their evidence, and res
 - **PRIV-002:** Required declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation, refund, and disqualification rules. Record truthful information independently. Require answers for emergency contact and participation declarations.
 - **PRIV-003:** Record the accepted regulation/terms version, acceptance time, choices, and the IP evidence requested by the source. The handling and retention of that evidence must be defined in the privacy policy.
 - **PRIV-004:** Private fields include document number, date of birth, email, phone, emergency contacts, payment proofs, staff notes, and safety information. Public representations must use explicit permitted fields rather than exposing complete registration records.
-- **PRIV-005:** Participants may retrieve and correct their own TournamentRegistration fields except `staff_safety_note`, `id`, `tournament_id`, `user_id`, `registration_number`, `created_at`, `updated_at`, and `registration_status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules; changing declarations must preserve earlier acceptance evidence.
+- **PRIV-005:** Participants may retrieve and correct their own TournamentRegistration fields except `staff_safety_note`, `id`, `tournament_id`, `user_id`, `registration_number`, `created_at`, `updated_at`, and `registration_status`. Safety notes are staff-only and excluded from participant responses, public views, and routine exports. Participant edits still obey validation and uniqueness rules. Recorded declarations are read-only on the registration edit page. The page provides organizer contact and a privacy-policy link for questions and requests. A future reacceptance flow must preserve earlier acceptance evidence.
 - **PRIV-006:** Remove `show_on_public_list` and its opt-out choice. A limited participant directory and published results are visible to other authorized platform users under the event's public/internal access boundary. Terms must explain who can see the directory and named results before registration. Published results can include the athlete’s display name, category, match outcomes, and placement. Directory fields remain limited to display name, school/team, city/country, and confirmation status; private registration records are not exposed. This does not make private contact, payment, or safety fields public or change internal-event restrictions. Existing permitted guest access to published non-internal results remains unchanged.
 - **PRIV-007:** Proof files require validated type/size, restricted storage, and authorized retrieval. Sensitive records and proofs are not email attachments or files in public website directories.
 - **PRIV-008:** Released data-handling flows require HTTPS, appropriate protection against automated submissions, controlled administrative access, backups, and defined correction/deletion and retention processes.

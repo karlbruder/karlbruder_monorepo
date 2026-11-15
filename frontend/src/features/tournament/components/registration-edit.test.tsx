@@ -47,3 +47,14 @@ it("lets staff correct a cancelled registration without owner-only controls", as
   expect(JSON.parse(String(request.mock.calls[0][1]?.body)).full_name).toBe("Ana Corrected");
   expect(await screen.findByText("Registration details saved.")).toBeInTheDocument();
 });
+
+it.each([
+  ["pt", "Rever minhas declarações", "Política de Privacidade"],
+  ["en", "Review my declarations", "Privacy Policy"],
+] as const)("provides organizer and privacy contacts with read-only declarations in %s", (language, summary, privacy) => {
+  renderWithQuery(<RegistrationEdit session={session} tournament={tournament} registration={registration} language={language} onBack={() => {}} onSaved={() => {}} />);
+  fireEvent.click(screen.getByText(summary));
+  expect(screen.getByRole("link", { name: "suporte@karlbruder.com" })).toHaveAttribute("href", "mailto:suporte@karlbruder.com");
+  expect(screen.getByRole("link", { name: privacy })).toHaveAttribute("href", "/privacy-policy");
+  expect(screen.getByText(language === "pt" ? "Informações verdadeiras: Não aceita" : "Truthful information: Not accepted")).toBeInTheDocument();
+});

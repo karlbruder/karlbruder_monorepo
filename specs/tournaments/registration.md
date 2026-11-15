@@ -48,11 +48,12 @@ athlete-facing tag section is hidden.
 The registration edit page allows the owner to correct personal, sporting, and
 emergency-contact information. Staff can correct those details from the athlete
 management screen alongside tag selection, including for cancelled registrations and
-after the window closes. Registration details and tags save separately. Tags are edited on the same page and save
-separately. Cancelled registrations are read-only for the owner. Corrections keep the
+after the window closes. Registration details and tags save separately.
+Cancelled registrations are read-only for the owner. Corrections keep the
 registration number, owner, status, purchased option, and acceptance evidence.
-The page shows recorded declaration choices. Changing declarations and creating
-a new acceptance snapshot remains unimplemented.
+The page shows recorded declarations as read-only and provides organizer contact
+and a privacy-policy link. Reacceptance of changed terms is deferred. Any future
+reacceptance preserves earlier evidence in a new snapshot.
 
 Registration creates an order and item for the selected product. Each registration uses its order item price.
 
