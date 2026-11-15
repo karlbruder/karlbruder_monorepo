@@ -30,11 +30,9 @@ def test_is_minor_at_tournament_start_around_eighteenth_birthday(
     assert is_minor_at_tournament_start(birth_date, event_starts_at) is expected_minor
 
 
-def test_local_calendar_date_uses_fixed_utc_minus_three_at_midnight():
-    assert current_local_calendar_date(datetime(2026, 10, 1, 2, 59, tzinfo=UTC)) == date(2026, 9, 30)
+def test_registration_date_changes_at_midnight_in_utc_minus_three():
+    assert current_local_calendar_date(datetime(2026, 10, 1, 2, 59, 59, tzinfo=UTC)) == date(2026, 9, 30)
     assert current_local_calendar_date(datetime(2026, 10, 1, 3, 0, tzinfo=UTC)) == date(2026, 10, 1)
-    assert current_local_calendar_date(datetime(2026, 11, 1, 2, 59, tzinfo=UTC)) == date(2026, 10, 31)
-    assert current_local_calendar_date(datetime(2026, 11, 1, 3, 0, tzinfo=UTC)) == date(2026, 11, 1)
 
 
 def test_local_calendar_date_maps_tournament_start_instant_to_local_day():

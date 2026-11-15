@@ -55,7 +55,7 @@ The unique slug may be supplied or derived from name, `discipline`, and event ye
 A duplicate slug returns 409.
 
 Event timestamps are `starts_at` and `ends_at`. Registration windows use inclusive
-`registration_opens_on` and `registration_closes_on` dates. `is_registration_closed`
+`registration_opens_on` and `registration_closes_on` dates in fixed UTC−03:00. `is_registration_closed`
 is an independent staff closure flag. `competitor_capacity` may be null for unlimited
 capacity. `payment_due_at` is a timestamp.
 

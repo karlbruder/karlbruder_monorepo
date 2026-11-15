@@ -18,6 +18,7 @@ export type Tournament = {
   slug: string;
   discipline: string | null;
   starts_at: string;
+  ends_at?: string | null;
   location: string | null;
   registration_opens_on: string | null;
   registration_closes_on: string | null;
@@ -211,6 +212,7 @@ function isTournament(value: unknown): value is Tournament {
     typeof event.slug === "string" && event.slug.length > 0 &&
     typeof event.name === "string" && event.name.trim().length > 0 &&
     typeof event.starts_at === "string" &&
+    (event.ends_at === undefined || isNullableString(event.ends_at)) &&
     isAcceptanceEvidence(event) &&
     typeof event.is_registration_closed === "boolean" &&
     (event.refunds_allowed === undefined || typeof event.refunds_allowed === "boolean") &&

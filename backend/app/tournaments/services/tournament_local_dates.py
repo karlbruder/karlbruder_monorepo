@@ -1,8 +1,6 @@
-"""Calendar dates for tournament rules in fixed UTC-03:00.
+"""Calendar dates for tournament rules in fixed UTC-03:00, it assumes that the tournament is in America/Sao_Paulo timezone.
 
-Registration windows and minor-age checks use this local calendar, not the server
-timezone. Map any aware ``datetime`` with ``local_calendar_date``. Use
-``current_local_calendar_date`` when a rule needs today's date for registration.
+Registration windows, minor-age checks, and refund deadlines use this local calendar.
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -19,7 +17,7 @@ def local_calendar_date(aware_instant: datetime) -> date:
 
 
 def current_local_calendar_date(now: datetime | None = None) -> date:
-    """Return the local date used to evaluate registration open and close windows."""
+    """Return the local date used to evaluate registration windows."""
 
     instant = now or datetime.now(timezone.utc)
     return local_calendar_date(instant)

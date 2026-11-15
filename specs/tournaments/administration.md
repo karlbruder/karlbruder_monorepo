@@ -82,8 +82,7 @@ cancelled registration or after registrations close. Future match results must a
 deletion. Capacity cannot be reduced below confirmed participation.
 
 The editor loads current configuration when staff open it. A later refresh does not
-erase a draft. Saving preserves unchanged dates and times. The editor identifies
-the time zone used for changed values and explains known validation failures.
+erase a draft. Saving preserves unchanged timestamps. The editor accepts calendar dates for the event start, event end, and payment deadline. Changed start dates use 00:00:00 and changed end dates and payment deadlines use 23:59:59 in the browser time zone. The editor identifies that time zone and explains known validation failures.
 A date change may make an existing participant a minor. Their registration remains
 unchanged. The participant can submit a missing parental form before participation.
 

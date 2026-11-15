@@ -8,14 +8,14 @@ const fields: Field[] = [
   { key: "slug", pt: "Identificador", en: "Slug" },
   { key: "description", pt: "Descrição", en: "Description", multiline: true },
   { key: "discipline", pt: "Modalidade", en: "Discipline" },
-  { key: "starts_at", pt: "Início", en: "Start", type: "datetime-local", required: true },
-  { key: "ends_at", pt: "Término", en: "End", type: "datetime-local" },
+  { key: "starts_at", pt: "Início", en: "Start", type: "date", required: true },
+  { key: "ends_at", pt: "Término", en: "End", type: "date" },
   { key: "location", pt: "Local", en: "Location" },
   { key: "schedule", pt: "Programação", en: "Schedule", multiline: true },
   { key: "competitor_capacity", pt: "Capacidade de participantes", en: "Competitor capacity", type: "number" },
   { key: "registration_opens_on", pt: "Abertura das inscrições", en: "Registration opens", type: "date" },
   { key: "registration_closes_on", pt: "Encerramento das inscrições", en: "Registration closes", type: "date" },
-  { key: "payment_due_at", pt: "Prazo de pagamento", en: "Payment deadline", type: "datetime-local" },
+  { key: "payment_due_at", pt: "Prazo de pagamento", en: "Payment deadline", type: "date" },
   { key: "pix_key", pt: "Chave Pix", en: "Pix key" },
   { key: "rules_text", pt: "Texto do regulamento", en: "Rules text", multiline: true },
   { key: "rules_url", pt: "Link do regulamento", en: "Rules URL", type: "url" },
@@ -27,9 +27,9 @@ function initialValues(event?: StaffTournament): Record<string, string> {
   return Object.fromEntries(fields.map(field => {
     const value = event?.[field.key];
     if (value == null) return [field.key, ""];
-    if (field.type === "datetime-local") {
+    if (["starts_at", "ends_at", "payment_due_at"].includes(field.key)) {
       const date = new Date(String(value));
-      return [field.key, new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19)];
+      return [field.key, new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)];
     }
     return [field.key, String(value)];
   }));
@@ -68,7 +68,6 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   const [refundsAllowed, setRefundsAllowed] = useState(event?.refunds_allowed ?? false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const [invalidTime, setInvalidTime] = useState<string | null>(null);
   const en = language === "en";
   const rulesHaveBothFormats = Boolean(values.rules_url.trim() && values.rules_text.trim());
   const cancellationPolicyHasBothFormats = Boolean(
@@ -78,23 +77,18 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (pending) return;
-    setPending(true); setError(null); setInvalidTime(null);
+    setPending(true); setError(null);
     try {
       const payload: Record<string, unknown> = {
         is_internal: internal, is_registration_closed: closed, refunds_allowed: refundsAllowed,
       };
       for (const field of fields) {
         const value = values[field.key].trim();
-        if (value && field.type === "datetime-local" && !(event && value === originalValues[field.key])) {
-          const date = new Date(value);
-          const entered = value.length === 16 ? `${value}:00` : value;
-          const roundTrip = Number.isNaN(date.getTime()) ? "" : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
-          if (roundTrip !== entered) {
-            setInvalidTime(field.key);
-            return;
-          }
-        }
-        payload[field.key] = !value ? null : field.type === "datetime-local" ? event && value === originalValues[field.key] ? event[field.key] : new Date(value).toISOString() : field.key === "competitor_capacity" ? Number(value) : value;
+        const timestampField = ["starts_at", "ends_at", "payment_due_at"].includes(field.key);
+        const time = field.key === "starts_at" ? "00:00:00" : "23:59:59";
+        payload[field.key] = !value ? null : timestampField
+          ? event && value === originalValues[field.key] ? event[field.key] : new Date(`${value}T${time}`).toISOString()
+          : field.key === "competitor_capacity" ? Number(value) : value;
       }
       await saveStaffTournament(token, payload, event ? String(event.id) : undefined);
       onSaved();
@@ -104,10 +98,10 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   }
   return <form className="staff-tournament-form review-card" onSubmit={submit}>
     <p>{en ? "Leave optional fields empty when not configured." : "Deixe os campos opcionais vazios quando não estiverem configurados."}</p>
-    <p>{en ? "Date and time fields use your browser time zone:" : "Os campos de data e hora usam o fuso horário do navegador:"} {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+    <p>{en ? "Event and payment dates use your browser time zone:" : "As datas do evento e do pagamento usam o fuso horário do navegador:"} {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
     <div className="staff-form-grid">
     {fields.map(field => <label key={field.key} className={field.multiline ? "staff-field-wide" : undefined}>{en ? field.en : field.pt}{" "}
-      {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} step={field.type === "datetime-local" ? "1" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
+      {field.multiline ? <textarea value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} /> : <input type={field.type ?? "text"} required={field.required} min={field.type === "number" ? "0" : undefined} value={values[field.key]} onChange={e => setValues({ ...values, [field.key]: e.target.value })} />}
     </label>)}
     </div>
     {rulesHaveBothFormats && <p role="status">{en
@@ -121,7 +115,6 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     <label className="review-check"><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
     <label className="review-check"><input type="checkbox" checked={refundsAllowed} onChange={e => setRefundsAllowed(e.target.checked)} /> {en ? "Allow refunds under the cancellation policy" : "Permitir reembolsos conforme a política de cancelamento"}</label>
     </div>
-    {invalidTime && <p role="alert">{en ? "This local time does not exist. Choose another time for" : "Este horário local não existe. Escolha outro horário para"} {en ? fields.find(field => field.key === invalidTime)?.en : fields.find(field => field.key === invalidTime)?.pt}.</p>}
     {error != null && <p role="alert">{saveErrorMessage(error, en)}</p>}
     <p><button className="staff-primary-button" disabled={pending}>{pending ? (en ? "Saving..." : "Salvando...") : (en ? "Save tournament" : "Salvar torneio")}</button></p>
   </form>;

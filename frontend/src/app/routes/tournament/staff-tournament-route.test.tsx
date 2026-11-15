@@ -50,7 +50,7 @@ it("lists multiple tournaments and saves an edit with null fields and policy lin
 it("creates a tournament and sends explicit unconfigured values", async () => {
   render(tree("/staff/tournaments/new"));
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "New event" } });
-  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17T12:00" } });
+  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "POST")!;
@@ -69,7 +69,7 @@ it("keeps drafts after validation errors and supports English", async () => {
   render(tree("/staff/tournaments/new"));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Draft" } });
-  fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17T12:00" } });
+  fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Save tournament" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Check the fields");
   expect(screen.getByLabelText("Name")).toHaveValue("Draft");
@@ -141,14 +141,16 @@ it("preserves all untouched timestamp instants including fractional seconds", as
   expect(JSON.parse(init.body)).toMatchObject(dates);
 });
 
-it("converts an edited timestamp using the browser time zone", async () => {
+it("sends start and end dates at their day boundaries in the browser time zone", async () => {
   render(tree("/staff/tournaments/1"));
   await screen.findByLabelText("Início");
-  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2028-01-17T13:45" } });
+  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2028-01-17" } });
+  fireEvent.change(screen.getByLabelText("Término"), { target: { value: "2028-01-18" } });
+  fireEvent.change(screen.getByLabelText("Prazo de pagamento"), { target: { value: "2028-01-15" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
-  expect(JSON.parse(init.body).starts_at).toBe(new Date("2028-01-17T13:45").toISOString());
+  expect(JSON.parse(init.body)).toMatchObject({ starts_at: new Date("2028-01-17T00:00:00").toISOString(), ends_at: new Date("2028-01-18T23:59:59").toISOString(), payment_due_at: new Date("2028-01-15T23:59:59").toISOString() });
 });
 
 it.each([
@@ -160,7 +162,7 @@ it.each([
   fetchMock.mockImplementation(async () => json({ detail }, status));
   render(tree("/staff/tournaments/new"));
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Draft" } });
-  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17T12:00" } });
+  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(message);
   expect(screen.getByLabelText("Nome")).toHaveValue("Draft");
@@ -172,7 +174,7 @@ it("localizes validation and server errors in English", async () => {
   render(tree("/staff/tournaments/new"));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Draft" } });
-  fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17T12:00" } });
+  fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Save tournament" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Slug (use lowercase words separated by single hyphens)");
   detail = "Unrecognized server error";
@@ -191,7 +193,7 @@ it.each(["edit", "create", "delete"])("does not redirect a later draft when a pe
   render(tree(operation === "create" ? "/staff/tournaments/new" : "/staff/tournaments/1"));
   if (operation === "create") {
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "First" } });
-    fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17T12:00" } });
+    fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   } else if (operation === "edit") {
     fireEvent.click(await screen.findByRole("button", { name: "Salvar torneio" }));
@@ -205,17 +207,4 @@ it.each(["edit", "create", "delete"])("does not redirect a later draft when a pe
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Second draft" } });
   await act(async () => { finish(operation === "delete" ? new Response(null, { status: 204 }) : json(event)); });
   expect(screen.getByLabelText("Nome")).toHaveValue("Second draft");
-});
-
-const observesNewYorkGap = new Date("2027-03-14T01:59").getTimezoneOffset() === 300 && new Date("2027-03-14T03:00").getTimezoneOffset() === 240;
-it.skipIf(!observesNewYorkGap).each([
-  ["Início", false], ["Término", false], ["Prazo de pagamento", true],
-])("rejects nonexistent local time for %s without sending a request", async (label, english) => {
-  render(tree("/staff/tournaments/1"));
-  await screen.findByLabelText("Início");
-  fireEvent.change(screen.getByLabelText(label), { target: { value: "2027-03-14T02:30" } });
-  if (english) fireEvent.click(screen.getByRole("button", { name: "English" }));
-  fireEvent.click(screen.getByRole("button", { name: english ? "Save tournament" : "Salvar torneio" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent(english ? "local time does not exist" : "horário local não existe");
-  expect(fetchMock.mock.calls.every(([, init]) => init?.method !== "PUT")).toBe(true);
 });

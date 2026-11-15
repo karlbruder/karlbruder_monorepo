@@ -22,7 +22,7 @@
 | Public presentation | Existing `/monomachia` page in `landing/` |
 | Registration | Authenticated application flow under the latest product direction |
 | Application entry | `app.karlbruder.com/tournaments/registration` from `karlbruder.com` or event links |
-| Registration date convention | Opening day through closing day, inclusive, GMT-3 (UTC-03:00) |
+| Registration date convention | Opening day through closing day, inclusive, UTC−03:00 |
 | Seat assignment | Staff confirmation occupies a seat, during payment approval or later selection from the paid waitlist; registration/proof review does not |
 
 ## Rules
@@ -41,7 +41,7 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | --- | --- |
 | Identity and description | `id`, `name`, `description`, `discipline`, `is_internal` |
 | Event dates | `starts_at`, `ends_at` |
-| Registration window | `registration_opens_on`, `registration_closes_on`. Inclusive GMT-3 calendar days |
+| Registration window | `registration_opens_on`, `registration_closes_on`. Inclusive UTC−03:00 calendar days |
 | Payment deadline and prices | `payment_due_at` and tournament registration products with prices in BRL |
 | Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |

@@ -31,13 +31,7 @@ const locale = (language: AppLanguage) => language === "pt" ? "pt-BR" : "en-US";
 
 function eventDate(value: string, language: AppLanguage): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? appCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "long", timeZone: "Etc/GMT+3" }).format(date);
-}
-
-function calendarDate(value: string, language: AppLanguage): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return appCopy(language, "A confirmar");
-  const date = new Date(`${value}T12:00:00Z`);
-  return Number.isNaN(date.getTime()) ? appCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "medium", timeZone: "UTC" }).format(date);
+  return Number.isNaN(date.getTime()) ? appCopy(language, "A confirmar") : new Intl.DateTimeFormat(locale(language), { dateStyle: "medium", timeStyle: "medium" }).format(date);
 }
 
 function registrationWindow(tournament: Tournament, language: AppLanguage): string {
@@ -46,7 +40,7 @@ function registrationWindow(tournament: Tournament, language: AppLanguage): stri
   if (!tournament.registration_opens_on || !tournament.registration_closes_on) {
     return t("Período de inscrição a confirmar.");
   }
-  return `${t("De")} ${calendarDate(tournament.registration_opens_on, language)} ${t("a")} ${calendarDate(tournament.registration_closes_on, language)}, ${t("inclusive (GMT-3).")}`;
+  return `${t("De")} ${eventDate(`${tournament.registration_opens_on}T00:00:00-03:00`, language)} ${t("a")} ${eventDate(`${tournament.registration_closes_on}T23:59:59-03:00`, language)}`;
 }
 
 function selectOwnActiveRegistration(registrations: OwnerRegistration[] | undefined, accountId: string): OwnerRegistration | null {
@@ -152,7 +146,7 @@ export default function TournamentRegistration({
         )}
       </ApplicationHeader>
       <main className="registration-main">
-        <a className="registration-back" href="/">← {t("Início")}</a>
+        <a className="registration-back" href="/">← {t("Início do torneio")}</a>
         <div className="registration-intro">
           <p className="registration-eyebrow">{tournamentId ? tournament?.name ?? "Karlbrüder" : "Monomachia · Karlbrüder"}</p>
           <h1>{t("Inscrição pessoal")}</h1>
@@ -204,8 +198,10 @@ export default function TournamentRegistration({
               <section className="registration-card registration-next" aria-labelledby="event-name">
                 <p className="registration-eyebrow">{t("Torneio")}</p>
                 <h2 id="event-name">{tournament.name}</h2>
+                <p>{t("Datas e horários no fuso do seu navegador.")}</p>
                 <dl className="registration-facts">
-                  <div><dt>{t("Data")}</dt><dd>{eventDate(tournament.starts_at, language)}</dd></div>
+                  <div><dt>{t("Início do torneio")}</dt><dd>{eventDate(tournament.starts_at, language)}</dd></div>
+                  {tournament.ends_at && <div><dt>{t("Término do torneio")}</dt><dd>{eventDate(tournament.ends_at, language)}</dd></div>}
                   <div><dt>{t("Modalidade")}</dt><dd>{tournament.discipline === "longsword" ? t("Espada longa (longsword)") : tournament.discipline || t("A confirmar")}</dd></div>
                   <div><dt>{t("Local")}</dt><dd>{tournament.location || t("A confirmar")}</dd></div>
                   <div><dt>{t("Inscrições")}</dt><dd>{registrationWindow(tournament, language)}</dd></div>

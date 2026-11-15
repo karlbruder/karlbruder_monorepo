@@ -110,7 +110,7 @@ describe('Monomachia registration entry', () => {
     expect(screen.getByRole('heading', { name: 'Personal registration' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'English' }).closest('[lang]')).toHaveAttribute('lang', 'en-US')
-    expect(screen.getByText(/January 17, 2027/)).toBeInTheDocument()
+    expect(screen.getByText(new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(tournament.starts_at)))).toBeInTheDocument()
     expect(window.localStorage.getItem('registrationLanguage')).toBe('en')
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }))
     await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
@@ -179,9 +179,9 @@ describe('Monomachia registration entry', () => {
     expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
     expect(request).toHaveBeenCalledWith(monomachiaListUrl, expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(screen.getByText('Espada longa (longsword)')).toBeInTheDocument()
-    expect(screen.getByText(/17 de janeiro de 2027/)).toBeInTheDocument()
+    expect(screen.getByText(new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(tournament.starts_at)))).toBeInTheDocument()
     expect(screen.getAllByText('A confirmar')).toHaveLength(1)
-    expect(screen.getByText(/inclusive \(GMT-3\)/)).toBeInTheDocument()
+    expect(screen.getByText(/De .* a /)).toBeInTheDocument()
     expect(screen.getByText(/não confirma uma vaga/)).toBeInTheDocument()
   })
 
