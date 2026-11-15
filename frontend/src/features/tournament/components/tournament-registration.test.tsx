@@ -132,6 +132,7 @@ describe('Tournament registration', () => {
       latest_payment_proof: null,
     };
     const request = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/products")) return { ok: true, status: 200, json: async () => [{ id: 1, product_id: 2, name: "Inscrição Plena", description: "Participação", price_id: 3, amount: "100.00", currency: "BRL" }] }
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(resolvedTournament) };
       }
@@ -166,6 +167,7 @@ describe('Tournament registration', () => {
       />,
     )
     const form = await screen.findByRole('form', { name: 'Formulário de inscrição' })
+    fireEvent.click(await screen.findByRole("radio", { name: /Inscrição Plena/ }))
     const fill = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
     fill(/Nome completo/, 'Fixture Athlete')
     fill(/Data de nascimento/, '2000-01-01')
@@ -398,6 +400,7 @@ describe('Tournament registration', () => {
     }
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       const authorization = new Headers(init?.headers).get("Authorization")
+      if (url.endsWith("/products")) return { ok: true, status: 200, json: async () => [{ id: 1, product_id: 2, name: "Inscrição Plena", description: "Participação", price_id: 3, amount: "100.00", currency: "BRL" }] }
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
       }
@@ -428,6 +431,7 @@ describe('Tournament registration', () => {
     }))
     render(<SwitchableRegistration nextSession={sessionB} />)
     const form = await screen.findByRole("form", { name: "Formulário de inscrição" })
+    fireEvent.click(await screen.findByRole("radio", { name: /Inscrição Plena/ }))
     const fill = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
     fill(/Nome completo/, "Fixture Athlete")
     fill(/Data de nascimento/, "2000-01-01")

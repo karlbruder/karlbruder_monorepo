@@ -4,6 +4,15 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { Session } from '@supabase/supabase-js'
 import TournamentRegistrationForm from '@/features/tournament/components/tournament-registration-form'
 import type { Tournament } from '@/features/tournament/api/tournaments'
+import { getTournamentProducts } from '@/features/tournament/api/tournaments'
+
+vi.mock('@/features/tournament/api/tournaments', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/features/tournament/api/tournaments')>(),
+  getTournamentProducts: vi.fn(),
+}))
+
+const product = { id: 1, product_id: 2, name: 'Inscrição Plena', description: 'Participação', price_id: 3, amount: '100.00', currency: 'BRL' }
+
 
 const tournament: Tournament = {
   id: 42,
@@ -42,10 +51,11 @@ function change(label: RegExp, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 }
 
-function fillRequired({ declarations = true, birthDate = '2000-01-01' }: {
+async function fillRequired({ declarations = true, birthDate = '2000-01-01' }: {
   declarations?: boolean
   birthDate?: string
 } = {}) {
+  fireEvent.click(await screen.findByRole('radio', { name: /Inscrição Plena/ }))
   change(/Nome completo/, ' Ana Teste ')
   change(/Data de nascimento/, birthDate)
   change(/^Documento/, 'passport')
@@ -62,7 +72,8 @@ function fillRequired({ declarations = true, birthDate = '2000-01-01' }: {
   }
 }
 
-function fillRequiredEnglish() {
+async function fillRequiredEnglish() {
+  fireEvent.click(await screen.findByRole('radio', { name: /Inscrição Plena/ }))
   change(/Full name/, 'Fixture Athlete')
   change(/Date of birth/, '2000-01-01')
   change(/^Identity document/, 'passport')
@@ -122,6 +133,7 @@ function attachParentalConsentForm(file: File) {
 
 beforeEach(() => {
   vi.stubEnv('VITE_API_BASE_URL', '/api')
+  vi.mocked(getTournamentProducts).mockResolvedValue([product])
 })
 
 afterEach(() => {
@@ -143,7 +155,7 @@ describe('Athlete submits their own registration and sees the result', () => {
       "declares_truthful_information", "acknowledges_inherent_risks",
       "declares_has_required_equipment", "declares_physically_fit",
     ])
-    fillRequiredEnglish()
+    await fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     const [, options] = request.mock.calls[0]
@@ -167,7 +179,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(request).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert')).toHaveTextContent('Review the highlighted fields')
+    expect(screen.getByText('Review the highlighted fields before submitting.')).toBeInTheDocument()
+    expect(screen.getByText('Select an available registration type.')).toBeInTheDocument()
     expect(screen.getAllByText('This declaration is required.')).toHaveLength(7)
   })
 
@@ -185,7 +198,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
-    fillRequiredEnglish()
+    await fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue('Fixture Athlete')
@@ -197,8 +210,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     })
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fireEvent.click(await screen.findByRole('radio', { name: /Inscrição Plena/ }))
-    fillRequired()
+    await fillRequired()
     change(/Nome social/, ' Ana ')
     change(/Estado \/ província/, 'SP')
     change(/Escola \/ equipe/, ' Escola Teste ')
@@ -208,8 +220,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     change(/Categoria \/ caso especial/, ' Categoria iniciante ')
     submit()
 
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2))
-    const [url, options] = request.mock.calls[1]
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+    const [url, options] = request.mock.calls[0]
     if (!options) throw new Error('Missing registration request options')
     expect(url).toBe('/api/tournaments/42/registrations')
     expect(options.method).toBe('POST')
@@ -239,20 +251,20 @@ describe('Athlete submits their own registration and sees the result', () => {
   })
 
   it('displays an unpriced option without allowing it to be selected', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, [
+    vi.mocked(getTournamentProducts).mockResolvedValue([
       { id: 1, product_id: 2, name: 'Inscrição Plus', description: 'Pacote', price_id: null, amount: null, currency: null },
-    ])))
+    ])
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
     const option = await screen.findByRole('radio', { name: /Inscrição Plus/ })
     expect(option).toBeDisabled()
     expect(option).toHaveAccessibleName(/Valor ainda não disponível/)
   })
 
-  it('requires every declaration before sending', () => {
+  it('requires every declaration before sending', async () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ declarations: false })
+    await fillRequired({ declarations: false })
     submit()
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('Revise os campos indicados')
@@ -264,7 +276,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired()
+    await fillRequired()
     change(/Tempo de prática em HEMA/, '')
     change(/Torneios anteriores/, '-1')
     submit()
@@ -287,7 +299,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve }))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired()
+    await fillRequired()
     submit()
     submit()
     expect(request).toHaveBeenCalledTimes(1)
@@ -306,7 +318,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired()
+    await fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
     expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
@@ -316,24 +328,24 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('handles a network failure without claiming success', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection failed')))
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired()
+    await fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar a inscrição agora.')
     expect(screen.queryByText(created.registration_number)).not.toBeInTheDocument()
   })
 
-  it('does not show the parental consent form field for an adult birth date', () => {
+  it('does not show the parental consent form field for an adult birth date', async () => {
     vi.stubGlobal('fetch', vi.fn())
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired()
+    await fillRequired()
     expect(screen.queryByLabelText(/Termo de responsabilidade assinado/)).not.toBeInTheDocument()
   })
 
-  it('shows the parental consent form field for a minor and blocks submit without a file', () => {
+  it('shows the parental consent form field for a minor and blocks submit without a file', async () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ birthDate: '2010-06-01' })
+    await fillRequired({ birthDate: '2010-06-01' })
     expect(screen.getByLabelText(/Termo de responsabilidade assinado/)).toBeInTheDocument()
     submit()
     expect(request).not.toHaveBeenCalled()
@@ -344,7 +356,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = mockPresignedRegistrationFlow()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ birthDate: '2010-06-01' })
+    await fillRequired({ birthDate: '2010-06-01' })
     attachParentalConsentForm(pdfFile())
     submit()
     await waitFor(() => expect(request).toHaveBeenCalledTimes(3))
@@ -362,7 +374,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ birthDate: '2010-06-01' })
+    await fillRequired({ birthDate: '2010-06-01' })
     const bytes = new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c])
     const htmlAsPdf = new File([bytes], 'term.pdf', { type: 'application/pdf' })
     Object.defineProperty(htmlAsPdf, 'arrayBuffer', {
@@ -379,7 +391,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = mockPresignedRegistrationFlow(415, { detail: 'Parental consent form file type is not allowed' })
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-    fillRequired({ birthDate: '2010-06-01' })
+    await fillRequired({ birthDate: '2010-06-01' })
     attachParentalConsentForm(pdfFile())
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent(/servidor recusou o termo de responsabilidade/)
@@ -427,7 +439,7 @@ it('refreshes changed terms, preserves personal fields and requires new choices 
     .mockResolvedValueOnce(response(201, created))
   vi.stubGlobal('fetch', request)
   render(<TournamentRegistrationForm tournament={tournament} session={session} />)
-  fillRequired()
+  await fillRequired()
   submit()
   expect(await screen.findByText('Updated official rules')).toBeInTheDocument()
   expect(await screen.findByRole('alert')).toHaveTextContent(/Os termos mudaram/)
