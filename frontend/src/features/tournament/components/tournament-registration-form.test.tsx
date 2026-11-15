@@ -45,6 +45,8 @@ const created = {
   full_name: 'Ana Teste',
   email: 'athlete@example.test',
   tournament_id: 42,
+  product_name: 'Inscrição Plena',
+  product_description: 'Benefícios adquiridos',
 }
 
 function change(label: RegExp, value: string) {
@@ -169,6 +171,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(payload.full_name).toBe('Fixture Athlete')
     expect(payload.identity_document_type).toBe('passport')
     expect(await screen.findByText('T42-000001-5')).toBeInTheDocument()
+    expect(screen.getByText('Benefícios adquiridos')).toBeInTheDocument()
     expect(screen.getByText('Awaiting payment')).toBeInTheDocument()
     expect(screen.getByText(/not yet confirmed or reserved/)).toBeInTheDocument()
   })

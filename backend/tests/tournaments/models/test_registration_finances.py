@@ -419,3 +419,17 @@ def test_tournament_refund_payment_and_deadline_cannot_be_reassigned(db_session,
             with db_session.begin_nested():
                 setattr(refund, field, value)
                 db_session.flush()
+
+
+def test_purchased_offering_cannot_be_reassigned(db_session):
+    tournament = Tournament(name="Fixture", slug=f"fixture-{uuid4().hex}", starts_at=NOW)
+    db_session.add(tournament)
+    db_session.flush()
+    registration = _registration(db_session, tournament)
+    offering = db_session.get(TournamentProduct, registration.tournament_product_id)
+    replacement = Product(name="Other", description="Other entry")
+    db_session.add(replacement)
+    db_session.flush()
+    with pytest.raises(IntegrityError, match="Purchased tournament product is immutable"), db_session.begin_nested():
+        offering.product_id = replacement.id
+        db_session.flush()

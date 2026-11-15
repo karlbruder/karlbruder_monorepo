@@ -67,7 +67,6 @@ capacity rules are the same for all three options.
 | Plus Registration | R$ 200 | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
 
 Social is intended as a lower-cost option that contributes to the event's costs.
-The Social price must be confirmed before being presented as final.
 The product description identifies the benefits of each option. This specification
 does not define a separate perk inventory or fulfillment workflow.
 

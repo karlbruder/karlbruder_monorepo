@@ -158,7 +158,8 @@ def upgrade():
             JOIN public.prices pr ON pr.id = oi.price_id AND pr.product_id = tp.product_id
             JOIN public.orders o ON o.id = oi.order_id AND o.user_id = NEW.user_id
             WHERE tp.id = NEW.tournament_product_id AND tp.tournament_id = NEW.tournament_id
-              AND oi.quantity = 1;
+              AND oi.quantity = 1
+            FOR SHARE OF tp;
             IF NOT FOUND THEN
                 RAISE EXCEPTION 'Registration must match its tournament product and order' USING ERRCODE = '23514';
             END IF;
@@ -166,6 +167,16 @@ def upgrade():
         END $$
     """)
     op.execute("CREATE TRIGGER valid_registration_order BEFORE INSERT OR UPDATE ON public.tournament_registrations FOR EACH ROW EXECUTE FUNCTION public.validate_registration_order()")
+    op.execute("""
+        CREATE FUNCTION public.protect_order_owner() RETURNS trigger
+        LANGUAGE plpgsql AS $$ BEGIN
+            IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+                RAISE EXCEPTION 'Order owner is immutable' USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END $$
+    """)
+    op.execute("CREATE TRIGGER immutable_order_owner BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.protect_order_owner()")
     op.execute("""
         CREATE FUNCTION public.protect_purchased_tournament_product() RETURNS trigger
         LANGUAGE plpgsql AS $$ BEGIN
@@ -227,6 +238,8 @@ def downgrade():
     op.create_check_constraint("ck_tournaments_fee_nonnegative", "tournaments", "registration_fee_amount IS NULL OR registration_fee_amount >= 0", schema="public")
     op.execute("DROP TRIGGER immutable_purchased_tournament_product ON public.tournament_products")
     op.execute("DROP FUNCTION public.protect_purchased_tournament_product()")
+    op.execute("DROP TRIGGER immutable_order_owner ON public.orders")
+    op.execute("DROP FUNCTION public.protect_order_owner()")
     op.execute("DROP TRIGGER valid_registration_order ON public.tournament_registrations")
     op.execute("DROP FUNCTION public.validate_registration_order()")
     op.execute("DROP TRIGGER valid_tournament_refund ON public.refunds")

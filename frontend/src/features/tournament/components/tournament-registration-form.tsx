@@ -222,6 +222,7 @@ function Success({ result, tournament, language }: { result: RegistrationCreated
         <div><dt>{t("E-mail")}</dt><dd>{result.email}</dd></div>
         <div><dt>{t("Situação")}</dt><dd>{statusText}</dd></div>
       </dl>
+      {result.product_description && <p>{result.product_description}</p>}
       {result.registration_status === "awaiting_payment" && (
         <p>{t("Próximo passo: acompanhe as instruções de pagamento do torneio. Sua vaga ainda não está confirmada nem reservada.")}</p>
       )}

@@ -1,7 +1,7 @@
 # Operational runbooks
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 Runbooks describe how to operate an implemented system. Intended hosting and access requirements live in the [platform specs](../../specs/platform/deployment.md).
 
@@ -11,6 +11,7 @@ These procedures do not establish that live configuration has been applied or
 verified. Recovery and cutover procedures are added when their path is defined
 and verified.
 
+- [Tournament registration products](tournament-product-setup.md): configure and verify hosted offerings before registration opens.
 - [Supabase auth email through SES](supabase-auth-email-ses.md): DNS, SES sandbox exit, and Supabase custom SMTP for auth mail (Terraform prod workspace).
 - [Application files S3 bucket](application-files-s3-bucket.md): private upload bucket per workspace, backend secret `S3_BUCKET_NAME`, and post-apply checks.
 - [GitHub Actions access](github-actions-access.md): account OIDC provider, shared deployment role, IAM policies, and access verification.

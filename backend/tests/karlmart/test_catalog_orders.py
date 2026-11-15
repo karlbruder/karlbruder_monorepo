@@ -91,3 +91,18 @@ def test_purchased_price_terms_cannot_change_but_price_can_be_deactivated(db_ses
     db_session.flush()
     assert price.amount == Decimal("100.00")
     assert not price.is_active
+
+
+def test_order_owner_cannot_change_while_status_can_change(db_session):
+    owner = uuid4()
+    order = Order(user_id=owner, status="pending")
+    db_session.add(order)
+    db_session.flush()
+    with pytest.raises(IntegrityError, match="Order owner is immutable"), db_session.begin_nested():
+        order.user_id = uuid4()
+        db_session.flush()
+    db_session.refresh(order)
+    order.status = "paid"
+    db_session.flush()
+    assert order.user_id == owner
+    assert order.status == "paid"

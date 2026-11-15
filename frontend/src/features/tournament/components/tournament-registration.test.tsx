@@ -153,7 +153,7 @@ describe('Tournament registration', () => {
         };
       }
       const detail = url.match(/^\/api\/tournaments\/(\d+)\/registrations\/([^/]+)$/);
-      if (detail && (!init?.method || init.method === "GET")) return { ok: true, status: 200, json: async () => ({ tournament_id: Number(detail[1]), registration_number: detail[2], registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test" }) };
+      if (detail && (!init?.method || init.method === "GET")) return { ok: true, status: 200, json: async () => ({ tournament_id: Number(detail[1]), registration_number: detail[2], registration_status: "awaiting_payment", parental_consent_required: false, full_name: "Fixture", email: "athlete@example.test", product_name: "Inscrição Plena", product_description: "Benefícios adquiridos" }) };
       if (url.endsWith("/payment")) {
         return { ok: true, status: 200, json: async () => paymentPayload };
       }
@@ -190,6 +190,7 @@ describe('Tournament registration', () => {
       );
     });
     expect(await screen.findByRole("heading", { name: "Pagamento da inscrição" })).toBeInTheDocument();
+    expect(screen.getByText("Benefícios adquiridos")).toBeInTheDocument();
     expect(screen.queryByRole("form", { name: "Formulário de inscrição" })).not.toBeInTheDocument();
   });
 

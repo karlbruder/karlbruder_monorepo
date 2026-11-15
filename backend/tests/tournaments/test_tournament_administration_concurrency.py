@@ -412,3 +412,27 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
             )) == new
     finally:
         _cleanup(engine, tournament_id)
+
+
+def test_registration_guard_locks_offering_against_concurrent_update(migrated_database):
+    from sqlalchemy.exc import OperationalError
+    from tests.tournaments.models.test_registration_finances import _registration
+
+    engine = migrated_database
+    with Session(engine) as session:
+        tournament = Tournament(name="Guard fixture", slug=f"guard-{uuid4().hex}", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
+        session.add(tournament)
+        session.flush()
+        registration = _registration(session, tournament)
+        tournament_id, registration_id, offering_id = tournament.id, registration.id, registration.tournament_product_id
+        session.commit()
+    try:
+        with engine.connect() as first, engine.connect() as second:
+            first.execute(text("UPDATE public.tournament_registrations SET full_name = full_name WHERE id = :id"), {"id": registration_id})
+            second.execute(text("SET LOCAL lock_timeout = '250ms'"))
+            with pytest.raises(OperationalError, match="lock timeout"):
+                second.execute(text("UPDATE public.tournament_products SET product_id = product_id WHERE id = :id"), {"id": offering_id})
+            second.rollback()
+            first.rollback()
+    finally:
+        _cleanup(engine, tournament_id)

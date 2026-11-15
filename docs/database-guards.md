@@ -29,6 +29,7 @@ reused as a trigger name on several different tables.
 | `payment_proof_reviews` | `immutable_evidence` | Update, delete | `reject_evidence_mutation` | Preserve the decision, actor, time, and reviewed proof. |
 | `payments` | `immutable_evidence` | Update, delete | `reject_evidence_mutation` | Preserve verified receipt facts and their order link. |
 | `payment_proof_payments` | `immutable_evidence` | Update, delete | `reject_evidence_mutation` | Prevent replacing or removing the link between a review and payment. |
+| `orders` | `immutable_order_owner` | Update | `protect_order_owner` | Keep the order owner fixed, including before an item is added. This preserves purchase attribution without a conditional cross-table race. |
 | `order_items` | `immutable_order_item` | Update, delete | `reject_evidence_mutation` | Preserve the purchased product and price snapshot. |
 | `stored_files` | `immutable_archived_file` | Update, delete | `protect_archived_file_metadata` | Keep an archived file's storage metadata from being redirected or deleted. This depends on whether an archive references the file. |
 | `stored_files` | `immutable_reviewed_proof_file` | Update, delete | `protect_reviewed_proof_file` | Preserve the storage metadata behind a reviewed proof. This depends on whether a review references the file. |
@@ -37,7 +38,7 @@ reused as a trigger name on several different tables.
 | `payment_proof_payments` | `valid_payment_proof` | Insert | `validate_payment_proof_payment` | Require an approved proof for the same registration order as the payment. It locks the referenced review, document, registration, order item, and payment. |
 | `refunds` | `immutable_refund_obligation` | Update | `protect_refund_obligation` | Keep the source payment, amount, obligation time, and deadline fixed. Completion fields remain editable subject to their constraints. |
 | `refunds` | `valid_tournament_refund` | Insert | `validate_tournament_refund` | For tournament orders, require the full received amount and at most one refund. It locks the payment while checking existing refunds. |
-| `tournament_registrations` | `valid_registration_order` | Insert, update | `validate_registration_order` | Match the tournament product, price's product, order owner, and quantity. It also prevents changing the registration's purchase references and owner. |
+| `tournament_registrations` | `valid_registration_order` | Insert, update | `validate_registration_order` | Match the tournament product, price's product, order owner, and quantity. It locks the offering while validating and prevents changing the registration's purchase references and owner. |
 | `tournament_products` | `immutable_purchased_tournament_product` | Update | `protect_purchased_tournament_product` | Prevent changing the tournament or product of an offering referenced by a registration. |
 | `prices` | `immutable_purchased_price` | Update | `protect_purchased_price` | Prevent changing a purchased price's product, amount, or currency. Deactivation remains allowed. |
 | `order_items` | `valid_order_item_price` | Insert | `lock_order_item_price` | Require the item amount and currency to match the referenced price and lock that price during insertion. |
