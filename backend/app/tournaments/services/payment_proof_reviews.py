@@ -309,6 +309,7 @@ def _approve_registration_payment(
     order.status = "paid"
     if registration.registration_status == "cancelled":
         if registration.refundable_cancelled_at is not None:
+            session.flush()
             add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
                               obligated_at=registration.refundable_cancelled_at,
                               due_on=refund_due_date(registration.refundable_cancelled_at))

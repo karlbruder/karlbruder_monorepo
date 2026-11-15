@@ -135,6 +135,20 @@ def upgrade():
                 SELECT 1 FROM public.payments p
                 JOIN public.order_items oi ON oi.order_id = p.order_id
                 JOIN public.tournament_registrations tr ON tr.order_item_id = oi.id
+                WHERE p.id = NEW.payment_id AND NOT EXISTS (
+                    SELECT 1 FROM public.payment_proof_payments pp
+                    JOIN public.payment_proof_reviews pr ON pr.id = pp.proof_review_id
+                    JOIN public.tournament_registration_documents d ON d.id = pr.document_id
+                    WHERE pp.payment_id = p.id AND pr.decision = 'approved'
+                      AND d.document_type = 'payment_proof' AND d.registration_id = tr.id
+                )
+            ) THEN
+                RAISE EXCEPTION 'Tournament refund requires approved registration proof' USING ERRCODE = '23514';
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM public.payments p
+                JOIN public.order_items oi ON oi.order_id = p.order_id
+                JOIN public.tournament_registrations tr ON tr.order_item_id = oi.id
                 JOIN public.refunds r ON r.payment_id = p.id
                 WHERE p.id = NEW.payment_id
             ) THEN
@@ -228,8 +242,8 @@ def upgrade():
         LANGUAGE plpgsql AS $$ BEGIN
             IF ROW(NEW.product_id, NEW.amount, NEW.currency)
                 IS DISTINCT FROM ROW(OLD.product_id, OLD.amount, OLD.currency)
-                AND EXISTS (SELECT 1 FROM public.order_items WHERE price_id = OLD.id) THEN
-                RAISE EXCEPTION 'Purchased price terms are immutable' USING ERRCODE = '23514';
+                THEN
+                RAISE EXCEPTION 'Price terms are immutable' USING ERRCODE = '23514';
             END IF;
             RETURN NEW;
         END $$

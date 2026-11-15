@@ -56,7 +56,8 @@ approval/rejection. Approval atomically saves the review, shared receipt, associ
 and confirmed or paid-waitlist outcome. Rejection returns to `awaiting_payment`
 with a separate current-proof review and reason. Only a new proof can be reviewed
 after rejection. Cancellation atomically records an obligation when the tournament
-allows refunds and a verified receipt exists. It uses the exact amount received and the deadline under PAY-012.
+allows refunds and a receipt linked to approved proof for that registration exists.
+An unlinked receipt requires staff reconciliation before cancellation can create an obligation. It uses the exact amount received and the deadline under PAY-012.
 A submitted proof alone does not create a receipt. The participant can see a
 pending or completed refund and its deadline separately from cancelled
 participation. Staff can find outstanding refunds across tournaments, check the

@@ -331,7 +331,9 @@ released at commit. A verified payment in an eligible tournament creates an
 obligation for the full amount received. Eligibility defaults to false and
 requires cancellation policy text or a policy URL when enabled. Its deadline
 is the tenth weekday after cancellation in fixed UTC−03:00, ignoring holidays.
-Cancellation leaves the order, proof, and payment evidence intact. Pending proof
+For a refundable tournament, if a receipt lacks an approved proof association for
+this registration, cancellation returns 409 until staff reconciles the evidence. Existing refund obligations remain
+visible and completable. Cancellation leaves the order, proof, and payment evidence intact. Pending proof
 remains in the staff review queue. Approval records the receipt without restoring
 participation. If refunds were allowed at cancellation, it creates the obligation
 using the cancellation time and policy eligibility. Rejection keeps participation

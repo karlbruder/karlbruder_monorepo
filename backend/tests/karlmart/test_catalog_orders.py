@@ -106,3 +106,22 @@ def test_order_owner_cannot_change_while_status_can_change(db_session):
     db_session.flush()
     assert order.user_id == owner
     assert order.status == "paid"
+
+
+def test_unused_price_terms_are_immutable_and_replacement_can_be_created(db_session):
+    product = Product(name="Entry", description="Tournament entry")
+    db_session.add(product)
+    db_session.flush()
+    price = Price(product_id=product.id, amount=Decimal("100.00"))
+    db_session.add(price)
+    db_session.flush()
+    with pytest.raises(IntegrityError, match="Price terms are immutable"), db_session.begin_nested():
+        price.amount = Decimal("200.00")
+        db_session.flush()
+    db_session.refresh(price)
+    price.is_active = False
+    replacement = Price(product_id=product.id, amount=Decimal("200.00"))
+    db_session.add(replacement)
+    db_session.flush()
+    assert price.amount == Decimal("100.00")
+    assert replacement.id != price.id

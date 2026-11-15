@@ -25,7 +25,7 @@ revisions published on `master` remain immutable.
 
 The owner authorized editing the Karlmart revision `20261114_0001` before the
 launch reset. It includes `tournaments.refunds_allowed`, cancellation eligibility evidence,
-and the tournament refund deletion guard. Local databases that applied an earlier
+and the tournament refund and price evidence guards. Local databases that applied an earlier
 form of the revision need a rebuild to pick up these changes.
 
 ## Applying migrations

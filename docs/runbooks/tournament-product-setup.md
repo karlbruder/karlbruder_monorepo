@@ -66,5 +66,5 @@ it to change prices. Purchased prices and order items preserve purchase history.
    An offering without an active price cannot be selected.
 
 For a future price change, insert a new active `public.prices` row for the same
-product and verify that it is the latest active price. Do not edit a purchased
+product and verify that it is the latest active price. Do not edit the product, amount, or currency of an existing
 price. Existing registrations continue using their order-item snapshots.

@@ -17,7 +17,10 @@ from app.karlmart.orders.models import OrderItem
 from app.karlmart.payments.models import Payment, Refund
 from app.karlmart.payments.services.records import add_refund_record
 from app.tournaments.exceptions import RegistrationConflictError, RegistrationResourceNotFoundError
-from app.tournaments.models import Tournament, TournamentRegistration
+from app.tournaments.models import (
+    PaymentProofPayment, PaymentProofReview, Tournament, TournamentRegistration,
+    TournamentRegistrationDocument,
+)
 from app.tournaments.schemas import StaffRegistrationRefundQueue, StaffRegistrationRefundRead
 from app.tournaments.services.tournament_local_dates import refund_due_date
 from app.tournaments.services.tournament_registrations import visible_tournament
@@ -125,6 +128,18 @@ def cancel_tournament_registration(session: Session, tournament_id: int, number:
         if not tournament.refunds_allowed and get_application_role(user) != "admin":
             raise RegistrationConflictError("Self-service cancellation is unavailable for this tournament")
         payment = _find_registration_payment(session, registration) if tournament.refunds_allowed else None
+        if payment is not None:
+            approved_proof = session.scalar(
+                select(PaymentProofPayment.id)
+                .join(PaymentProofReview, PaymentProofReview.id == PaymentProofPayment.proof_review_id)
+                .join(TournamentRegistrationDocument, TournamentRegistrationDocument.id == PaymentProofReview.document_id)
+                .where(PaymentProofPayment.payment_id == payment.id,
+                       PaymentProofReview.decision == "approved",
+                       TournamentRegistrationDocument.registration_id == registration.id,
+                       TournamentRegistrationDocument.document_type == "payment_proof")
+            )
+            if approved_proof is None:
+                raise RegistrationConflictError("Payment requires approved registration proof before cancellation")
         registration.registration_status = "cancelled"
         now = datetime.now(UTC)
         if tournament.refunds_allowed:
