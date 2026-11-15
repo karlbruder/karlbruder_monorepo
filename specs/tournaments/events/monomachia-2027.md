@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -15,7 +15,7 @@
 | Fact | Value or status |
 | --- | --- |
 | Name | Monomachia Karlbrüder 2027 |
-| Event date | Sunday, 17 January 2027, as supplied in the source requirements; final schedule not confirmed here |
+| Event date | Saturday and Sunday, 16–17 January 2027; daily times and schedule remain unconfirmed |
 | Discipline | Longsword (`longsword` in the initial tournament model) |
 | Internal event | `false` in issue #20's initial setup example |
 | Instagram | [monomachia.karlbruder](https://www.instagram.com/monomachia.karlbruder) |

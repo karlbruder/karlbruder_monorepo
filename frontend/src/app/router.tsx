@@ -12,6 +12,7 @@ import { RegistrationRefundRoute } from "@/app/routes/tournament/registration-re
 import { AuthenticatedLayout } from "@/app/routes/authenticated-layout";
 import HomeRoute from "@/app/routes/home-route";
 import { LegalDocumentRoute } from "@/app/routes/legal-document-route";
+import { PersonalRegistrationsRoute } from "@/app/routes/tournament/personal-registrations-route";
 import RegistrationRoute from "@/app/routes/tournament/registration-route";
 import SignInRoute from "@/app/routes/auth/sign-in-route";
 import SignUpRoute from "@/app/routes/auth/sign-up-route";
@@ -36,6 +37,7 @@ export default function AppRouter() {
       <Route element={<AuthenticatedLayout />}>
         <Route path={accountRoutes.password} element={<ChangePasswordRoute />} />
         <Route path="/" element={<HomeRoute />} />
+        <Route path="/registrations" element={<PersonalRegistrationsRoute />} />
         <Route element={<StaffLayout />}>
           <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
           <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />

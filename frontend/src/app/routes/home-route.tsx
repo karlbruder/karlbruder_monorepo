@@ -27,6 +27,7 @@ export default function HomeRoute() {
           <section aria-labelledby="home-registration-title">
             <p className="eyebrow">{en ? "Your tournament" : "Seu torneio"}</p>
             <h2 id="home-registration-title">{en ? "Registration" : "Inscrição"}</h2>
+            <p><Link to="/registrations">{en ? "My registrations" : "Minhas inscrições"} →</Link></p>
             <article className="home-registration">
               <p className="eyebrow">Monomachia</p>
               <h3>{t("Inscrição Monomachia")}</h3>

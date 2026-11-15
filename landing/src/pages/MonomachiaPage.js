@@ -168,6 +168,10 @@ const MonomachiaPage = () => {
                 <dd>{copy.location}</dd>
               </div>
               <div>
+                <dt>{copy.registrationOptions}</dt>
+                <dd>{copy.registrationPrices}</dd>
+              </div>
+              <div>
                 <dt>{copy.nextAnnouncements}</dt>
                 <dd>{copy.nextAnnouncementsValue}</dd>
               </div>

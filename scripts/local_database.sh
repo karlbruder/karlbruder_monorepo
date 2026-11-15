@@ -55,6 +55,7 @@ INSERT INTO public.tournaments (
     slug,
     discipline,
     starts_at,
+    ends_at,
     location,
     registration_opens_on,
     registration_closes_on,
@@ -65,6 +66,8 @@ SELECT
     'Monomachia',
     'monomachia-a-confirmar-2027',
     'A confirmar',
+    -- Local placeholder times. The event schedule is not yet confirmed.
+    TIMESTAMPTZ '2027-01-16 00:00:00-03',
     TIMESTAMPTZ '2027-01-17 00:00:00-03',
     'A confirmar',
     CURRENT_DATE - 1,

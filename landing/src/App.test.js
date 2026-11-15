@@ -23,7 +23,7 @@ test('shows the championship page and links registration to the app, with no for
   expect(
     screen.getByRole('heading', { name: /monomachia/i })
   ).toBeInTheDocument();
-  expect(screen.getByLabelText(/em breve, janeiro de 2027/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/em breve, 16 e 17 de janeiro de 2027/i)).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: /ver o anúncio/i })).not.toBeInTheDocument();
   expect(screen.getAllByText(/são carlos, sp/i).length).toBeGreaterThan(0);
   expect(screen.getByRole('link', { name: /sigi forge/i })).toBeInTheDocument();
@@ -32,10 +32,12 @@ test('shows the championship page and links registration to the app, with no for
   ).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
     .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=pt');
+  expect(screen.getByText(/Social: R\$ 50 · Plena: R\$ 100 · Plus: R\$ 200/)).toBeInTheDocument();
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /english/i }));
   expect(screen.getByText(/historical fencing championship/i)).toBeInTheDocument();
+  expect(screen.getByText(/Social: R\$ 50 · Full: R\$ 100 · Plus: R\$ 200/)).toBeInTheDocument();
   expect(screen.getByText(/term has echoed through history/i)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Register for Monomachia' }))
     .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=en');
