@@ -8,7 +8,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import func, select, update
 from decimal import Decimal
 
 import app.tournaments.services.tournament_local_dates as tournament_local_dates
@@ -2105,3 +2105,55 @@ def test_tag_editing_closes_after_inclusive_deadline_and_staff_can_still_edit(
     session.flush()
     assert client.put(path, headers=owner, json={"tag_ids": [tag_id]}).status_code == 400
     assert client.put(staff_path, headers=admin, json={"tag_ids": [tag_id]}).status_code == 200
+
+
+def test_owner_corrects_registration_without_changing_evidence_or_identity(setup, monkeypatch):
+    from app.tournaments.schemas import RegistrationDetails
+
+    client, key, session, _ = setup
+    event_id = _create_event(client, key)
+    owner = _headers(key)
+    other = _headers(key, email="other@example.test")
+    created = _post_registration(client, event_id, owner)
+    assert created.status_code == 201
+    number = created.json()["registration_number"]
+    path = f"/api/tournaments/{event_id}/registrations/{number}"
+    details = {key: value for key, value in created.json().items() if key in RegistrationDetails.model_fields}
+    details["full_name"] = "Corrected name"
+    details["birth_date"] = "2010-01-01"
+    monkeypatch.setattr(tournament_local_dates, "current_local_calendar_date", lambda: date(2026, 12, 1))
+    assert client.put(path, headers=other, json=details).status_code == 404
+    assert client.put(path, headers=owner, json={**details, "registration_status": "confirmed"}).status_code == 422
+    updated = client.put(path, headers=owner, json=details)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["full_name"] == "Corrected name"
+    assert updated.json()["parental_consent_required"] is True
+    assert updated.json()["registration_status"] == created.json()["registration_status"]
+    assert updated.json()["accepted_at"] == created.json()["accepted_at"]
+    stored = session.scalar(select(TournamentRegistration).where(TournamentRegistration.registration_number == number))
+    assert len(stored.acceptances) == 1
+    stored.registration_status = "cancelled"
+    session.flush()
+    assert client.put(path, headers=owner, json=details).status_code == 409
+    details["full_name"] = "Staff correction"
+    staff = client.put(path, headers=_headers(key, role="admin"), json=details)
+    assert staff.status_code == 200
+    assert staff.json()["full_name"] == "Staff correction"
+    assert "staff_safety_note" not in staff.json()
+
+
+def test_registration_correction_rejects_duplicate_document_and_preserves_previous_values(setup):
+    from app.tournaments.schemas import RegistrationDetails
+
+    client, key, _, _ = setup
+    event_id = _create_event(client, key)
+    first = _headers(key)
+    second = _headers(key, email="second@example.test")
+    assert _post_registration(client, event_id, first).status_code == 201
+    created = _post_registration(client, event_id, second, _registration(email="second@example.test", document="OTHER"))
+    assert created.status_code == 201
+    details = {key: value for key, value in created.json().items() if key in RegistrationDetails.model_fields}
+    details["identity_document_number"] = "ab.123"
+    path = f"/api/tournaments/{event_id}/registrations/{created.json()['registration_number']}"
+    assert client.put(path, headers=second, json=details).status_code == 409
+    assert client.get(path, headers=second).json()["identity_document_number"] == "OTHER"

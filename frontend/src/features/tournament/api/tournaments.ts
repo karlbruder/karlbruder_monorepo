@@ -120,6 +120,18 @@ export type OwnerRegistration = RegistrationCreated & {
   user_id?: string;
 };
 
+export async function updateRegistrationDetails(
+  tournamentId: number, number: string, token: string,
+  details: Record<string, string | number | null>,
+): Promise<void> {
+  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(details),
+  });
+  if (!response.ok) throw new RegistrationRequestError(response.status, null);
+}
+
 export type PaymentProofSummary = {
   original_file_name: string;
   content_type: string;

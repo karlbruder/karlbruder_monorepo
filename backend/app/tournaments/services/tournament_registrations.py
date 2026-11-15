@@ -45,7 +45,7 @@ from .registration_documents import (
 )
 
 if TYPE_CHECKING:
-    from app.tournaments.schemas import RegistrationCreate
+    from app.tournaments.schemas import RegistrationCreate, RegistrationDetails
 
 _DUPLICATE_CONSTRAINTS = {
     "uq_tournament_registrations_active_user",
@@ -85,6 +85,44 @@ def visible_tournament(
     if tournament is None:
         raise RegistrationResourceNotFoundError("Tournament not found")
     return tournament
+
+
+def update_tournament_registration(
+    session: Session, tournament_id: int, registration_number: str, user: User,
+    payload: RegistrationDetails,
+) -> TournamentRegistration:
+    """Correct a registration for its owner or guild staff without changing evidence."""
+    visible_tournament(session, tournament_id, user, lock=True)
+    registration = session.scalar(
+        select(TournamentRegistration)
+        .where(
+            TournamentRegistration.tournament_id == tournament_id,
+            TournamentRegistration.registration_number == registration_number,
+        )
+        .with_for_update(of=TournamentRegistration)
+    )
+    if registration is None or (
+        registration.user_id != user.id and get_application_role(user) != "admin"
+    ):
+        raise RegistrationResourceNotFoundError("Registration not found")
+    if registration.registration_status == "cancelled" and get_application_role(user) != "admin":
+        raise RegistrationConflictError("Cancelled registration is read-only")
+    email = normalize_tournament_registration_identity(payload.email)
+    document = normalize_tournament_registration_identity(payload.identity_document_number)
+    if len(email.split("@")) != 2 or not all(email.split("@")) or not document:
+        raise RegistrationNotAllowedError("Invalid email or identity document")
+    for key, value in payload.model_dump().items():
+        setattr(registration, key, value)
+    registration.email_normalized = email
+    registration.identity_document_number_normalized = document
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        if is_duplicate_tournament_registration(exc):
+            raise RegistrationConflictError("Registration already exists") from exc
+        raise
+    return registration
 
 
 def create_tournament_registration(

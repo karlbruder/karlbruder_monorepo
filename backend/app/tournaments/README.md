@@ -8,6 +8,14 @@ The application stores reusable `Tournament`, `TournamentRegistration`, and
 using the same capability as later tournaments. Staff access applies globally.
 Account sign-up remains a separate Supabase Auth operation.
 
+Owners and guild staff can replace editable personal, sporting, and emergency-contact
+details with `PUT /api/tournaments/{tournament_id}/registrations/{number}`.
+Other accounts receive 404. Cancelled registrations are read-only for their owners.
+The request
+does not change ownership, status, purchased options, or acceptance evidence.
+Normalized duplicate email and document checks remain in force. A correction to
+birth date can make a parental consent form necessary before participation.
+
 ## Tournament tags
 
 Authenticated users can read visible tournament tag definitions at

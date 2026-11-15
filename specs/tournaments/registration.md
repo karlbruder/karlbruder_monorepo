@@ -45,9 +45,12 @@ including descriptions and policies. It does not translate that content when
 the user changes the interface language. When a tournament has no tags, the
 athlete-facing tag section is hidden.
 
-The current registration page provides tag editing while the general registration
-correction screen remains deferred. Tag changes save independently. Move the
-control to the registration edit screen when that screen is delivered.
+The registration edit page allows the owner to correct personal, sporting, and
+emergency-contact information. Tags are edited on the same page and save
+separately. Cancelled registrations are read-only for the owner. Corrections keep the
+registration number, owner, status, purchased option, and acceptance evidence.
+The page shows recorded declaration choices. Changing declarations and creating
+a new acceptance snapshot remains unimplemented.
 
 Registration creates an order and item for the selected product. Each registration uses its order item price.
 
@@ -144,7 +147,8 @@ or paid waitlist and owner-visible rejection reasons. The personal registration
 screen lets the owner confirm cancellation for refundable tournaments and track refund progress separately
 from participation. It links to the owner's cancelled registrations while the
 main panel selects the active registration or allows a new one. Waitlist selection
-and registration corrections remain deferred. See the [tournament API guide](../../backend/app/tournaments/README.md).
+remains deferred. Owners can correct registration details on the registration
+edit page. See the [tournament API guide](../../backend/app/tournaments/README.md).
 
 Historical context: the 17 October inspection predated the tournament routes, models, and migration tree. Issue #21's public form placement remains superseded by [decision 0001](../decisions/0001-public-website-and-application.md).
 

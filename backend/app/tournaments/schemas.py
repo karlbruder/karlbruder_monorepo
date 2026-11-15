@@ -158,6 +158,47 @@ class StaffTournamentList(BaseModel):
     offset: int
 
 
+class RegistrationDetails(BaseModel):
+    """Participant-editable registration information."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    full_name: str = Field(min_length=1, max_length=200)
+    social_name: str | None = Field(default=None, max_length=200)
+    birth_date: date
+    identity_document_type: Literal["cpf", "passport"]
+    identity_document_number: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=1, max_length=320)
+    phone: str = Field(min_length=1, max_length=40)
+    city: str = Field(min_length=1, max_length=150)
+    state_or_province: str | None = Field(default=None, max_length=150)
+    country: str = Field(min_length=1, max_length=150)
+    school_or_team_name: str | None = Field(default=None, max_length=200)
+    instructor_name: str | None = Field(default=None, max_length=200)
+    hema_experience_description: str | None = Field(default=None, max_length=100)
+    hema_started_year: int | None = Field(default=None, ge=1)
+    previous_tournament_count: int = Field(ge=0)
+    hema_ratings_reference: str | None = Field(default=None, max_length=300)
+    handedness: Literal["right", "left", "ambidextrous"] | None = None
+    category_or_eligibility_note: str | None = None
+    emergency_contact_name: str = Field(min_length=1, max_length=200)
+    emergency_contact_phone: str = Field(min_length=1, max_length=40)
+
+    @field_validator("full_name", "identity_document_number", "email", "phone", "city", "country", "emergency_contact_name", "emergency_contact_phone")
+    @classmethod
+    def require_visible_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Required text cannot be blank")
+        return value
+
+    @model_validator(mode="after")
+    def require_hema_experience(self) -> "RegistrationDetails":
+        if not (self.hema_experience_description or "").strip() and self.hema_started_year is None:
+            raise ValueError("HEMA practice duration or start year is required")
+        return self
+
+
 class RegistrationCreate(BaseModel):
     """Participant-supplied fields only. Ownership and acceptance evidence are server-owned."""
 

@@ -21,6 +21,7 @@ from app.tournaments.schemas import (
     PaymentProofSubmitCreate,
     PaymentProofUploadUrlRead,
     RegistrationCreate,
+    RegistrationDetails,
     RegistrationPaymentInstructions,
     RegistrationRead,
     RegistrationRefundRead,
@@ -39,6 +40,7 @@ from app.tournaments.services import registration_refunds, tournament_tags
 from app.tournaments.services.registration_acceptances import project_registration
 from app.tournaments.services.tournament_registrations import (
     submit_registration_parental_consent_form,
+    update_tournament_registration,
 )
 from app.tournaments.services.registration_documents import (
     create_parental_consent_form_upload_url,
@@ -156,6 +158,23 @@ def get_registration(
     if get_application_role(user) == "admin":
         return project_registration(tournament_registration, staff=True)
     return project_registration(tournament_registration)
+
+
+@router.put(
+    "/{tournament_id}/registrations/{registration_number}",
+    response_model=RegistrationRead,
+)
+def update_registration(
+    tournament_id: int,
+    registration_number: str,
+    payload: RegistrationDetails,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+) -> RegistrationRead:
+    registration = update_tournament_registration(
+        session, tournament_id, registration_number, user, payload
+    )
+    return project_registration(registration)
 
 
 @router.post(
