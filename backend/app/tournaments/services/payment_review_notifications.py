@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.auth.account_email import AccountEmailReader, AccountEmailReadError
 from app.core.mail import MailSender, MailDeliveryError, MailUnavailableError
+from app.tournaments.templates.email_notifications import render_tournament_email
 
 logger = logging.getLogger(__name__)
 DeliveryResult = Literal["sent", "lookup_failed", "unavailable", "send_failed"]
@@ -42,32 +43,14 @@ def send_payment_review_notice(
                 }
             )
             link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
-            if notice.outcome == "confirmed":
-                subject = f"Inscrição {notice.registration_number}: confirmada"
-                body = (
-                    f"Inscrição {notice.registration_number}\n\n"
-                    "Seu pagamento foi aprovado e sua inscrição no torneio está confirmada.\n\n"
-                    f"Consulte sua inscrição no aplicativo: {link}\n"
-                )
-            elif notice.outcome == "waitlist":
-                subject = f"Inscrição {notice.registration_number}: lista de espera"
-                body = (
-                    f"Inscrição {notice.registration_number}\n\n"
-                    "Seu pagamento foi aprovado. Sua inscrição está na lista de espera. "
-                    "Você não tem uma vaga confirmada. Não é necessário pagar novamente.\n\n"
-                    f"Consulte sua inscrição no aplicativo: {link}\n"
-                )
-            else:
-                if not notice.rejection_reason or not notice.rejection_reason.strip():
-                    raise ValueError("Rejected evidence requires a reason")
-                subject = f"Inscrição {notice.registration_number}: comprovante rejeitado"
-                body = (
-                    f"Inscrição {notice.registration_number}\n\n"
-                    f"Seu comprovante foi rejeitado. Motivo: {notice.rejection_reason}\n\n"
-                    "Sua inscrição não foi cancelada e não tem uma vaga confirmada. "
-                    "Entre no aplicativo para enviar um novo comprovante: "
-                    f"{link}\n"
-                )
+            if notice.outcome == "rejected" and (
+                not notice.rejection_reason or not notice.rejection_reason.strip()
+            ):
+                raise ValueError("Rejected evidence requires a reason")
+            subject, body = render_tournament_email(
+                notice.outcome, registration_number=notice.registration_number,
+                link=link, rejection_reason=notice.rejection_reason,
+            )
             recipient = accounts.read_email(notice.user_id)
             sender.send(
                 from_address=from_address, recipient=recipient, subject=subject, body=body

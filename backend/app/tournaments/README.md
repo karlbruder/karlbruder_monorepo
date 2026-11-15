@@ -262,7 +262,10 @@ non-admins receive 403 on all three endpoints. Owner proof access remains latest
 `services/payment_proof_reviews.py` owns evidence reads and recording staff
 decisions. Its private helpers group lock acquisition, current-proof checks,
 and payment approval. `services/payment_review_notifications.py` owns delivery
-availability, message composition, and delivery-result logging.
+availability and delivery-result logging. Portuguese tournament email subjects and
+bodies are in [`templates/email_notifications.py`](templates/email_notifications.py). Edit the matching template
+there and retain its placeholders. Changes require a deployment. Supabase manages
+account email templates separately. See the [Auth email runbook](../../../docs/runbooks/supabase-auth-email-ses.md).
 
 `POST /api/staff/tournaments/payment-reviews/{registration_number}/decisions`
 requires an admin and the displayed `document_id`. Use `decision=approved` with an

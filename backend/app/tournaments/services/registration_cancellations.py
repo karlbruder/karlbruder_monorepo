@@ -16,6 +16,7 @@ from app.core.mail import MailDeliveryError, MailSender, MailUnavailableError
 from app.karlmart.orders.models import OrderItem
 from app.karlmart.payments.models import Payment, Refund
 from app.karlmart.payments.services.records import add_refund_record
+from app.tournaments.templates.email_notifications import render_tournament_email
 from app.tournaments.exceptions import RegistrationConflictError, RegistrationResourceNotFoundError
 from app.tournaments.models import (
     PaymentProofPayment, PaymentProofReview, Tournament, TournamentRegistration,
@@ -185,10 +186,12 @@ def record_registration_refund_completion(
     if application_base_url:
         query = urlencode({"tournament_id": tournament_id, "registration_number": number})
         link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
+        subject, body = render_tournament_email(
+            "refund_completed", registration_number=number, link=link
+        )
         try:
             sender.send(from_address=from_address, recipient=accounts.read_email(user_id),
-                        subject=f"Inscrição {number}: reembolso concluído",
-                        body=f"A equipe registrou a conclusão do reembolso da inscrição {number}.\n\nConsulte sua inscrição: {link}\n")
+                        subject=subject, body=body)
             result = "sent"
         except AccountEmailReadError:
             result = "lookup_failed"

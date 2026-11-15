@@ -45,6 +45,7 @@ def test_paid_cancellation_records_full_refund_and_completion_notifies_current_e
     karlbruder_app.state.account_email_reader = accounts
     karlbruder_app.state.mail_sender = sender
     assert _decide(setup, registration, documents[-1]).status_code == 200
+    sender.send.reset_mock()
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}"
     owner = _headers(key, user_id=registration.user_id)
     admin = _headers(key, role="admin")
@@ -90,6 +91,8 @@ def test_paid_cancellation_records_full_refund_and_completion_notifies_current_e
     assert completed["refund_status"] == "completed"
     assert datetime.fromisoformat(completed["completed_at"]) == datetime.fromisoformat(payload["completed_at"])
     assert sender.send.call_args.kwargs["recipient"] == "current@example.test"
+    assert sender.send.call_args.kwargs["subject"] == f"Inscrição {registration.registration_number}: reembolso concluído"
+    assert "A equipe registrou a conclusão do reembolso" in sender.send.call_args.kwargs["body"]
     assert client.post(staff_path, headers=admin, json=payload).status_code == 409
     assert sender.send.call_count == 1
 
