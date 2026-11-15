@@ -89,6 +89,16 @@ def create_acceptance(
     )
 
 
+def parental_consent_required(registration: TournamentRegistration) -> bool:
+    from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
+
+    return (
+        registration.registration_status != "cancelled"
+        and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)
+        and not any(document.document_type == "parental_consent_form" for document in registration.documents)
+    )
+
+
 def project_registration(registration: TournamentRegistration, *, staff: bool = False) -> RegistrationRead:
     """Read the latest snapshot through the established owner or staff allowlist."""
     from app.tournaments.schemas import RegistrationRead, StaffRegistrationRead
@@ -96,17 +106,11 @@ def project_registration(registration: TournamentRegistration, *, staff: bool = 
     schema = StaffRegistrationRead if staff else RegistrationRead
     snapshot = registration.acceptances[-1]
     evidence_fields = {*CHOICE_FIELDS, "accepted_terms_version", "accepted_rules_version", "accepted_at", "accepted_from_ip"}
-    from app.tournaments.services.tournament_local_dates import is_minor_at_tournament_start
-
     values = {
         name: getattr(snapshot if name in evidence_fields else registration, name)
         for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}
     }
     values["product_name"] = registration.order_item.product_name if registration.order_item else None
     values["product_description"] = registration.order_item.product_description if registration.order_item else None
-    values["parental_consent_required"] = (
-        registration.registration_status != "cancelled"
-        and is_minor_at_tournament_start(registration.birth_date, registration.tournament.starts_at)
-        and not any(document.document_type == "parental_consent_form" for document in registration.documents)
-    )
+    values["parental_consent_required"] = parental_consent_required(registration)
     return schema(**values)

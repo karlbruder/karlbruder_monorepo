@@ -58,3 +58,28 @@ it.each([
   expect(screen.getByRole("link", { name: privacy })).toHaveAttribute("href", "/privacy-policy");
   expect(screen.getByText(language === "pt" ? "Informações verdadeiras: Não aceita" : "Truthful information: Not accepted")).toBeInTheDocument();
 });
+
+
+it.each([true, false])("staff confirms cancellation when refunds allowed is %s", async refundsAllowed => {
+  const request = vi.fn(async () => ({ ok: true, status: 204 }));
+  vi.stubGlobal("fetch", request);
+  const saved = vi.fn();
+  renderWithQuery(<RegistrationEdit staff session={session} tournament={{ ...tournament, refunds_allowed: refundsAllowed }} registration={{ ...registration, parental_consent_required: true }} language="en" onBack={() => {}} onSaved={saved} />);
+  expect(screen.getByText(/Signed parental consent form missing/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel participation" }));
+  expect(request).not.toHaveBeenCalled();
+  expect(screen.getByText(refundsAllowed ? /verified payment creates a refund obligation/ : /does not allow refunds/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
+  await waitFor(() => expect(saved).toHaveBeenCalledOnce());
+  expect(request).toHaveBeenCalledWith(expect.stringContaining("/registrations/T42-1/cancel"), expect.objectContaining({ method: "POST" }));
+  expect(screen.getByText("Registration cancelled.")).toBeInTheDocument();
+});
+
+it("shows a cancellation error and permits retry", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500 })));
+  renderWithQuery(<RegistrationEdit staff session={session} tournament={tournament} registration={registration} language="en" onBack={() => {}} onSaved={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel participation" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not cancel");
+  expect(screen.getByRole("button", { name: "Confirm cancellation" })).toBeEnabled();
+});

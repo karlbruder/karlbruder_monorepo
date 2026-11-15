@@ -1983,6 +1983,9 @@ def test_rescheduled_minor_can_attach_missing_consent_to_confirmed_registration(
     )
     assert response.status_code == 200
     base = f"/api/tournaments/{event_id}/registrations/{number}"
+    athletes_path = f"/api/staff/tournaments/{event_id}/athletes"
+    admin = _headers(key, role="admin")
+    assert client.get(athletes_path, headers=admin).json()[0]["parental_consent_required"] is True
     assert client.get(base, headers=owner).json()["parental_consent_required"] is True
     assert client.get(f"/api/tournaments/{event_id}/registrations", headers=owner).json()[0]["parental_consent_required"] is True
     assert "parental_consent_required" not in client.get(f"{base}/payment", headers=owner).json()
@@ -2000,6 +2003,7 @@ def test_rescheduled_minor_can_attach_missing_consent_to_confirmed_registration(
     saved = client.post(f"{base}/parental-consent-form", headers=owner, json=payload)
     assert saved.status_code == 200, saved.text
     assert saved.json()["registration_status"] == "confirmed"
+    assert client.get(athletes_path, headers=admin).json()[0]["parental_consent_required"] is False
     assert client.get(base, headers=owner).json()["parental_consent_required"] is False
     assert client.get(f"{base}/parental-consent-form", headers=owner).status_code == 200
     assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 409
@@ -2056,6 +2060,7 @@ def test_tournament_tags_enforce_scope_ownership_and_deletion(setup):
         "full_name": response.json()["full_name"],
         "social_name": None,
         "registration_status": response.json()["registration_status"],
+        "parental_consent_required": False,
         "tags": [{"id": tag_id, "tournament_id": tournament_id,
                   "name": "Tag one", "eligibility_description": "Eligibility criteria"}],
     }]
@@ -2128,12 +2133,15 @@ def test_owner_corrects_registration_without_changing_evidence_or_identity(setup
     assert updated.status_code == 200, updated.text
     assert updated.json()["full_name"] == "Corrected name"
     assert updated.json()["parental_consent_required"] is True
+    athletes_path = f"/api/staff/tournaments/{event_id}/athletes"
+    assert client.get(athletes_path, headers=_headers(key, role="admin")).json()[0]["parental_consent_required"] is True
     assert updated.json()["registration_status"] == created.json()["registration_status"]
     assert updated.json()["accepted_at"] == created.json()["accepted_at"]
     stored = session.scalar(select(TournamentRegistration).where(TournamentRegistration.registration_number == number))
     assert len(stored.acceptances) == 1
     stored.registration_status = "cancelled"
     session.flush()
+    assert client.get(athletes_path, headers=_headers(key, role="admin")).json()[0]["parental_consent_required"] is False
     assert client.put(path, headers=owner, json=details).status_code == 409
     details["full_name"] = "Staff correction"
     staff = client.put(path, headers=_headers(key, role="admin"), json=details)

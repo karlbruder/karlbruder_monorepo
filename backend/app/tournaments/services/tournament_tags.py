@@ -1,7 +1,7 @@
 """Tournament tag configuration and registration selections."""
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.auth.models import User
 from app.auth.supabase.roles import get_application_role
@@ -12,6 +12,7 @@ from app.tournaments.exceptions import (
 )
 from app.tournaments.models import RegistrationTag, TournamentRegistration, TournamentTag
 from app.tournaments.services import tournament_local_dates
+from app.tournaments.services.registration_acceptances import parental_consent_required
 from app.tournaments.services.tournament_registrations import visible_tournament
 
 
@@ -68,6 +69,7 @@ def list_registration_tags(session: Session, tournament_id: int, actor: User) ->
     visible_tournament(session, tournament_id, actor)
     registrations = session.scalars(
         select(TournamentRegistration)
+        .options(selectinload(TournamentRegistration.documents), selectinload(TournamentRegistration.tournament))
         .where(TournamentRegistration.tournament_id == tournament_id)
         .order_by(TournamentRegistration.full_name, TournamentRegistration.id)
     ).all()
@@ -86,6 +88,7 @@ def list_registration_tags(session: Session, tournament_id: int, actor: User) ->
             "full_name": registration.full_name,
             "social_name": registration.social_name,
             "registration_status": registration.registration_status,
+            "parental_consent_required": parental_consent_required(registration),
             "tags": tags_by_registration.get(registration.id, []),
         }
         for registration in registrations

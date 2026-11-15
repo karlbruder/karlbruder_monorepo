@@ -563,6 +563,7 @@ class TagSelection(BaseModel):
 
 
 class StaffAthleteRead(BaseModel):
+    parental_consent_required: bool
     registration_number: str
     full_name: str
     social_name: str | None

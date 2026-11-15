@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { RegistrationRequestError, updateRegistrationDetails } from "@/features/tournament/api/tournaments";
+import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { RegistrationTags } from "@/features/tournament/components/tournament-tags";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { legalRoutes } from "@/config/legal-routes";
@@ -43,6 +44,10 @@ export function RegistrationEdit({ registration, tournament, session, language, 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelPending, setCancelPending] = useState(false);
+  const [cancelError, setCancelError] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
   const today = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const tagsClosed = tournament.is_registration_closed || !tournament.registration_opens_on || !tournament.registration_closes_on || today < tournament.registration_opens_on || today > tournament.registration_closes_on;
   function field(item: Field) {
@@ -65,7 +70,26 @@ export function RegistrationEdit({ registration, tournament, session, language, 
     } catch (caught) { setError(caught instanceof RegistrationRequestError && caught.status === 409 ? (en ? "This information conflicts with another registration, or this registration is closed." : "Estes dados entram em conflito com outra inscrição, ou a inscrição está encerrada.") : (en ? "Could not save the registration details. Check the fields and try again." : "Não foi possível salvar os dados da inscrição. Confira os campos e tente novamente.")); }
     finally { setPending(false); }
   }
+  async function cancel() {
+    if (cancelPending) return;
+    setCancelPending(true); setCancelError(false);
+    try {
+      await cancelRegistration(session.access_token, tournament.id, registration.registration_number);
+      setCancelled(true); setConfirmCancel(false); onSaved();
+    } catch {
+      setCancelError(true); onSaved();
+    } finally { setCancelPending(false); }
+  }
   return <div className="registration-edit"><button type="button" onClick={onBack}>← {staff ? (en ? "Tournament athletes" : "Atletas do torneio") : (en ? "Registration status" : "Acompanhar inscrição")}</button><h2>{staff ? (en ? "Manage registration" : "Gerenciar inscrição") : (en ? "My registration details" : "Meus dados da inscrição")}</h2>{staff && <p>{registration.full_name} · {registration.registration_number}</p>}<p>{en ? "Corrections keep the same owner, tournament and registration number." : "Correções mantêm o mesmo titular, torneio e número."}</p><p>{registration.product_name && <>{en ? "Registration type" : "Tipo de inscrição"}: {registration.product_name}</>}</p>
+    {staff && registration.parental_consent_required && !cancelled && <p className="registration-notice" role="status">{en ? "Signed parental consent form missing. Verify before participation." : "Termo de responsabilidade assinado pendente. Verifique antes da participação."}</p>}
+    {staff && <section className="registration-card"><h3>{en ? "Participation" : "Participação"}</h3>
+      {cancelled || registration.registration_status === "cancelled" ? <p role="status">{en ? "Registration cancelled." : "Inscrição cancelada."}</p> : confirmCancel ? <>
+        <p>{en ? "Cancellation ends participation and releases any occupied seat immediately." : "O cancelamento encerra a participação e libera qualquer vaga ocupada imediatamente."}</p>
+        <p>{tournament.refunds_allowed ? (en ? "A verified payment creates a refund obligation." : "Um pagamento verificado gera uma obrigação de reembolso.") : (en ? "This tournament does not allow refunds." : "Este torneio não permite reembolsos.")}</p>
+        {cancelError && <p role="alert">{en ? "Could not cancel the registration. Refresh and try again." : "Não foi possível cancelar a inscrição. Atualize e tente novamente."}</p>}
+        <button type="button" className="registration-danger" disabled={cancelPending} onClick={() => void cancel()}>{en ? "Confirm cancellation" : "Confirmar cancelamento"}</button>{" "}<button type="button" disabled={cancelPending} onClick={() => { setConfirmCancel(false); setCancelError(false); }}>{en ? "Keep registration" : "Manter inscrição"}</button>
+      </> : <button type="button" className="registration-danger" onClick={() => setConfirmCancel(true)}>{en ? "Cancel participation" : "Cancelar participação"}</button>}
+    </section>}
     <form onSubmit={submit}>
       <section className="registration-card"><h3>{en ? "Personal details" : "Dados pessoais"}</h3><div className="registration-grid">{personal.map(field)}<div className="registration-field"><label htmlFor="edit-document">{en ? "Identity document" : "Documento"} *</label><select id="edit-document" value={values.identity_document_type} onChange={event => setValues(current => ({ ...current, identity_document_type: event.target.value }))}><option value="cpf">CPF</option><option value="passport">{en ? "Passport" : "Passaporte"}</option></select></div></div></section>
       <section className="registration-card"><h3>{en ? "Experience and team" : "Experiência e equipe"}</h3><div className="registration-grid">{experience.map(field)}<div className="registration-field"><label htmlFor="edit-handedness">{en ? "Handedness" : "Lateralidade"}</label><select id="edit-handedness" value={values.handedness} onChange={event => setValues(current => ({ ...current, handedness: event.target.value }))}><option value="">{en ? "Not specified" : "Não informada"}</option><option value="right">{en ? "Right" : "Destra"}</option><option value="left">{en ? "Left" : "Canhota"}</option><option value="ambidextrous">{en ? "Ambidextrous" : "Ambidestra"}</option></select></div></div></section>

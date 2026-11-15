@@ -2,7 +2,7 @@ import { apiBaseUrl } from "@/config/environment";
 import { apiFetch } from "@/lib/api-fetch";
 
 export type TournamentTag = { id: number; tournament_id: number; name: string; eligibility_description: string };
-export type StaffAthlete = { registration_number: string; full_name: string; social_name: string | null; registration_status: string; tags: TournamentTag[] };
+export type StaffAthlete = { registration_number: string; full_name: string; social_name: string | null; registration_status: string; parental_consent_required: boolean; tags: TournamentTag[] };
 
 export class TagRequestError extends Error {
   readonly status: number;
