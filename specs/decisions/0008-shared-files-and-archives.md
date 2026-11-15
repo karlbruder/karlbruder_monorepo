@@ -67,9 +67,8 @@ to keep serving the content that was accepted.
 Terraform enables versioning on the application S3 bucket. ArchivedFile does not
 store an S3 version ID, and archive storage and downloads do not select a specific
 object version. The archive mechanism does not use Object Lock.
-Fresh keys and database guards preserve the application's
-references, but do not stop an authorized storage writer from replacing or deleting
-bytes at a key. The stored digest records the captured content. It does not lock
+Fresh keys distinguish archived objects, but do not stop an authorized storage writer
+from replacing or deleting bytes at a key. Database operators can correct references. The stored digest records the captured content. It does not lock
 an object or automatically verify every download. Configured bucket versioning
 does not establish a verified recovery process. Storage-level protection and
 recovery remain separate operational concerns.
@@ -84,7 +83,7 @@ recovery remain separate operational concerns.
   editing and permissions that have no current shared requirement. Those stay out.
 - Shared records add joins and require explicit domain associations. This is the
   cost of reusable storage metadata with real foreign keys and clear ownership.
-- Database evidence protection is explained separately in [decision 0010](0010-database-evidence-guards.md).
+- The database function and trigger prohibition is recorded in [decision 0010](0010-database-functions-trigger-and-procedures.md).
 
 ## References
 

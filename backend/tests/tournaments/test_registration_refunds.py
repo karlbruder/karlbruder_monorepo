@@ -158,19 +158,6 @@ def test_internal_cancellation_requires_current_guild_access(setup):
     assert client.post(path, headers=_headers(key, role="admin")).status_code == 204
 
 
-def test_tournament_refund_evidence_cannot_be_deleted(setup):
-    from sqlalchemy import delete
-    from sqlalchemy.exc import IntegrityError
-
-    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
-    client, key, session, _ = setup
-    assert _decide(setup, registration, documents[-1]).status_code == 200
-    path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
-    assert client.post(path, headers=_headers(key, user_id=registration.user_id)).status_code == 204
-    refund = session.scalar(select(Refund))
-    with pytest.raises(IntegrityError), session.begin_nested():
-        session.execute(delete(Refund).where(Refund.id == refund.id))
-    assert session.get(Refund, refund.id) is not None
 
 
 def test_staff_declines_late_payment_in_nonrefundable_tournament_without_obligation(setup):
@@ -184,22 +171,17 @@ def test_staff_declines_late_payment_in_nonrefundable_tournament_without_obligat
     assert session.scalar(select(Refund)) is None
 
 
-def test_unlinked_receipt_cannot_create_refund_or_cancel_until_reconciled(setup):
-    from sqlalchemy.exc import IntegrityError
+def test_unlinked_receipt_cannot_cancel_until_reconciled(setup):
     from app.karlmart.orders.models import OrderItem
-    from app.karlmart.payments.services.records import add_payment_record, add_refund_record
-    from app.tournaments.services.tournament_local_dates import refund_due_date
+    from app.karlmart.payments.services.records import add_payment_record
 
     registration, _ = _pending(setup, **REFUNDABLE_POLICY)
     client, key, session, _ = setup
     now = datetime.now(UTC)
     order = session.get(OrderItem, registration.order_item_id)
-    payment = add_payment_record(session, order_id=order.order_id, amount_received=Decimal("123.45"),
+    add_payment_record(session, order_id=order.order_id, amount_received=Decimal("123.45"),
                                  verified_by_user_id=registration.user_id, verified_at=now)
     session.commit()
-    with pytest.raises(IntegrityError, match="approved registration proof"), session.begin_nested():
-        add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
-                          obligated_at=now, due_on=refund_due_date(now))
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
     assert client.post(path, headers=_headers(key, user_id=registration.user_id)).status_code == 409
     assert registration.registration_status == "awaiting_payment_confirmation"
@@ -207,7 +189,6 @@ def test_unlinked_receipt_cannot_create_refund_or_cancel_until_reconciled(setup)
 
 
 def test_existing_unlinked_refund_remains_visible_and_completable(setup):
-    from sqlalchemy import text
     from app.karlmart.orders.models import OrderItem
     from app.karlmart.payments.services.records import add_payment_record, add_refund_record
     from app.tournaments.services.tournament_local_dates import refund_due_date
@@ -219,10 +200,8 @@ def test_existing_unlinked_refund_remains_visible_and_completable(setup):
     payment = add_payment_record(session, order_id=order_item.order_id, amount_received=Decimal("123.45"),
                                  verified_by_user_id=registration.user_id, verified_at=now)
     registration.registration_status = "cancelled"
-    session.execute(text("ALTER TABLE public.refunds DISABLE TRIGGER valid_tournament_refund"))
     refund = add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
                                obligated_at=now, due_on=refund_due_date(now))
-    session.execute(text("ALTER TABLE public.refunds ENABLE TRIGGER valid_tournament_refund"))
     session.commit()
     admin = _headers(key, role="admin")
     assert client.get(QUEUE, headers=admin).json()["total"] == 1

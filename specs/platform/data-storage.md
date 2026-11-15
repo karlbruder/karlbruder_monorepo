@@ -48,7 +48,7 @@ Mapped models share integer primary keys and timezone-aware `created_at` and
 by domain fields. SQLAlchemy supplies creation defaults and advances `updated_at` on
 updates. Direct SQL writers remain responsible for update timestamps. These fields
 do not replace domain evidence times, such as acceptance, review, or payment time.
-They do not introduce UUID identity columns, soft deletion, or weaker evidence guards.
+They do not introduce UUID identity columns or soft deletion.
 
 The [migration guide](../../docs/database-migrations.md) owns the initial-schema
 reset prerequisite and verification procedure.
@@ -82,17 +82,14 @@ as illustrated in decision 0008.
 
 `RegistrationAcceptance` retains separate choices, language, identity, time and IP. Policy documents are managed outside the application and linked by URL. Tournament acceptance records do not reference archives. There is no generic file-access endpoint or automatic retention expiry.
 
-Database guards prevent changes to acceptance/archive rows and to file metadata
-referenced by archives. They do not authorize actors or prevent replacement of S3
-bytes. See [decision 0010](../decisions/0010-database-evidence-guards.md) for the
-protected invariants and limits.
+Database operators can correct retained records directly. Foreign keys and row constraints still apply. See [decision 0010](../decisions/0010-database-functions-trigger-and-procedures.md).
 
 ## Shared financial records
 
 The boundary and future consumer examples are recorded in
 [decision 0009](../decisions/0009-shared-payments-and-domain-associations.md).
-The database enforcement rationale is recorded in
-[decision 0010](../decisions/0010-database-evidence-guards.md).
+The database function and trigger policy is recorded in
+[decision 0010](../decisions/0010-database-functions-trigger-and-procedures.md).
 
 Payments owns Payment and Refund. They retain financial amounts, verification,
 obligation time and completion evidence without tournament or membership references.

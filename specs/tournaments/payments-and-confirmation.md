@@ -45,11 +45,12 @@ as the review and participation outcome.
 | Payment | Order, actual BRL amount received, verifier, and verification time. |
 | Refund | Payment, amount owed, obligation time, deadline, status, and completion evidence. |
 
-Reviews, verified receipts, and proof associations are immutable. Reviewed file
-metadata remains protected. A tournament payment may have one refund obligation.
-It must equal the amount received. The deadline is calculated by tournaments.
-`awaiting_refund` and `completed` are separate states. Completion requires the
-actual time and recording admin. These checks also apply to direct database writes.
+The application retains reviews, receipts, proof associations and submitted files.
+A tournament payment may have one refund obligation equal to the amount received.
+The deadline is calculated by tournaments. `awaiting_refund` and `completed` are
+separate states. Completion requires the actual time and recording admin.
+Authorized database operators can correct records directly. Corrections must keep
+related payment and refund values consistent and account for money already returned.
 
 The API supports proof submission, authorized retrieval, and exact-proof staff
 approval/rejection. Approval atomically saves the review, shared receipt, association,

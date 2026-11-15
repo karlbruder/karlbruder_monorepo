@@ -88,7 +88,7 @@ and its file metadata in one transaction.
 
 Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response. The token detects changes to configured text, URLs, or declaration labels while the form is open. A stale form returns 409 and requires explicit acceptance after refresh. The token does not fetch or preserve linked documents.
 
-The initial RegistrationAcceptance and any required parental document are saved in the registration transaction. Choices, language, source IP and time are retained in append-only acceptance history. Policy links point to externally managed documents. The application does not snapshot their contents. When a policy has both a link and inline text, show the link. Show inline text when there is no link. If neither is available, say the content is not yet available. On changed configuration, clear required choices and ask the athlete to review again.
+The initial RegistrationAcceptance and any required parental document are saved in the registration transaction. Choices, language, source IP and time are retained in acceptance records. Policy links point to externally managed documents. The application does not snapshot their contents. When a policy has both a link and inline text, show the link. Show inline text when there is no link. If neither is available, say the content is not yet available. On changed configuration, clear required choices and ask the athlete to review again.
 
 ## Lifecycle boundary
 

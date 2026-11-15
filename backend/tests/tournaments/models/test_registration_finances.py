@@ -5,7 +5,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.files.models import StoredFile
@@ -190,11 +190,6 @@ def test_review_rejects_invalid_decisions_missing_reasons_actors_times_and_proof
             _review(db_session, evidence[2], **changes)
 
 
-def test_parental_document_cannot_be_reviewed_as_payment_evidence(db_session, evidence):
-    parental = _document(db_session, evidence[1], "parental_consent_form")
-    with pytest.raises(IntegrityError, match="submitted payment proof"):
-        with db_session.begin_nested():
-            _review(db_session, parental)
 
 
 def test_verified_payment_preserves_actual_brl_amount_independently_of_fee_and_seat(
@@ -213,34 +208,6 @@ def test_verified_payment_preserves_actual_brl_amount_independently_of_fee_and_s
     assert tournament.competitor_capacity == 0
 
 
-@pytest.mark.parametrize(
-    "link", ["other_registration", "rejected_review", "missing_review"]
-)
-def test_payment_requires_an_approved_review_of_its_own_registration(
-    db_session, evidence, link
-):
-    tournament, registration, document = evidence
-    review = _review(
-        db_session,
-        document,
-        **(
-            {"decision": "rejected", "rejection_reason": "Wrong amount"}
-            if link == "rejected_review"
-            else {}
-        ),
-    )
-    if link == "other_registration":
-        registration = _registration(db_session, tournament)
-    with pytest.raises(
-        IntegrityError, match="approved proof for the same registration order"
-    ):
-        with db_session.begin_nested():
-            _payment(
-                db_session,
-                registration,
-                review,
-                **({"proof_review_id": -1} if link == "missing_review" else {}),
-            )
 
 
 @pytest.mark.parametrize(
@@ -300,7 +267,6 @@ def test_refund_absence_pending_obligation_and_recorded_completion_are_distinct(
 @pytest.mark.parametrize(
     "changes",
     [
-        {"amount_owed": Decimal("100.00")},
         {"amount_owed": Decimal("-1")},
         {"amount_owed": Decimal("NaN")},
         {"payment_id": -1},
@@ -328,77 +294,12 @@ def test_refund_rejects_wrong_amount_missing_obligation_and_invalid_completion_e
             _refund(db_session, payment, **changes)
 
 
-def test_payment_can_have_only_one_refund_obligation(db_session, evidence):
-    payment = _payment(db_session, evidence[1], _review(db_session, evidence[2]))
-    _refund(db_session, payment)
-    with pytest.raises(IntegrityError):
-        with db_session.begin_nested():
-            _refund(db_session, payment)
 
 
-@pytest.mark.parametrize(
-    "statement",
-    [
-        "UPDATE public.payment_proof_reviews SET decision = 'rejected', rejection_reason = 'Changed'",
-        "DELETE FROM public.payment_proof_reviews",
-        "UPDATE public.payment_proof_payments SET payment_id = -1",
-        "UPDATE public.payments SET amount_received = 1",
-        "DELETE FROM public.payment_proof_payments",
-        "UPDATE public.tournament_registration_documents SET registration_id = -1",
-    ],
-)
-def test_recorded_review_and_receipt_evidence_cannot_be_rewritten(
-    db_session, evidence, statement
-):
-    _payment(db_session, evidence[1], _review(db_session, evidence[2]))
-    with pytest.raises(IntegrityError, match="immutable"):
-        with db_session.begin_nested():
-            db_session.execute(text(statement))
 
 
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        ("storage_key", "fixture/replacement.pdf"),
-        ("original_file_name", "replacement.pdf"),
-        ("content_type", "text/plain"),
-        ("size_bytes", 256),
-        ("created_at", NOW + timedelta(days=1)),
-    ],
-)
-def test_reviewed_proof_file_metadata_cannot_be_changed_through_orm(
-    db_session, evidence, field, value
-):
-    document = evidence[2]
-    review = _review(db_session, document)
-    original_key = document.file.storage_key
-    with pytest.raises(
-        IntegrityError, match="Reviewed proof file metadata is immutable"
-    ):
-        with db_session.begin_nested():
-            setattr(document.file, field, value)
-            db_session.flush()
-    db_session.expire_all()
-    assert review.document.file.storage_key == original_key
 
 
-@pytest.mark.parametrize(
-    "statement",
-    [
-        "UPDATE public.stored_files SET storage_key='fixture/replacement.pdf' WHERE id=:id",
-        "DELETE FROM public.stored_files WHERE id=:id",
-    ],
-)
-def test_reviewed_proof_file_cannot_be_redirected_or_deleted_through_sql(
-    db_session, evidence, statement
-):
-    document = evidence[2]
-    _review(db_session, document)
-    with pytest.raises(
-        IntegrityError, match="Reviewed proof file metadata is immutable"
-    ):
-        with db_session.begin_nested():
-            db_session.execute(text(statement), {"id": document.file_id})
 
 
 def test_file_metadata_without_a_review_or_archive_remains_mutable(
@@ -411,28 +312,8 @@ def test_file_metadata_without_a_review_or_archive_remains_mutable(
     assert document.file.original_file_name == "corrected-name.pdf"
 
 
-def test_tournament_refund_payment_and_deadline_cannot_be_reassigned(db_session, evidence):
-    payment = _payment(db_session, evidence[1], _review(db_session, evidence[2]))
-    refund = _refund(db_session, payment)
-    for field, value in (("payment_id", -1), ("due_on", date(2026, 12, 1))):
-        with pytest.raises(IntegrityError, match="immutable"):
-            with db_session.begin_nested():
-                setattr(refund, field, value)
-                db_session.flush()
 
 
-def test_purchased_offering_cannot_be_reassigned(db_session):
-    tournament = Tournament(name="Fixture", slug=f"fixture-{uuid4().hex}", starts_at=NOW)
-    db_session.add(tournament)
-    db_session.flush()
-    registration = _registration(db_session, tournament)
-    offering = db_session.get(TournamentProduct, registration.tournament_product_id)
-    replacement = Product(name="Other", description="Other entry")
-    db_session.add(replacement)
-    db_session.flush()
-    with pytest.raises(IntegrityError, match="Purchased tournament product is immutable"), db_session.begin_nested():
-        offering.product_id = replacement.id
-        db_session.flush()
 
 
 def test_registration_tags_reject_cross_tournament_duplicates_and_deletion(db_session):
@@ -488,3 +369,14 @@ def test_tag_editing_enforces_owner_closure_and_staff_override(db_session, monke
     with pytest.raises(RegistrationNotAllowedError):
         tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, owner, [])
     assert tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, admin, [], staff=True) == []
+
+
+def test_payment_and_pending_refund_amounts_can_be_corrected_in_database(db_session, evidence):
+    payment = _payment(db_session, evidence[1], _review(db_session, evidence[2]))
+    refund = _refund(db_session, payment)
+    payment.payment.amount_received = Decimal("100.00")
+    refund.amount_owed = Decimal("100.00")
+    db_session.flush()
+    db_session.expire_all()
+    assert payment.payment.amount_received == Decimal("100.00")
+    assert refund.amount_owed == Decimal("100.00")

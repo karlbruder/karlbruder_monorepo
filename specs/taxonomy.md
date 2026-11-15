@@ -30,8 +30,8 @@ Dependencies run from consuming domains to shared capabilities. Future membershi
 and legal-policy examples explain reuse. They do not establish implemented features.
 See [decision 0008](decisions/0008-shared-files-and-archives.md) for file ownership
 and [decision 0009](decisions/0009-shared-payments-and-domain-associations.md) for
-financial ownership. [Decision 0010](decisions/0010-database-evidence-guards.md)
-explains the specific database guards and their limits.
+financial ownership. [Decision 0010](decisions/0010-database-functions-trigger-and-procedures.md)
+forbids application-defined database functions, triggers and procedures.
 
 Use registration in active tournament guidance. Preserve old names when explicitly
 describing historical material. Account sign-up remains a separate operation.

@@ -104,22 +104,12 @@ def _register(session, tournament_id, token):
 def _cleanup(engine, tournament_id):
     with engine.begin() as connection:
         connection.execute(
-            text(
-                "ALTER TABLE public.registration_acceptances DISABLE TRIGGER immutable_evidence"
-            )
-        )
-        connection.execute(
             delete(RegistrationAcceptance).where(
                 RegistrationAcceptance.registration_id.in_(
                     select(TournamentRegistration.id).where(
                         TournamentRegistration.tournament_id == tournament_id
                     )
                 )
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE public.registration_acceptances ENABLE TRIGGER immutable_evidence"
             )
         )
         params = {"tournament_id": tournament_id}
@@ -151,10 +141,6 @@ def _cleanup(engine, tournament_id):
             .scalars()
             .all()
         )
-        for table in ("payment_proof_payments", "payment_proof_reviews", "payments"):
-            connection.execute(
-                text(f"ALTER TABLE public.{table} DISABLE TRIGGER immutable_evidence")
-            )
         connection.execute(
             text(
                 f"DELETE FROM public.payment_proof_payments WHERE proof_review_id IN (SELECT id FROM public.payment_proof_reviews WHERE document_id IN ({document_ids}))"
@@ -180,10 +166,6 @@ def _cleanup(engine, tournament_id):
 
         connection.execute(delete(Payment).where(Payment.id.in_(payment_ids)))
         connection.execute(delete(StoredFile).where(StoredFile.id.in_(file_ids)))
-        for table in ("payment_proof_payments", "payment_proof_reviews", "payments"):
-            connection.execute(
-                text(f"ALTER TABLE public.{table} ENABLE TRIGGER immutable_evidence")
-            )
         connection.execute(
             delete(TournamentRegistration).where(
                 TournamentRegistration.tournament_id == tournament_id
@@ -191,9 +173,7 @@ def _cleanup(engine, tournament_id):
         )
         from app.karlmart.orders.models import Order, OrderItem
 
-        connection.execute(text("ALTER TABLE public.order_items DISABLE TRIGGER immutable_order_item"))
         connection.execute(delete(OrderItem).where(OrderItem.order_id.in_(order_ids)))
-        connection.execute(text("ALTER TABLE public.order_items ENABLE TRIGGER immutable_order_item"))
         connection.execute(delete(Order).where(Order.id.in_(order_ids)))
         connection.execute(delete(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
         connection.execute(delete(Price).where(Price.product_id.in_(product_ids)))
@@ -404,29 +384,5 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
             assert values(read_registration_payment_instructions(
                 reader, tournament_id, number, owner
             )) == new
-    finally:
-        _cleanup(engine, tournament_id)
-
-
-def test_registration_guard_locks_offering_against_concurrent_update(migrated_database):
-    from sqlalchemy.exc import OperationalError
-    from tests.tournaments.models.test_registration_finances import _registration
-
-    engine = migrated_database
-    with Session(engine) as session:
-        tournament = Tournament(name="Guard fixture", slug=f"guard-{uuid4().hex}", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
-        session.add(tournament)
-        session.flush()
-        registration = _registration(session, tournament)
-        tournament_id, registration_id, offering_id = tournament.id, registration.id, registration.tournament_product_id
-        session.commit()
-    try:
-        with engine.connect() as first, engine.connect() as second:
-            first.execute(text("UPDATE public.tournament_registrations SET full_name = full_name WHERE id = :id"), {"id": registration_id})
-            second.execute(text("SET LOCAL lock_timeout = '250ms'"))
-            with pytest.raises(OperationalError, match="lock timeout"):
-                second.execute(text("UPDATE public.tournament_products SET product_id = product_id WHERE id = :id"), {"id": offering_id})
-            second.rollback()
-            first.rollback()
     finally:
         _cleanup(engine, tournament_id)

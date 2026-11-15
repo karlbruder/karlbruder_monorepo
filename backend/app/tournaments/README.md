@@ -97,7 +97,7 @@ Staff configures policy URLs and optional text. The application links to those U
 
 Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by `pt` and `en`. The digest detects changes to configured text, URLs and declaration labels while the form is open. It does not inspect linked content. Registration creation requires the displayed language and token. Changed configuration returns 409 and asks the athlete to review and accept again.
 
-RegistrationAcceptance retains choices, verified user UUID, language, server time and source IP. It does not store policy content. The acceptance and required parental document commit with registration. Database guards prevent mutation of acceptance records.
+RegistrationAcceptance retains choices, verified user UUID, language, server time and source IP. It does not store policy content. The acceptance and required parental document commit with registration. Database operators can correct records directly.
 
 ## Registration
 
@@ -223,9 +223,9 @@ cancellation acquire the tournament and registration locks in the same order.
 
 The [payment spec](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract)
 owns the persistence requirements. [Decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
-explains ownership. [Decision 0010](../../../specs/decisions/0010-database-evidence-guards.md)
-explains database guards. They protect evidence invariants, not actor authorization,
-staff workflows, or S3 bytes.
+explains ownership. [Decision 0010](../../../specs/decisions/0010-database-functions-trigger-and-procedures.md)
+forbids application-defined database functions, triggers and procedures. Services enforce authorization and
+staff workflows.
 
 ## Migration boundary
 

@@ -52,7 +52,7 @@ audience before registration opens. Adapt the text to the event’s actual scope
 
 ## Acceptance evidence
 
-RegistrationAcceptance is append-only history. It records separate choices, language, verified user UUID, server time and source IP. The initial acceptance is atomic with registration and any required parental document. The application does not store the displayed policy or declaration content in the acceptance record. Organizers manage linked documents and their history outside the application.
+RegistrationAcceptance records retained acceptance evidence. It records separate choices, language, verified user UUID, server time and source IP. The initial acceptance is atomic with registration and any required parental document. The application does not store the displayed policy or declaration content in the acceptance record. Organizers manage linked documents and their history outside the application.
 
 The registration form uses server-provided draft declarations in the selected interface language. Its submitted content digest must match the current configured text, links and declarations. This is a request token that detects changes to configuration while the form is open. It does not inspect or preserve a linked document. On mismatch the athlete reviews the current content and confirms the choices again. Personal fields are retained while required choices are cleared.
 

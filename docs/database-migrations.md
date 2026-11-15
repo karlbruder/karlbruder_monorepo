@@ -25,7 +25,7 @@ revisions published on `master` remain immutable.
 
 The owner authorized editing the Karlmart revision `20261114_0001` before the
 launch reset. It includes `tournaments.refunds_allowed`, cancellation eligibility evidence,
-and the tournament refund and price evidence guards. Local databases that applied an earlier
+and the tournament refund and pricing schema. Local databases that applied an earlier
 form of the revision need a rebuild to pick up these changes.
 
 ## Applying migrations
@@ -45,12 +45,8 @@ Use root `compose.test.yml` with a unique disposable project name. Run
 `alembic upgrade head`, and `alembic check`. Always remove the test project with
 `down -v`. Do not use `make db-reset` to verify migrations.
 
-Schema comparison does not verify triggers. The backend suite also checks
-immutable acceptance/archive evidence, archived file metadata, reviewed proof
-associations and their file metadata, verified receipts, and payment/refund
-consistency. Downgrade removes the evidence guards with their tables.
-
-The [database guard inventory](database-guards.md) lists every migration-defined
-trigger and function and explains its purpose.
-[Decision 0010](../specs/decisions/0010-database-evidence-guards.md) records the
-original evidence-guard rationale.
+The owner authorized editing the initial and Karlmart revisions to remove
+application-defined trigger functions before rebuilding the database. Existing
+databases retain the old objects until rebuilt or separately migrated. Editing
+an applied revision does not change an existing database. Direct corrections
+must keep related payment and refund records consistent. See [decision 0010](../specs/decisions/0010-database-functions-trigger-and-procedures.md).

@@ -1326,29 +1326,6 @@ def test_proof_file_metadata_document_and_status_roll_back_on_database_failure(
 
 
 
-@pytest.mark.parametrize("operation", ["orm_update", "sql_update", "sql_delete"])
-def test_database_rejects_acceptance_mutation(setup, operation):
-    from sqlalchemy import text
-    from sqlalchemy.exc import IntegrityError
-    from app.tournaments.models import RegistrationAcceptance
-
-    client, key, session, _storage = setup
-    event_id = _create_event(client, key)
-    assert _post_registration(client, event_id, _headers(key)).status_code == 201
-    with pytest.raises(IntegrityError, match="immutable"):
-        with session.begin_nested():
-            if operation == "orm_update":
-                snapshot = session.scalar(select(RegistrationAcceptance))
-                snapshot.accepts_rules = False
-                session.flush()
-            else:
-                command = (
-                    "UPDATE public.registration_acceptances SET accepted_from_ip = '192.0.2.1'"
-                    if operation == "sql_update"
-                    else "DELETE FROM public.registration_acceptances"
-                )
-                session.execute(text(command))
-    assert session.scalar(select(RegistrationAcceptance)).accepts_rules is True
 
 
 def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):

@@ -1,7 +1,7 @@
 # Documentation
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 These guides explain how the current system works and how to operate it.
 [Specifications](../specs/README.md) own required behavior, contracts, and open
@@ -18,7 +18,7 @@ that a live environment has been verified.
 | Work on one application | [Backend](../backend/README.md), [frontend](../frontend/README.md), or [landing](../landing/README.md) |
 | Understand the current release pipeline and infrastructure | [Application deployment](deployment.md) |
 | Apply, reset, or verify domain migrations | [Database migrations](database-migrations.md) |
-| Find database triggers and functions | [Database triggers and functions](database-guards.md) |
+| Database function and trigger policy | [Decision 0010](../specs/decisions/0010-database-functions-trigger-and-procedures.md) |
 | Sign in to AWS as a team member | [AWS team access](aws-team-access.md) |
 | Configure a service or deployment access | [Operational runbooks](runbooks/README.md) |
 

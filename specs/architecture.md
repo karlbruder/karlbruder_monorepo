@@ -123,13 +123,13 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 | Tournament | Event information, registration windows, and capacity configuration |
 | Registration | Athlete information for a tournament, registration number, owner, and lifecycle |
 | Payment evidence and review | Restricted proof and guild staff payment decision associated with a registration |
-| Consent record | Versioned terms and explicit participant choices |
+| Consent record | Recorded participant choices and acceptance details |
 | Results | Tournament outcomes available to authorized viewers after publication |
 | Membership, future | Association membership and monthly dues, independent of tournaments |
 | Equipment, future | Admin-only guild inventory of equipment, type, quantity, and condition; no loans or tournament reservations |
 
 Shared file infrastructure lives in `app/core/files/`: StoredFile owns object
-metadata, and ArchivedFile records immutable captured content. Source URLs are optional
+metadata, and ArchivedFile records captured content metadata. Source URLs are optional
 so a consuming domain can archive an uploaded document too.
 Tournaments owns TournamentRegistration, TournamentRegistrationDocument,
 RegistrationAcceptance, TournamentPaymentSettings, PaymentProofReview, and
@@ -192,8 +192,8 @@ The shared file/archive boundary and future reuse are explained in
 [decision 0008](decisions/0008-shared-files-and-archives.md).
 Shared financial facts and domain associations are explained in
 [decision 0009](decisions/0009-shared-payments-and-domain-associations.md).
-The database evidence guards, their alternatives and their maintenance costs are
-explained in [decision 0010](decisions/0010-database-evidence-guards.md).
+The prohibition on application-defined database functions, triggers and procedures is
+recorded in [decision 0010](decisions/0010-database-functions-trigger-and-procedures.md).
 
 Local SMTP setup is explicitly deferred, with real SES as the likely choice. See [identity](identity/authentication-and-access.md), [data storage](platform/data-storage.md), and [deployment](platform/deployment.md) for the related rules.
 

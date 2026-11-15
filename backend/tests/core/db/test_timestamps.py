@@ -1,15 +1,12 @@
-"""Shared timestamps track SQLAlchemy updates and remain protected on evidence."""
+"""Shared timestamps track SQLAlchemy updates."""
 
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import update
 
 from app.core.files.models import StoredFile
-from app.core.files.archiving import archive_file
-from unittest.mock import Mock
 
 
 @pytest.mark.parametrize("bulk", [False, True])
@@ -42,25 +39,3 @@ def test_updating_mutable_file_preserves_created_at_and_advances_updated_at(
     assert row.created_at == original
     assert row.updated_at > original
     assert row.updated_at.tzinfo is not None
-
-
-def test_archive_timestamps_are_initialized_and_cannot_be_rewritten(db_session):
-    archive = archive_file(
-        Mock(),
-        body=b"Timestamp evidence",
-        original_file_name="evidence.txt",
-        content_type="text/plain",
-    )
-    db_session.add(archive)
-    db_session.flush()
-
-    assert archive.created_at.tzinfo is not None
-    assert archive.updated_at.tzinfo is not None
-    assert archive.file.created_at.tzinfo is not None
-    assert archive.file.updated_at.tzinfo is not None
-    with pytest.raises(IntegrityError, match="immutable"):
-        with db_session.begin_nested():
-            db_session.execute(
-                text("UPDATE public.archived_files SET updated_at=now() WHERE id=:id"),
-                {"id": archive.id},
-            )

@@ -1,11 +1,10 @@
-"""Shared archives retain immutable uploaded or fetched bytes without domain ownership."""
+"""Shared archives record uploaded bytes without domain ownership."""
 
 import hashlib
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy import select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 
 from app.core.files.models import ArchivedFile
 from app.core.files.archiving import archive_file
@@ -39,35 +38,6 @@ def test_uploaded_document_versions_need_no_tournament_or_source_url(db_session)
     assert len(db_session.scalars(select(ArchivedFile)).all()) == 2
 
 
-@pytest.mark.parametrize(
-    "target", ["archive_update", "archive_delete", "file_metadata"]
-)
-def test_persisted_shared_archive_and_its_file_metadata_are_immutable(
-    db_session, target
-):
-    archive = archive_file(
-        Mock(),
-        body=b"Fixture privacy",
-        original_file_name="privacy.txt",
-        content_type="text/plain",
-    )
-    db_session.add(archive)
-    db_session.flush()
-    with pytest.raises(IntegrityError, match="immutable"):
-        with db_session.begin_nested():
-            if target == "archive_update":
-                archive.sha256 = "tampered"
-                db_session.flush()
-            elif target == "archive_delete":
-                db_session.delete(archive)
-                db_session.flush()
-            else:
-                db_session.execute(
-                    text(
-                        "UPDATE public.stored_files SET storage_key='tampered' WHERE id=:id"
-                    ),
-                    {"id": archive.file_id},
-                )
 
 
 def test_failed_archive_storage_cleans_the_new_key_and_preserves_the_failure():

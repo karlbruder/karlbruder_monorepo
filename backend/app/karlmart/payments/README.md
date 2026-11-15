@@ -1,7 +1,7 @@
 # Shared payment records
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 Payments owns generic financial facts in BRL:
 
@@ -11,8 +11,7 @@ Payments owns generic financial facts in BRL:
 | Refund | `payment_id`, `amount_owed`, `obligated_at`, `due_on`, `refund_status`, `completed_at`, `completed_by_user_id` |
 
 Neither model references tournaments, membership, fee schedules, eligibility, or
-capacity. Payment facts and the refund's source, amount, and obligation time are
-immutable. An `awaiting_refund` has no completion evidence. A `completed` refund
+capacity. Authorized database operators can correct payment and refund facts. An `awaiting_refund` has no completion evidence. A `completed` refund
 requires the actual time and recording UUID, with completion no earlier than the
 obligation. The database checks evidence shape, not the actor's authorization.
 

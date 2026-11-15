@@ -5,8 +5,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import func, select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, select
 
 from app.karlmart.orders.models import Order
 from app.karlmart.payments.models import Payment, Refund
@@ -67,33 +66,3 @@ def test_caller_rollback_removes_shared_payment_and_refund_together(db_session):
             raise RuntimeError("Rollback fixture")
     assert db_session.scalar(select(func.count()).select_from(Payment)) == 0
     assert db_session.scalar(select(func.count()).select_from(Refund)) == 0
-
-
-@pytest.mark.parametrize(
-    "column,value",
-    [
-        ("amount_owed", "1"),
-        ("payment_id", "-1"),
-        ("obligated_at", "'2025-01-01T00:00:00Z'"),
-    ],
-)
-def test_recorded_refund_source_amount_and_obligation_time_cannot_change(
-    db_session, column, value
-):
-    payment = add_payment_record(
-        db_session,
-        order_id=_order_id(db_session),
-        amount_received=Decimal("100.00"),
-        verified_by_user_id=uuid4(),
-        verified_at=NOW,
-    )
-    add_refund_record(
-        db_session,
-        payment_id=payment.id,
-        amount_owed=Decimal("25.00"),
-        obligated_at=NOW,
-        due_on=DUE_ON,
-    )
-    with pytest.raises(IntegrityError, match="immutable"):
-        with db_session.begin_nested():
-            db_session.execute(text(f"UPDATE public.refunds SET {column}={value}"))
