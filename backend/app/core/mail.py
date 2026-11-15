@@ -10,7 +10,12 @@ from typing import Protocol
 
 
 class MailDeliveryError(Exception):
-    """A mail delivery attempt failed without exposing transport details."""
+    """A mail delivery attempt failed with sanitized diagnostic details."""
+
+    def __init__(self, message: str, *, stage: str = "unknown", smtp_code: int | None = None):
+        super().__init__(message)
+        self.stage = stage
+        self.smtp_code = smtp_code
 
 
 class MailUnavailableError(MailDeliveryError):
@@ -53,6 +58,7 @@ class SmtpMailSender:
     def send(self, *, from_address: str, recipient: str, subject: str, body: str) -> None:
         if not self.enabled:
             raise MailUnavailableError("Application mail is disabled")
+        stage = "validate"
         try:
             validate_email_address(recipient)
             message = EmailMessage()
@@ -60,11 +66,18 @@ class SmtpMailSender:
             message["To"] = recipient
             message["Subject"] = subject
             message.set_content(body)
+            stage = "connect"
             with smtplib.SMTP(self.host, self.port, timeout=self.timeout) as smtp:
+                stage = "starttls"
                 smtp.starttls(context=ssl.create_default_context())
+                stage = "authenticate"
                 smtp.login(self.username, self.password)
+                stage = "send"
                 refused = smtp.send_message(message)
                 if refused:
-                    raise MailDeliveryError("Application mail delivery failed")
+                    raise smtplib.SMTPRecipientsRefused(refused)
         except (smtplib.SMTPException, OSError, ValueError) as error:
-            raise MailDeliveryError("Application mail delivery failed") from error
+            code = error.smtp_code if isinstance(error, smtplib.SMTPResponseException) else None
+            raise MailDeliveryError(
+                "Application mail delivery failed", stage=stage, smtp_code=code
+            ) from error

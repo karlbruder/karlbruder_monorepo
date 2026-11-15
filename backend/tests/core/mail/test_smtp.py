@@ -106,3 +106,15 @@ def test_sender_uses_the_explicit_from_address():
         smtp.send_message.return_value = {}
         _sender().send(from_address="Event Support <event@example.test>", recipient="current@example.test", subject="Subject", body="Body")
         assert str(smtp.send_message.call_args.args[0]["From"]) == "Event Support <event@example.test>"
+
+
+def test_authentication_failure_preserves_cause_and_smtp_diagnostics():
+    with patch("app.core.mail.smtplib.SMTP") as transport:
+        smtp = transport.return_value.__enter__.return_value
+        smtp.login.side_effect = smtplib.SMTPAuthenticationError(535, b"private credentials")
+        with pytest.raises(MailDeliveryError) as caught:
+            _sender().send(from_address="support@example.test", recipient="current@example.test", subject="Subject", body="Body")
+    assert caught.value.stage == "authenticate"
+    assert caught.value.smtp_code == 535
+    assert "private" not in str(caught.value)
+    assert str(caught.value.__cause__) == "(535, b'private credentials')"

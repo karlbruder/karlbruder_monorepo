@@ -1,4 +1,7 @@
-"""Tournament workflow errors. HTTP mappings belong in the API layer."""
+from typing import Literal
+
+from app.auth.account_email import AccountEmailReadError
+from app.core.mail import MailDeliveryError, MailUnavailableError
 
 
 class TournamentError(Exception):
@@ -47,3 +50,16 @@ class UploadTooLargeError(Exception):
 
 class UploadDisallowedTypeError(Exception):
     """Leading bytes did not match an allowed file type."""
+
+
+DeliveryResult = Literal["sent", "lookup_failed", "unavailable", "send_failed"]
+
+ERROR_RESULTS: dict[type[Exception], DeliveryResult] = {
+    AccountEmailReadError: "lookup_failed",
+    MailUnavailableError: "unavailable",
+    MailDeliveryError: "send_failed",
+}
+
+
+def get_notification_delivery_result_for_error(error: Exception) -> DeliveryResult:
+    return next(result for error_type, result in ERROR_RESULTS.items() if isinstance(error, error_type))

@@ -47,7 +47,7 @@ def test_notice_uses_current_account_and_outcome_with_authorized_resubmission_li
 
 
 @pytest.mark.parametrize("failure,result", [(AccountEmailReadError("private"), "lookup_failed"), (MailUnavailableError("private"), "unavailable"), (MailDeliveryError("private"), "send_failed")])
-def test_delivery_failure_returns_result_without_retries_or_private_logs(failure, result, caplog):
+def test_delivery_failure_logs_exception_and_returns_result_without_retries(failure, result, caplog):
     accounts, sender = Mock(), Mock()
     if isinstance(failure, AccountEmailReadError):
         accounts.read_email.side_effect = failure
@@ -59,7 +59,9 @@ def test_delivery_failure_returns_result_without_retries_or_private_logs(failure
         assert send_payment_review_notice(notice, accounts=accounts, sender=sender, from_address="Event Support <event@example.test>", application_base_url="https://app.example.test") == result
     assert accounts.read_email.call_count == 1
     assert sender.send.call_count == (0 if result == "lookup_failed" else 1)
-    assert "private" not in caplog.text
+    assert caplog.records[-1].levelno == logging.ERROR
+    assert caplog.records[-1].exc_info[1] is failure
+    assert "private" in caplog.text
     assert caplog.records[-1].delivery_result == result
 
 
@@ -76,3 +78,36 @@ def test_missing_application_url_skips_delivery_and_logs_unavailable(caplog):
     accounts.read_email.assert_not_called()
     sender.send.assert_not_called()
     assert caplog.records[-1].delivery_result == "unavailable"
+    assert caplog.records[-1].levelno == logging.ERROR
+
+
+def test_delivery_failure_logs_smtp_diagnostics_and_exception(caplog):
+    accounts, sender = Mock(), Mock()
+    accounts.read_email.return_value = "current@example.test"
+    sender.send.side_effect = MailDeliveryError("private", stage="authenticate", smtp_code=535)
+    notice = PaymentReviewNotice(42, uuid4(), 7, "T7", "confirmed")
+    with caplog.at_level(logging.INFO):
+        result = send_payment_review_notice(
+            notice, accounts=accounts, sender=sender,
+            from_address="support@example.test", application_base_url="https://app.example.test",
+        )
+    assert result == "send_failed"
+    assert caplog.records[-1].mail_stage == "authenticate"
+    assert caplog.records[-1].smtp_code == 535
+    assert "private" in caplog.text
+    assert caplog.records[-1].levelno == logging.ERROR
+
+
+def test_unexpected_failure_logs_traceback_and_propagates(caplog):
+    accounts, sender = Mock(), Mock()
+    failure = RuntimeError("unexpected provider failure")
+    sender.send.side_effect = failure
+    notice = PaymentReviewNotice(42, uuid4(), 7, "T7", "confirmed")
+    with caplog.at_level(logging.INFO), pytest.raises(RuntimeError, match="unexpected provider failure"):
+        send_payment_review_notice(
+            notice, accounts=accounts, sender=sender,
+            from_address="support@example.test", application_base_url="https://app.example.test",
+        )
+    assert caplog.records[-1].levelno == logging.ERROR
+    assert caplog.records[-1].delivery_result == "unexpected_error"
+    assert caplog.records[-1].exc_info[1] is failure

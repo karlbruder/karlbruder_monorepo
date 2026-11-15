@@ -16,6 +16,7 @@ from app.core.mail import MailDeliveryError, MailSender, MailUnavailableError
 from app.karlmart.orders.models import OrderItem
 from app.karlmart.payments.models import Payment, Refund
 from app.karlmart.payments.services.records import add_refund_record
+from app.tournaments.exceptions import get_notification_delivery_result_for_error
 from app.tournaments.templates.email_notifications import render_tournament_email
 from app.tournaments.exceptions import RegistrationConflictError, RegistrationResourceNotFoundError
 from app.tournaments.models import (
@@ -182,22 +183,28 @@ def record_registration_refund_completion(
     except (SQLAlchemyError, RegistrationConflictError, RegistrationResourceNotFoundError):
         session.rollback()
         raise
-    result = "unavailable"
-    if application_base_url:
+    details = {"refund_id": refund_id}
+    if not application_base_url:
+        logger.error("refund_notification", extra={**details, "delivery_result": "unavailable"})
+        return "unavailable"
+
+    try:
         query = urlencode({"tournament_id": tournament_id, "registration_number": number})
         link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
         subject, body = render_tournament_email(
             "refund_completed", registration_number=number, link=link
         )
-        try:
-            sender.send(from_address=from_address, recipient=accounts.read_email(user_id),
-                        subject=subject, body=body)
-            result = "sent"
-        except AccountEmailReadError:
-            result = "lookup_failed"
-        except MailUnavailableError:
-            result = "unavailable"
-        except MailDeliveryError:
-            result = "send_failed"
-    logger.info("refund_notification", extra={"refund_id": refund_id, "delivery_result": result})
-    return result
+        sender.send(from_address=from_address, recipient=accounts.read_email(user_id),
+                    subject=subject, body=body)
+    except (AccountEmailReadError, MailUnavailableError, MailDeliveryError) as error:
+        result = get_notification_delivery_result_for_error(error)
+        if isinstance(error, MailDeliveryError):
+            details.update(mail_stage=error.stage, smtp_code=error.smtp_code)
+        logger.exception("refund_notification", extra={**details, "delivery_result": result})
+        return result
+    except Exception:
+        logger.exception("refund_notification", extra={**details, "delivery_result": "unexpected_error"})
+        raise
+    else:
+        logger.info("refund_notification", extra={**details, "delivery_result": "sent"})
+        return "sent"

@@ -69,8 +69,9 @@ None for sender, language, recipient selection, required triggers, or waitlist h
 
 The payment-review helper makes one bounded delivery attempt after the calling
 workflow commits and releases its database locks. It returns a typed delivery
-result and logs only the review ID, notification type, and result. Lookup or SMTP
-failure does not change the decision. Duplicate decisions must not replay delivery.
+result and logs the review ID, notification type, and result. Failures are logged at
+error level with the exception traceback when available. Provider responses can include
+recipient addresses, so restrict access to these logs. Lookup or SMTP failure does not change the decision. Duplicate decisions must not replay delivery.
 There is no automatic retry or durable outbox. A crash between commit and send can
 lose the notice. The decision command calls the helper after commit.
 Confirmation, waitlist, and rejection messages contain the registration number and an authenticated
