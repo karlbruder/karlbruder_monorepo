@@ -215,3 +215,38 @@ it.each([503, 403])("keeps a successful proof submission distinct from payment a
     expect(screen.queryByText(/We received your proof of payment/)).not.toBeInTheDocument();
   }
 });
+
+it.each([
+  [null, "No refund recorded for this registration."],
+  [{ amount_owed: "123.45", refund_status: "awaiting_refund", due_on: "2026-10-30", completed_at: null }, "Awaiting refund"],
+  [{ amount_owed: "123.45", refund_status: "completed", due_on: "2026-10-30", completed_at: "2026-10-23T14:00:00Z" }, "Refund completed"],
+])("keeps cancelled participation separate from refund outcome %j", async (refund, label) => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  let cancelled = false;
+  const request = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/cancel") && init?.method === "POST") {
+      cancelled = true;
+      return new Response(null, { status: 204 });
+    }
+    if (url.endsWith("/refund")) return Response.json(refund);
+    if (url.endsWith("/payment")) return Response.json(payment);
+    return Response.json({ ...registration, registration_status: cancelled ? "cancelled" : "confirmed" });
+  });
+  vi.stubGlobal("fetch", request);
+
+  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Cancel participation" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep my registration" }));
+  expect(cancelled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel participation" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
+
+  expect(await screen.findByText(label)).toBeVisible();
+  expect(screen.getByText("Cancelled")).toBeVisible();
+  expect(screen.queryByLabelText("Signed parental consent form")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Cancel participation" })).not.toBeInTheDocument();
+  if (refund) expect(screen.getByText(/123\.45/)).toBeVisible();
+  expect(request).toHaveBeenCalledWith("/api/tournaments/42/registrations/T42-1/cancel", expect.objectContaining({
+    method: "POST", headers: { Authorization: "Bearer token" },
+  }));
+});

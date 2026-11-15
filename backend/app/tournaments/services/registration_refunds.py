@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 from urllib.parse import urlencode
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,7 @@ from app.karlmart.payments.models import Payment, Refund
 from app.karlmart.payments.services.records import add_refund_record
 from app.tournaments.exceptions import RegistrationConflictError, RegistrationResourceNotFoundError
 from app.tournaments.models import Tournament, TournamentRegistration
+from app.tournaments.schemas import StaffRegistrationRefundQueue, StaffRegistrationRefundRead
 from app.tournaments.services.tournament_local_dates import refund_due_date
 
 
@@ -66,6 +67,54 @@ def read_registration_refund(
     if payment is None:
         return None
     return session.scalar(select(Refund).where(Refund.payment_id == payment.id))
+
+
+def list_pending_registration_refunds(
+    session: Session,
+    user: User,
+    *,
+    limit: int,
+    offset: int,
+    registration_number: str | None,
+) -> StaffRegistrationRefundQueue:
+    if get_application_role(user) != "admin":
+        raise AdminAccessRequiredException()
+    pending = (
+        select(
+            Tournament.id.label("tournament_id"),
+            Tournament.name.label("tournament_name"),
+            TournamentRegistration.registration_number,
+            TournamentRegistration.full_name,
+            Refund.refund_status,
+            Refund.amount_owed,
+            Refund.obligated_at,
+            Refund.due_on,
+            Refund.completed_at,
+        )
+        .select_from(Refund)
+        .join(Payment, Payment.id == Refund.payment_id)
+        .join(OrderItem, OrderItem.order_id == Payment.order_id)
+        .join(TournamentRegistration, TournamentRegistration.order_item_id == OrderItem.id)
+        .join(Tournament, Tournament.id == TournamentRegistration.tournament_id)
+        .where(
+            Refund.refund_status == "awaiting_refund",
+            TournamentRegistration.registration_status == "cancelled",
+        )
+    )
+    if registration_number:
+        pending = pending.where(
+            TournamentRegistration.registration_number == registration_number
+        )
+    total = session.scalar(select(func.count()).select_from(pending.subquery())) or 0
+    rows = session.execute(
+        pending.order_by(Refund.due_on, Refund.id).limit(limit).offset(offset)
+    ).mappings()
+    return StaffRegistrationRefundQueue(
+        items=[StaffRegistrationRefundRead.model_validate(row) for row in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def cancel_tournament_registration(session: Session, tournament_id: int, number: str, user: User) -> None:

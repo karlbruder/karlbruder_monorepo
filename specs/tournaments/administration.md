@@ -41,7 +41,11 @@ No review, receipt or refund row changes capacity or participation by itself.
 The payment-review command applies those facts and participation atomically.
 It confirms when capacity permits and records paid waitlist otherwise. Rejection
 records its reason and returns to awaiting payment without cancelling participation.
-Waitlist selection, cancellation, and refund commands remain unimplemented. The records alone do not fulfill the administration requirements above.
+The cancellation command is available to staff and registration owners. The
+staff refund queue lists pending obligations across tournaments in deadline
+order and supports exact registration-number search. Staff records the transfer
+time and confirms the full amount after returning the money outside the
+application. Paid waitlist selection remains deferred.
 
 ## Acceptance criteria
 

@@ -317,6 +317,21 @@ class RegistrationRefundRead(BaseModel):
     completed_at: datetime | None
 
 
+class StaffRegistrationRefundRead(RegistrationRefundRead):
+    tournament_id: int
+    tournament_name: str
+    registration_number: str
+    full_name: str
+    obligated_at: datetime
+
+
+class StaffRegistrationRefundQueue(BaseModel):
+    items: list[StaffRegistrationRefundRead]
+    total: int
+    limit: int
+    offset: int
+
+
 class RefundCompletionCreate(BaseModel):
     completed_at: datetime
 

@@ -227,10 +227,10 @@ A tournament refund owes the full amount received and records its deadline on
 `Refund`. An absent refund means there is no recorded obligation.
 
 The staff payment-review workflow authorizes the actor and commits review, receipt,
-association, and participation changes atomically. Cancellation/refund workflows
-must calculate the 10-business-day deadline, record the exact amount owed and actual
-completion, and send required notifications. Shared persistence helpers use the
-caller's transaction. Payment review is implemented below. Cancellation and refund commands remain unimplemented.
+association, and participation changes atomically. Cancellation records the
+participation change and any refund obligation in the same transaction.
+Shared persistence helpers use the caller's transaction. Payment review and
+cancellation acquire the tournament and registration locks in the same order.
 
 The [payment spec](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract)
 owns the persistence requirements. [Decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
@@ -319,3 +319,31 @@ admin dependency. Tournament creation
 is now `POST /api/staff/tournaments`. The former creation path and
 `/api/tournaments/staff/...` payment-review paths are not registered. Catalog,
 owner registration/document URLs, identifiers, and response contracts are preserved.
+
+
+## Cancellation and manual refunds
+
+`POST /api/tournaments/{tournament_id}/registrations/{registration_number}/cancel`
+lets the owner or staff cancel participation. It returns 204 on success and 409
+if the registration was already cancelled. Any occupied seat is released at commit.
+A verified payment creates an obligation for the full amount received. Its deadline
+is the tenth weekday after cancellation in fixed UTC−03:00, ignoring holidays.
+Cancellation leaves the order, proof, and payment evidence intact.
+
+`GET /api/tournaments/{tournament_id}/registrations/{registration_number}/refund`
+returns the refund amount, status, deadline, and completion time to the owner
+or staff under the tournament visibility rules. It returns JSON `null` when
+there is no recorded obligation.
+
+`GET /api/staff/tournaments/refunds` lists outstanding refunds across tournaments
+in deadline order. It accepts `limit` (1–100), `offset`, and an optional exact
+`registration_number`. Staff can follow the registration number to the payment
+review record for evidence.
+
+After transferring the full amount outside the application, staff submits the
+actual timestamp as an offset-aware `completed_at` to
+`POST /api/staff/tournaments/{tournament_id}/registrations/{registration_number}/refund/complete`.
+It returns 409 for an already completed refund, a missing obligation, or a
+transfer time outside the interval from cancellation through the current time.
+The command records completion time and actor while participation stays cancelled.
+It attempts email delivery after commit and reports the delivery result.

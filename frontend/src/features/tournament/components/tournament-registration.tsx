@@ -69,11 +69,20 @@ function SignedInRegistration({
   registrationNumber?: string;
 }) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
-  const ownRegistrationsQuery = useOwnTournamentRegistrations(registrationNumber ? undefined : tournament.id, session.access_token);
+  const ownRegistrationsQuery = useOwnTournamentRegistrations(registrationNumber ? undefined : tournament.id, session.access_token, session.user.id);
   const [createdRegistration, setCreatedRegistration] = useState<RegistrationCreated | null>(null);
+  const [cancelledNumber, setCancelledNumber] = useState<string>();
   const activeRegistration = createdRegistration ?? selectOwnActiveRegistration(ownRegistrationsQuery.data, session.user.id);
+  const cancelledRegistrations = ownRegistrationsQuery.data?.filter(registration =>
+    registration.registration_status === "cancelled" && (
+      session.user.app_metadata?.karlbruder_role === "admin"
+        ? registration.user_id === session.user.id
+        : !registration.user_id || registration.user_id === session.user.id
+    ),
+  );
 
-  const selectedRegistrationNumber = registrationNumber ?? activeRegistration?.registration_number;
+  const selectedRegistrationNumber = registrationNumber ?? cancelledNumber ?? activeRegistration?.registration_number;
+  const personalRegistrationUrl = `/tournaments/registration?tournament_id=${tournament.id}`;
 
   const handleRegistrationCreated = (registration: RegistrationCreated) => {
     setCreatedRegistration(registration);
@@ -83,9 +92,9 @@ function SignedInRegistration({
   return (
     <>
       <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
-      {!registrationNumber && !createdRegistration && ownRegistrationsQuery.isPending ? (
+      {!selectedRegistrationNumber && ownRegistrationsQuery.isPending ? (
         <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
-      ) : !registrationNumber && !createdRegistration && ownRegistrationsQuery.isError ? (
+      ) : !selectedRegistrationNumber && ownRegistrationsQuery.isError ? (
         <div><p role="alert">{t("Não foi possível carregar sua inscrição.")}</p><button onClick={() => void ownRegistrationsQuery.refetch()}>{t("Tentar novamente")}</button></div>
       ) : selectedRegistrationNumber ? (
         <TournamentRegistrationPanel
@@ -94,6 +103,7 @@ function SignedInRegistration({
           key={selectedRegistrationNumber}
           registrationNumber={selectedRegistrationNumber}
           language={language}
+          onCancelled={() => setCancelledNumber(selectedRegistrationNumber)}
         />
       ) : tournament.is_registration_closed ? (
         <p className="registration-notice" role="status">{t("Novas inscrições estão encerradas pela organização.")}</p>
@@ -106,6 +116,15 @@ function SignedInRegistration({
           language={language}
           onRegistrationCreated={handleRegistrationCreated}
         />
+      )}
+      {(registrationNumber || cancelledNumber) && <p><a href={personalRegistrationUrl}>{t("Voltar à inscrição pessoal")}</a></p>}
+      {!registrationNumber && !cancelledNumber && Boolean(cancelledRegistrations?.length) && (
+        <section className="registration-card">
+          <h2>{t("Inscrições canceladas")}</h2>
+          <ul>{cancelledRegistrations?.map(({ registration_number: number }) => (
+            <li key={number}><a href={`${personalRegistrationUrl}&registration_number=${encodeURIComponent(number)}`}>{number}</a></li>
+          ))}</ul>
+        </section>
       )}
     </>
   );

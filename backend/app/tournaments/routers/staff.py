@@ -19,6 +19,7 @@ from app.tournaments.schemas import (
     PaymentReviewDecisionRead,
     StaffPaymentReviewDetail,
     StaffPaymentReviewQueue,
+    StaffRegistrationRefundQueue,
     StaffTournamentList,
     StaffTournamentRead,
     TournamentCreate,
@@ -122,6 +123,20 @@ def record_payment_review_decision(
         ),
         from_address=settings.SMTP_FROM,
     )
+
+
+@router.get("/refunds", response_model=StaffRegistrationRefundQueue)
+def list_pending_registration_refunds(
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    registration_number: Annotated[str | None, Query(min_length=1, max_length=50)] = None,
+) -> StaffRegistrationRefundQueue:
+    return registration_refunds.list_pending_registration_refunds(
+        session, admin, limit=limit, offset=offset, registration_number=registration_number
+    )
+
 
 @router.post("/{tournament_id}/registrations/{registration_number}/refund/complete")
 def record_registration_refund_completion(

@@ -593,3 +593,14 @@
 .registration-option span {
   line-height: 1.5;
 }
+
+.registration-refund-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.registration-card button.registration-danger {
+  border-color: #b89190;
+  color: #842e31;
+}

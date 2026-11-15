@@ -55,10 +55,18 @@ The API supports proof submission, authorized retrieval, and exact-proof staff
 approval/rejection. Approval atomically saves the review, shared receipt, association,
 and confirmed or paid-waitlist outcome. Rejection returns to `awaiting_payment`
 with a separate current-proof review and reason. Only a new proof can be reviewed
-after rejection. Cancellation and refund commands remain unimplemented. Refund
-workflows must calculate the deadline under PAY-012, record actual completion,
-and send the required notifications. Persistence records and database guards do
-not implement those workflows or authorize their actors.
+after rejection. Cancellation atomically records an obligation if a verified
+receipt exists. It uses the exact amount received and the deadline under PAY-012.
+A submitted proof alone does not create a receipt. The participant can see a
+pending or completed refund and its deadline separately from cancelled
+participation. Staff can find outstanding refunds across tournaments, check the
+payment evidence, and record the actual transfer time after returning the full
+amount outside the platform. Completion retains the recording admin and attempts
+the confirmation email after commit.
+
+If the participant already transferred Pix and staff has yet to verify it, the
+cancellation screen directs the participant to contact staff first. The refund
+queue only tracks obligations backed by verified receipts.
 
 ## Initial journey
 

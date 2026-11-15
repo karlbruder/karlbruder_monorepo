@@ -488,7 +488,9 @@ def test_window_staff_closure_and_configured_versions(setup, monkeypatch):
     ):
         event = _create_event(client, key, **changes)
         assert _post_registration(client, event, owner).status_code == 400
-    assert _post_registration(client, 99999, owner).status_code == 404
+    assert _post_registration(
+        client, 99999, owner, _registration(tournament_product_id=1, price_id=1)
+    ).status_code == 404
 
 
 def test_internal_participation_and_tournament_scope(setup):

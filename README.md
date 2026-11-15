@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 Monorepo for the Karlbrüder public website and tournament application.
 Association membership and equipment inventory are future capabilities.
@@ -21,10 +21,10 @@ Association membership and equipment inventory are future capabilities.
 | `docs/` | Current implementation guides and operational runbooks | [Documentation index](docs/README.md) |
 
 The application implements Google and email/password authentication, tournament
-registration, private uploads, and retained acceptance/financial evidence.
-Staff payment-review and refund commands, results, membership, and inventory are
-not implemented. See the [tournament API guide](backend/app/tournaments/README.md)
-for current contracts and access restrictions.
+registration, private uploads, payment review, participant cancellation, and
+manual refund tracking. Staff records refunds after transferring the funds
+outside the application. Paid waitlist selection, results, membership, and
+inventory remain deferred. See the [tournament API guide](backend/app/tournaments/README.md).
 
 Agents follow [AGENTS.md](AGENTS.md) and applicable child instructions. Read only
 the specifications and guides needed for the task.

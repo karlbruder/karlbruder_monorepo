@@ -1,5 +1,5 @@
-import { useRef, useState, type FormEvent } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { getOwnRegistration, requestParentalConsentFormUploadUrl, submitParentalConsentForm, uploadFileToPresignedUrl } from "@/features/tournament/api/tournaments";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
@@ -8,6 +8,8 @@ import TournamentPaymentPanel from "@/features/tournament/components/tournament-
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
+import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
+import { RegistrationRefundStatus } from "@/features/tournament/components/registration-refund-status";
 
 function statusLabel(status: string): AppCopyKey {
   if (status === "awaiting_payment") return "Aguardando pagamento";
@@ -27,8 +29,9 @@ function isTransientRefreshError(error: unknown): boolean {
   return status === 408 || status === 429 || status >= 500;
 }
 
-export default function TournamentRegistrationPanel({ tournament, session, registrationNumber, language }: {
+export default function TournamentRegistrationPanel({ tournament, session, registrationNumber, language, onCancelled }: {
   tournament: Tournament; session: Session; registrationNumber: string; language: AppLanguage;
+  onCancelled?: () => void;
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const client = useQueryClient();
@@ -39,8 +42,32 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   });
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [confirmCancellation, setConfirmCancellation] = useState(false);
+  const cancellationHeading = useRef<HTMLHeadingElement>(null);
   const busy = useRef(false);
   const registration = query.data;
+  useEffect(() => {
+    if (confirmCancellation) cancellationHeading.current?.focus();
+  }, [confirmCancellation]);
+
+  const cancellation = useMutation({
+    mutationFn: () => cancelRegistration(session.access_token, tournament.id, registrationNumber),
+    onSuccess: async () => {
+      onCancelled?.();
+      await client.cancelQueries({ queryKey: registrationQueryKey });
+      client.setQueryData<typeof registration>(registrationQueryKey, current =>
+        current ? { ...current, registration_status: "cancelled" } : current,
+      );
+      await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
+    },
+    onError: async () => {
+      const refreshed = await query.refetch();
+      if (refreshed.data?.registration_status === "cancelled") {
+        onCancelled?.();
+        await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
+      }
+    },
+  });
   function updateSubmittedStatus(submitted: OwnerRegistration) {
     if (submitted.tournament_id !== tournament.id || submitted.registration_number !== registrationNumber ||
         (submitted.user_id && submitted.user_id !== session.user.id) || submitted.registration_status !== "awaiting_payment_confirmation") return;
@@ -71,8 +98,9 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   if (query.isPending) return <p role="status">{t("Carregando informações do torneio...")}</p>;
   const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);
   if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
+  const cancelled = registration.registration_status === "cancelled";
   return <>
-    {registration.registration_status !== "cancelled" && <RegistrationProgress current={registration.registration_status === "awaiting_payment" ? 2 : 3} language={language} />}
+    {!cancelled && <RegistrationProgress current={registration.registration_status === "awaiting_payment" ? 2 : 3} language={language} />}
     <section className="registration-card" aria-label={t("Sua inscrição")}>
       <h2>{t("Sua inscrição")}</h2><strong>{registration.registration_number}</strong>
       {transientRefreshError && <p role="alert">{t("Não foi possível atualizar sua inscrição. Tente novamente.")} <button type="button" onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></p>}
@@ -81,7 +109,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
         <div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div>
       </dl>
       {registration.product_description && <p>{registration.product_description}</p>}
-      {registration.parental_consent_required && <form onSubmit={submitConsent}>
+      {!cancelled && !confirmCancellation && registration.parental_consent_required && <form onSubmit={submitConsent}>
         <p role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
         <label htmlFor="parental_consent_form_existing">{t("Termo de responsabilidade assinado")}</label>
         <input id="parental_consent_form_existing" name="parental_consent_form" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" disabled={pending} />
@@ -91,6 +119,22 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       </form>}
       {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p className="registration-notice registration-notice-success" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
-    <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />
+    {cancelled ? <RegistrationRefundStatus token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registrationNumber} language={language} /> : <>
+      {!confirmCancellation && <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
+      <section className="registration-card">
+        {confirmCancellation ? <>
+          <h2 ref={cancellationHeading} tabIndex={-1}>{t("Cancelar participação")}</h2>
+          <p className="registration-notice">{t("O cancelamento encerra a participação e libera qualquer vaga ocupada imediatamente.")}</p>
+          <p>{t("A guilda devolve o valor integral do pagamento verificado em até 10 dias úteis.")}</p>
+          {(registration.registration_status === "awaiting_payment" || registration.registration_status === "awaiting_payment_confirmation") &&
+            <p>{t("Se você já fez um Pix que ainda não foi confirmado, fale com a equipe antes de cancelar.")}</p>}
+          {cancellation.isError && <p role="alert">{t("Não foi possível confirmar o cancelamento. Atualize a inscrição e tente novamente.")}</p>}
+          <div className="registration-refund-actions">
+            <button type="button" className="registration-danger" disabled={cancellation.isPending} onClick={() => cancellation.mutate()}>{t(cancellation.isPending ? "Cancelando..." : "Confirmar cancelamento")}</button>
+            <button type="button" disabled={cancellation.isPending} onClick={() => { cancellation.reset(); setConfirmCancellation(false); }}>{t("Manter participação")}</button>
+          </div>
+        </> : <button type="button" className="registration-danger" disabled={pending} onClick={() => setConfirmCancellation(true)}>{t("Cancelar participação")}</button>}
+      </section>
+    </>}
   </>;
 }

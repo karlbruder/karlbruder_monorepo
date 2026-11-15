@@ -41,7 +41,9 @@ evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
 new trigger. Payment-review decisions now invoke the notification helper after
 commit for rejection or paid waitlist. Confirmed approval sends no email in this
-scope. Refund commands and their notices remain unimplemented.
+scope. Recording a completed refund attempts an email to the account's current
+address after commit. The message links to the specific cancelled registration.
+Delivery failure leaves the completed refund recorded and is shown to staff.
 
 ## Acceptance criteria
 

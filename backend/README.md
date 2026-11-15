@@ -58,7 +58,7 @@ for protected requests.
 
 [AGENTS.md](AGENTS.md) defines editing and dependency rules. Use the
 [tournament guide](app/tournaments/README.md) or [payment guide](app/karlmart/payments/README.md)
-when working on those contracts. Staff review and refund commands are not implemented.
+when working on those contracts. Staff can review payment proofs and record completed refunds. Participants can cancel and retrieve their refund status.
 
 Swagger UI is at `/api/docs`, with its redirect helper at
 `/api/docs/oauth2-redirect`. The OpenAPI document is at `/api/openapi.json`.

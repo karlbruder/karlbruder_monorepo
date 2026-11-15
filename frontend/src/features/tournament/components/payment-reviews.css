@@ -355,3 +355,33 @@
     gap: 12px;
   }
 }
+
+.refund-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.refund-completion {
+  grid-template-areas: "form notice";
+}
+
+.refund-completion .review-card {
+  grid-area: form;
+}
+
+.refund-completion .review-notice {
+  grid-area: notice;
+}
+
+@media (max-width: 700px) {
+  .refund-completion {
+    grid-template-areas: "notice" "form";
+  }
+
+  .refund-completion .review-notice {
+    margin-bottom: 0;
+  }
+}
