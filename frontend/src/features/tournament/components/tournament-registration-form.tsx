@@ -261,6 +261,18 @@ export default function TournamentRegistrationForm({
     return () => controller.abort();
   }, [tournament.id, session.access_token]);
 
+  const refreshProducts = async () => {
+    setProductsState("loading");
+    try {
+      const options = await getTournamentProducts(tournament.id, session.access_token);
+      setProducts(options);
+      setProductsState("ready");
+    } catch {
+      setProducts([]);
+      setProductsState("error");
+    }
+  };
+
   const showParentalConsentFormField = Boolean(birthDateForDisplay)
     && isMinorAtTournamentStart(birthDateForDisplay, tournament.starts_at);
 
@@ -320,7 +332,12 @@ export default function TournamentRegistrationForm({
         setResult(created);
       }
     } catch (error) {
-      if (error instanceof RegistrationRequestError && error.status === 409 && error.detail === "Registration terms changed; refresh before accepting") {
+      if (error instanceof RegistrationRequestError && error.status === 400 && error.detail === "Registration option is unavailable") {
+        setSelectedProductId(null);
+        setProducts([]);
+        setRequestError("As opções de inscrição mudaram. Confira os valores atualizados e escolha novamente.");
+        await refreshProducts();
+      } else if (error instanceof RegistrationRequestError && error.status === 409 && error.detail === "Registration terms changed; refresh before accepting") {
         try {
           await refreshPolicies(form);
         } catch {
@@ -355,7 +372,7 @@ export default function TournamentRegistrationForm({
         <section className="registration-card registration-section" aria-labelledby="registration-option-title">
           <h2 id="registration-option-title">{language === "en" ? "Registration type" : "Tipo de inscrição"}</h2>
           {productsState === "loading" && <p role="status">{language === "en" ? "Loading options…" : "Carregando opções…"}</p>}
-          {productsState === "error" && <p role="alert">{language === "en" ? "Could not load options. Refresh the page to try again." : "Não foi possível carregar as opções. Atualize a página para tentar novamente."}</p>}
+          {productsState === "error" && <p role="alert">{language === "en" ? "Could not load options." : "Não foi possível carregar as opções."} <button type="button" onClick={() => void refreshProducts()}>{language === "en" ? "Try again" : "Tentar novamente"}</button></p>}
           {productsState === "ready" && products.length === 0 && <p>{language === "en" ? "No registration types are available yet." : "Nenhum tipo de inscrição está disponível ainda."}</p>}
           {products.map(product => <label key={product.id} className="registration-option">
             <input type="radio" name="tournament_product_id" value={product.id} checked={selectedProductId === product.id} disabled={product.price_id === null} onChange={() => setSelectedProductId(product.id)} />

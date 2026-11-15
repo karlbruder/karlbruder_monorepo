@@ -270,6 +270,48 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByText(/vaga ainda não está confirmada nem reservada/)).toBeInTheDocument()
   })
 
+  it('refreshes a stale price while preserving the form and consent file until the athlete selects again', async () => {
+    vi.mocked(getTournamentProducts).mockResolvedValueOnce([product]).mockResolvedValueOnce([{ ...product, price_id: 9, amount: '125.00' }])
+    let submissions = 0
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('/parental-consent-form/upload-url')) return response(200, { storage_key: 'staged', upload_url: 'https://upload.example.test/put', expires_in_seconds: 900, required_headers: {} })
+      if (init?.method === 'PUT') return response(200, {})
+      if (url.endsWith('/registrations') && init?.method === 'POST') return ++submissions === 1 ? response(400, { detail: 'Registration option is unavailable' }) : response(201, created)
+      return response(404, {})
+    })
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    await fillRequired({ birthDate: '2010-06-01' })
+    const file = pdfFile()
+    attachParentalConsentForm(file)
+    submit()
+    expect(await screen.findByText(/Confira os valores atualizados/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('radio', { name: /125,00/ })).not.toBeChecked())
+    expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
+    expect((screen.getByLabelText(/Termo de responsabilidade assinado/) as HTMLInputElement).files?.[0]).toBe(file)
+    submit()
+    expect(submissions).toBe(1)
+    fireEvent.click(screen.getByRole('radio', { name: /125,00/ }))
+    submit()
+    expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
+    const posts = request.mock.calls.filter(([url, init]) => String(url).endsWith('/registrations') && init?.method === 'POST')
+    expect(JSON.parse(String(posts[1][1]?.body)).price_id).toBe(9)
+  })
+
+  it('retries loading changed options without restoring the stale selection', async () => {
+    vi.mocked(getTournamentProducts).mockResolvedValueOnce([product]).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([])
+    vi.stubGlobal('fetch', mockPresignedRegistrationFlow(400, { detail: 'Registration option is unavailable' }))
+    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    await fillRequired()
+    submit()
+    expect(await screen.findByText(/Não foi possível carregar as opções/)).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /Inscrição Plena/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(await screen.findByText('Nenhum tipo de inscrição está disponível ainda.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
+  })
+
   it('displays an unpriced option without allowing it to be selected', async () => {
     vi.mocked(getTournamentProducts).mockResolvedValue([
       { id: 1, product_id: 2, name: 'Inscrição Plus', description: 'Pacote', price_id: null, amount: null, currency: null },

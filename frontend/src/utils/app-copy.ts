@@ -206,6 +206,7 @@ const english = {
   "Política de Privacidade (abre em outra aba)": "Privacy Policy (opens in a new tab)",
   "O termo informa se a categoria terá transmissão e quem poderá consultar seu nome e seus resultados.": "The form explains whether your division will be streamed and who can see your name and results.",
   "Os termos e o regulamento são registrados pelas versões configuradas para este torneio.": "The accepted terms and rules are recorded using the versions configured for this tournament.",
+  "As opções de inscrição mudaram. Confira os valores atualizados e escolha novamente.": "Registration options changed. Review the updated prices and choose again.",
   "Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.": "The terms changed. Read the updated content and confirm your choices again.",
   "Não foi possível atualizar os termos. Tente enviar novamente para atualizar.": "The terms could not be refreshed. Submit again to retry the refresh.",
   "Li e aceito o regulamento do torneio.": "I have read and accept the tournament rules.",
