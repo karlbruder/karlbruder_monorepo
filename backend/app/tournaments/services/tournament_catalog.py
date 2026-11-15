@@ -8,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.auth.models import AnonymousUser, User
 from app.auth.supabase.roles import get_application_role
-from app.core.files import FileStorage
 from app.tournaments.exceptions import RegistrationResourceNotFoundError
 from app.tournaments.models import Tournament
 from .tournament_local_dates import TOURNAMENT_LOCAL_TIMEZONE
@@ -45,7 +44,7 @@ def load_visible_tournament(
     return tournament
 
 
-def build_tournament_read(tournament: Tournament, storage: FileStorage) -> TournamentRead:
+def build_tournament_read(tournament: Tournament) -> TournamentRead:
     from app.tournaments.schemas import TournamentRead
 
     values = {
@@ -55,8 +54,6 @@ def build_tournament_read(tournament: Tournament, storage: FileStorage) -> Tourn
         not in {
             "acceptance_content",
             "acceptance_tokens",
-            "rules_archive_url",
-            "cancellation_policy_archive_url",
         }
     }
     contents = {
@@ -68,24 +65,12 @@ def build_tournament_read(tournament: Tournament, storage: FileStorage) -> Tourn
             language: calculate_registration_acceptance_digest(content) for language, content in contents.items()
         },
     )
-    for name in ("rules", "cancellation_policy"):
-        archive = getattr(tournament, f"{name}_archive")
-        values[f"{name}_archive_url"] = (
-            storage.create_presigned_get_url(
-                archive.file.storage_key,
-                expires_in=900,
-                download_name=archive.file.original_file_name,
-            )
-            if archive
-            else None
-        )
     return TournamentRead(**values)
 
 
 def list_visible_tournaments(
     session: Session,
     user: User | AnonymousUser,
-    storage: FileStorage,
     *,
     name: str | None,
     starts_from: date | None,
@@ -118,7 +103,7 @@ def list_visible_tournaments(
         query.order_by(Tournament.starts_at, Tournament.id).limit(limit).offset(offset)
     )
     return TournamentList(
-        items=[build_tournament_read(item, storage) for item in items],
+        items=[build_tournament_read(item) for item in items],
         total=total,
         limit=limit,
         offset=offset,

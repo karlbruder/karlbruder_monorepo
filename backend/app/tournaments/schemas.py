@@ -131,8 +131,6 @@ class TournamentRead(BaseModel):
     refunds_allowed: bool
     acceptance_content: dict[str, dict]
     acceptance_tokens: dict[str, str]
-    rules_archive_url: str | None
-    cancellation_policy_archive_url: str | None
     created_at: datetime
 
 

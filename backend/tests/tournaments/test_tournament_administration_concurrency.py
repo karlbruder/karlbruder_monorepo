@@ -301,7 +301,7 @@ def test_capacity_edit_waits_for_inflight_confirmation(setup):
 
     def edit():
         with Session(engine) as session:
-            update_tournament(session, actor, tournament_id, payload, Mock(), Mock())
+            update_tournament(session, actor, tournament_id, payload)
 
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -348,8 +348,6 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
                         "pix_key": pix,
                     }
                 ),
-                Mock(),
-                Mock(),
             )
 
     def values(instructions):

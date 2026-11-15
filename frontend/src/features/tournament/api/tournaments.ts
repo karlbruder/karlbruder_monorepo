@@ -13,8 +13,6 @@ export type AcceptanceContent = {
 export type Tournament = {
   acceptance_content: Record<"pt" | "en", AcceptanceContent>;
   acceptance_tokens: Record<"pt" | "en", string>;
-  rules_archive_url: string | null;
-  cancellation_policy_archive_url: string | null;
   id: number;
   name: string;
   slug: string;
@@ -194,7 +192,7 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
       && /^[a-f0-9]{64}$/.test(event.acceptance_tokens[key])
       && declarations !== undefined
       && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string");
-  }) && isNullableString(event.rules_archive_url) && isNullableString(event.cancellation_policy_archive_url);
+  });
 }
 
 export async function getTournament(id: number, token?: string, signal?: AbortSignal): Promise<Tournament> {

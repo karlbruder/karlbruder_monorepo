@@ -204,7 +204,7 @@ const english = {
   "Equipamento obrigatório": "Required equipment",
   "Política de Privacidade (abre em outra aba)": "Privacy Policy (opens in a new tab)",
   "O termo informa se a categoria terá transmissão e quem poderá consultar seu nome e seus resultados.": "The form explains whether your division will be streamed and who can see your name and results.",
-  "O conteúdo dos termos e do regulamento aceitos é registrado com sua inscrição.": "The accepted terms and rules are recorded with your registration.",
+  "Suas declarações e aceites são registrados com sua inscrição.": "Your declarations and acceptances are recorded with your registration.",
   "As opções de inscrição mudaram. Confira os valores atualizados e escolha novamente.": "Registration options changed. Review the updated prices and choose again.",
   "Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.": "The terms changed. Read the updated content and confirm your choices again.",
   "Não foi possível atualizar os termos. Tente enviar novamente para atualizar.": "The terms could not be refreshed. Submit again to retry the refresh.",

@@ -58,10 +58,6 @@ function saveErrorMessage(error: unknown, en: boolean): string {
     if (names.length) return (en ? "Check these fields: " : "Confira estes campos: ") + [...new Set(names)].join(", ") + ".";
     return en ? "Check the fields and date order." : "Confira os campos e a ordem das datas.";
   }
-  const detail = error.detail;
-  if (detail === "Policy exceeds 10 MiB") return en ? "A linked policy exceeds 10 MiB. Check the rules and cancellation policy links." : "Uma política vinculada excede 10 MiB. Confira os links do regulamento e da política de cancelamento.";
-  if (detail === "Policy must be PDF, plain text or HTML" || detail === "Policy content does not match PDF type" || detail === "Compressed policy responses are not supported") return en ? "A linked policy has an unsupported or invalid format. Use an uncompressed PDF, plain text, or HTML document." : "Uma política vinculada tem formato inválido ou não suportado. Use PDF, texto ou HTML sem compressão.";
-  if (typeof detail === "string" && (detail.startsWith("Policy ") || detail === "Invalid policy URL")) return en ? "Could not capture a linked policy. Check both policy links and try again." : "Não foi possível capturar uma política vinculada. Confira os dois links das políticas e tente novamente.";
   return generic;
 }
 export function StaffTournamentForm({ token, event, language, onSaved }: { token: string; event?: StaffTournament; language: AppLanguage; onSaved: () => void }) {
@@ -107,7 +103,7 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     } finally { setPending(false); }
   }
   return <form className="staff-tournament-form review-card" onSubmit={submit}>
-    <p>{en ? "Leave optional fields empty when not configured. Saving captures linked policies again." : "Deixe os campos opcionais vazios quando não estiverem configurados. Salvar captura novamente as políticas vinculadas."}</p>
+    <p>{en ? "Leave optional fields empty when not configured." : "Deixe os campos opcionais vazios quando não estiverem configurados."}</p>
     <p>{en ? "Date and time fields use your browser time zone:" : "Os campos de data e hora usam o fuso horário do navegador:"} {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
     <div className="staff-form-grid">
     {fields.map(field => <label key={field.key} className={field.multiline ? "staff-field-wide" : undefined}>{en ? field.en : field.pt}{" "}

@@ -86,22 +86,9 @@ and its file metadata in one transaction.
 
 ## Acceptance submission
 
-Creation requires the displayed `acceptance_language` and `acceptance_token` from
-the tournament read response. The server checks the token against current
-preserved content. A stale form returns 409 and requires explicit acceptance of
-the refreshed content. The initial RegistrationAcceptance and any required
-parental document are saved in the registration transaction. Choices,
-content, source IP and time live in immutable acceptance history.
-Participant and staff reads project the latest permitted acceptance fields.
-Linked rules and cancellation policies are read from shared ArchivedFile
-copies. Athletes can reload the page if a link expires. When a policy has
-both an archive link and inline text, show the link. Show inline text when
-there is no link. If neither is available, say the content is not yet
-available. When submission detects changed content, clear required acceptances
-and declarations and ask the athlete to review the updated content before submitting again.
-Each tournament owns its policy purpose and access rules. Uploaded
-archives can also be reused by future legal-policy capabilities without creating
-a tournament registration document.
+Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response. The token detects changes to configured text, URLs, or declaration labels while the form is open. A stale form returns 409 and requires explicit acceptance after refresh. The token does not fetch or preserve linked documents.
+
+The initial RegistrationAcceptance and any required parental document are saved in the registration transaction. Choices, language, source IP and time are retained in append-only acceptance history. Policy links point to externally managed documents. The application does not snapshot their contents. When a policy has both a link and inline text, show the link. Show inline text when there is no link. If neither is available, say the content is not yet available. On changed configuration, clear required choices and ask the athlete to review again.
 
 ## Lifecycle boundary
 

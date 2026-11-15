@@ -11,7 +11,6 @@ from sqlalchemy import (
     Date,
     DateTime,
     Integer,
-    ForeignKey,
     String,
     Text,
     UniqueConstraint,
@@ -75,19 +74,6 @@ class Tournament(BaseModel):
     refunds_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
-    rules_archive_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.archived_files.id", ondelete="RESTRICT")
-    )
-    cancellation_policy_archive_id: Mapped[int | None] = mapped_column(
-        ForeignKey("public.archived_files.id", ondelete="RESTRICT")
-    )
-    rules_archive = relationship(
-        "ArchivedFile", foreign_keys=[rules_archive_id], lazy="joined"
-    )
-    cancellation_policy_archive = relationship(
-        "ArchivedFile", foreign_keys=[cancellation_policy_archive_id], lazy="joined"
-    )
-
     next_registration_number: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("1")
     )

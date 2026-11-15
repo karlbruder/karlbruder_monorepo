@@ -19,7 +19,6 @@ from app.core.files import FileStorageError
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
     ParentalConsentFormRequiredError,
-    PolicyArchiveError,
     RegistrationConflictError,
     RegistrationDocumentInvalidError,
     RegistrationDocumentTooLargeError,
@@ -37,7 +36,6 @@ _ERROR_STATUS = {
     InvalidCredentialsException: 401,
     AuthenticationUnavailableException: 503,
     AdminAccessRequiredException: 403,
-    PolicyArchiveError: 422,
     RegistrationNotAllowedError: 400,
     RegistrationResourceNotFoundError: 404,
     RegistrationConflictError: 409,

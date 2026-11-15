@@ -458,14 +458,14 @@ describe('Athlete submits their own registration and sees the result', () => {
   })
 
   it.each(['pt', 'en'] as const)('prefers the policy URL and translates unavailable content in %s', (language) => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null, cancellation_policy_archive_url: null }} session={session} language={language} />)
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null }} session={session} language={language} />)
     expect(screen.queryByText('Fixture rules text')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', acceptanceEvidence.rules_archive_url)
+    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', 'https://example.test/rules')
     expect(screen.getByText(/conteúdo ainda não disponível|content is not yet available/i)).toBeInTheDocument()
   })
 
   it('renders URL-like policy text as text when no policy URL is configured', () => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null, rules_archive_url: null, cancellation_policy_archive_url: null }} session={session} />)
+    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null }} session={session} />)
     expect(screen.getByText('https://example.test/plain-text')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Consultar regulamento/ })).not.toBeInTheDocument()
   })
@@ -490,7 +490,6 @@ it('refreshes changed terms, preserves personal fields and requires new choices 
     },
     rules_text: 'Updated official rules',
     rules_url: null,
-    rules_archive_url: null,
   }
   const request = vi.fn()
     .mockResolvedValueOnce(response(409, { detail: 'Registration terms changed; refresh before accepting' }))

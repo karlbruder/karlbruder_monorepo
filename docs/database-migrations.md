@@ -19,7 +19,7 @@ Before adopting this baseline, the user must remove the old development domain
 tables and `public.alembic_version`. Leave Supabase-managed `auth` objects intact.
 This repository change does not reset a developer or production database.
 The owner approved updating this initial revision before production deployment
-to store `awaiting_payment_confirmation` and remove manual acceptance version fields. Local databases that already applied
+to store `awaiting_payment_confirmation` and remove manual acceptance version fields and tournament policy snapshots and archive references. Local databases that already applied
 the previous baseline need to be rebuilt before running this version. Future
 revisions published on `master` remain immutable.
 

@@ -181,8 +181,6 @@ def upgrade() -> None:
         sa.Column("equipment_requirements", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_text", sa.Text(), nullable=True),
         sa.Column("cancellation_policy_url", sa.Text(), nullable=True),
-        sa.Column("rules_archive_id", sa.Integer(), nullable=True),
-        sa.Column("cancellation_policy_archive_id", sa.Integer(), nullable=True),
         sa.Column(
             "next_registration_number",
             sa.Integer(),
@@ -208,14 +206,6 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "registration_opens_on IS NULL OR registration_closes_on IS NULL OR registration_opens_on <= registration_closes_on",
             name="ck_tournaments_registration_window_order",
-        ),
-        sa.ForeignKeyConstraint(
-            ["cancellation_policy_archive_id"],
-            ["public.archived_files.id"],
-            ondelete="RESTRICT",
-        ),
-        sa.ForeignKeyConstraint(
-            ["rules_archive_id"], ["public.archived_files.id"], ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("slug", name="uq_tournaments_slug"),
@@ -388,9 +378,6 @@ def upgrade() -> None:
         sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("accepted_from_ip", sa.String(length=45), nullable=False),
         sa.Column("language", sa.String(length=2), nullable=False),
-        sa.Column("content", sa.JSON(), nullable=False),
-        sa.Column("rules_archive_id", sa.Integer(), nullable=True),
-        sa.Column("cancellation_policy_archive_id", sa.Integer(), nullable=True),
         sa.CheckConstraint(
             "language IN ('pt', 'en')", name="ck_registration_acceptances_language"
         ),
@@ -399,17 +386,9 @@ def upgrade() -> None:
             name="ck_registration_acceptances_required_choices",
         ),
         sa.ForeignKeyConstraint(
-            ["cancellation_policy_archive_id"],
-            ["public.archived_files.id"],
-            ondelete="RESTRICT",
-        ),
-        sa.ForeignKeyConstraint(
             ["registration_id"],
             ["public.tournament_registrations.id"],
             ondelete="RESTRICT",
-        ),
-        sa.ForeignKeyConstraint(
-            ["rules_archive_id"], ["public.archived_files.id"], ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         schema="public",

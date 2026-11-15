@@ -1,4 +1,4 @@
-"""Bind displayed draft declarations and preserved policies to immutable choices."""
+"""Record acceptance choices and detect changed registration configuration."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from pathlib import Path
 
 from app.tournaments.exceptions import (
     RegistrationConflictError,
-    RegistrationNotAllowedError,
 )
 from app.tournaments.models.registration_acceptance import RegistrationAcceptance
 
@@ -34,22 +33,11 @@ CHOICE_FIELDS = (
 
 
 def build_registration_acceptance_content(tournament: Tournament, language: str) -> dict:
-    policies = {}
-    for name in ("rules", "cancellation_policy"):
-        source = getattr(tournament, f"{name}_url")
-        archive = getattr(tournament, f"{name}_archive")
-        if source and (archive is None or archive.source_url != source):
-            raise RegistrationNotAllowedError(
-                "Registration policy archive is not configured"
-            )
-        policies[name] = {
-            "text": getattr(tournament, f"{name}_text"),
-            "source_url": source,
-            "archive_id": archive.id if archive else None,
-            "sha256": archive.sha256 if archive else None,
-        }
+    policies = {
+        name: {"text": getattr(tournament, f"{name}_text"), "source_url": getattr(tournament, f"{name}_url")}
+        for name in ("rules", "cancellation_policy")
+    }
     return {
-        "declarations_version": "draft-1",
         "language": language,
         "declarations": DECLARATIONS[language],
         "equipment_requirements": tournament.equipment_requirements,
@@ -79,7 +67,4 @@ def create_registration_acceptance(
         accepted_at=datetime.now(timezone.utc),
         accepted_from_ip=source_ip,
         language=payload.acceptance_language,
-        content=content,
-        rules_archive_id=tournament.rules_archive_id,
-        cancellation_policy_archive_id=tournament.cancellation_policy_archive_id,
     )

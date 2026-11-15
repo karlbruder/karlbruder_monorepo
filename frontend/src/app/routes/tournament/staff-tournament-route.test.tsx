@@ -153,7 +153,6 @@ it("converts an edited timestamp using the browser time zone", async () => {
 
 it.each([
   [422, [{ loc: ["body", "slug"], msg: "invalid", type: "value_error" }], "Identificador (use palavras minúsculas separadas por hífens simples)"],
-  [422, "Policy exceeds 10 MiB", "excede 10 MiB"],
   [409, "Tournament slug already exists", "identificador já está em uso"],
   [409, "Capacity cannot be below confirmed participation", "capacidade não pode ser menor"],
   [503, "private server error", "Não foi possível salvar"],
@@ -167,7 +166,7 @@ it.each([
   expect(screen.getByLabelText("Nome")).toHaveValue("Draft");
 });
 
-it("localizes validation and policy errors in English", async () => {
+it("localizes validation and server errors in English", async () => {
   let detail: unknown = [{ loc: ["body", "slug"], msg: "invalid" }];
   fetchMock.mockImplementation(async () => json({ detail }, 422));
   render(tree("/staff/tournaments/new"));
@@ -176,9 +175,9 @@ it("localizes validation and policy errors in English", async () => {
   fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17T12:00" } });
   fireEvent.click(screen.getByRole("button", { name: "Save tournament" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Slug (use lowercase words separated by single hyphens)");
-  detail = "Policy exceeds 10 MiB";
+  detail = "Unrecognized server error";
   fireEvent.click(screen.getByRole("button", { name: "Save tournament" }));
-  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("exceeds 10 MiB"));
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Could not save"));
   expect(screen.getByLabelText("Name")).toHaveValue("Draft");
 });
 

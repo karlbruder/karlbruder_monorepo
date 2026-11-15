@@ -74,9 +74,7 @@ keeps its existing create contract.
 
 `PUT /api/staff/tournaments/{tournament_id}` replaces the configuration. Send
 the create fields. The last staff save replaces the configuration. A duplicate
-slug or capacity below confirmed participation returns 409. Every save
-captures configured policy links again. A failed capture, storage operation, or
-database transaction publishes no partial change. `DELETE` on the same resource
+slug or capacity below confirmed participation returns 409. A failed database transaction publishes no partial change. `DELETE` on the same resource
 returns 204 for an eligible event. It returns 409 when any registration exists.
 Missing events return 404. Guests receive 401 and non-admins receive 403.
 
@@ -93,47 +91,13 @@ file name to `POST /api/tournaments/{tournament_id}/registrations/{registration_
 The service checks ownership, age, and existing evidence. It validates the uploaded
 file before attaching it. A successful submission does not change registration status.
 
-## Preserved policies and acceptance
+## Policies and acceptance
 
-Tournament creation captures each configured policy URL before saving the event.
-Staff can save both formats. Registration displays the archived link when present and falls back to inline text.
-Each URL capture creates a shared ArchivedFile referencing StoredFile metadata.
-The capture retains source/final URLs, SHA-256 and capture time. Private stored
-bytes use a fresh key. Reads do not fetch the source again. A new capture preserves
-a new copy even when its source URL is unchanged. Both creation and replacement
-capture configured URLs before publishing the configuration.
+Staff configures policy URLs and optional text. The application links to those URLs directly. It does not fetch or archive linked documents. Organizers manage policy documents and their history outside the application.
 
-The bounded client accepts public HTTP(S) PDF, plain text and HTML documents.
-It checks every redirect and resolved address, pins the connected IP, retains
-HTTPS hostname verification, and sends no application credentials. Limits are
-three redirects, 10 MiB and ten seconds per document. DNS waits are bounded with
-at most four outstanding resolver calls per process. Compressed responses are
-rejected. Two linked policies may add up to twenty seconds to a configuration
-save. Captures run synchronously without a worker or queue.
+Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by `pt` and `en`. The digest detects changes to configured text, URLs and declaration labels while the form is open. It does not inspect linked content. Registration creation requires the displayed language and token. Changed configuration returns 409 and asks the athlete to review and accept again.
 
-Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by
-`pt` and `en`, plus `rules_archive_url` and `cancellation_policy_archive_url`.
-Archive links follow the existing tournament visibility rules. They expire after
-900 seconds and force an attachment download, including for HTML. Original source
-URLs remain configuration metadata. The form reads the preserved copy and renders
-inline content as text.
-
-Registration creation requires `acceptance_language` and `acceptance_token`.
-The digest binds the exact draft declaration labels, policy
-text/archive references and equipment requirements.
-Changed content returns 409 with `Registration terms changed; refresh before accepting`.
-The form refreshes the event, retains personal fields and clears declaration/image
-choices. It never silently retries acceptance of changed content.
-
-RegistrationAcceptance owns the individual choices,
-verified user UUID, language, exact content, server time and source IP.
-Registration, first acceptance and required parental document commit together.
-Database triggers prevent updating or deleting acceptances and policy archives,
-and prevent changing metadata of files referenced by policy archives. Later
-snapshots append history. Owner/staff responses explicitly project the latest
-snapshot and keep their existing privacy boundary. Acceptance history/editing
-endpoints and approved legal wording are not provided. Failed saves roll back
-metadata and clean only newly created objects. Historical archives are retained.
+RegistrationAcceptance retains choices, verified user UUID, language, server time and source IP. It does not store policy content. The acceptance and required parental document commit with registration. Database guards prevent mutation of acceptance records.
 
 ## Registration
 
@@ -154,7 +118,7 @@ available. Category notes do not constitute staff eligibility approval.
 
 The declarations retain separate truthful-information, equipment, physical-fitness,
 risk, data-processing, rules, and cancellation-policy choices. Field names include
-`declares_has_required_equipment` and `accepts_rules`. The accepted rules preserve the coverage terms and results audience.
+`declares_has_required_equipment` and `accepts_rules`. The organization manages the linked rules and their history.
 The backend records accepted content, acceptance time, and `accepted_from_ip`.
 Clients select a displayed language and content digest. The server supplies
 content, time, IP and ownership. Clients cannot choose the owner, `registration_status`,

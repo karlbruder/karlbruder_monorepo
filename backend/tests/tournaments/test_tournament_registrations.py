@@ -1324,67 +1324,6 @@ def test_proof_file_metadata_document_and_status_roll_back_on_database_failure(
     assert storage.objects == {}
 
 
-def test_acceptance_preserves_exact_choices_content_and_history(setup):
-    from app.tournaments.models import RegistrationAcceptance
-    from app.tournaments.schemas import RegistrationCreate
-    from app.tournaments.services.registration_acceptances import create_registration_acceptance
-
-    client, key, session, _storage = setup
-    event_id = _create_event(
-        client,
-        key,
-        rules_text="First rules",
-        cancellation_policy_text="First cancellation policy",
-    )
-    owner = _headers(key)
-    created = _post_registration(client, event_id, owner)
-    assert created.status_code == 201
-    row = session.scalar(select(TournamentRegistration))
-    first = row.acceptances[0]
-    assert first.accepted_by_user_id == row.user_id
-    assert first.content["policies"]["rules"]["text"] == "First rules"
-    assert "image_use_choices" not in first.content["declarations"]
-    original_time, original_ip = first.accepted_at, first.accepted_from_ip
-    event = session.get(Tournament, event_id)
-    event.rules_text = "Second rules"
-    session.commit()
-    view = client.get(f"/api/tournaments/{event_id}", headers=owner).json()
-    payload = RegistrationCreate(
-        **_registration(),
-        acceptance_language="en",
-        acceptance_token=view["acceptance_tokens"]["en"],
-        tournament_product_id=row.tournament_product_id,
-        price_id=row.order_item.price_id,
-    )
-    second = create_registration_acceptance(event, row.user_id, payload, "192.0.2.8")
-    row.acceptances.append(second)
-    session.commit()
-    session.expire_all()
-    snapshots = session.scalars(
-        select(RegistrationAcceptance).order_by(RegistrationAcceptance.id)
-    ).all()
-    assert len(snapshots) == 2
-    assert snapshots[0].content["policies"]["rules"]["text"] == "First rules"
-    assert (
-        snapshots[0].accepted_at,
-        snapshots[0].accepted_from_ip,
-    ) == (original_time, original_ip)
-    assert snapshots[1].content["policies"]["rules"]["text"] == "Second rules"
-    assert (
-        snapshots[1].content["declarations"]["accepts_rules"]
-        == "I have read and accept the tournament rules, including the terms for official live coverage and publication of results."
-    )
-    response = client.get(
-        f"/api/tournaments/{event_id}/registrations/{row.registration_number}",
-        headers=owner,
-    ).json()
-    assert "authorizes_image_use" not in response
-    assert {
-        "accepted_from_ip",
-        "content",
-        "staff_safety_note",
-        "accepted_by_user_id",
-    }.isdisjoint(response)
 
 
 @pytest.mark.parametrize("operation", ["orm_update", "sql_update", "sql_delete"])
@@ -1404,7 +1343,7 @@ def test_database_rejects_acceptance_mutation(setup, operation):
                 session.flush()
             else:
                 command = (
-                    "UPDATE public.registration_acceptances SET content = '{}'"
+                    "UPDATE public.registration_acceptances SET accepted_from_ip = '192.0.2.1'"
                     if operation == "sql_update"
                     else "DELETE FROM public.registration_acceptances"
                 )
@@ -1437,133 +1376,10 @@ def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):
     assert session.get(Tournament, event_id).next_registration_number == 1
 
 
-def test_archived_policies_survive_source_and_configuration_changes(setup, monkeypatch):
-    from app.core.files.models import ArchivedFile
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.tournaments.services.tournament_policies import prepare_tournament_policy_archives
-    from sqlalchemy import text
-    from sqlalchemy.exc import IntegrityError
-
-    client, key, session, storage = setup
-    source = {"body": b"<html>Original policy</html>"}
-    monkeypatch.setattr(
-        PolicyFetcher,
-        "fetch",
-        lambda self, url: FetchedPolicy(source["body"], "text/html", url),
-    )
-    event_id = _create_event(client, key, rules_url="https://policies.example.test/v1")
-    owner = _headers(key)
-    view = client.get(f"/api/tournaments/{event_id}", headers=owner).json()
-    assert view["rules_archive_url"].startswith("https://mock.example/download/")
-    assert _post_registration(client, event_id, owner).status_code == 201
-    row = session.scalar(select(TournamentRegistration))
-    first = row.acceptances[0]
-    archive = session.get(ArchivedFile, first.rules_archive_id)
-    original_key = archive.file.storage_key
-    assert storage.objects[original_key][0] == source["body"]
-    source["body"] = b"<html>Replaced source</html>"
-    assert storage.objects[original_key][0] == b"<html>Original policy</html>"
-    event = session.get(Tournament, event_id)
-    keys = []
-    prepare_tournament_policy_archives(event, storage, PolicyFetcher(), keys)
-    session.commit()
-    assert event.rules_archive_id != first.rules_archive_id
-    assert storage.objects[original_key][0] == b"<html>Original policy</html>"
-    assert original_key not in storage.deleted_keys
-    for sql in (
-        "UPDATE public.archived_files SET sha256 = 'tampered'",
-        "DELETE FROM public.archived_files",
-        f"UPDATE public.stored_files SET storage_key = 'tampered' WHERE id = {archive.file_id}",
-    ):
-        with pytest.raises(IntegrityError, match="immutable"):
-            with session.begin_nested():
-                session.execute(text(sql))
 
 
-def test_policy_fetch_failure_cleans_new_objects_and_publishes_no_event(
-    setup, monkeypatch
-):
-    from app.tournaments.exceptions import PolicyArchiveError
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.core.files.models import ArchivedFile
-
-    client, key, session, storage = setup
-
-    def fetch(self, url):
-        if url.endswith("cancel"):
-            raise PolicyArchiveError("Policy document could not be archived")
-        return FetchedPolicy(b"%PDF-1.4 fixture", "application/pdf", url)
-
-    monkeypatch.setattr(PolicyFetcher, "fetch", fetch)
-    response = client.post(
-        "/api/staff/tournaments",
-        headers=_headers(key, role="admin"),
-        json=_event(
-            rules_url="https://policies.example.test/rules",
-            cancellation_policy_url="https://policies.example.test/cancel",
-        ),
-    )
-    assert response.status_code == 422
-    assert storage.objects == {}
-    assert len(storage.deleted_keys) == 1
-    assert session.scalar(select(func.count()).select_from(Tournament)) == 0
-    assert session.scalar(select(func.count()).select_from(ArchivedFile)) == 0
-    assert session.scalar(select(func.count()).select_from(StoredFile)) == 0
 
 
-@pytest.mark.parametrize("failure", ["store", "database", "download_url"])
-def test_policy_archive_failure_rolls_back_metadata_and_cleans_only_new_objects(
-    setup, monkeypatch, failure
-):
-    from sqlalchemy.exc import SQLAlchemyError
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-    from app.core.files.models import ArchivedFile
-
-    client, key, session, storage = setup
-    monkeypatch.setattr(
-        PolicyFetcher,
-        "fetch",
-        lambda self, url: FetchedPolicy(b"%PDF-1.4 fixture", "application/pdf", url),
-    )
-    # Existing archive objects must survive compensation for a later failed configuration.
-    existing_id = _create_event(
-        client, key, rules_url="https://policies.example.test/existing"
-    )
-    existing_key = session.get(Tournament, existing_id).rules_archive.file.storage_key
-
-    def fail(*args, **kwargs):
-        raise FileStorageError("Fixture storage failure")
-
-    if failure == "store":
-        monkeypatch.setattr(storage, "store_file", fail)
-    elif failure == "download_url":
-        monkeypatch.setattr(storage, "create_presigned_get_url", fail)
-    else:
-
-        def fail_commit():
-            session.flush()
-            raise SQLAlchemyError("Fixture commit failure")
-
-        monkeypatch.setattr(session, "commit", fail_commit)
-
-    def request():
-        return client.post(
-            "/api/staff/tournaments",
-            headers=_headers(key, role="admin"),
-            json=_event(rules_url="https://policies.example.test/new"),
-        )
-
-    if failure == "database":
-        with pytest.raises(SQLAlchemyError, match="Fixture commit failure"):
-            request()
-    else:
-        assert request().status_code == 503
-    assert session.scalar(select(func.count()).select_from(Tournament)) == 1
-    assert session.scalar(select(func.count()).select_from(ArchivedFile)) == 1
-    assert session.scalar(select(func.count()).select_from(StoredFile)) == 1
-    assert existing_key in storage.objects
-    assert existing_key not in storage.deleted_keys
-    assert set(storage.objects) == {existing_key}
 
 
 @pytest.mark.parametrize("refund_status", ["awaiting_refund", "completed"])
@@ -1750,128 +1566,10 @@ def test_staff_capacity_and_deletion_preserve_closed_registered_tournament(setup
     )
 
 
-def test_staff_resaves_linked_policy_and_preserves_prior_acceptance(setup, monkeypatch):
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-
-    client, key, session, storage = setup
-    source = {"body": b"Original policy"}
-    monkeypatch.setattr(
-        PolicyFetcher,
-        "fetch",
-        lambda self, url: FetchedPolicy(source["body"], "text/plain", url),
-    )
-    event_id = _create_event(
-        client, key, rules_url="https://policies.example.test/rules"
-    )
-    owner = _headers(key)
-    old_token = client.get(f"/api/tournaments/{event_id}").json()["acceptance_tokens"][
-        "pt"
-    ]
-    assert _post_registration(client, event_id, owner).status_code == 201
-    registration = session.scalar(select(TournamentRegistration))
-    old_archive = registration.acceptances[0].rules_archive_id
-    old_key = session.get(Tournament, event_id).rules_archive.file.storage_key
-    source["body"] = b"Updated policy"
-    admin = _headers(key, role="admin")
-    payload = _staff_update_payload(client, event_id, key)
-    response = client.put(
-        f"/api/staff/tournaments/{event_id}", headers=admin, json=payload
-    )
-    assert response.status_code == 200, response.text
-    session.expire_all()
-    assert session.get(Tournament, event_id).rules_archive_id != old_archive
-    assert registration.acceptances[0].rules_archive_id == old_archive
-    assert storage.objects[old_key][0] == b"Original policy"
-    assert response.json()["acceptance_tokens"]["pt"] != old_token
-    stale = _post_registration(
-        client,
-        event_id,
-        _headers(key, email="other@example.test"),
-        _registration(
-            email="other@example.test", document="NEW", acceptance_token=old_token
-        ),
-    )
-    assert stale.status_code == 409
 
 
-def test_failed_policy_recapture_preserves_configuration_and_cleans_new_objects(
-    setup, monkeypatch
-):
-    from app.tournaments.exceptions import PolicyArchiveError
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-
-    client, key, session, storage = setup
-    event_id = _create_event(client, key)
-    admin = _headers(key, role="admin")
-    before = _staff_update_payload(client, event_id, key)
-    payload = {
-        **before,
-        "name": "Not saved",
-        "rules_url": "https://policies.example.test/rules",
-        "cancellation_policy_url": "https://policies.example.test/cancel",
-    }
-
-    def fetch(self, url):
-        if url.endswith("cancel"):
-            raise PolicyArchiveError("Policy capture failed")
-        return FetchedPolicy(b"Policy", "text/plain", url)
-
-    monkeypatch.setattr(PolicyFetcher, "fetch", fetch)
-    response = client.put(
-        f"/api/staff/tournaments/{event_id}", headers=admin, json=payload
-    )
-    assert response.status_code == 422
-    assert storage.objects == {}
-    session.expire_all()
-    assert _staff_update_payload(client, event_id, key) == before
 
 
-@pytest.mark.parametrize("failure", ["storage", "database"])
-def test_staff_update_failure_rolls_back_configuration_and_new_archives(
-    setup, monkeypatch, failure
-):
-    from sqlalchemy.exc import SQLAlchemyError
-    from app.tournaments.services.policy_fetch import PolicyFetcher, FetchedPolicy
-
-    client, key, session, storage = setup
-    monkeypatch.setattr(
-        PolicyFetcher,
-        "fetch",
-        lambda self, url: FetchedPolicy(b"Policy", "text/plain", url),
-    )
-    event_id = _create_event(
-        client, key, rules_url="https://policies.example.test/rules"
-    )
-    old_key = session.get(Tournament, event_id).rules_archive.file.storage_key
-    before = _staff_update_payload(client, event_id, key)
-    payload = {**before, "name": "Not saved"}
-    if failure == "storage":
-
-        def fail_store(*args, **kwargs):
-            raise FileStorageError("storage unavailable")
-
-        monkeypatch.setattr(storage, "store_file", fail_store)
-        response = client.put(
-            f"/api/staff/tournaments/{event_id}",
-            headers=_headers(key, role="admin"),
-            json=payload,
-        )
-        assert response.status_code == 503
-    else:
-
-        def fail_commit():
-            raise SQLAlchemyError("commit failed")
-
-        monkeypatch.setattr(session, "commit", fail_commit)
-        with pytest.raises(SQLAlchemyError, match="commit failed"):
-            client.put(
-                f"/api/staff/tournaments/{event_id}",
-                headers=_headers(key, role="admin"),
-                json=payload,
-            )
-    session.expire_all()
-    assert _staff_update_payload(client, event_id, key) == before
-    assert set(storage.objects) == {old_key}
 
 
 def test_cancelled_registration_still_prevents_tournament_deletion(setup):
@@ -2205,3 +1903,35 @@ def test_registration_read_services_enforce_ownership_and_staff_projection(setup
     with pytest.raises(RegistrationResourceNotFoundError):
         read_tournament_registration(session, event_id, number, stranger)
     assert read_tournament_registration(session, event_id, number, admin).user_id == owner_id
+
+
+def test_linked_policies_are_returned_directly_without_archiving(setup):
+    client, key, session, storage = setup
+    url = "https://example.test/rules.pdf"
+    event_id = _create_event(client, key, rules_url=url)
+    view = client.get(f"/api/tournaments/{event_id}").json()
+    assert view["rules_url"] == url
+    assert "rules_archive_url" not in view
+    assert storage.objects == {}
+    owner = _headers(key)
+    created = _post_registration(client, event_id, owner)
+    assert created.status_code == 201, created.text
+    registration = session.scalar(select(TournamentRegistration).where(TournamentRegistration.registration_number == created.json()["registration_number"]))
+    assert registration.acceptances[0].accepts_rules is True
+    assert not hasattr(registration.acceptances[0], "content")
+    assert storage.objects == {}
+
+
+def test_changed_policy_url_rejects_stale_registration_without_fetching(setup):
+    client, key, session, storage = setup
+    event_id = _create_event(client, key, rules_url="https://example.test/old")
+    owner = _headers(key)
+    old_token = client.get(f"/api/tournaments/{event_id}").json()["acceptance_tokens"]["pt"]
+    payload = _staff_update_payload(client, event_id, key, rules_url="https://example.test/new")
+    updated = client.put(f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin"), json=payload)
+    assert updated.status_code == 200
+    assert updated.json()["rules_url"] == "https://example.test/new"
+    stale = _post_registration(client, event_id, owner, _registration(acceptance_token=old_token))
+    assert stale.status_code == 409
+    assert session.scalar(select(func.count()).select_from(TournamentRegistration)) == 0
+    assert storage.objects == {}

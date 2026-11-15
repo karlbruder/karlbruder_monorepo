@@ -485,11 +485,11 @@ export default function TournamentRegistrationForm({
             </div>
           )}
           <div className="registration-documents">
-            <PolicyContent label={t("Regulamento")} text={tournament.rules_text} url={tournament.rules_archive_url} language={language} />
-            <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_archive_url} language={language} />
+            <PolicyContent label={t("Regulamento")} text={tournament.rules_text} url={tournament.rules_url} language={language} />
+            <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_url} language={language} />
             {tournament.equipment_requirements && <PolicyContent label={t("Equipamento obrigatório")} text={tournament.equipment_requirements} language={language} />}
           </div>
-          <p className="registration-help">{t("O conteúdo dos termos e do regulamento aceitos é registrado com sua inscrição.")}</p>
+          <p className="registration-help">{t("Suas declarações e aceites são registrados com sua inscrição.")}</p>
           <div className="registration-help">
             <a href={legalRoutes.privacy} target="_blank" rel="noreferrer">{t("Política de Privacidade (abre em outra aba)")}</a>
           </div>

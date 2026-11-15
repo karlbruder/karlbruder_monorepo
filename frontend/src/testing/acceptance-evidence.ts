@@ -26,7 +26,5 @@ export const acceptanceEvidence = {
   "acceptance_tokens": {
     "pt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "en": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  },
-  "rules_archive_url": "https://archive.example.test/rules",
-  "cancellation_policy_archive_url": "https://archive.example.test/cancel"
+  }
 };

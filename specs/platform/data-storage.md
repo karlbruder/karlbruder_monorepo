@@ -1,7 +1,7 @@
 # Data storage
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-12
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -71,7 +71,7 @@ time. Its workflows enforce the tournament upload rules and preserve every
 proof submission. A file identifier alone never authorizes access. The shared
 metadata model does not introduce membership, inventory, or generic file APIs.
 
-## Preserved acceptance content
+## Acceptance records and shared archives
 
 `ArchivedFile` in core files references StoredFile and retains SHA-256,
 `archived_at`, and optional source/final URLs. `archive_file` stores caller-validated
@@ -80,10 +80,7 @@ failure, policy purpose, validation, access, retention, and current-version sele
 Future terms/privacy capabilities can reuse this mechanism under their own rules,
 as illustrated in decision 0008.
 
-`RegistrationAcceptance` retains separate choices, exact inline policies and draft
-declarations, and linked archive IDs. Inline text stays text. Linked documents use
-archived copies and authorized attachment downloads. There is no generic file-access
-endpoint or automatic retention expiry.
+`RegistrationAcceptance` retains separate choices, language, identity, time and IP. Policy documents are managed outside the application and linked by URL. Tournament acceptance records do not reference archives. There is no generic file-access endpoint or automatic retention expiry.
 
 Database guards prevent changes to acceptance/archive rows and to file metadata
 referenced by archives. They do not authorize actors or prevent replacement of S3

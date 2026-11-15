@@ -30,7 +30,6 @@ from app.tournaments.schemas import (
     TournamentRead,
 )
 from app.tournaments.services import payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
-from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
 from app.tournaments.services.tournament_administration import (
     create_tournament_configuration,
 )
@@ -44,12 +43,10 @@ def create_tournament(
     payload: TournamentCreate,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
-    fetcher: Annotated[PolicyFetcher, Depends(get_policy_fetcher)],
 ) -> TournamentRead:
     try:
         return create_tournament_configuration(
-            session, payload, admin, storage, fetcher
+            session, payload, admin
         )
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
@@ -165,12 +162,11 @@ def record_registration_refund_completion(
 def list_staff_tournaments(
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> StaffTournamentList:
     return tournament_administration.list_staff_tournaments(
-        session, admin, storage, limit=limit, offset=offset
+        session, admin, limit=limit, offset=offset
     )
 
 
@@ -179,10 +175,9 @@ def get_staff_tournament(
     tournament_id: int,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
 ) -> StaffTournamentRead:
     return tournament_administration.read_staff_tournament(
-        session, admin, tournament_id, storage
+        session, admin, tournament_id
     )
 
 
@@ -192,12 +187,10 @@ def update_staff_tournament(
     payload: TournamentCreate,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
-    storage: Annotated[FileStorage, Depends(get_file_storage)],
-    fetcher: Annotated[PolicyFetcher, Depends(get_policy_fetcher)],
 ) -> StaffTournamentRead:
     try:
         return tournament_administration.update_tournament(
-            session, admin, tournament_id, payload, storage, fetcher
+            session, admin, tournament_id, payload
         )
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error

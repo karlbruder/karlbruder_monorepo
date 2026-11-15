@@ -1,7 +1,7 @@
 # 0008: Shared files and archived content
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -10,13 +10,7 @@
 
 ## Context
 
-Registration uploads and linked tournament policies both need private object
-storage. They have different meanings. A payment proof belongs to a registration.
-A captured rules document represents the content offered for acceptance.
-
-Keeping all metadata in a registration document would make other capabilities
-depend on tournaments. Keeping policy captures in tournaments would create the
-same problem for future terms of service and privacy policies.
+Registration uploads need private object storage. A payment proof belongs to a registration. Shared file metadata avoids making other capabilities depend on tournament records. The earlier tournament policy capture use was superseded by the external-document decision below.
 
 ## Decision
 
@@ -44,15 +38,7 @@ TournamentRegistrationDocument links StoredFile to a registration and its purpos
 such as `payment_proof` or `parental_consent_form`. Tournament workflows enforce
 allowed formats, size limits, submission history and owner/staff access.
 
-Tournament configuration captures linked rules and cancellation policies before
-offering them for acceptance. Tournament owns the URL-fetch safeguards and its
-current archive references. RegistrationAcceptance retains those archive IDs,
-exact inline text, declarations and choices. The form reads authorized preserved
-copies through expiring attachment links. Athletes can reload the page to obtain current links.
-
-Inline policy text remains text in the acceptance snapshot. It does not need to
-be converted into a file. ArchivedFile preserves uploaded or fetched bytes when
-there is an actual document to retain.
+Tournament policy documents are now managed outside the application. Tournament configuration stores links directly, and registration acceptances do not reference archives or capture policy content. This supersedes the earlier tournament-archive use described in this decision. The shared file and archive capabilities remain available for other explicit needs.
 
 ## Future use
 
@@ -105,5 +91,4 @@ recovery remain separate operational concerns.
 [Data storage](../platform/data-storage.md),
 [registration](../tournaments/registration.md),
 [file models](../../backend/app/core/files/models.py),
-[archive helper](../../backend/app/core/files/archiving.py),
-[tournament policy capture](../../backend/app/tournaments/services/tournament_policies.py).
+[archive helper](../../backend/app/core/files/archiving.py).
