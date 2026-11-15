@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -20,7 +20,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-002:** A participant can submit proof for a registration they are authorized to manage. The backend validates access, file type, and size. Proofs use restricted Amazon S3 storage in production and Ministack S3 emulation locally. They are not public site files.
 - **PAY-003:** Upload success means evidence was stored for manual guild-staff review. Neither uploading proof nor `awaiting_payment_confirmation` reserves a seat, including when the event is full. Uploading a file does not initiate or verify a money transfer; the initial payment is made to the guild outside the platform.
 - **PAY-004:** Guild staff (admins) review payment evidence and record decisions. Rejection records a reason, shows a rejected-evidence outcome and message to the participant, and notifies them. The participant may submit another proof for review. Rejection does not confirm a seat or cancel participation by itself. Representing the review outcome separately from registration status is an implementation decision.
-- **PAY-005:** Guild staff manually approves payment. If the registration meets participation requirements and a seat is available, approval confirms the registration and assigns that seat atomically. If the tournament is full, the registration becomes `waitlist` and the user is notified by email. There is no seat reservation before confirmation.
+- **PAY-005:** Guild staff manually approves payment. If the registration meets participation requirements and a seat is available, approval confirms the registration and assigns that seat atomically, then attempts a confirmation email. If the tournament is full, the registration becomes `waitlist` and the user is notified by email. There is no seat reservation before confirmation.
 - **PAY-006:** When a payment deadline applies, the participant sees it. A Pix transfer after `payment_due_at` remains a manual staff decision: staff may accept it or decline participation. A refund obligation follows only when the tournament allows refunds. The deadline alone must not automatically approve, reject, cancel, refund, or block staff review. Waitlist call-up rules belong in the capacity specification. Review reservations and their expiry are not part of this flow.
 - **PAY-007:** Payment proofs and sensitive registration data are not attached to notification emails or exposed through public links.
 - **PAY-008:** Future gateway integration belongs in the backend. Provider-reported payment status and business confirmation remain separate decisions. Tournament fees and association dues retain distinct rules.
@@ -74,7 +74,7 @@ cancelled. The refund queue only tracks obligations backed by verified receipts.
 
 ## Initial journey
 
-For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed` and assigns the seat; approval without a seat produces `waitlist` and an email notification.
+For a registration in `awaiting_payment`, the application shows the amount, configured instructions, and deadline when known. A valid proof is stored for manual review, including when the event is full. `awaiting_payment_confirmation` does not consume capacity. Staff approval with an available seat produces `confirmed`, assigns the seat, and attempts a confirmation email; approval without a seat produces `waitlist` and an email notification.
 
 When payment details show an approved review, the participant is not prompted to pay or submit proof again, even if the displayed registration status is awaiting an update. The application refreshes that status. The agreed order-item price is authoritative before payment is recorded. The order item price is retained with the registration.
 

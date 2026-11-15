@@ -19,7 +19,7 @@ class PaymentReviewNotice:
     user_id: UUID
     tournament_id: int
     registration_number: str
-    outcome: Literal["waitlist", "rejected"]
+    outcome: Literal["confirmed", "waitlist", "rejected"]
     rejection_reason: str | None = None
 
 
@@ -42,7 +42,14 @@ def send_payment_review_notice(
                 }
             )
             link = f"{application_base_url.rstrip('/')}/tournaments/registration?{query}"
-            if notice.outcome == "waitlist":
+            if notice.outcome == "confirmed":
+                subject = f"Inscrição {notice.registration_number}: confirmada"
+                body = (
+                    f"Inscrição {notice.registration_number}\n\n"
+                    "Seu pagamento foi aprovado e sua inscrição no torneio está confirmada.\n\n"
+                    f"Consulte sua inscrição no aplicativo: {link}\n"
+                )
+            elif notice.outcome == "waitlist":
                 subject = f"Inscrição {notice.registration_number}: lista de espera"
                 body = (
                     f"Inscrição {notice.registration_number}\n\n"

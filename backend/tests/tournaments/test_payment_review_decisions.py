@@ -97,14 +97,18 @@ def test_approval_records_exact_proof_receipt_and_capacity_outcome(
     assert payment.verified_by_user_id == review.reviewed_by_user_id
     assert payment.verified_at == review.reviewed_at
     assert registration.registration_status == status
-    assert sender.send.call_count == (1 if status == "waitlist" else 0)
+    assert response.json()["notification_result"] == "sent"
+    assert sender.send.call_count == 1
+    assert sender.send.call_args.kwargs["recipient"] == "current@example.test"
     if status == "waitlist":
-        assert sender.send.call_args.kwargs["recipient"] == "current@example.test"
         assert "não tem uma vaga confirmada" in sender.send.call_args.kwargs["body"]
+    else:
+        assert "inscrição no torneio está confirmada" in sender.send.call_args.kwargs["body"]
     repeated = _decide(setup, registration, documents[-1])
     assert repeated.status_code == 409
     assert session.scalar(select(func.count()).select_from(Payment)) == 1
-    assert accounts.read_email.call_count == (1 if status == "waitlist" else 0)
+    assert accounts.read_email.call_count == 1
+    assert sender.send.call_count == 1
 
 
 def test_rejection_is_visible_and_new_proof_supersedes_it_without_receipt(setup):
@@ -161,9 +165,10 @@ def test_rejection_is_visible_and_new_proof_supersedes_it_without_receipt(setup)
         (MailDeliveryError("private"), "send_failed"),
     ],
 )
-def test_notification_failure_preserves_committed_decision(setup, failure, expected):
+@pytest.mark.parametrize("capacity,status", [(0, "waitlist"), (None, "confirmed")])
+def test_notification_failure_preserves_committed_decision(setup, failure, expected, capacity, status):
     registration, documents = _pending(setup)
-    registration.tournament.competitor_capacity = 0
+    registration.tournament.competitor_capacity = capacity
     setup[2].flush()
     accounts, sender = _clients()
     if expected == "lookup_failed":
@@ -176,7 +181,7 @@ def test_notification_failure_preserves_committed_decision(setup, failure, expec
     setup[2].expire_all()
     assert (
         setup[2].get(TournamentRegistration, registration.id).registration_status
-        == "waitlist"
+        == status
     )
     assert setup[2].scalar(select(func.count()).select_from(Payment)) == 1
 

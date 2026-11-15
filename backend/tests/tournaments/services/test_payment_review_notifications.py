@@ -12,7 +12,7 @@ from app.core.mail import MailDeliveryError, MailUnavailableError
 from app.tournaments.services.payment_review_notifications import PaymentReviewNotice, send_payment_review_notice
 
 
-@pytest.mark.parametrize("outcome", ["waitlist", "rejected"])
+@pytest.mark.parametrize("outcome", ["confirmed", "waitlist", "rejected"])
 def test_notice_uses_current_account_and_outcome_with_authorized_resubmission_link(outcome, caplog):
     notice = PaymentReviewNotice(42, uuid4(), 7, "T7 & special", outcome, "Arquivo ilegível")
     accounts, sender = Mock(), Mock()
@@ -26,11 +26,14 @@ def test_notice_uses_current_account_and_outcome_with_authorized_resubmission_li
     assert values["recipient"] == "changed@example.test"
     assert notice.registration_number in values["subject"]
     assert notice.registration_number in values["body"]
-    assert "não tem uma vaga confirmada" in values["body"]
-    if outcome == "waitlist":
+    if outcome == "confirmed":
+        assert "inscrição no torneio está confirmada" in values["body"]
+    elif outcome == "waitlist":
+        assert "não tem uma vaga confirmada" in values["body"]
         assert "pagamento foi aprovado" in values["body"]
         assert "Não é necessário pagar novamente" in values["body"]
     else:
+        assert "não tem uma vaga confirmada" in values["body"]
         assert "Arquivo ilegível" in values["body"]
         assert "enviar um novo comprovante" in values["body"]
     link = values["body"].split("https://", 1)[1].strip()

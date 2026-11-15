@@ -374,14 +374,14 @@ def record_payment_review_decision(
         )
         if (
             (payload.decision == "rejected" and registration.registration_status != "cancelled")
-            or registration.registration_status == "waitlist"
+            or (payload.decision == "approved" and registration.registration_status in ("confirmed", "waitlist"))
         ):
             notice = PaymentReviewNotice(
                 review_id=review.id,
                 user_id=registration.user_id,
                 tournament_id=tournament.id,
                 registration_number=registration.registration_number,
-                outcome="rejected" if payload.decision == "rejected" else "waitlist",
+                outcome="rejected" if payload.decision == "rejected" else registration.registration_status,
                 rejection_reason=payload.rejection_reason,
             )
         session.commit()

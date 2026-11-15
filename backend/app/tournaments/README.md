@@ -285,9 +285,8 @@ A new valid proof restores `awaiting_payment_confirmation` and clears that proje
 retaining older evidence. Confirmed/waitlist owners cannot replace proofs.
 
 The response contains `review`, `registration_status`, and `notification_result`.
-Rejection and paid waitlist attempt one Portuguese notice to the registrant's
-current account email after commit and lock release. Confirmed approval returns
-`not_required`. Delivery failures return the saved outcome with a failure result.
+Confirmed approval, rejection, and paid waitlist attempt one Portuguese notice to the registrant's
+current account email after commit and lock release. Delivery failures return the saved outcome with a failure result.
 Unavailable configuration returns `unavailable`. No automatic retry replays a notice.
 
 

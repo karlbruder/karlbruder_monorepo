@@ -1,7 +1,7 @@
 # Tournament communications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -16,9 +16,9 @@ Keep participants informed about registration, payment, confirmation, and waitli
 
 ## Required communication types
 
-The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on paid waitlist entry, completed refund, and rejected payment evidence. Each notice is required when its triggering workflow is delivered. Notifications for material event-fact changes are deferred under CAT-008. The broader reminder and announcement suite also remains deferred.
+The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on confirmation through payment approval, paid waitlist entry, completed refund, and rejected payment evidence. Each notice is required when its triggering workflow is delivered. Notifications for material event-fact changes are deferred under CAT-008. The broader reminder and announcement suite also remains deferred.
 
-The acceptance criteria for acknowledgments, definitive-confirmation emails, and editable templates apply when those later messaging capabilities are delivered. They do not expand PROD-011's first-release notification scope. Staff may contact waitlisted participants as part of their operational judgment; this does not introduce an automated invitation workflow.
+The acceptance criteria for acknowledgments and editable templates apply when those later messaging capabilities are delivered. They do not expand PROD-011's first-release notification scope. Staff may contact waitlisted participants as part of their operational judgment; this does not introduce an automated invitation workflow.
 
 ## Rules
 
@@ -27,7 +27,7 @@ The acceptance criteria for acknowledgments, definitive-confirmation emails, and
 - **COM-003:** Email does not contain attached payment proofs or sensitive registration/safety details. Links to private records require application authorization.
 - **COM-004:** Email delivery failure must not silently change the underlying registration or payment decision. Participants can still consult their status in the application.
 - **COM-005:** Waitlist contact follows staff judgment under CAP-005. Messages do not select a participant, reserve a seat, or impose a system-defined invitation expiry. Do not automate waitlist ordering or promotion. Automatic payment-reminder scheduling remains deferred under COM-Q3.
-- **COM-006:** Send refund confirmation only after guild staff records the completed refund, not when the user first cancels. Cancellation without payment does not trigger refund confirmation. When staff approves payment but the tournament is full, email the user that they are waitlisted and have no confirmed seat.
+- **COM-006:** Send refund confirmation only after guild staff records the completed refund, not when the user first cancels. Cancellation without payment does not trigger refund confirmation. When staff approves payment, email the user that their registration is confirmed if a seat is assigned. If the tournament is full, email the user that they are waitlisted and have no confirmed seat.
 - **COM-007:** The backend sends application emails through AWS SES using SMTP. SMTP credentials and connection settings are backend configuration. Local SMTP setup is deferred, likely real SES with real AWS/SES credentials. No local mail emulator is chosen by the S3/Ministack decision.
 - **COM-008:** Send application email in Portuguese. The sender is backend configuration (`SMTP_FROM`), defaulting to `Suporte Karlbrüder <no-reply@karlbruder.com.br>`. Use the user's current account email at delivery time, not a stale registration email or stripped comparison value. Ownership remains the Supabase UUID after an email change.
 - **COM-009:** Rejected payment evidence notifies the participant with the rejection message and a resubmission path. Tournament-fact change notifications are deferred under CAT-008. Ordinary staff corrections to registration fields do not require notifications. Required workflow notices still apply.
@@ -40,15 +40,14 @@ actual verified Payment. Refund references the payment and retains its completio
 evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
 new trigger. Payment-review decisions now invoke the notification helper after
-commit for rejection or paid waitlist. Confirmed approval sends no email in this
-scope. Recording a completed refund attempts an email to the account's current
+commit for rejection, confirmed approval, or paid waitlist. Recording a completed refund attempts an email to the account's current
 address after commit. The message links to the specific cancelled registration.
 Delivery failure leaves the completed refund recorded and is shown to staff.
 
 ## Acceptance criteria
 
 - **COM-AC-001:** A form-received message includes an appropriate registration reference and does not claim a confirmed seat.
-- **COM-AC-002:** Definitive confirmation is sent only for a persisted confirmed registration.
+- **COM-AC-002:** Payment approval that confirms a registration attempts a confirmation email after commit. The email is sent only for a persisted confirmed registration.
 - **COM-AC-003:** An authorized template edit changes subsequent message copy without a code deployment.
 - **COM-AC-004:** A notification delivery failure leaves registration status accurate and visible in the application.
 - **COM-AC-005:** No template output attaches proof files or exposes private safety information.
@@ -74,7 +73,7 @@ result and logs only the review ID, notification type, and result. Lookup or SMT
 failure does not change the decision. Duplicate decisions must not replay delivery.
 There is no automatic retry or durable outbox. A crash between commit and send can
 lose the notice. The decision command calls the helper after commit.
-Waitlist and rejection messages contain the registration number and an authenticated
+Confirmation, waitlist, and rejection messages contain the registration number and an authenticated
 application link. They are addressed to the tournament registrant, using their current account
 address and Portuguese copy. The workflow passes the configured sender explicitly
 to the mail adapter. The deciding admin is not a recipient.
