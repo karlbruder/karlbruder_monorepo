@@ -1,7 +1,7 @@
 # Tournament administration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -27,6 +27,8 @@ Give guild staff (admins) control over tournament participation, payment review,
 - **ADM-009:** Cancelled registrations may be reopened only by admins manually in the Supabase UI. Reopening is not an application control and must preserve the non-cancelled uniqueness and confirmed-capacity invariants. A cancelled registration otherwise permits a new registration for the same tournament.
 - **ADM-010:** Staff may close new registrations even while the registration window is open. Staff cannot reduce configured capacity below confirmed participation; no admin override or automatic cancellation bypasses that invariant. Notifications for tournament-fact changes are deferred under CAT-008.
 - **ADM-011:** Staff decides whether to accept a late Pix transfer or decline participation. A refund obligation requires a refundable tournament policy. Staff may explicitly increase capacity before confirming additional participants. The deadline does not force a decision, and admin discretion does not bypass the configured capacity limit or refund-recording requirements.
+
+- **ADM-012:** Staff can add and rename tournament tags and maintain their eligibility descriptions in tournament configuration. A tag referenced by any registration cannot be deleted, including under concurrent requests. Staff can list athletes and their selected tags from tournament detail and change an individual registration’s tags at any time. Staff checks eligibility on the tournament day. Tag changes require neither notifications nor audit history.
 
 ## Lifecycle boundary
 

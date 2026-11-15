@@ -1,12 +1,28 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
 using the same capability as later tournaments. Staff access applies globally.
 Account sign-up remains a separate Supabase Auth operation.
+
+## Tournament tags
+
+Authenticated users can read visible tournament tag definitions at
+`GET /api/tournaments/{tournament_id}/tags`. Staff create, replace, and delete
+definitions under `/api/staff/tournaments/{tournament_id}/tags`. A referenced
+tag cannot be deleted. Registration creation accepts `tag_ids`. Owners read or
+replace their selection at `/api/tournaments/{tournament_id}/registrations/{number}/tags`.
+Replacement is limited to the registration window and is blocked when staff
+close registration early. Staff use the equivalent `/api/staff/` route to read
+or replace a selection after the window closes. Duplicate IDs and tags from
+another tournament are rejected.
+
+`GET /api/staff/tournaments/{tournament_id}/athletes` returns registration
+numbers, names, status, and selected tags for that tournament. It excludes
+contact details, payment data, and safety notes. Only staff can use this route.
 
 ## Pricing transition
 

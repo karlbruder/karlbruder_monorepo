@@ -17,6 +17,7 @@ from app.tournaments.models import (
     TournamentPaymentSettings,
     TournamentProduct,
     TournamentRegistration,
+    TournamentTag,
 )
 from app.tournaments.schemas import (
     StaffTournamentList,
@@ -199,6 +200,7 @@ def delete_tournament(session: Session, actor: User, tournament_id: int) -> None
             raise RegistrationConflictError(
                 "Tournament with registrations cannot be deleted"
             )
+        session.execute(delete(TournamentTag).where(TournamentTag.tournament_id == tournament_id))
         session.execute(delete(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
         session.delete(tournament)
         session.commit()

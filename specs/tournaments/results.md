@@ -1,7 +1,7 @@
 # Tournament results
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -21,6 +21,8 @@ Allow users to consult results for the Karlbrüder tournaments represented in th
 - **RES-003:** Results consultation does not authorize access to private registration, payment, contact, or safety data.
 - **RES-004:** Results for non-internal tournaments may be made public without sign-in. Internal results are restricted to guild members, including guild staff (admins), under PROD-006.
 - **RES-005:** Guild staff (admins) enter, publish, and correct results. There is no separate results-management role or event-specific admin grant.
+
+A future extension may rank athletes within each tag using their overall tournament ranking. Tag-based results and their publication are not part of the tag-management release.
 
 ## Proposed behavior requiring detail
 

@@ -2020,3 +2020,88 @@ def test_existing_registration_consent_rejects_wrong_owner_storage_and_invalid_f
     storage.objects[upload["storage_key"]] = (b"bad file", "application/pdf")
     assert client.post(f"{base}/parental-consent-form", headers=owner, json=payload).status_code == 415
     assert session.scalar(select(func.count()).select_from(TournamentRegistrationDocument)) == 0
+
+
+def test_tournament_tags_enforce_scope_ownership_and_deletion(setup):
+    client, key, _, _ = setup
+    admin = _headers(key, role="admin")
+    owner = _headers(key)
+    other = _headers(key, email="other@example.test")
+    tournament_id = _create_event(client, key)
+    other_tournament_id = _create_event(client, key)
+
+    def create_tag(event_id, name):
+        response = client.post(
+            f"/api/staff/tournaments/{event_id}/tags",
+            headers=admin,
+            json={"name": name, "eligibility_description": "Eligibility criteria"},
+        )
+        assert response.status_code == 201, response.text
+        return response.json()["id"]
+
+    tag_id = create_tag(tournament_id, "Tag one")
+    foreign_tag_id = create_tag(other_tournament_id, "Other tag")
+    response = _post_registration(
+        client, tournament_id, owner, _registration(tag_ids=[tag_id])
+    )
+    assert response.status_code == 201, response.text
+    number = response.json()["registration_number"]
+    athletes_path = f"/api/staff/tournaments/{tournament_id}/athletes"
+    assert client.get(athletes_path).status_code == 401
+    assert client.get(athletes_path, headers=owner).status_code == 403
+    athletes = client.get(athletes_path, headers=admin)
+    assert athletes.status_code == 200
+    assert athletes.json() == [{
+        "registration_number": number,
+        "full_name": response.json()["full_name"],
+        "social_name": None,
+        "registration_status": response.json()["registration_status"],
+        "tags": [{"id": tag_id, "tournament_id": tournament_id,
+                  "name": "Tag one", "eligibility_description": "Eligibility criteria"}],
+    }]
+    assert client.get(
+        f"/api/staff/tournaments/{other_tournament_id}/athletes", headers=admin
+    ).json() == []
+    path = f"/api/tournaments/{tournament_id}/registrations/{number}/tags"
+    assert [tag["id"] for tag in client.get(path, headers=owner).json()] == [tag_id]
+    assert client.get(path, headers=other).status_code == 404
+    assert client.put(path, headers=other, json={"tag_ids": []}).status_code == 404
+    for invalid_ids in ([tag_id, tag_id], [foreign_tag_id]):
+        assert client.put(path, headers=owner, json={"tag_ids": invalid_ids}).status_code == 400
+        assert [tag["id"] for tag in client.get(path, headers=owner).json()] == [tag_id]
+    tag_path = f"/api/staff/tournaments/{tournament_id}/tags/{tag_id}"
+    assert client.delete(tag_path, headers=owner).status_code == 403
+    assert client.delete(tag_path, headers=admin).status_code == 409
+    staff_path = f"/api/staff/tournaments/{tournament_id}/registrations/{number}/tags"
+    assert client.put(staff_path, headers=admin, json={"tag_ids": []}).status_code == 200
+    assert client.delete(tag_path, headers=admin).status_code == 204
+
+
+def test_tag_editing_closes_after_inclusive_deadline_and_staff_can_still_edit(
+    setup, monkeypatch
+):
+    client, key, session, _ = setup
+    admin = _headers(key, role="admin")
+    owner = _headers(key)
+    tournament_id = _create_event(client, key)
+    response = client.post(
+        f"/api/staff/tournaments/{tournament_id}/tags",
+        headers=admin,
+        json={"name": "Tag", "eligibility_description": "Criteria"},
+    )
+    tag_id = response.json()["id"]
+    response = _post_registration(client, tournament_id, owner)
+    number = response.json()["registration_number"]
+    path = f"/api/tournaments/{tournament_id}/registrations/{number}/tags"
+    staff_path = f"/api/staff/tournaments/{tournament_id}/registrations/{number}/tags"
+    monkeypatch.setattr(tournament_local_dates, "current_local_calendar_date", lambda: date(2026, 10, 31))
+    assert client.put(path, headers=owner, json={"tag_ids": [tag_id]}).status_code == 200
+    monkeypatch.setattr(tournament_local_dates, "current_local_calendar_date", lambda: date(2026, 11, 1))
+    assert client.put(path, headers=owner, json={"tag_ids": []}).status_code == 400
+    assert client.put(staff_path, headers=admin, json={"tag_ids": []}).status_code == 200
+    monkeypatch.setattr(tournament_local_dates, "current_local_calendar_date", lambda: date(2026, 10, 19))
+    tournament = session.get(Tournament, tournament_id)
+    tournament.is_registration_closed = True
+    session.flush()
+    assert client.put(path, headers=owner, json={"tag_ids": [tag_id]}).status_code == 400
+    assert client.put(staff_path, headers=admin, json={"tag_ids": [tag_id]}).status_code == 200

@@ -163,6 +163,7 @@ class RegistrationCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    tag_ids: list[int] = Field(default_factory=list)
     tournament_product_id: int = Field(gt=0)
     price_id: int = Field(gt=0)
     acceptance_token: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -501,3 +502,28 @@ class TournamentProductRead(BaseModel):
     price_id: int | None
     amount: Decimal | None
     currency: str | None
+
+
+class TagInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    name: str = Field(min_length=1, max_length=200)
+    eligibility_description: str = Field(min_length=1)
+
+
+class TagRead(TagInput):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tournament_id: int
+
+
+class TagSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tag_ids: list[int]
+
+
+class StaffAthleteRead(BaseModel):
+    registration_number: str
+    full_name: str
+    social_name: str | None
+    registration_status: str
+    tags: list[TagRead]

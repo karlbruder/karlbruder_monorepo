@@ -12,6 +12,8 @@ from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.models import TournamentRegistration
 from app.tournaments.schemas import (
+    TagRead,
+    TagSelection,
     ParentalConsentFormDownloadUrlRead,
     ParentalConsentFormUploadUrlRead,
     ParentalConsentFormSubmitCreate,
@@ -33,7 +35,7 @@ from app.tournaments.services import (
     submit_registration_payment_proof,
     visible_tournament,
 )
-from app.tournaments.services import registration_refunds
+from app.tournaments.services import registration_refunds, tournament_tags
 from app.tournaments.services.registration_acceptances import project_registration
 from app.tournaments.services.tournament_registrations import (
     submit_registration_parental_consent_form,
@@ -325,3 +327,33 @@ def get_payment_proof_download_url(
         content_type=content_type,
         expires_in_seconds=expires_in_seconds,
     )
+
+
+@router.get("/{tournament_id}/tags", response_model=list[TagRead])
+def list_tags(
+    tournament_id: int,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.list_tags(session, tournament_id, user)
+
+
+@router.get("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+def get_registration_tags(
+    tournament_id: int,
+    number: str,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.registration_tags(session, tournament_id, number, user)
+
+
+@router.put("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+def set_registration_tags(
+    tournament_id: int,
+    number: str,
+    payload: TagSelection,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.registration_tags(session, tournament_id, number, user, payload.tag_ids)

@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-15
 
 | Field | Value |
 | --- | --- |
@@ -36,6 +36,8 @@ Allow an authenticated user to register for a tournament, retain a registration 
 - **REG-018:** The Monomachia private registration route supports Portuguese and English interface copy, including validation, request errors, and the registration result. A language choice on the public Monomachia page carries to the application through the registration URL and survives sign-in; switching languages does not discard entered fields or change API values. Official event terms and regulation remain in their configured source language until approved translations exist.
 
 - **REG-019:** An athlete selects one available registration product for the tournament. Registration creates an order and an order item for that selection. The order item retains the product name, description, and agreed price. The backend verifies that the selected product belongs to the tournament.
+
+- **REG-020:** A tournament can define any number of tags, each with a name and eligibility description. An athlete may select zero or more of its tags during registration. Selections belong to the registration, not the global profile. The owner can change them on the registration edit page through the closing day in fixed GMT-3. Staff closure of new registrations also closes athlete tag editing. The backend enforces ownership, the deadline, tournament scope, and uniqueness. Tags are visible only inside the authenticated application.
 
 Registration creates an order and item for the selected product. Each registration uses its order item price.
 

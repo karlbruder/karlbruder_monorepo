@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import (
@@ -12,6 +12,10 @@ from app.auth.models import User
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.schemas import (
+    StaffAthleteRead,
+    TagInput,
+    TagRead,
+    TagSelection,
     RefundCompletionCreate,
     RefundCompletionRead,
     PaymentProofDownloadUrlRead,
@@ -25,7 +29,7 @@ from app.tournaments.schemas import (
     TournamentCreate,
     TournamentRead,
 )
-from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration
+from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration, tournament_tags
 from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
 from app.tournaments.services.tournament_policies import (
     create_tournament_configuration,
@@ -206,3 +210,72 @@ def delete_staff_tournament(
     session: Annotated[Session, Depends(get_session)],
 ) -> None:
     tournament_administration.delete_tournament(session, admin, tournament_id)
+
+
+@router.get(
+    "/{tournament_id}/athletes",
+    response_model=list[StaffAthleteRead],
+)
+def list_athletes(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.list_registration_tags(session, tournament_id, admin)
+
+
+@router.post("/{tournament_id}/tags", response_model=TagRead, status_code=201)
+def create_tag(
+    tournament_id: int,
+    payload: TagInput,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.save_tag(
+        session, tournament_id, admin, payload.name, payload.eligibility_description
+    )
+
+
+@router.put("/{tournament_id}/tags/{tag_id}", response_model=TagRead)
+def update_tag(
+    tournament_id: int,
+    tag_id: int,
+    payload: TagInput,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.save_tag(
+        session, tournament_id, admin, payload.name, payload.eligibility_description, tag_id
+    )
+
+
+@router.delete("/{tournament_id}/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tag(
+    tournament_id: int,
+    tag_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    tournament_tags.delete_tag(session, tournament_id, tag_id, admin)
+    return Response(status_code=204)
+
+
+@router.get("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+def get_staff_registration_tags(
+    tournament_id: int,
+    number: str,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.registration_tags(session, tournament_id, number, admin, staff=True)
+
+
+@router.put("/{tournament_id}/registrations/{number}/tags", response_model=list[TagRead])
+def set_staff_registration_tags(
+    tournament_id: int,
+    number: str,
+    payload: TagSelection,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return tournament_tags.registration_tags(session, tournament_id, number, admin, payload.tag_ids, staff=True)

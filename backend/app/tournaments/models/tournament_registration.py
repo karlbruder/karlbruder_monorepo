@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 class TournamentRegistration(BaseModel):
     __tablename__ = "tournament_registrations"
     __table_args__ = (
+        UniqueConstraint("id", "tournament_id", name="uq_tournament_registrations_id_tournament"),
         UniqueConstraint(
             "registration_number",
             name="uq_tournament_registrations_registration_number",

@@ -433,3 +433,58 @@ def test_purchased_offering_cannot_be_reassigned(db_session):
     with pytest.raises(IntegrityError, match="Purchased tournament product is immutable"), db_session.begin_nested():
         offering.product_id = replacement.id
         db_session.flush()
+
+
+def test_registration_tags_reject_cross_tournament_duplicates_and_deletion(db_session):
+    from app.tournaments.models import RegistrationTag, TournamentTag
+
+    first = Tournament(name="First", slug=f"first-{uuid4().hex}", starts_at=NOW)
+    second = Tournament(name="Second", slug=f"second-{uuid4().hex}", starts_at=NOW)
+    db_session.add_all([first, second])
+    db_session.flush()
+    registration = _registration(db_session, first)
+    tag = TournamentTag(tournament_id=first.id, name="Tag", eligibility_description="Criterion")
+    other_tag = TournamentTag(tournament_id=second.id, name="Other", eligibility_description="Criterion")
+    db_session.add_all([tag, other_tag])
+    db_session.flush()
+    db_session.add(RegistrationTag(registration_id=registration.id, tournament_id=first.id, tag_id=tag.id))
+    db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        db_session.add(RegistrationTag(registration_id=registration.id, tournament_id=first.id, tag_id=tag.id))
+        db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        db_session.add(RegistrationTag(registration_id=registration.id, tournament_id=first.id, tag_id=other_tag.id))
+        db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        db_session.delete(tag)
+        db_session.flush()
+
+
+def test_tag_editing_enforces_owner_closure_and_staff_override(db_session, monkeypatch):
+    from app.auth.models import User
+    from app.tournaments.exceptions import RegistrationNotAllowedError, RegistrationResourceNotFoundError
+    from app.tournaments.models import TournamentTag
+    from app.tournaments.services import tournament_tags
+
+    tournament = Tournament(name="Tags", slug=f"tags-{uuid4().hex}", starts_at=NOW,
+                            registration_opens_on=date(2026, 11, 1), registration_closes_on=date(2026, 11, 15))
+    db_session.add(tournament)
+    db_session.flush()
+    registration = _registration(db_session, tournament)
+    owner = User(id=registration.user_id)
+    stranger = User(id=uuid4())
+    admin = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+    tag = TournamentTag(tournament_id=tournament.id, name="Tag", eligibility_description="Criterion")
+    db_session.add(tag)
+    db_session.flush()
+    monkeypatch.setattr(tournament_tags.tournament_local_dates, "current_local_calendar_date", lambda: date(2026, 11, 15))
+    assert [row.id for row in tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, owner, [tag.id])] == [tag.id]
+    with pytest.raises(RegistrationResourceNotFoundError):
+        tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, stranger, [])
+    with pytest.raises(RegistrationNotAllowedError):
+        tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, owner, [tag.id, tag.id])
+    tournament.is_registration_closed = True
+    db_session.flush()
+    with pytest.raises(RegistrationNotAllowedError):
+        tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, owner, [])
+    assert tournament_tags.registration_tags(db_session, tournament.id, registration.registration_number, admin, [], staff=True) == []

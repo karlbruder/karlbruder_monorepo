@@ -112,6 +112,8 @@ def create_tournament_registration(
         raise RegistrationNotAllowedError("Registration email must match account email")
 
     tournament = visible_tournament(session, tournament_id, user, lock=True)
+    from .tournament_tags import validate_tags
+    validate_tags(session, tournament_id, payload.tag_ids)
     option = session.execute(
         select(TournamentProduct, Product, Price)
         .join(Product, Product.id == TournamentProduct.product_id)
@@ -197,6 +199,7 @@ def create_tournament_registration(
                 "parental_consent_form_original_file_name",
                 "tournament_product_id",
                 "price_id",
+                "tag_ids",
             }
         ),
         tournament_id=tournament.id,
@@ -215,6 +218,8 @@ def create_tournament_registration(
     final_storage_key: str | None = None
     try:
         session.flush()
+        from app.tournaments.models import RegistrationTag
+        session.add_all(RegistrationTag(registration_id=tournament_registration.id, tournament_id=tournament.id, tag_id=tag_id) for tag_id in payload.tag_ids)
         if has_staged_parental_consent_form:
             final_storage_key, content_type, size_bytes = (
                 promote_staged_parental_consent_form_to_registration(
