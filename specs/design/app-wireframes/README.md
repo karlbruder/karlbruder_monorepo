@@ -19,7 +19,7 @@ The controls above the application frame and the spec notes are design-review to
 
 ## Proposed tournament tags
 
-Review [registration selection](index.html#WF-04/adult), [participant editing](index.html#WF-08/edit) and [the closed window](index.html#WF-08/tagsclosed), [tournament tag configuration](index.html#WF-12/edit), and [tournament detail](index.html#WF-20/detail) → [staff athlete list](index.html#WF-26/list) and [staff eligibility review](index.html#WF-25/review), including [adding tags](index.html#WF-25/add). These screens are a design proposal. They do not implement the feature or settle outstanding product decisions. The prototype uses fixed examples and does not persist changes.
+Review [registration selection](index.html#WF-04/adult), [participant editing](index.html#WF-08/edit) and [the closed window](index.html#WF-08/tagsclosed), [tournament tag configuration](index.html#WF-12/edit), and [tournament detail](index.html#WF-20/detail) → [staff athlete list](index.html#WF-26/list) and [staff registration management](index.html#WF-25/review), including [editing tags](index.html#WF-25/add). These screens are a design proposal. They do not implement the feature or settle outstanding product decisions. The prototype uses fixed examples and does not persist changes.
 
 The agreed rules allow zero tags and close athlete editing when staff close new
 registrations early. Tag assignments stay in the authenticated application.
@@ -53,6 +53,7 @@ Use the relevant screens as the visual baseline for authorized frontend work. Fo
 | [WF-05 · Pix and proof](index.html#WF-05/initial) | Participant · first release | [PAY-001/003/004/006/010/011](../../tournaments/payments-and-confirmation.md): first upload, replacement, rejection/resubmission, invalid file, late payment. PAY-AC-001/003/006/010/012. |
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
 | [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
+| [WF-25 · Manage registration](index.html#WF-25/review) | Staff · registration corrections and tags | [ADM-003/012](../../tournaments/administration.md): correct registration details and manage tags together, with separate saves. |
 | [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · proposed | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; preserve acceptance history. PRIV-AC-007, REG-AC-017. |
 | [WF-18 · Guild panel](index.html#WF-18/overview) | Admin · proposed | [AUTH-008](../../identity/authentication-and-access.md), [ADM-001](../../tournaments/administration.md). Shared navigation, loading, error and access restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
 | [WF-19 · Tournament list](index.html#WF-19/list) | Admin · proposed | List, empty, loading, error and restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |

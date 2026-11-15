@@ -52,3 +52,12 @@ it("keeps staff-entered descriptions unchanged in the English interface", async 
   renderWithQuery(<RegistrationTags {...props} number="T42-1" language="en" />);
   expect(await screen.findByText("Primeira competição")).toBeInTheDocument();
 });
+
+it("saves a staff tag change through the staff endpoint", async () => {
+  vi.mocked(saveSelection).mockResolvedValue([tag]);
+  renderWithQuery(<RegistrationTags {...props} number="T42-1" staff />);
+  fireEvent.click(await screen.findByRole("checkbox", { name: /Mystai Primeira competição/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Salvar tags" }));
+  await waitFor(() => expect(saveSelection).toHaveBeenCalledWith("token", 42, "T42-1", [3], true));
+  expect(await screen.findByText("Tags salvas.")).toBeInTheDocument();
+});

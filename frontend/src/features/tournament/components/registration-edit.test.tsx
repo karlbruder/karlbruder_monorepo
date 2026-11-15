@@ -34,3 +34,16 @@ it("retains entered data when the backend rejects a duplicate", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("conflito");
   expect(screen.getByLabelText("Número do documento *")).toHaveValue("DUPLICATE");
 });
+
+it("lets staff correct a cancelled registration without owner-only controls", async () => {
+  const request = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<{ ok: boolean }>>(async () => ({ ok: true }));
+  vi.stubGlobal("fetch", request);
+  renderWithQuery(<RegistrationEdit staff session={session} tournament={tournament} registration={{ ...registration, registration_status: "cancelled" }} language="en" onBack={() => {}} onSaved={() => {}} />);
+  expect(screen.getByRole("heading", { name: "Manage registration" })).toBeInTheDocument();
+  expect(screen.queryByText("Review my declarations")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Full name *"), { target: { value: "Ana Corrected" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(request).toHaveBeenCalledOnce());
+  expect(JSON.parse(String(request.mock.calls[0][1]?.body)).full_name).toBe("Ana Corrected");
+  expect(await screen.findByText("Registration details saved.")).toBeInTheDocument();
+});

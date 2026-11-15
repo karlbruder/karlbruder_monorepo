@@ -46,7 +46,9 @@ the user changes the interface language. When a tournament has no tags, the
 athlete-facing tag section is hidden.
 
 The registration edit page allows the owner to correct personal, sporting, and
-emergency-contact information. Tags are edited on the same page and save
+emergency-contact information. Staff can correct those details from the athlete
+management screen alongside tag selection, including for cancelled registrations and
+after the window closes. Registration details and tags save separately. Tags are edited on the same page and save
 separately. Cancelled registrations are read-only for the owner. Corrections keep the
 registration number, owner, status, purchased option, and acceptance evidence.
 The page shows recorded declaration choices. Changing declarations and creating

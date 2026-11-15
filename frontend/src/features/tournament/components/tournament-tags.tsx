@@ -9,9 +9,9 @@ type Common = { token: string; userId: string; tournamentId: number | string; la
 export function TagPills({ tags, language }: { tags: TournamentTag[]; language: AppLanguage }) {
   return tags.length ? <ul className="tag-pills" aria-label={language === "en" ? "Selected tags" : "Tags selecionadas"}>{tags.map(tag => <li key={tag.id}>{tag.name}</li>)}</ul> : <span>{language === "en" ? "No tags" : "Sem tags"}</span>;
 }
-export function TagChoices({ tags, selected, onChange, disabled, language }: { tags: TournamentTag[]; selected: number[]; onChange: (ids: number[]) => void; disabled?: boolean; language: AppLanguage }) {
+export function TagChoices({ tags, selected, onChange, disabled, language, staff = false }: { tags: TournamentTag[]; selected: number[]; onChange: (ids: number[]) => void; disabled?: boolean; language: AppLanguage; staff?: boolean }) {
   return <fieldset className="tag-choices" disabled={disabled}><legend>{language === "en" ? "Select applicable tags" : "Selecione as tags aplicáveis"}</legend>
-    <p>{language === "en" ? "Optional · Select any that apply." : "Opcional · Escolha quantas fizerem sentido para você."}</p>
+    <p>{language === "en" ? "Optional · Select any that apply." : staff ? "Opcional · Selecione todas as tags aplicáveis." : "Opcional · Escolha quantas fizerem sentido para você."}</p>
     {tags.map(tag => <label className="tag-choice" key={tag.id}><input type="checkbox" checked={selected.includes(tag.id)} onChange={event => onChange(event.target.checked ? [...selected, tag.id] : selected.filter(id => id !== tag.id))} /><span><strong>{tag.name}</strong><span>{tag.eligibility_description}</span></span></label>)}
   </fieldset>;
 }
@@ -35,10 +35,10 @@ export function RegistrationTags({ token, userId, tournamentId, number, language
     {(definitions.isPending || selection.isPending) && <p role="status">{en ? "Loading tags..." : "Carregando tags..."}</p>}
     {(definitions.isError || selection.isError) && <p role="alert">{en ? "Could not load tags." : "Não foi possível carregar as tags."} <button type="button" onClick={() => { void definitions.refetch(); void selection.refetch(); }}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {definitions.data && selection.data && <><TagPills tags={definitions.data.filter(tag => selected.includes(tag.id))} language={language} />
-      {definitions.data.length === 0 ? <p>{en ? "No tags are configured for this tournament." : "Este torneio não possui tags configuradas."}</p> : <form onSubmit={submit}><TagChoices tags={definitions.data} selected={selected} onChange={setDraft} disabled={closed || saving} language={language} />
+      {definitions.data.length === 0 ? <p>{en ? "No tags are configured for this tournament." : "Este torneio não possui tags configuradas."}</p> : <form onSubmit={submit}><TagChoices tags={definitions.data} selected={selected} onChange={setDraft} disabled={closed || saving} language={language} staff={staff} />
       <p>{closed ? (en ? "The registration window is closed. You can no longer edit tags." : "As inscrições estão encerradas. Você não pode mais alterar suas tags.") : (en ? "Staff will check eligibility at the event." : "A equipe verificará a elegibilidade no evento.")}</p>
       {!closed && <button type="submit" disabled={saving}>{en ? "Save tags" : "Salvar tags"}</button>}</form>}
-      {message === "saved" && <p role="status">{en ? "Tags saved." : "Tags salvas."}</p>}{message === "error" && <p role="alert">{en ? "Could not save tags. Check the registration window and try again." : "Não foi possível salvar as tags. Confira o período de inscrição e tente novamente."}</p>}</>}
+      {message === "saved" && <p role="status">{en ? "Tags saved." : "Tags salvas."}</p>}{message === "error" && <p role="alert">{en ? "Could not save tags. Try again." : "Não foi possível salvar as tags. Tente novamente."}</p>}</>}
   </section>;
 }
 export function StaffTagConfiguration({ token, userId, tournamentId, language }: Common) {
