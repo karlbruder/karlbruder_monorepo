@@ -7,7 +7,7 @@ from app.core.mail import validate_sender_address
 
 
 class EmailSettings(BaseSettings):
-    SMTP_FROM: str = "Suporte Karlbrüder <no-reply@karlbruder.com.br>"
+    SMTP_FROM: str = "Suporte Karlbrüder (DEV) <noreply-dev@karlbruder.com>"
     SMTP_ENABLED: bool = False
     SMTP_HOST: str | None = None
     SMTP_PORT: int = Field(default=587, ge=1, le=65535)
