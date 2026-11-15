@@ -46,13 +46,13 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |
 | Regulation | `rules_text` and `rules_url`. Retain versioned acceptance evidence |
-| Equipment and cancellation | `equipment_requirements`, `cancellation_policy_text` and `cancellation_policy_url` (text or URL) |
+| Equipment and cancellation | `equipment_requirements`, `cancellation_policy_text` and `cancellation_policy_url` (text or URL). Monomachia is non-refundable and uses `refunds_allowed = false`. |
 | Record creation | `created_at` |
 | Pix destination | Receiving account and Pix key are payment configuration, not fixed product-spec values |
 
 Registration prices are listed below. Pix destination, registration dates, capacity, venue, schedule, and final regulation remain unconfirmed. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
 
-The table lists event configuration, not the full schema. `Tournament.is_registration_closed` and `RegistrationAcceptance` already support staff closure and versioned acceptance evidence. Their presence does not implement staff editing, confirmation, or refund workflows. See the [registration baseline](../registration.md#implementation-baseline).
+The table lists event configuration, not the full schema. `Tournament.is_registration_closed` and `RegistrationAcceptance` already support staff closure and versioned acceptance evidence. Monomachia omits the athlete cancellation control under [ADR 0011](../../decisions/0011-tournament-refund-eligibility.md).
 
 ## Registration options
 

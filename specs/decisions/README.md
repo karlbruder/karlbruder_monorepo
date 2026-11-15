@@ -1,7 +1,7 @@
 # Decisions
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-14
 
 ADRs live here under `specs/decisions/`. Decision records preserve the reason for a significant choice. They are not implementation task lists. Record status, source, consequences, and what direction is superseded. A future proposal should not be labeled accepted before the product owner chooses it.
 
@@ -17,5 +17,6 @@ ADRs live here under `specs/decisions/`. Decision records preserve the reason fo
 | [0008](0008-shared-files-and-archives.md) | Accepted direction | Shared StoredFile and ArchivedFile in core files, with domain-owned purpose, access and version selection |
 | [0009](0009-shared-payments-and-domain-associations.md) | Accepted direction | Shared Payment and Refund facts, with tournament and future consumer associations owned by their domains |
 | [0010](0010-database-evidence-guards.md) | Implemented choice | PostgreSQL trigger functions protect retained evidence and cross-record financial relationships, with explicit costs and limits |
+| [0011](0011-tournament-refund-eligibility.md) | Accepted direction | Athlete cancellation and refunds require tournament policy eligibility. Monomachia 2027 is non-refundable |
 
 Production topology is defined by decision 0003. The [deployment spec](../platform/deployment.md) owns required behavior. The [deployment guide](../../docs/deployment.md) owns current release mechanics and labeled historical transport stages. Operational instructions do not supersede an accepted decision.

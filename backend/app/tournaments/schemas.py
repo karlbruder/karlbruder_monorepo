@@ -44,6 +44,7 @@ class TournamentCreate(BaseModel):
     equipment_requirements: str | None = None
     cancellation_policy_text: str | None = None
     cancellation_policy_url: str | None = None
+    refunds_allowed: StrictBool = False
     pix_key: str | None = Field(default=None, max_length=512)
 
     @field_validator("rules_url", "cancellation_policy_url")
@@ -97,6 +98,14 @@ class TournamentCreate(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def require_policy_when_refunds_are_allowed(self) -> "TournamentCreate":
+        if self.refunds_allowed and not (
+            self.cancellation_policy_url or (self.cancellation_policy_text or "").strip()
+        ):
+            raise ValueError("Refunds require a cancellation policy")
+        return self
+
 
 class TournamentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -123,6 +132,7 @@ class TournamentRead(BaseModel):
     equipment_requirements: str | None
     cancellation_policy_text: str | None
     cancellation_policy_url: str | None
+    refunds_allowed: bool
     acceptance_content: dict[str, dict]
     acceptance_tokens: dict[str, str]
     rules_archive_url: str | None

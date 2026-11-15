@@ -50,6 +50,9 @@ function saveErrorMessage(error: unknown, en: boolean): string {
     const names = error.detail.flatMap((item: unknown) => {
       if (!item || typeof item !== "object" || !("loc" in item) || !Array.isArray(item.loc)) return [];
       const location: unknown[] = item.loc;
+      if ("msg" in item && typeof item.msg === "string" && item.msg.includes("Refunds require a cancellation policy")) {
+        return [en ? "Cancellation policy (required to allow refunds)" : "Política de cancelamento (obrigatória para permitir reembolsos)"];
+      }
       const field = fields.find(entry => entry.key === location[location.length - 1]);
       if (field?.key === "slug") return [en ? "Slug (use lowercase words separated by single hyphens)" : "Identificador (use palavras minúsculas separadas por hífens simples)"];
       return field ? [en ? field.en : field.pt] : [];
@@ -68,6 +71,7 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
   const [values, setValues] = useState(originalValues);
   const [internal, setInternal] = useState(event?.is_internal ?? false);
   const [closed, setClosed] = useState(event?.is_registration_closed ?? false);
+  const [refundsAllowed, setRefundsAllowed] = useState(event?.refunds_allowed ?? false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [invalidTime, setInvalidTime] = useState<string | null>(null);
@@ -82,7 +86,9 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     if (pending) return;
     setPending(true); setError(null); setInvalidTime(null);
     try {
-      const payload: Record<string, unknown> = { is_internal: internal, is_registration_closed: closed };
+      const payload: Record<string, unknown> = {
+        is_internal: internal, is_registration_closed: closed, refunds_allowed: refundsAllowed,
+      };
       for (const field of fields) {
         const value = values[field.key].trim();
         if (value && field.type === "datetime-local" && !(event && value === originalValues[field.key])) {
@@ -119,6 +125,7 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     <div className="staff-tournament-options">
     <label className="review-check"><input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {en ? "Internal tournament" : "Torneio interno"}</label>
     <label className="review-check"><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
+    <label className="review-check"><input type="checkbox" checked={refundsAllowed} onChange={e => setRefundsAllowed(e.target.checked)} /> {en ? "Allow refunds under the cancellation policy" : "Permitir reembolsos conforme a política de cancelamento"}</label>
     </div>
     {invalidTime && <p role="alert">{en ? "This local time does not exist. Choose another time for" : "Este horário local não existe. Escolha outro horário para"} {en ? fields.find(field => field.key === invalidTime)?.en : fields.find(field => field.key === invalidTime)?.pt}.</p>}
     {error != null && <p role="alert">{saveErrorMessage(error, en)}</p>}

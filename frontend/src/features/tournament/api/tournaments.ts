@@ -23,6 +23,7 @@ export type Tournament = {
   registration_opens_on: string | null;
   registration_closes_on: string | null;
   is_registration_closed: boolean;
+  refunds_allowed?: boolean;
   rules_text: string | null;
   rules_url: string | null;
   rules_version: string | null;
@@ -202,6 +203,7 @@ function isTournament(value: unknown): value is Tournament {
     typeof event.starts_at === "string" &&
     isAcceptanceEvidence(event) &&
     typeof event.is_registration_closed === "boolean" &&
+    (event.refunds_allowed === undefined || typeof event.refunds_allowed === "boolean") &&
     isNullableString(event.discipline) &&
     isNullableString(event.location) &&
     isNullableString(event.registration_opens_on) &&

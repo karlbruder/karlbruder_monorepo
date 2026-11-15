@@ -183,14 +183,16 @@ Confirmed and paid-waitlist outcomes suppress payment prompts and proof uploads.
 Waitlist copy explains that payment is approved without a confirmed seat and that
 staff confirmation is required. The status refresh does not depend on email delivery.
 Portuguese and English are available. Participants can confirm cancellation
-from their registration. The personal page keeps links to their cancelled
+from their registration when the tournament allows refunds. Monomachia keeps this
+control hidden. The personal page keeps links to their cancelled
 registrations alongside the current registration or creation form. A cancelled
 registration stays read-only and shows its refund status separately, with the
 amount, deadline, and transfer time when available.
 
 ## Staff refunds
 
-The Guild panel links to `/staff/refunds`. Staff can page through outstanding
+Staff can enable refunds in tournament settings when the published cancellation
+policy allows them. The setting starts off. The Guild panel links to `/staff/refunds`. Staff can page through outstanding
 refunds in deadline order, search by exact registration number, and open the
 payment evidence. After making the transfer outside the application, staff
 confirms the full amount and enters the transfer time in fixed UTC−03:00. The

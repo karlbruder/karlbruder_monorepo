@@ -324,9 +324,12 @@ owner registration/document URLs, identifiers, and response contracts are preser
 ## Cancellation and manual refunds
 
 `POST /api/tournaments/{tournament_id}/registrations/{registration_number}/cancel`
-lets the owner or staff cancel participation. It returns 204 on success and 409
-if the registration was already cancelled. Any occupied seat is released at commit.
-A verified payment creates an obligation for the full amount received. Its deadline
+lets staff cancel participation. The owner can cancel when the tournament has
+`refunds_allowed = true`. It returns 204 on success and 409 if participation
+was already cancelled or the owner cannot self-cancel. Any occupied seat is
+released at commit. A verified payment in an eligible tournament creates an
+obligation for the full amount received. Eligibility defaults to false and
+requires cancellation policy text or a policy URL when enabled. Its deadline
 is the tenth weekday after cancellation in fixed UTC−03:00, ignoring holidays.
 Cancellation leaves the order, proof, and payment evidence intact.
 
@@ -346,4 +349,5 @@ actual timestamp as an offset-aware `completed_at` to
 It returns 409 for an already completed refund, a missing obligation, or a
 transfer time outside the interval from cancellation through the current time.
 The command records completion time and actor while participation stays cancelled.
-It attempts email delivery after commit and reports the delivery result.
+It attempts email delivery after commit and reports the delivery result. Turning
+refund eligibility off leaves existing obligations visible and completable.

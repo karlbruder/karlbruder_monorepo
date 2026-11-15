@@ -74,6 +74,9 @@ class Tournament(BaseModel):
     equipment_requirements: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_text: Mapped[str | None] = mapped_column(Text)
     cancellation_policy_url: Mapped[str | None] = mapped_column(Text)
+    refunds_allowed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     rules_archive_id: Mapped[int | None] = mapped_column(
         ForeignKey("public.archived_files.id", ondelete="RESTRICT")
     )

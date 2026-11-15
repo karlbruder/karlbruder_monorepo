@@ -23,6 +23,10 @@ to store `awaiting_payment_confirmation`. Local databases that already applied
 the previous baseline need to be rebuilt before running this version. Future
 revisions published on `master` remain immutable.
 
+The owner authorized editing the Karlmart revision `20261114_0001` before the
+launch reset. It now includes `tournaments.refunds_allowed`. Local databases
+that applied the earlier revision need a rebuild to pick up the column.
+
 ## Applying migrations
 
 Verify the target database. From `backend/`, run `poetry run alembic upgrade head`,

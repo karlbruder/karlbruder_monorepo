@@ -43,12 +43,13 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [confirmCancellation, setConfirmCancellation] = useState(false);
+  const confirmingCancellation = tournament.refunds_allowed === true && confirmCancellation;
   const cancellationHeading = useRef<HTMLHeadingElement>(null);
   const busy = useRef(false);
   const registration = query.data;
   useEffect(() => {
-    if (confirmCancellation) cancellationHeading.current?.focus();
-  }, [confirmCancellation]);
+    if (confirmingCancellation) cancellationHeading.current?.focus();
+  }, [confirmingCancellation]);
 
   const cancellation = useMutation({
     mutationFn: () => cancelRegistration(session.access_token, tournament.id, registrationNumber),
@@ -109,7 +110,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
         <div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div>
       </dl>
       {registration.product_description && <p>{registration.product_description}</p>}
-      {!cancelled && !confirmCancellation && registration.parental_consent_required && <form onSubmit={submitConsent}>
+      {!cancelled && !confirmingCancellation && registration.parental_consent_required && <form onSubmit={submitConsent}>
         <p role="status">{t("O termo assinado pelo responsável é necessário para participar. Envie-o antes do evento.")}</p>
         <label htmlFor="parental_consent_form_existing">{t("Termo de responsabilidade assinado")}</label>
         <input id="parental_consent_form_existing" name="parental_consent_form" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" disabled={pending} />
@@ -120,9 +121,9 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p className="registration-notice registration-notice-success" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
     {cancelled ? <RegistrationRefundStatus token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registrationNumber} language={language} /> : <>
-      {!confirmCancellation && <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
-      <section className="registration-card">
-        {confirmCancellation ? <>
+      {!confirmingCancellation && <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
+      {tournament.refunds_allowed === true && <section className="registration-card">
+        {confirmingCancellation ? <>
           <h2 ref={cancellationHeading} tabIndex={-1}>{t("Cancelar participação")}</h2>
           <p className="registration-notice">{t("O cancelamento encerra a participação e libera qualquer vaga ocupada imediatamente.")}</p>
           <p>{t("A guilda devolve o valor integral do pagamento verificado em até 10 dias úteis.")}</p>
@@ -134,7 +135,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
             <button type="button" disabled={cancellation.isPending} onClick={() => { cancellation.reset(); setConfirmCancellation(false); }}>{t("Manter participação")}</button>
           </div>
         </> : <button type="button" className="registration-danger" disabled={pending} onClick={() => setConfirmCancellation(true)}>{t("Cancelar participação")}</button>}
-      </section>
+      </section>}
     </>}
   </>;
 }

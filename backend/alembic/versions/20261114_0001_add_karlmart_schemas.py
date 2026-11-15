@@ -22,6 +22,11 @@ def _base_columns():
 
 
 def upgrade():
+    op.add_column(
+        "tournaments",
+        sa.Column("refunds_allowed", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        schema="public",
+    )
     op.drop_column("tournaments", "registration_fee_amount", schema="public")
     op.create_table(
         "products", *_base_columns(),
@@ -239,6 +244,7 @@ def upgrade():
 
 
 def downgrade():
+    op.drop_column("tournaments", "refunds_allowed", schema="public")
     op.add_column("tournaments", sa.Column("registration_fee_amount", sa.Numeric(12, 2), nullable=True), schema="public")
     op.create_check_constraint("ck_tournaments_fee_nonnegative", "tournaments", "registration_fee_amount IS NULL OR registration_fee_amount >= 0", schema="public")
     op.execute("DROP TRIGGER immutable_purchased_tournament_product ON public.tournament_products")

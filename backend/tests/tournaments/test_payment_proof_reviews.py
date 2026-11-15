@@ -34,9 +34,9 @@ def staff_review_setup(monkeypatch, db_session):
 BASE = "/api/staff/tournaments/payment-reviews"
 
 
-def _pending(setup, *, internal=False):
+def _pending(setup, *, internal=False, **event_changes):
     client, key, session, storage = setup
-    tournament_id = _create_event(client, key, internal=internal)
+    tournament_id = _create_event(client, key, internal=internal, **event_changes)
     response = _post_registration(
         client,
         tournament_id,

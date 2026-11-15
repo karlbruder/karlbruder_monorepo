@@ -9,6 +9,7 @@ export type StaffTournament = {
   starts_at: string;
   is_internal: boolean;
   is_registration_closed: boolean;
+  refunds_allowed?: boolean;
   [key: string]: unknown;
 };
 

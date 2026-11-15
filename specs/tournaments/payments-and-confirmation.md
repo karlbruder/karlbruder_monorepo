@@ -24,10 +24,10 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-006:** When a payment deadline applies, the participant sees it. A Pix transfer after `payment_due_at` remains a manual staff decision: staff may accept it or decline participation and arrange a refund. The deadline alone must not automatically approve, reject, cancel, refund, or block staff review. Waitlist call-up rules belong in the capacity specification. Review reservations and their expiry are not part of this flow.
 - **PAY-007:** Payment proofs and sensitive registration data are not attached to notification emails or exposed through public links.
 - **PAY-008:** Future gateway integration belongs in the backend. Provider-reported payment status and business confirmation remain separate decisions. Tournament fees and association dues retain distinct rules.
-- **PAY-009:** Cancellation before payment produces `cancelled` without a refund due. Cancellation after payment ends participation and shows `awaiting_refund`. Either releases any occupied seat immediately. Guild staff refunds the payment and records completion before the participant receives a refund-confirmation email. The platform does not automatically transfer the refund.
+- **PAY-009:** Cancellation ends participation and releases any occupied seat immediately. It records `awaiting_refund` only when a verified payment exists and the tournament policy allows refunds. Tournament eligibility defaults to off. Changing eligibility does not affect existing refund obligations. See [ADR 0011](../decisions/0011-tournament-refund-eligibility.md). Guild staff refunds the payment and records completion before the participant receives a refund-confirmation email. The platform does not automatically transfer the refund.
 - **PAY-010:** Accept PDF, JPEG, and PNG proofs up to 10 MB each. Validate file type and size in the backend before accepting the upload.
 - **PAY-011:** Participants may replace submitted proof. Keep every submitted proof in restricted object storage for staff review. The participant sees only the latest submission. Each replacement is new evidence requiring review, not proof of approval. Proof retention follows the privacy policy.
-- **PAY-012:** Refund the exact amount the guild received, within 10 business days of paid-registration cancellation. Count weekdays starting the day after cancellation in fixed UTC-03:00. Ignore holidays. Staff records actual refund completion; cancellation alone does not fulfill the deadline or mark funds returned.
+- **PAY-012:** For a refundable tournament, refund the exact amount the guild received within 10 business days of paid-registration cancellation. Count weekdays starting the day after cancellation in fixed UTC-03:00. Ignore holidays. Staff records actual refund completion; cancellation alone does not fulfill the deadline or mark funds returned.
 - **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a paid waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses the paid cancellation/refund workflow; rejecting proof alone is a different evidence-review action.
 
 ## Persistence contract
@@ -55,8 +55,8 @@ The API supports proof submission, authorized retrieval, and exact-proof staff
 approval/rejection. Approval atomically saves the review, shared receipt, association,
 and confirmed or paid-waitlist outcome. Rejection returns to `awaiting_payment`
 with a separate current-proof review and reason. Only a new proof can be reviewed
-after rejection. Cancellation atomically records an obligation if a verified
-receipt exists. It uses the exact amount received and the deadline under PAY-012.
+after rejection. Cancellation atomically records an obligation when the tournament
+allows refunds and a verified receipt exists. It uses the exact amount received and the deadline under PAY-012.
 A submitted proof alone does not create a receipt. The participant can see a
 pending or completed refund and its deadline separately from cancelled
 participation. Staff can find outstanding refunds across tournaments, check the
@@ -88,11 +88,11 @@ Waitlisted participants have already had payment approved. Staff later selects a
 - **PAY-AC-006:** A configured payment deadline is shown. Passing it does not automatically reject a late Pix transfer or prevent staff from reviewing it and deciding whether to accept it or arrange a refund.
 - **PAY-AC-007:** Staff approval of payment without an allocatable seat records a paid waitlist outcome and sends an email rather than confirming participation.
 - **PAY-AC-008:** Cancellation does not claim that a refund has been completed. Recording the completed guild refund triggers a refund-confirmation email to the user.
-- **PAY-AC-009:** Cancellation before payment creates no refund obligation; cancellation after payment shows `awaiting_refund`. Any occupied seat is released immediately, without waiting for the refund.
+- **PAY-AC-009:** Cancellation creates an obligation only for a verified payment in a refundable tournament. Disable athlete cancellation when refunds are off. Staff cancellation still releases any occupied seat immediately.
 - **PAY-AC-010:** PDF, JPEG, and PNG files at or below 10 MB are accepted; disallowed types and larger files are rejected without an accepted upload.
 - **PAY-AC-011:** After replacement, the participant can retrieve only the latest proof while authorized staff can review all submitted versions.
 - **PAY-AC-012:** Rejecting evidence records and displays the reason, notifies the participant, and allows resubmission without assigning a seat.
-- **PAY-AC-013:** A paid cancellation records a refund obligation equal to the amount received and a deadline 10 business days after cancellation.
+- **PAY-AC-013:** A paid cancellation for an eligible tournament records a refund obligation equal to the amount received and a deadline 10 business days after cancellation.
 - **PAY-AC-014:** Staff can accept a late payment subject to available capacity, or decline participation and initiate the paid cancellation/refund workflow. A capacity increase must be explicit; no late-payment decision silently overbooks the event.
 
 ## Open questions

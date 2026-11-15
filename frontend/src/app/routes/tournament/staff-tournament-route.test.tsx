@@ -33,10 +33,15 @@ it("lists multiple tournaments and saves an edit with null fields and policy lin
   fireEvent.click(await screen.findByRole("link", { name: "First event" }));
   await screen.findByDisplayValue("fixture");
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Updated event" } });
+  fireEvent.change(screen.getByLabelText("Política de cancelamento", { exact: true }), { target: { value: "Reembolso integral." } });
+  const refunds = screen.getByRole("checkbox", { name: "Permitir reembolsos conforme a política de cancelamento" });
+  expect(refunds).not.toBeChecked();
+  fireEvent.click(refunds);
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
   expect(JSON.parse(init.body)).toMatchObject({ name: "Updated event", competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules" });
+  expect(JSON.parse(init.body)).toMatchObject({ refunds_allowed: true, cancellation_policy_text: "Reembolso integral." });
   expect(JSON.parse(init.body)).not.toHaveProperty("registration_fee_amount");
   expect(init.headers.Authorization).toBe("Bearer staff-token");
   await screen.findByRole("link", { name: "Second event" });
@@ -48,7 +53,7 @@ it("creates a tournament and sends explicit unconfigured values", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "POST")!;
-  expect(JSON.parse(init.body)).toMatchObject({ name: "New event", pix_key: null, competitor_capacity: null, is_internal: false });
+  expect(JSON.parse(init.body)).toMatchObject({ name: "New event", pix_key: null, competitor_capacity: null, is_internal: false, refunds_allowed: false });
 });
 it("asks for deletion confirmation and explains when registrations prevent deletion", async () => {
   render(tree("/staff/tournaments/1"));

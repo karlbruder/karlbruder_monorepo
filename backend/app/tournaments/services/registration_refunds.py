@@ -25,9 +25,14 @@ from app.tournaments.services.tournament_local_dates import refund_due_date
 logger = logging.getLogger(__name__)
 
 
-def _lock_registration_for_refund(session: Session, tournament_id: int, number: str, user: User) -> TournamentRegistration:
+def _lock_registration_for_refund(
+    session: Session, tournament_id: int, number: str, user: User
+) -> tuple[Tournament, TournamentRegistration]:
     tournament = session.scalar(
-        select(Tournament).where(Tournament.id == tournament_id).with_for_update(of=Tournament)
+        select(Tournament)
+        .where(Tournament.id == tournament_id)
+        .with_for_update(of=Tournament)
+        .execution_options(populate_existing=True)
     )
     if tournament is None:
         raise RegistrationResourceNotFoundError("Registration not found")
@@ -40,7 +45,7 @@ def _lock_registration_for_refund(session: Session, tournament_id: int, number: 
     )
     if registration is None or (registration.user_id != user.id and get_application_role(user) != "admin"):
         raise RegistrationResourceNotFoundError("Registration not found")
-    return registration
+    return tournament, registration
 
 
 def _find_registration_payment(session: Session, registration: TournamentRegistration) -> Payment | None:
@@ -120,13 +125,15 @@ def list_pending_registration_refunds(
 def cancel_tournament_registration(session: Session, tournament_id: int, number: str, user: User) -> None:
     """Cancel once, recording any verified receipt as a full refund obligation."""
     try:
-        registration = _lock_registration_for_refund(session, tournament_id, number, user)
+        tournament, registration = _lock_registration_for_refund(session, tournament_id, number, user)
         if registration.registration_status == "cancelled":
             raise RegistrationConflictError("Registration is already cancelled")
-        payment = _find_registration_payment(session, registration)
-        now = datetime.now(UTC)
+        if not tournament.refunds_allowed and get_application_role(user) != "admin":
+            raise RegistrationConflictError("Self-service cancellation is unavailable for this tournament")
+        payment = _find_registration_payment(session, registration) if tournament.refunds_allowed else None
         registration.registration_status = "cancelled"
         if payment is not None:
+            now = datetime.now(UTC)
             add_refund_record(session, payment_id=payment.id, amount_owed=payment.amount_received,
                               obligated_at=now, due_on=refund_due_date(now))
         session.commit()
@@ -144,7 +151,7 @@ def record_registration_refund_completion(
     if get_application_role(user) != "admin":
         raise AdminAccessRequiredException()
     try:
-        registration = _lock_registration_for_refund(session, tournament_id, number, user)
+        _, registration = _lock_registration_for_refund(session, tournament_id, number, user)
         payment = _find_registration_payment(session, registration)
         refund = None if payment is None else session.scalar(
             select(Refund).where(Refund.payment_id == payment.id).with_for_update(of=Refund)

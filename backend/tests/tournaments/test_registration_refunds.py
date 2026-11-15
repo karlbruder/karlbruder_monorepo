@@ -7,14 +7,16 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy import select
 
-from app.karlmart.payments.models import Refund
+from app.karlmart.payments.models import Payment, Refund
 from app.main import karlbruder_app
+from app.tournaments.models import Tournament
 from tests.tournaments.test_payment_proof_reviews import _pending
 from tests.tournaments.test_payment_review_decisions import _decide
-from tests.tournaments.test_tournament_registrations import _headers, setup as registration_setup
+from tests.tournaments.test_tournament_registrations import _event, _headers, setup as registration_setup
 
 
 QUEUE = "/api/staff/tournaments/refunds"
+REFUNDABLE_POLICY = {"refunds_allowed": True, "cancellation_policy_text": "Full refunds on cancellation."}
 
 
 @pytest.fixture(name="setup")
@@ -23,7 +25,7 @@ def refund_setup(monkeypatch, db_session):
 
 
 def test_unpaid_cancellation_has_no_refund_and_rejects_another_user(setup):
-    registration, _ = _pending(setup)
+    registration, _ = _pending(setup, **REFUNDABLE_POLICY)
     client, key, session, _ = setup
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}"
     assert client.post(f"{path}/cancel", headers=_headers(key)).status_code == 404
@@ -36,7 +38,7 @@ def test_unpaid_cancellation_has_no_refund_and_rejects_another_user(setup):
 
 def test_paid_cancellation_records_full_refund_and_completion_notifies_current_email(setup):
     """PAY-AC-008/013: expose the obligation, record completion once, and notify after commit."""
-    registration, documents = _pending(setup)
+    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
     client, key, session, _ = setup
     accounts, sender = Mock(), Mock()
     accounts.read_email.return_value = "current@example.test"
@@ -51,6 +53,8 @@ def test_paid_cancellation_records_full_refund_and_completion_notifies_current_e
     assert refund.amount_owed == Decimal("123.45")
     assert refund.refund_status == "awaiting_refund"
     assert registration.registration_status == "cancelled"
+    session.get(Tournament, registration.tournament_id).refunds_allowed = False
+    session.commit()
     assert sender.send.call_count == 0
     assert client.get(f"{path}/refund", headers=_headers(key)).status_code == 404
     assert client.get(f"{path}/refund", headers=owner).json() == {
@@ -88,3 +92,32 @@ def test_paid_cancellation_records_full_refund_and_completion_notifies_current_e
     assert sender.send.call_args.kwargs["recipient"] == "current@example.test"
     assert client.post(staff_path, headers=admin, json=payload).status_code == 409
     assert sender.send.call_count == 1
+
+
+def test_nonrefundable_event_blocks_athlete_cancellation_and_staff_cancels_without_refund(setup):
+    """ADR 0011: send eligibility to the athlete and protect both participation and receipts."""
+    registration, documents = _pending(setup)
+    client, key, session, _ = setup
+    assert _decide(setup, registration, documents[-1]).status_code == 200
+    tournament_path = f"/api/tournaments/{registration.tournament_id}"
+    path = f"{tournament_path}/registrations/{registration.registration_number}"
+    owner = _headers(key, user_id=registration.user_id)
+    assert client.get(tournament_path, headers=owner).json()["refunds_allowed"] is False
+    assert client.post(f"{path}/cancel", headers=owner).status_code == 409
+    assert registration.registration_status == "confirmed"
+    assert client.post(f"{path}/cancel", headers=_headers(key, role="admin")).status_code == 204
+    assert registration.registration_status == "cancelled"
+    assert client.get(f"{path}/refund", headers=owner).json() is None
+    assert session.scalar(select(Payment)).amount_received == Decimal("123.45")
+
+
+def test_staff_cannot_enable_refunds_without_a_cancellation_policy(setup):
+    """Opting in requires a published policy source."""
+    client, key, _, _ = setup
+    response = client.post(
+        "/api/staff/tournaments",
+        headers=_headers(key, role="admin"),
+        json=_event(refunds_allowed=True, cancellation_policy_text=" ", cancellation_policy_url=None),
+    )
+    assert response.status_code == 422
+    assert "Refunds require a cancellation policy" in response.text

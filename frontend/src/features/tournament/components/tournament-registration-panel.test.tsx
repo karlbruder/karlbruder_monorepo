@@ -234,7 +234,7 @@ it.each([
   });
   vi.stubGlobal("fetch", request);
 
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={{ ...tournament, refunds_allowed: true }} session={session} registrationNumber="T42-1" language="en" />);
   fireEvent.click(await screen.findByRole("button", { name: "Cancel participation" }));
   fireEvent.click(screen.getByRole("button", { name: "Keep my registration" }));
   expect(cancelled).toBe(false);
@@ -249,4 +249,27 @@ it.each([
   expect(request).toHaveBeenCalledWith("/api/tournaments/42/registrations/T42-1/cancel", expect.objectContaining({
     method: "POST", headers: { Authorization: "Bearer token" },
   }));
+});
+
+it("hides cancellation for a non-refundable tournament and still displays existing refund evidence", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "/api");
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("/payment")) return Response.json(payment);
+    if (url.endsWith("/refund")) return Response.json({
+      amount_owed: "10.00", refund_status: "completed", due_on: "2026-10-30", completed_at: "2026-10-23T14:00:00Z",
+    });
+    return Response.json({
+      ...registration, registration_number: url.endsWith("T42-2") ? "T42-2" : "T42-1",
+      registration_status: url.endsWith("T42-2") ? "cancelled" : "confirmed",
+      parental_consent_required: false,
+    });
+  }));
+  const nonRefundable = { ...tournament, refunds_allowed: false };
+  const panel = (number: string) => <TournamentRegistrationPanel tournament={nonRefundable} session={session} registrationNumber={number} language="en" />;
+  const view = render(panel("T42-1"));
+  expect(await screen.findByText(/Your participation is confirmed/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Cancel participation" })).not.toBeInTheDocument();
+  view.unmount();
+  render(panel("T42-2"));
+  expect(await screen.findByText("Refund completed")).toBeVisible();
 });
