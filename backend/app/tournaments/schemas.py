@@ -310,6 +310,21 @@ class RegistrationPaymentInstructions(BaseModel):
     current_review: CurrentPaymentProofReview | None = None
 
 
+class RegistrationRefundRead(BaseModel):
+    amount_owed: Decimal
+    refund_status: str
+    due_on: date
+    completed_at: datetime | None
+
+
+class RefundCompletionCreate(BaseModel):
+    completed_at: datetime
+
+
+class RefundCompletionRead(BaseModel):
+    notification_result: str
+
+
 class RegistrationRead(BaseModel):
     """Owner-only registration view. Never exposes staff-only safety notes or IP evidence."""
 

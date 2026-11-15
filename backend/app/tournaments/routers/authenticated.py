@@ -21,6 +21,7 @@ from app.tournaments.schemas import (
     RegistrationCreate,
     RegistrationPaymentInstructions,
     RegistrationRead,
+    RegistrationRefundRead,
     StaffRegistrationRead,
 )
 from app.tournaments.services import (
@@ -32,6 +33,7 @@ from app.tournaments.services import (
     submit_registration_payment_proof,
     visible_tournament,
 )
+from app.tournaments.services import registration_refunds
 from app.tournaments.services.registration_acceptances import project_registration
 from app.tournaments.services.tournament_registrations import (
     submit_registration_parental_consent_form,
@@ -152,6 +154,38 @@ def get_registration(
     if get_application_role(user) == "admin":
         return project_registration(tournament_registration, staff=True)
     return project_registration(tournament_registration)
+
+
+@router.post(
+    "/{tournament_id}/registrations/{registration_number}/cancel",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def cancel_registration(
+    tournament_id: int,
+    registration_number: str,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+) -> None:
+    registration_refunds.cancel_tournament_registration(
+        session, tournament_id, registration_number, user
+    )
+
+
+@router.get(
+    "/{tournament_id}/registrations/{registration_number}/refund",
+    response_model=RegistrationRefundRead | None,
+)
+def get_registration_refund(
+    tournament_id: int,
+    registration_number: str,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+) -> RegistrationRefundRead | None:
+    visible_tournament(session, tournament_id, user)
+    refund = registration_refunds.read_registration_refund(
+        session, tournament_id, registration_number, user
+    )
+    return RegistrationRefundRead.model_validate(refund, from_attributes=True) if refund else None
 
 
 @router.post(

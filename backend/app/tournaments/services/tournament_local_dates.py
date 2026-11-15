@@ -43,3 +43,14 @@ def is_minor_at_tournament_start(birth_date: date, tournament_starts_at: datetim
 
     start_day = local_calendar_date(tournament_starts_at)
     return start_day < eighteenth_birthday(birth_date)
+
+
+def refund_due_date(cancelled_at: datetime) -> date:
+    """Return the tenth weekday after cancellation, ignoring holidays."""
+    due_on = local_calendar_date(cancelled_at)
+    weekdays = 0
+    while weekdays < 10:
+        due_on += timedelta(days=1)
+        if due_on.weekday() < 5:
+            weekdays += 1
+    return due_on

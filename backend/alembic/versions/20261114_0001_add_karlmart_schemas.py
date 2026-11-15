@@ -141,6 +141,11 @@ def upgrade():
                 IS DISTINCT FROM ROW(OLD.payment_id, OLD.amount_owed, OLD.obligated_at, OLD.due_on) THEN
                 RAISE EXCEPTION 'Refund obligation facts are immutable' USING ERRCODE = '23514';
             END IF;
+            IF OLD.refund_status = 'completed' AND
+                ROW(NEW.refund_status, NEW.completed_at, NEW.completed_by_user_id)
+                IS DISTINCT FROM ROW(OLD.refund_status, OLD.completed_at, OLD.completed_by_user_id) THEN
+                RAISE EXCEPTION 'Refund completion evidence is immutable' USING ERRCODE = '23514';
+            END IF;
             RETURN NEW;
         END $$
     """)

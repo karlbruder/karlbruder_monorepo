@@ -12,6 +12,8 @@ from app.auth.models import User
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.schemas import (
+    RefundCompletionCreate,
+    RefundCompletionRead,
     PaymentProofDownloadUrlRead,
     PaymentReviewDecisionCreate,
     PaymentReviewDecisionRead,
@@ -22,7 +24,7 @@ from app.tournaments.schemas import (
     TournamentCreate,
     TournamentRead,
 )
-from app.tournaments.services import payment_proof_reviews, tournament_administration
+from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration
 from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
 from app.tournaments.services.tournament_policies import (
     create_tournament_configuration,
@@ -120,6 +122,24 @@ def record_payment_review_decision(
         ),
         from_address=settings.SMTP_FROM,
     )
+
+@router.post("/{tournament_id}/registrations/{registration_number}/refund/complete")
+def record_registration_refund_completion(
+    tournament_id: int,
+    registration_number: str,
+    payload: RefundCompletionCreate,
+    request: Request,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+) -> RefundCompletionRead:
+    result = registration_refunds.record_registration_refund_completion(
+        session, tournament_id, registration_number, admin, payload.completed_at,
+        accounts=request.app.state.account_email_reader,
+        sender=request.app.state.mail_sender,
+        application_base_url=str(settings.APP_BASE_URL) if settings.APP_BASE_URL else None,
+        from_address=settings.SMTP_FROM,
+    )
+    return RefundCompletionRead(notification_result=result)
 
 
 @router.get("", response_model=StaffTournamentList)

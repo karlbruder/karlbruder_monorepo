@@ -43,3 +43,11 @@ def test_local_calendar_date_maps_tournament_start_instant_to_local_day():
     starts_at = datetime(2027, 1, 17, 2, 59, tzinfo=UTC)
     assert local_calendar_date(starts_at) == date(2027, 1, 16)
     assert is_minor_at_tournament_start(date(2009, 1, 17), starts_at) is True
+
+
+def test_refund_deadline_counts_ten_weekdays_after_local_cancellation_and_ignores_holidays():
+    from datetime import datetime, timezone
+    from app.tournaments.services.tournament_local_dates import refund_due_date
+
+    assert refund_due_date(datetime(2026, 12, 21, 12, tzinfo=timezone.utc)).isoformat() == "2027-01-04"
+    assert refund_due_date(datetime(2026, 12, 22, 1, tzinfo=timezone.utc)).isoformat() == "2027-01-04"
