@@ -1,3 +1,4 @@
+import type { TournamentTag } from "@/features/tournament/api/tournament-tags";
 import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
@@ -499,4 +500,21 @@ export async function submitParentalConsentForm(
     { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) },
   );
   if (!response.ok) throw new Error(`http-${response.status}`);
+}
+
+export type StaffRegistrationSummary = {
+  registration_number: string;
+  full_name: string;
+  social_name: string | null;
+  registration_status: string;
+  parental_consent_required: boolean;
+  tags: TournamentTag[];
+};
+
+export async function listStaffRegistrations(token: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationSummary[]> {
+  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${encodeURIComponent(tournamentId)}/registrations`, {
+    headers: { Authorization: `Bearer ${token}` }, signal,
+  });
+  if (!response.ok) throw new Error(`http-${response.status}`);
+  return response.json();
 }

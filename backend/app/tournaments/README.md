@@ -28,7 +28,7 @@ close registration early. Staff use the equivalent `/api/staff/` route to read
 or replace a selection after the window closes. Duplicate IDs and tags from
 another tournament are rejected.
 
-`GET /api/staff/tournaments/{tournament_id}/athletes` returns registration
+`GET /api/staff/tournaments/{tournament_id}/registrations` returns registration
 numbers, names, status, missing parental consent indicator, and selected tags for that tournament. It excludes
 contact details, payment data, and safety notes. Only staff can use this route.
 

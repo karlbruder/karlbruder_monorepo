@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createRegistration, listOwnRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
+import { createRegistration, listOwnRegistrations, listStaffRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
 
 const payload: RegistrationCreate = {
   tournament_product_id: 1,
@@ -36,6 +36,16 @@ const payload: RegistrationCreate = {
 }
 
 describe('tournament registration API', () => {
+  it('loads staff registration summaries from the tournament registration collection', async () => {
+    const summaries = [{ registration_number: 'T1-1', full_name: 'Ana', social_name: null, registration_status: 'confirmed', parental_consent_required: true, tags: [] }]
+    const request = vi.fn().mockResolvedValue({ ok: true, json: async () => summaries })
+    vi.stubGlobal('fetch', request)
+    vi.stubEnv('VITE_API_BASE_URL', '/api')
+
+    expect(await listStaffRegistrations('staff-token', 42)).toEqual(summaries)
+    expect(request).toHaveBeenCalledWith('/api/staff/tournaments/42/registrations', expect.objectContaining({ headers: { Authorization: 'Bearer staff-token' } }))
+  })
+
   it('createRegistration sends JSON with the bearer token', async () => {
     const request = vi.fn().mockResolvedValue({
       ok: true,

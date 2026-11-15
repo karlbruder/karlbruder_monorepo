@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
-import { getAthletes } from "@/features/tournament/api/tournament-tags";
-import { getOwnRegistration, getTournament } from "@/features/tournament/api/tournaments";
+import { getOwnRegistration, getTournament, listStaffRegistrations } from "@/features/tournament/api/tournaments";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
 import "@/features/tournament/components/tournament-registration.css";
 import { TagPills } from "@/features/tournament/components/tournament-tags";
@@ -16,7 +15,7 @@ export function StaffAthletesRoute() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const en = language === "en";
-  const query = useQuery({ queryKey: ["staff-athletes", session!.user.id, tournamentId], queryFn: ({ signal }) => getAthletes(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
   const details = useQuery({
     queryKey: ["staff-registration", session!.user.id, tournamentId, registrationNumber],
     queryFn: ({ signal }) => getOwnRegistration(Number(tournamentId), registrationNumber!, session!.access_token, signal),

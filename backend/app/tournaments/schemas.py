@@ -562,7 +562,7 @@ class TagSelection(BaseModel):
     tag_ids: list[int]
 
 
-class StaffAthleteRead(BaseModel):
+class StaffRegistrationSummaryRead(BaseModel):
     parental_consent_required: bool
     registration_number: str
     full_name: str

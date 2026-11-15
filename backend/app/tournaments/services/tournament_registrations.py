@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.supabase.roles import get_application_role
 from app.core.files import FileStorage, FileStorageError
@@ -24,12 +24,14 @@ from app.core.files.models import StoredFile
 from app.karlmart.catalog.models import Price, Product
 from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.models import (
+    RegistrationTag,
     Tournament,
     TournamentProduct,
     TournamentRegistration,
     TournamentRegistrationDocument,
+    TournamentTag,
 )
-from .registration_acceptances import CHOICE_FIELDS, create_acceptance
+from .registration_acceptances import CHOICE_FIELDS, create_acceptance, parental_consent_required
 from . import tournament_local_dates
 from .tournament_local_dates import is_minor_at_tournament_start
 from .registration_numbers import (
@@ -85,6 +87,39 @@ def visible_tournament(
     if tournament is None:
         raise RegistrationResourceNotFoundError("Tournament not found")
     return tournament
+
+
+def list_tournament_registrations_for_staff(session: Session, tournament_id: int, actor: User) -> list[dict]:
+    """Return registration summaries for staff without private contact details."""
+    if get_application_role(actor) != "admin":
+        raise RegistrationNotAllowedError("Guild staff access is required")
+    visible_tournament(session, tournament_id, actor)
+    registrations = session.scalars(
+        select(TournamentRegistration)
+        .options(selectinload(TournamentRegistration.documents), selectinload(TournamentRegistration.tournament))
+        .where(TournamentRegistration.tournament_id == tournament_id)
+        .order_by(TournamentRegistration.full_name, TournamentRegistration.id)
+    ).all()
+    selections = session.execute(
+        select(RegistrationTag.registration_id, TournamentTag)
+        .join(TournamentTag, TournamentTag.id == RegistrationTag.tag_id)
+        .where(RegistrationTag.tournament_id == tournament_id)
+        .order_by(TournamentTag.id)
+    ).all()
+    tags_by_registration: dict[int, list[TournamentTag]] = {}
+    for registration_id, tag in selections:
+        tags_by_registration.setdefault(registration_id, []).append(tag)
+    return [
+        {
+            "registration_number": registration.registration_number,
+            "full_name": registration.full_name,
+            "social_name": registration.social_name,
+            "registration_status": registration.registration_status,
+            "parental_consent_required": parental_consent_required(registration),
+            "tags": tags_by_registration.get(registration.id, []),
+        }
+        for registration in registrations
+    ]
 
 
 def update_tournament_registration(

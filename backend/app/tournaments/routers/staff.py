@@ -12,7 +12,7 @@ from app.auth.models import User
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.schemas import (
-    StaffAthleteRead,
+    StaffRegistrationSummaryRead,
     TagInput,
     TagRead,
     TagSelection,
@@ -29,7 +29,7 @@ from app.tournaments.schemas import (
     TournamentCreate,
     TournamentRead,
 )
-from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration, tournament_tags
+from app.tournaments.services import payment_proof_reviews, registration_refunds, tournament_administration, tournament_registrations, tournament_tags
 from app.tournaments.services.policy_fetch import PolicyFetcher, get_policy_fetcher
 from app.tournaments.services.tournament_policies import (
     create_tournament_configuration,
@@ -213,15 +213,15 @@ def delete_staff_tournament(
 
 
 @router.get(
-    "/{tournament_id}/athletes",
-    response_model=list[StaffAthleteRead],
+    "/{tournament_id}/registrations",
+    response_model=list[StaffRegistrationSummaryRead],
 )
-def list_athletes(
+def list_registrations(
     tournament_id: int,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    return tournament_tags.list_registration_tags(session, tournament_id, admin)
+    return tournament_registrations.list_tournament_registrations_for_staff(session, tournament_id, admin)
 
 
 @router.post("/{tournament_id}/tags", response_model=TagRead, status_code=201)
