@@ -360,10 +360,6 @@ export default function TournamentRegistrationForm({
   return (
     <form className="registration-form" aria-label={t("Formulário de inscrição")} onSubmit={submit} noValidate>
       <RegistrationProgress current={1} language={language} />
-      <div className="registration-card registration-draft-notice">
-        <p className="registration-eyebrow">{t("Conteúdo em preparação")}</p>
-        <p>{t("Os textos finais das declarações e da privacidade ainda precisam de aprovação. Este formulário não está pronto para inscrições reais.")}</p>
-      </div>
       {Object.keys(errors).length > 0 && <p className="registration-error-summary" role="alert">{t("Revise os campos indicados antes de enviar.")}</p>}
       {requestError && <p className="registration-error-summary" role="alert">{t(requestError)}</p>}
 

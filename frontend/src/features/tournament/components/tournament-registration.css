@@ -169,10 +169,6 @@
   margin-bottom: 10px;
 }
 
-.registration-form > .registration-draft-notice {
-  margin-bottom: 0;
-}
-
 .registration-fieldset .registration-section {
   margin-bottom: 0;
 }
@@ -251,13 +247,6 @@
   padding: 15px 17px;
   margin-bottom: 18px;
   font-size: 12px;
-}
-
-.registration-draft-notice {
-  background: #f6eedb;
-  color: #735322;
-  border-color: #e5d6b7;
-  border-left-color: #9f793c;
 }
 
 .registration-notice p:last-child {

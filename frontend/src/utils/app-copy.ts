@@ -165,8 +165,6 @@ const english = {
   "Aguardando pagamento": "Awaiting payment",
   "Próximo passo: acompanhe as instruções de pagamento do torneio. Sua vaga ainda não está confirmada nem reservada.": "Next step: follow the tournament payment instructions. Your place is not yet confirmed or reserved.",
   "Formulário de inscrição": "Registration form",
-  "Conteúdo em preparação": "Draft content",
-  "Os textos finais das declarações e da privacidade ainda precisam de aprovação. Este formulário não está pronto para inscrições reais.": "The final declaration and privacy wording still needs approval. This form is not ready for real registrations.",
   "Revise os campos indicados antes de enviar.": "Review the highlighted fields before submitting.",
   "Dados pessoais": "Personal details",
   "Nome completo": "Full name",

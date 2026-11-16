@@ -164,7 +164,6 @@ describe('Athlete submits their own registration and sees the result', () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
-    expect(screen.getByText(/not ready for real registrations/)).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     expect(screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("name"))).toEqual([
       "accepts_rules", "accepts_cancellation_policy", "accepts_data_processing",
