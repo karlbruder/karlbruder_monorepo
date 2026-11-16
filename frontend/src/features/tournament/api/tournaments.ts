@@ -432,12 +432,14 @@ export async function requestPaymentProofUploadUrl(
   tournamentId: number,
   registrationNumber: string,
   token: string,
+  originalFileName: string,
 ): Promise<PaymentProofUploadUrl> {
   const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof/upload-url`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ original_file_name: originalFileName }),
     },
   );
   const body: unknown = await response.json().catch(() => null);

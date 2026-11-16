@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
+from pathlib import PurePath
 from uuid import UUID, uuid4
 
 
@@ -198,8 +200,15 @@ def delete_storage_object_quietly(file_storage: FileStorage, storage_key: str) -
         pass
 
 
-def build_staged_payment_proof_storage_key(tournament_id: int, user_id: UUID) -> str:
-    return f"tournaments/{tournament_id}/staging/{user_id}/payment_proof/{uuid4()}"
+def _file_extension(file_name: str) -> str:
+    extension = PurePath(file_name).suffix
+    return extension if re.fullmatch(r"\.[a-zA-Z0-9]{1,16}", extension) else ""
+
+
+def build_staged_payment_proof_storage_key(
+    tournament_id: int, user_id: UUID, extension: str
+) -> str:
+    return f"tournaments/{tournament_id}/staging/{user_id}/payment_proof/{uuid4()}{extension}"
 
 
 def expected_staged_payment_proof_prefix(tournament_id: int, user_id: UUID) -> str:
@@ -214,8 +223,11 @@ def create_payment_proof_upload_url(
     user: User,
     *,
     content_type: str = "application/octet-stream",
+    original_file_name: str = "",
 ) -> tuple[str, str, int, dict[str, str]]:
-    storage_key = build_staged_payment_proof_storage_key(tournament_id, user.id)
+    storage_key = build_staged_payment_proof_storage_key(
+        tournament_id, user.id, _file_extension(original_file_name)
+    )
     try:
         upload_url = file_storage.create_presigned_put_url(
             storage_key,
@@ -268,9 +280,9 @@ def inspect_staged_payment_proof_upload(
 
 
 def build_final_payment_proof_storage_key(
-    tournament_id: int, registration_id: int
+    tournament_id: int, registration_id: int, extension: str
 ) -> str:
-    return f"tournaments/{tournament_id}/registrations/{registration_id}/payment_proof/{uuid4()}"
+    return f"tournaments/{tournament_id}/registrations/{registration_id}/payment_proof/{uuid4()}{extension}"
 
 
 def promote_staged_payment_proof_to_registration(
@@ -283,7 +295,7 @@ def promote_staged_payment_proof_to_registration(
     """Copy the staged proof and return the permanent key plus the copied object's type and size."""
 
     final_storage_key = build_final_payment_proof_storage_key(
-        tournament_id, registration_id
+        tournament_id, registration_id, _file_extension(staged_storage_key)
     )
     content_type, size_bytes = _copy_staged_object_then_confirm_promoted_upload(
         file_storage,

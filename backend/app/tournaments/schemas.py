@@ -297,6 +297,10 @@ class ParentalConsentFormDownloadUrlRead(BaseModel):
     expires_in_seconds: int
 
 
+class PaymentProofUploadUrlCreate(BaseModel):
+    original_file_name: str = Field(default="", max_length=255)
+
+
 class PaymentProofUploadUrlRead(BaseModel):
     storage_key: str
     upload_url: str

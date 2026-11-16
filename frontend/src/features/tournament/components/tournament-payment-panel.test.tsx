@@ -292,7 +292,8 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
   expect(screen.queryByText("Unreadable beneficiary fixture")).not.toBeInTheDocument();
   expect(screen.queryByText(/rejected.pdf/)).not.toBeInTheDocument();
   expect(screen.getByText(/replacement.pdf/)).toBeInTheDocument();
-  expect(request.mock.calls.find(([, init]) => init?.method === "POST" && init?.body)?.[1]?.body).toBe(JSON.stringify({ storage_key: "new-key", original_file_name: "replacement.pdf" }));
+  expect(request.mock.calls.find(([url]) => String(url).endsWith("/payment-proof/upload-url"))?.[1]?.body).toBe(JSON.stringify({ original_file_name: "replacement.pdf" }));
+  expect(request.mock.calls.find(([url, init]) => String(url).endsWith("/payment-proof") && init?.method === "POST")?.[1]?.body).toBe(JSON.stringify({ storage_key: "new-key", original_file_name: "replacement.pdf" }));
 });
 it("rejects an invalid file locally without a storage request", async () => {
   const request = vi.fn().mockResolvedValue({ ok: true, json: async () => paymentInstructions }); vi.stubGlobal("fetch", request);

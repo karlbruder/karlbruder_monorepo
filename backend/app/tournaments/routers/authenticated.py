@@ -18,6 +18,7 @@ from app.tournaments.schemas import (
     PaymentProofDownloadUrlRead,
     PaymentProofSubmitCreate,
     PaymentProofUploadUrlRead,
+    PaymentProofUploadUrlCreate,
     RegistrationCreate,
     RegistrationDetails,
     RegistrationPaymentInstructions,
@@ -246,6 +247,7 @@ def create_payment_proof_upload_url_route(
     user: AuthenticatedUser,
     session: Annotated[Session, Depends(get_session)],
     file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+    payload: PaymentProofUploadUrlCreate = PaymentProofUploadUrlCreate(),
 ) -> PaymentProofUploadUrlRead:
     storage_key, upload_url, expires_in_seconds, required_headers = (
         create_registration_payment_proof_upload_url(
@@ -254,6 +256,7 @@ def create_payment_proof_upload_url_route(
             registration_number,
             user,
             file_storage,
+            payload.original_file_name,
         )
     )
     return PaymentProofUploadUrlRead(

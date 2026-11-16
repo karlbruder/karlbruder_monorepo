@@ -60,6 +60,7 @@ def create_registration_payment_proof_upload_url(
     registration_number: str,
     user: User,
     file_storage: FileStorage,
+    original_file_name: str = "",
 ) -> tuple[str, str, int, dict[str, str]]:
     tournament_registration = load_owner_tournament_registration(
         session, tournament_id, registration_number, user
@@ -71,7 +72,9 @@ def create_registration_payment_proof_upload_url(
         raise RegistrationConflictError(
             "Payment proof cannot be submitted for this registration status"
         )
-    return create_payment_proof_upload_url(file_storage, tournament_id, user)
+    return create_payment_proof_upload_url(
+        file_storage, tournament_id, user, original_file_name=original_file_name
+    )
 
 
 def submit_registration_payment_proof(

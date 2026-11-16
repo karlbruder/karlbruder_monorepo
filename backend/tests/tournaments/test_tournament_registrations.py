@@ -847,9 +847,13 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
     other = _headers(key, email="other@example.test")
     assert client.post(f"{proof_base}/upload-url", headers=other).status_code == 404
 
-    upload_one = client.post(f"{proof_base}/upload-url", headers=owner)
+    upload_one = client.post(
+        f"{proof_base}/upload-url", headers=owner,
+        json={"original_file_name": "proof-one.pdf"},
+    )
     assert upload_one.status_code == 200, upload_one.text
     staged_one = upload_one.json()["storage_key"]
+    assert staged_one.endswith(".pdf")
     storage.objects[staged_one] = (_pdf_bytes(), "application/pdf")
 
     submit_one = client.post(
@@ -867,6 +871,7 @@ def test_payment_proof_presigned_submit_replace_and_read(setup):
     ).all()
     assert len(proof_rows) == 1
     assert "/payment_proof/" in proof_rows[0].file.storage_key
+    assert proof_rows[0].file.storage_key.endswith(".pdf")
 
     read_one = client.get(f"{proof_base}", headers=owner)
     assert read_one.status_code == 200

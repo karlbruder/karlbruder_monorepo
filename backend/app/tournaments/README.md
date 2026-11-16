@@ -195,7 +195,9 @@ and metadata for the latest proof. Only the owner may read these instructions.
 Other callers, including admins, receive 404. An absent destination is returned
 as null and shown as unconfigured. No key is invented or bundled in the frontend.
 
-For payment proof, the owner calls `POST .../payment-proof/upload-url`, uploads
+For payment proof, the owner calls `POST .../payment-proof/upload-url` with an optional
+`original_file_name`. The generated staging and permanent object keys keep
+its extension. The owner uploads
 with the required headers, then calls `POST .../payment-proof` with `storage_key`
 and `original_file_name`. The first valid submission sets `awaiting_payment_confirmation`.
 Replacement is allowed while `awaiting_payment` or `awaiting_payment_confirmation`.

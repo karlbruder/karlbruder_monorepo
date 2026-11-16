@@ -141,6 +141,7 @@ export default function TournamentPaymentPanel({
         tournament.id,
         registrationNumber,
         session.access_token,
+        file.name,
       );
       await uploadFileToPresignedUrl(uploadInfo.upload_url, file, uploadInfo.required_headers);
       const updatedRegistration = await submitPaymentProof(tournament.id, registrationNumber, session.access_token, {
