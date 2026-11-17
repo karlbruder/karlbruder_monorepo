@@ -446,3 +446,140 @@ def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, d
     tournament.is_internal = True
     db_session.flush()
     assert test_client.get(f"/api/tournaments/{internal_id}/products").status_code == 404
+
+
+def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
+    from app.core.files import get_file_storage
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    regular = _headers(signing_key, "regular_user")
+    member = _headers(signing_key, "guild_member")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    objects = {}
+    storage.create_presigned_put_url.side_effect = lambda key, **kw: f"https://upload.test/{key}"
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kw: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    public_id = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    internal_id = test_client.post("/api/staff/tournaments", json=_event(internal=True), headers=admin).json()["id"]
+
+    def publish(tournament_id, purpose, body):
+        base = f"/api/staff/tournaments/{tournament_id}/policy-documents/{purpose}"
+        issued = test_client.post(base + "/upload-url", headers=admin)
+        assert issued.status_code == 200
+        staged = issued.json()["storage_key"]
+        objects[staged] = body
+        result = test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "policy.pdf"})
+        assert result.status_code == 201, result.text
+        return result.json()
+
+    base = f"/api/staff/tournaments/{public_id}/policy-documents/rules"
+    assert test_client.post(base + "/upload-url", headers=regular).status_code == 403
+    assert test_client.post(base, headers=regular, json={"storage_key": "x", "original_file_name": "x"}).status_code == 403
+    first = publish(public_id, "rules", b"%PDF-1.4 first")
+    cancellation = publish(public_id, "cancellation_policy", b"%PDF-1.4 cancel")
+    second = publish(public_id, "rules", b"%PDF-1.4 second")
+    hidden = publish(internal_id, "rules", b"%PDF-1.4 hidden")
+    current = test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()
+    assert current["rules"]["id"] == second["id"]
+    assert current["cancellation_policy"]["id"] == cancellation["id"]
+    from sqlalchemy import select
+    from app.tournaments.models import TournamentDocument
+
+    rules = db_session.scalar(select(TournamentDocument).where(TournamentDocument.tournament_id == public_id, TournamentDocument.purpose == "rules"))
+    assert rules.current_version.id == second["id"]
+    assert [version.id for version in rules.versions] == [second["id"], first["id"]]
+    old_url = f"/api/tournaments/{public_id}/policy-documents/rules/{first['id']}/download-url"
+    old = test_client.get(old_url)
+    assert old.status_code == 200
+    assert objects[old.json()["download_url"].split("/", 3)[-1]] == b"%PDF-1.4 first"
+    assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=regular).status_code == 404
+    assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=member).status_code == 200
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents/rules/{hidden['id']}/download-url").status_code == 404
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents/cancellation_policy/{first['id']}/download-url").status_code == 404
+    staged = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+    objects[staged] = b"invalid"
+    assert test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "bad.pdf"}).status_code == 415
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()["rules"]["id"] == second["id"]
+    for body, expected in [(b"", 422), (b"%PDF" + b"x" * (10 * 1024 * 1024), 413)]:
+        staged = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+        objects[staged] = body
+        assert test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "bad.pdf"}).status_code == expected
+    assert test_client.delete(f"/api/staff/tournaments/{internal_id}", headers=admin).status_code == 204
+
+
+def test_policy_publication_failure_preserves_previous_version(client, db_session, monkeypatch):
+    from app.core.files import get_file_storage
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    objects = {}
+    storage.create_presigned_put_url.return_value = "https://upload.test"
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kw: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    tournament_id = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    base = f"/api/staff/tournaments/{tournament_id}/policy-documents/rules"
+
+    def stage():
+        key = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+        objects[key] = b"%PDF-1.4 contents"
+        return key
+
+    key = stage()
+    original = test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "first.pdf"}).json()
+    saved_objects = objects.copy()
+    key = stage()
+    from app.core.files import FileStorageError
+    storage.store_file.side_effect = FileStorageError("storage unavailable")
+    assert test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"}).status_code == 503
+    assert objects == saved_objects
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    key = stage()
+    with monkeypatch.context() as patch:
+        patch.setattr(db_session, "commit", lambda: (_ for _ in ()).throw(RuntimeError("database unavailable")))
+        with pytest.raises(RuntimeError, match="database unavailable"):
+            test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"})
+    assert objects == saved_objects
+    assert test_client.get(f"/api/tournaments/{tournament_id}/policy-documents").json()["rules"]["id"] == original["id"]
+
+
+def test_policy_staging_is_bound_to_staff_tournament_and_purpose(client):
+    from app.core.files import get_file_storage
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    other_admin = _headers(signing_key, "admin")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    storage.create_presigned_put_url.return_value = "https://upload.test"
+    first = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    second = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    base = f"/api/staff/tournaments/{first}/policy-documents/rules"
+    key = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+    payload = {"storage_key": key, "original_file_name": "rules.pdf"}
+    assert test_client.post(base, headers=other_admin, json=payload).status_code == 422
+    assert test_client.post(f"/api/staff/tournaments/{second}/policy-documents/rules", headers=admin, json=payload).status_code == 422
+    assert test_client.post(f"/api/staff/tournaments/{first}/policy-documents/cancellation_policy", headers=admin, json=payload).status_code == 422
+    storage.head_object.assert_not_called()
+
+
+def test_tournament_documents_allow_multiple_resources_but_one_policy_per_purpose(db_session):
+    from sqlalchemy.exc import IntegrityError
+    from app.tournaments.models import Tournament, TournamentDocument
+
+    tournament = Tournament(name="Documents", slug=f"documents-{uuid4()}", starts_at=datetime.now(UTC))
+    db_session.add(tournament)
+    db_session.flush()
+    db_session.add_all([
+        TournamentDocument(tournament_id=tournament.id, purpose=None, title="City guide"),
+        TournamentDocument(tournament_id=tournament.id, purpose=None, title="Travel guide"),
+        TournamentDocument(tournament_id=tournament.id, purpose="rules", title="Rules"),
+    ])
+    db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        db_session.add(TournamentDocument(tournament_id=tournament.id, purpose="rules", title="Other rules"))
+        db_session.flush()

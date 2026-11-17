@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-17
 
 | Field | Value |
 | --- | --- |
@@ -24,18 +24,15 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
-- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier regulation acceptances when text changes.
+- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier policy acceptances when documents change.
 - **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Pix destination and receiving-account details are payment configuration.
 - **CAT-010:** Staff may change products and prices for future registrations. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
-Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured.
+Staff can independently upload a rules document and a cancellation-policy document. Both are optional. Replacements retain previous versions. The catalog visibility rules govern access to every version. A document identifier alone does not grant access.
 
-Linked documents are managed outside the application. The registration form links directly to the configured URL. The application does not fetch or preserve linked documents. Organizers retain documents and manage changes outside the application.
-
-Staff may save both a URL and inline text for either policy. The settings form
-warns that athletes will see the linked document when both are provided.
+Issue #88 delivers the policy transition in checkpoints. Registration and staff screens temporarily retain the legacy text and URL fields until the cutover.
 
 ## User flow
 

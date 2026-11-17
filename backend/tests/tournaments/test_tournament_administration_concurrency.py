@@ -386,3 +386,59 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
             )) == new
     finally:
         _cleanup(engine, tournament_id)
+
+
+def test_policy_publications_serialize_on_tournament(migrated_database):
+    from app.core.files.models import ArchivedFile
+    from app.tournaments.models import TournamentDocument, TournamentDocumentVersion
+    from app.tournaments.services.tournament_policy_documents import publish
+
+    engine = migrated_database
+    actor = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+    with Session(engine) as session:
+        tournament = Tournament(name="Policy race", slug=f"policy-{uuid4().hex}", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
+        session.add(tournament)
+        session.commit()
+        tournament_id = tournament.id
+
+    entered = Event()
+    release = Event()
+    second_entered = Event()
+    keys = [f"tournaments/{tournament_id}/staging/{actor.id}/policy/rules/{uuid4()}" for _ in range(2)]
+
+    def run(key, first):
+        storage = Mock()
+        storage.head_object.return_value = (12, None)
+        storage.read_object_bytes.return_value = b"%PDF-1.4 abc"
+        def store(*args):
+            if first:
+                entered.set()
+                assert release.wait(5)
+            else:
+                second_entered.set()
+        storage.store_file.side_effect = store
+        with Session(engine) as session:
+            return publish(session, storage, tournament_id, "rules", actor, key, "rules.pdf").id
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(run, keys[0], True)
+            assert entered.wait(5)
+            second = executor.submit(run, keys[1], False)
+            assert not second_entered.wait(0.2)
+            release.set()
+            first_id, second_id = first.result(timeout=5), second.result(timeout=5)
+        assert second_id > first_id
+        with Session(engine) as session:
+            ids = session.scalars(select(TournamentDocumentVersion.id).join(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id).order_by(TournamentDocumentVersion.id.desc())).all()
+            assert ids == [second_id, first_id]
+    finally:
+        release.set()
+        with engine.begin() as connection:
+            archives = connection.execute(select(TournamentDocumentVersion.archive_id).join(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id)).scalars().all()
+            files = connection.execute(select(ArchivedFile.file_id).where(ArchivedFile.id.in_(archives))).scalars().all()
+            connection.execute(delete(TournamentDocumentVersion).where(TournamentDocumentVersion.archive_id.in_(archives)))
+            connection.execute(delete(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id))
+            connection.execute(delete(ArchivedFile).where(ArchivedFile.id.in_(archives)))
+            connection.execute(delete(StoredFile).where(StoredFile.id.in_(files)))
+            connection.execute(delete(Tournament).where(Tournament.id == tournament_id))

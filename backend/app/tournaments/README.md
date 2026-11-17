@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-17
 
 The application stores reusable `Tournament`, `TournamentRegistration`, and
 `TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
@@ -17,6 +17,12 @@ Normalized duplicate email and document checks remain in force. A correction to
 birth date can make a parental consent form necessary before participation.
 
 `GET /api/tournaments/registrations` lists only the authenticated account’s registrations across tournaments, including cancelled registrations. The summary contains the tournament ID and name, registration number, and status. Admins receive only their own registrations on this endpoint.
+
+## Policy document API
+
+Staff request a staged upload URL with `POST /api/staff/tournaments/{tournament_id}/policy-documents/{purpose}/upload-url`, upload the bytes, then publish the returned storage key with `POST /api/staff/tournaments/{tournament_id}/policy-documents/{purpose}` and an `original_file_name`. Purpose is `rules` or `cancellation_policy`. PDF, JPEG, and PNG files up to 10 MiB are accepted. Publishing retains earlier versions. Each upload URL is bound to the issuing staff account, tournament, and purpose.
+
+`GET /api/tournaments/{tournament_id}/policy-documents` returns the current versions. `GET /api/tournaments/{tournament_id}/policy-documents/{purpose}/{document_id}/download-url` returns a short-lived URL for that version. Both use catalog visibility. Hidden tournaments and mismatched document identifiers return 404. Storage failures return 503. Invalid, oversized, and unsupported uploads return 422, 413, and 415 respectively.
 
 ## Tournament tags
 

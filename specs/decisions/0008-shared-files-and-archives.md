@@ -1,7 +1,7 @@
 # 0008: Shared files and archived content
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-17
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 
 ## Context
 
-Registration uploads need private object storage. A payment proof belongs to a registration. Shared file metadata avoids making other capabilities depend on tournament records. The earlier tournament policy capture use was superseded by the external-document decision below.
+Registration uploads need private object storage. A payment proof belongs to a registration. Shared file metadata avoids making other capabilities depend on tournament records. Tournament policies use staff uploads and retain archived versions.
 
 ## Decision
 
@@ -38,7 +38,7 @@ TournamentRegistrationDocument links StoredFile to a registration and its purpos
 such as `payment_proof` or `parental_consent_form`. Tournament workflows enforce
 allowed formats, size limits, submission history and owner/staff access.
 
-Tournament policy documents are now managed outside the application. Tournament configuration stores links directly, and registration acceptances do not reference archives or capture policy content. This supersedes the earlier tournament-archive use described in this decision. The shared file and archive capabilities remain available for other explicit needs.
+Tournament documents belong to a tournament and may have a policy purpose. Each published version links an ArchivedFile to its document. Staff uploads create new versions. Earlier versions remain available under tournament visibility rules. Issue #88 replaces the previous externally managed policy setup in checkpoints.
 
 ## Future use
 

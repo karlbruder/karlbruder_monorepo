@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.auth.models import AnonymousUser, User
 from app.core.db.session import get_session
+from app.core.files import FileStorage, get_file_storage
+from app.tournaments.services import tournament_policy_documents as policy_documents
+from app.tournaments.schemas import PolicyDocumentRead, policy_document_read, PaymentProofDownloadUrlRead
 from app.tournaments.schemas import (
     TournamentList,
     TournamentRead,
@@ -66,3 +69,24 @@ def get_tournament_products(
     if products is None:
         raise HTTPException(status_code=404, detail="Tournament not found")
     return products
+
+
+@router.get("/{tournament_id}/policy-documents", response_model=dict[str, PolicyDocumentRead])
+def get_current_policy_documents(
+    tournament_id: int,
+    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return {purpose: policy_document_read(document) for purpose, document in policy_documents.current_documents(session, tournament_id, user).items()}
+
+
+@router.get("/{tournament_id}/policy-documents/{purpose}/{document_id}/download-url", response_model=PaymentProofDownloadUrlRead)
+def get_policy_document_download_url(
+    tournament_id: int,
+    purpose: policy_documents.PolicyPurpose,
+    document_id: int,
+    user: Annotated[User | AnonymousUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    return policy_documents.download(session, storage, tournament_id, purpose, document_id, user)

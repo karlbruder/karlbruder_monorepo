@@ -572,3 +572,22 @@ class PersonalRegistrationSummary(BaseModel):
     tournament_name: str
     registration_number: str
     registration_status: str
+
+
+class PolicyDocumentPublish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
+class PolicyDocumentRead(BaseModel):
+    id: int
+    purpose: str
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+
+
+def policy_document_read(document) -> PolicyDocumentRead:
+    file = document.archive.file
+    return PolicyDocumentRead(id=document.id, purpose=document.document.purpose, original_file_name=file.original_file_name, content_type=file.content_type, size_bytes=file.size_bytes)
