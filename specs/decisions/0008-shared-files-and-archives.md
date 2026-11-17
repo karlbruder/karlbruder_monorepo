@@ -10,7 +10,7 @@
 
 ## Context
 
-Registration uploads need private object storage. A payment proof belongs to a registration. Shared file metadata avoids making other capabilities depend on tournament records. Tournament policies use staff uploads and retain archived versions.
+Registration uploads need private object storage. A payment proof belongs to a registration. Tournament policy versions must also be retained. Shared file metadata lets both workflows use storage without making other capabilities depend on tournament records.
 
 ## Decision
 
@@ -38,7 +38,9 @@ TournamentRegistrationDocument links StoredFile to a registration and its purpos
 such as `payment_proof` or `parental_consent_form`. Tournament workflows enforce
 allowed formats, size limits, submission history and owner/staff access.
 
-Tournament documents belong to a tournament and may have a policy purpose. Each published version links an ArchivedFile to its document. Staff uploads create new versions. Earlier versions remain available under tournament visibility rules. Issue #88 replaces the previous externally managed policy setup in checkpoints.
+A `TournamentDocument` belongs to a tournament. A `TournamentDocumentVersion` links one published version to an `ArchivedFile`. Rules and cancellation policies each have a distinct purpose. Staff uploads create new versions, and tournament visibility rules govern access to earlier versions. The model permits documents without a policy purpose. Publishing general resources is not yet implemented.
+
+Issue #88 is transitioning policy configuration from external links and text to uploaded documents. Registration acceptance still uses the legacy fields until a later checkpoint.
 
 ## Future use
 
@@ -61,8 +63,8 @@ or generic file-access endpoint. A file ID alone grants no access.
 Object storage holds the bytes. Application records explain which captured bytes
 a person accepted, when they were captured and how domain records reference them.
 A bucket version alone does not supply those application relationships or access
-rules. Copying a linked document also avoids depending on the original publisher
-to keep serving the content that was accepted.
+rules. An application-owned archive also keeps a copy when content originated
+outside the application.
 
 Terraform enables versioning on the application S3 bucket. ArchivedFile does not
 store an S3 version ID, and archive storage and downloads do not select a specific

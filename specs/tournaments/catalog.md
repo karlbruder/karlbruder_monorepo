@@ -30,9 +30,9 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
-Staff can independently upload a rules document and a cancellation-policy document. Both are optional. Replacements retain previous versions. The catalog visibility rules govern access to every version. A document identifier alone does not grant access.
+Staff can upload a rules document and a cancellation-policy document independently. Each is optional. Replacing a document keeps its previous versions. Catalog visibility rules apply when opening any version. A document identifier alone does not grant access.
 
-Issue #88 delivers the policy transition in checkpoints. Registration and staff screens temporarily retain the legacy text and URL fields until the cutover.
+The policy-document API is implemented as part of issue #88. Registration and the staff configuration screen still use the legacy text and URL fields until the remaining checkpoints are delivered.
 
 ## User flow
 
