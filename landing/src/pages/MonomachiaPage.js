@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from '../components/LanguageContext';
-import partners from '../data/partners';
+import { monomachiaPartners } from '../data/partners';
 import './MonomachiaPage.css';
 
 const MonomachiaPage = () => {
@@ -112,7 +112,7 @@ const MonomachiaPage = () => {
             </div>
 
             <div className="monomachia-partner-grid">
-              {partners.map((partner) => (
+              {monomachiaPartners.map((partner) => (
                 <a
                   className={`monomachia-partner-card${partner.wide ? ' monomachia-partner-card--wide' : ''}`}
                   href={partner.href}

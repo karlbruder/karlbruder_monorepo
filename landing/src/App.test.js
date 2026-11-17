@@ -26,10 +26,13 @@ test('shows the championship page and links registration to the app, with no for
   expect(screen.getByLabelText(/em breve, 16 e 17 de janeiro de 2027/i)).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: /ver o anúncio/i })).not.toBeInTheDocument();
   expect(screen.getAllByText(/são carlos, sp/i).length).toBeGreaterThan(0);
-  expect(screen.getByRole('link', { name: /sigi forge/i })).toBeInTheDocument();
-  expect(
-    screen.getByRole('link', { name: /spes historical fencing gear/i })
-  ).toBeInTheDocument();
+  for (const sponsor of [/manzini swordmaker/i, /canto do aço/i, /flèche brasil/i,
+    /sparring gloves/i, /sigi forge/i, /spes historical fencing gear/i]) {
+    expect(screen.getByRole('link', { name: sponsor })).toBeInTheDocument();
+  }
+  expect(screen.getByRole('link', { name: /golpe de estado/i }))
+    .toHaveAttribute('href', 'https://www.instagram.com/_golpedeestado_');
+  expect(screen.queryByRole('link', { name: /faits d'armes/i })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
     .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=pt');
   expect(screen.getByText(/Social: R\$ 50 · Plena: R\$ 100 · Plus: R\$ 200/)).toBeInTheDocument();
@@ -46,6 +49,15 @@ test('shows the championship page and links registration to the app, with no for
   expect(screen.getByRole('link', { name: 'Inscreva-se no Monomachia' }))
     .toHaveAttribute('href', 'https://app.karlbruder.com/tournaments/registration?lang=pt');
   expect(screen.queryByRole('form')).not.toBeInTheDocument();
+});
+
+test('shows both Faits D\'Armes and Golpe de Estado as homepage partners', () => {
+  window.history.pushState({}, '', '/');
+  render(<App />);
+
+  expect(screen.getByRole('link', { name: /faits d'armes/i })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /golpe de estado/i }))
+    .toHaveAttribute('href', 'https://www.instagram.com/_golpedeestado_');
 });
 
 test('forwards registration to a locally configured application URL', () => {
