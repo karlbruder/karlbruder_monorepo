@@ -172,10 +172,11 @@ describe('Athlete submits their own registration and sees the result', () => {
     const registration = request.mock.calls.find(([url, init]) => String(url).endsWith('/registrations') && init?.method === 'POST')
     expect(JSON.parse(String(registration?.[1]?.body)).tag_ids).toEqual([3])
   })
-  it('shows English draft controls and submits the rules acceptance without an image choice', async () => {
+  it('renders the server-provided English declaration and submits its token without an image choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    expect(screen.getByRole('checkbox', { name: 'Sample rules declaration *' })).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     expect(screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("name"))).toEqual([
       "accepts_rules", "accepts_cancellation_policy", "accepts_data_processing",
