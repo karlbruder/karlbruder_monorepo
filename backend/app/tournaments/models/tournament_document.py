@@ -29,6 +29,7 @@ class TournamentDocument(BaseModel):
     )
     purpose: Mapped[str | None] = mapped_column(String(32))
     title: Mapped[str] = mapped_column(String(200), nullable=False)
+
     versions: Mapped[list[TournamentDocumentVersion]] = relationship(
         back_populates="document",
         order_by="desc(TournamentDocumentVersion.id)",

@@ -105,24 +105,28 @@ A HEMA Ratings reference need not be a URL. Category notes are not staff approva
 
 ### Declarations and current policy transition
 
-Tournament reads currently return `acceptance_content` and `acceptance_tokens`
-for `pt` and `en`. The digest covers the displayed declarations, equipment
-requirements, and configured policy text and URLs. Registration requires the
-selected language and token. If the configuration changes before submission,
-the API returns 409 so the athlete can review it again. The digest does not
-inspect content at an external URL.
+Tournament reads return `acceptance_content` and `acceptance_tokens` for
+`pt` and `en`. Each language's `policies.rules` and
+`policies.cancellation_policy` has a `document` field. It contains
+`version_id` and `original_file_name` when a version has been published.
+An absent upload has a null `document` field.
+
+The token covers declarations, equipment requirements, uploaded document
+descriptors, and legacy policy text and URLs. Registration requires the
+displayed language and token. Publication and registration creation share
+the tournament lock. If the terms have changed, the API returns 409 and
+the athlete must review the updated terms and confirm their choices again.
 
 `RegistrationAcceptance` records the choices, verified user UUID, language,
-server time, and source IP. It does not currently store policy content or
-references to uploaded policy versions.
+server time, source IP, and references to the uploaded policy versions shown
+on the form. Earlier records keep null references. Owner and staff registration
+reads return `rules_version_id` and `cancellation_policy_version_id`.
+Athletes can open recorded versions from the read-only declarations panel.
 
-Staff configuration and registration still use the legacy `rules_text`,
-`rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields.
-Each text and URL is optional. An external document is linked directly and is
-managed outside the application. The policy document API described below is a
-separate part of the ongoing transition. It is not yet connected to registration
-acceptance or the staff configuration form. Final legal wording remains open
-under PRIV-Q1.
+The registration form requests an authorized download when an athlete opens
+an uploaded policy. Until the staff configuration form switches to uploads,
+registration falls back to the legacy URL or text when that policy has no
+uploaded version. Final legal wording remains open under PRIV-Q1.
 
 ### Tags
 

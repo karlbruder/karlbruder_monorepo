@@ -15,6 +15,7 @@ from app.tournaments.schemas import (
     TournamentRead,
     TournamentProductRead,
 )
+from app.tournaments.services.registration_acceptances import current_policy_versions
 from app.tournaments.services.tournament_catalog import (
     list_visible_tournaments,
     build_tournament_read,
@@ -56,7 +57,9 @@ def get_tournament(
     user: Annotated[User | AnonymousUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> TournamentRead:
-    return build_tournament_read(load_visible_tournament(session, tournament_id, user))
+    tournament = load_visible_tournament(session, tournament_id, user)
+    versions = current_policy_versions(session, [tournament_id])[tournament_id]
+    return build_tournament_read(tournament, versions)
 
 
 @router.get("/{tournament_id}/products", response_model=list[TournamentProductRead])

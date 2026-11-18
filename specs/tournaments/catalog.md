@@ -32,7 +32,9 @@ Registration uses catalog products and order items. Staff product configuration 
 
 Staff can upload a rules document and a cancellation-policy document independently. Each is optional. Replacing a document keeps its previous versions. Catalog visibility rules apply when opening any version. A document identifier alone does not grant access.
 
-The policy-document API is implemented as part of issue #88. Registration and the staff configuration screen still use the legacy text and URL fields until the remaining checkpoints are delivered.
+Registration shows the current uploaded versions and records the ones displayed at acceptance.
+The staff configuration screen still edits the legacy text and URL fields during the transition.
+Registration uses those fields as a fallback when the corresponding upload is absent.
 
 ## User flow
 

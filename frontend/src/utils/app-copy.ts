@@ -157,6 +157,8 @@ const english = {
   "Não foi possível enviar a inscrição agora. Tente novamente mais tarde.": "We could not submit the registration now. Please try again later.",
   "conteúdo ainda não disponível.": "content is not yet available.",
   "Consultar": "View",
+  "(abre em outra aba)": "(opens in a new tab)",
+  "Abrindo documento…": "Opening document…",
   "Inscrição recebida": "Registration received",
   "Guarde seu número de inscrição": "Keep your registration number",
   "Participante": "Participant",

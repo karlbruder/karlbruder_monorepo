@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-17
 
 | Field | Value |
 | --- | --- |
@@ -86,9 +86,18 @@ and its file metadata in one transaction.
 
 ## Acceptance submission
 
-Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response. The token detects changes to configured text, URLs, or declaration labels while the form is open. A stale form returns 409 and requires explicit acceptance after refresh. The token does not fetch or preserve linked documents.
+Show each available uploaded policy before the required declarations.
+Open the version displayed on the form with a fresh, authorized download URL.
+During the transition, use the legacy URL or inline text when a policy has no uploaded version.
+If neither is configured for a policy, say its content is unavailable.
 
-The initial RegistrationAcceptance and any required parental document are saved in the registration transaction. Choices, language, source IP and time are retained in acceptance records. Policy links point to externally managed documents. The application does not snapshot their contents. When a policy has both a link and inline text, show the link. Show inline text when there is no link. If neither is available, say the content is not yet available. On changed configuration, clear required choices and ask the athlete to review again.
+Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response.
+The token detects changes to policy versions, configured text and URLs, equipment requirements, and declarations.
+A stale form returns 409. Refresh the displayed content, preserve the entered personal data, and clear the required choices for review and explicit acceptance.
+
+Save the initial RegistrationAcceptance and any required parental document in the registration transaction.
+Retain choices, language, source IP, time, and references to the uploaded versions shown to the athlete.
+Policy replacement leaves earlier acceptance references intact.
 
 ## Lifecycle boundary
 

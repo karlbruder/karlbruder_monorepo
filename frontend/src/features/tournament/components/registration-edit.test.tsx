@@ -56,7 +56,26 @@ it.each([
   fireEvent.click(screen.getByText(summary));
   expect(screen.getByRole("link", { name: "suporte@karlbruder.com" })).toHaveAttribute("href", "mailto:suporte@karlbruder.com");
   expect(screen.getByRole("link", { name: privacy })).toHaveAttribute("href", "/privacy-policy");
+  expect(screen.queryByRole("button", { name: /regulamento aceito|accepted tournament rules/ })).not.toBeInTheDocument();
   expect(screen.getByText(language === "pt" ? "Informações verdadeiras: Não aceita" : "Truthful information: Not accepted")).toBeInTheDocument();
+});
+
+it("opens the accepted rules version from the read-only declarations", async () => {
+  const downloadUrl = "https://files.example.test/accepted-rules.pdf";
+  const request = vi.fn(async () => ({ ok: true, json: async () => ({ download_url: downloadUrl }) }));
+  const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() };
+  vi.stubGlobal("open", vi.fn(() => tab));
+  vi.stubGlobal("fetch", request);
+  renderWithQuery(<RegistrationEdit session={session} tournament={tournament}
+    registration={{ ...registration, rules_version_id: 11, cancellation_policy_version_id: null }}
+    language="en" onBack={() => {}} onSaved={() => {}} />);
+  fireEvent.click(screen.getByText("Review my declarations"));
+  expect(screen.queryByRole("button", { name: /accepted cancellation policy/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /View accepted tournament rules/ }));
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl));
+  expect(request).toHaveBeenCalledWith("/api/tournaments/42/policy-documents/rules/11/download-url", {
+    headers: { Authorization: "Bearer token" },
+  });
 });
 
 

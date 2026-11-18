@@ -429,6 +429,8 @@ class RegistrationRead(BaseModel):
     acknowledges_inherent_risks: bool
     accepts_cancellation_policy: bool
     accepted_at: datetime
+    rules_version_id: int | None
+    cancellation_policy_version_id: int | None
     created_at: datetime
     updated_at: datetime
 

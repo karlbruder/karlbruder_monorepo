@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { RegistrationRequestError, updateRegistrationDetails } from "@/features/tournament/api/tournaments";
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
+import { PolicyDocumentButton } from "@/features/tournament/components/policy-document-button";
 import { RegistrationTags } from "@/features/tournament/components/tournament-tags";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { legalRoutes } from "@/config/legal-routes";
@@ -107,6 +108,13 @@ export function RegistrationEdit({ registration, tournament, session, language, 
       ["acknowledges_inherent_risks", "Ciência dos riscos", "Acknowledgment of risks"],
       ["accepts_cancellation_policy", "Política de cancelamento", "Cancellation policy"],
      ].map(([key, pt, english]) => <li key={key}>{en ? english : pt}: {record[key] ? (en ? "Accepted" : "Aceita") : (en ? "Not accepted" : "Não aceita")}</li>)}</ul>
+      {([
+        ["rules", registration.rules_version_id, en ? "accepted tournament rules" : "regulamento aceito"],
+        ["cancellation_policy", registration.cancellation_policy_version_id, en ? "accepted cancellation policy" : "política de cancelamento aceita"],
+      ] as const).map(([purpose, versionId, label]) => versionId != null && (
+        <PolicyDocumentButton key={`${purpose}-${versionId}`} label={label} tournamentId={tournament.id}
+          purpose={purpose} versionId={versionId} token={session.access_token} language={language} />
+      ))}
       <p>{en ? "If your circumstances change or you have questions about your declarations, contact the organizers at " : "Se suas circunstâncias mudarem ou você tiver dúvidas sobre suas declarações, entre em contato com a organização: "}<a href="mailto:suporte@karlbruder.com">suporte@karlbruder.com</a>.</p>
       <p>{en ? "For requests about personal data, see the " : "Para solicitações sobre dados pessoais, consulte a "}<a href={legalRoutes.privacy}>{en ? "Privacy Policy" : "Política de Privacidade"}</a>.</p>
     </details>}

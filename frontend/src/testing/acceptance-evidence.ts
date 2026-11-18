@@ -1,6 +1,9 @@
+const policies = { rules: { document: null }, cancellation_policy: { document: null } };
+
 export const acceptanceEvidence = {
   "acceptance_content": {
     "pt": {
+      policies,
       "declarations": {
         "accepts_rules": "Li e aceito o regulamento do torneio, incluindo as condições de transmissão oficial e publicação dos resultados.",
         "accepts_data_processing": "Li as informações sobre o tratamento dos dados e a visibilidade de participação e resultados.",
@@ -12,6 +15,7 @@ export const acceptanceEvidence = {
       }
     },
     "en": {
+      policies,
       "declarations": {
         "accepts_rules": "I have read and accept the tournament rules, including the terms for official live coverage and publication of results.",
         "accepts_data_processing": "I have read the information about data processing and visibility of participation and results.",

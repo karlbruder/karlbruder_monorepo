@@ -4,14 +4,21 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
 from app.auth.models import AnonymousUser, User
 from app.auth.supabase.roles import get_application_role
 from app.tournaments.exceptions import RegistrationResourceNotFoundError
 from app.tournaments.models import Tournament
+from .registration_acceptances import (
+    PolicyVersions,
+    build_registration_acceptance_content,
+    calculate_registration_acceptance_digest,
+    current_policy_versions,
+)
 from .tournament_local_dates import TOURNAMENT_LOCAL_TIMEZONE
-from .registration_acceptances import build_registration_acceptance_content, calculate_registration_acceptance_digest
 
 if TYPE_CHECKING:
     from app.tournaments.schemas import TournamentList, TournamentRead
@@ -44,7 +51,9 @@ def load_visible_tournament(
     return tournament
 
 
-def build_tournament_read(tournament: Tournament) -> TournamentRead:
+def build_tournament_read(
+    tournament: Tournament, versions: PolicyVersions | None = None
+) -> TournamentRead:
     from app.tournaments.schemas import TournamentRead
 
     values = {
@@ -57,7 +66,7 @@ def build_tournament_read(tournament: Tournament) -> TournamentRead:
         }
     }
     contents = {
-        language: build_registration_acceptance_content(tournament, language) for language in ("pt", "en")
+        language: build_registration_acceptance_content(tournament, language, versions) for language in ("pt", "en")
     }
     values.update(
         acceptance_content=contents,
@@ -101,9 +110,10 @@ def list_visible_tournaments(
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     items = session.scalars(
         query.order_by(Tournament.starts_at, Tournament.id).limit(limit).offset(offset)
-    )
+    ).all()
+    snapshots = current_policy_versions(session, [item.id for item in items])
     return TournamentList(
-        items=[build_tournament_read(item) for item in items],
+        items=[build_tournament_read(item, snapshots[item.id]) for item in items],
         total=total,
         limit=limit,
         offset=offset,

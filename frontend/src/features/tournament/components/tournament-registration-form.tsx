@@ -17,6 +17,7 @@ import { validateParentalConsentFormFile } from "@/features/tournament/utils/val
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
+import { PolicyDocumentButton } from "@/features/tournament/components/policy-document-button";
 import { TagChoices } from "@/features/tournament/components/tournament-tags";
 import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
 
@@ -239,6 +240,7 @@ export default function TournamentRegistrationForm({
 }: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const [tournament, setTournament] = useState(initialTournament);
+  const acceptanceContent = tournament.acceptance_content[language];
   const [errors, setErrors] = useState<Errors>({});
   const [requestError, setRequestError] = useState<AppCopyKey | null>(null);
   const [pending, setPending] = useState(false);
@@ -481,8 +483,20 @@ export default function TournamentRegistrationForm({
             </div>
           )}
           <div className="registration-documents">
-            <PolicyContent label={t("Regulamento")} text={tournament.rules_text} url={tournament.rules_url} language={language} />
-            <PolicyContent label={t("Política de cancelamento")} text={tournament.cancellation_policy_text} url={tournament.cancellation_policy_url} language={language} />
+            {([
+              ["rules", t("Regulamento"), tournament.rules_text, tournament.rules_url],
+              ["cancellation_policy", t("Política de cancelamento"), tournament.cancellation_policy_text, tournament.cancellation_policy_url],
+            ] as const).map(([purpose, label, text, url]) => {
+              const document = acceptanceContent.policies[purpose].document;
+              return document ? (
+                <PolicyDocumentButton
+                  key={`${purpose}-${document.version_id}`}
+                  label={label} fileName={document.original_file_name}
+                  tournamentId={tournament.id} purpose={purpose} versionId={document.version_id}
+                  token={session.access_token} language={language}
+                />
+              ) : <PolicyContent key={purpose} label={label} text={text} url={url} language={language} />;
+            })}
             {tournament.equipment_requirements && <PolicyContent label={t("Equipamento obrigatório")} text={tournament.equipment_requirements} language={language} />}
           </div>
           <p className="registration-help">{t("Suas declarações e aceites são registrados com sua inscrição.")}</p>
@@ -494,7 +508,7 @@ export default function TournamentRegistrationForm({
               <div key={name}>
                 <label className="registration-choice">
                   <input type="checkbox" name={name} aria-invalid={Boolean(errors[name])} />
-                  <span>{tournament.acceptance_content[language].declarations[name]} *</span>
+                  <span>{acceptanceContent.declarations[name]} *</span>
                 </label>
                 {errors[name] && <span className="registration-field-error">{t(errors[name])}</span>}
               </div>

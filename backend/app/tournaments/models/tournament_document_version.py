@@ -24,5 +24,6 @@ class TournamentDocumentVersion(BaseModel):
     archive_id: Mapped[int] = mapped_column(
         ForeignKey("public.archived_files.id", ondelete="RESTRICT"), nullable=False
     )
+
     document: Mapped[TournamentDocument] = relationship(back_populates="versions")
     archive: Mapped[ArchivedFile] = relationship()
