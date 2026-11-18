@@ -1,7 +1,7 @@
 # Tournament consent and privacy
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-17
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -58,9 +58,11 @@ Acceptance records reference the uploaded policy versions displayed at registrat
 Existing records retain null references. Athletes can open recorded versions alongside their read-only declarations.
 
 The registration form uses server-provided draft declarations in the selected interface language.
-Its submitted token must match the current policy versions, configured text and links, equipment requirements, and declarations.
+Its submitted token must match the current policy versions, equipment requirements, and declarations. During the transition it also covers configured legacy policy text and links.
 On mismatch the athlete reviews the current content and confirms the choices again.
 Personal fields are retained while required choices are cleared.
+
+The application privacy policy stays in the shared footer. In the registration form, append its short title and a new-tab icon to the data-processing declaration. The link is a separate focus target from the checkbox and opens the privacy policy in a new tab. The tournament document card is for tournament files.
 
 ## Delivery boundary
 
@@ -68,7 +70,7 @@ Issue #21 deferred the full consent package to a later issue. PROD-011 defines t
 
 ## Acceptance criteria
 
-- **PRIV-AC-001:** Missing required acceptances prevent completion. Before submitting, athletes see the coverage scope, named results and their audience, plus a link to the privacy policy. No standalone image choice is required or recorded for new registrations.
+- **PRIV-AC-001:** Missing required acceptances prevent completion. Before submitting, athletes see the coverage scope, named results and their audience. They can open the privacy policy from the independent data-processing declaration. No standalone image choice is required or recorded for new registrations.
 - **PRIV-AC-002:** A completed registration retains the acceptance choices, language, time, identity and IP evidence, plus references to the uploaded policy versions shown to the athlete.
 - **PRIV-AC-003:** Public APIs, participant lists, event pages, and routine exports exclude restricted fields.
 - **PRIV-AC-004:** Registration offers no participant-directory opt-out. Authorized platform users see the permitted directory projection, while restricted fields and internal-event boundaries remain protected.

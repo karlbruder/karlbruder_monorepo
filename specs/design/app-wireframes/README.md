@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -16,6 +16,18 @@
 Use **Tela** to choose a screen by journey: home and account, tournament discovery, registration, staff operations, or other future concepts. The initial screen is the signed-in home. The selector numbers follow the journey order. Stable `WF-xx` identifiers in notes and `#WF-xx/state` links remain unchanged, so existing references still open their original screens. Use **Estado** to compare variants, **Celular** to preview a narrow layout, and **Notas da spec** to show source rules. Buttons connect the principal journeys and open illustrative decision dialogs. Browser print can export the current screen and notes.
 
 The controls above the application frame and the spec notes are design-review tools, not proposed product UI. All displayed people, documents, amounts, counts, deadlines, and secondary events are fictional examples. Monomachia's name, longsword discipline, and supplied 17 January 2027 date come from its event spec; venue, final schedule, capacity, registration window, and Pix destination remain configuration inputs. Social is R$ 50, Plena is R$ 100, and Plus is R$ 200. The **Informações não configuradas** state shows unknown values instead of treating examples as final facts.
+
+## Proposed tournament document uploads
+
+In [tournament settings](index.html#WF-12/edit), the document section follows tournament details and tags. Each registration policy has a row with its current file and an action that reveals the upload form. The controls are available after [creating the tournament](index.html#WF-12/create). Choose a sample local file to simulate publishing it.
+
+Review [no documents](index.html#WF-12/policyempty), [upload in progress](index.html#WF-12/policyuploading), [failed replacement](index.html#WF-12/policyerror), and [successful replacement](index.html#WF-12/policysaved). The failed replacement keeps the current document visible and the other document's controls available. See [CAT-008/009](../../tournaments/catalog.md) and [issue #88](https://github.com/karlbruder/karlbruder_monorepo/issues/88).
+
+[Additional documents](index.html#WF-12/policyadditional) have a separate list. Use **Adicionar documento** to enter a title and choose a sample file. The [athlete's tournament details](index.html#WF-02/athlete) and [registration form](index.html#WF-04/adult) link to available files. Registration puts tournament documents in a card after tags and before Safety and participation.
+
+The athlete's document section uses fully clickable tiles with the file title, format, and new-tab icon. The tiles form a grid on desktop and stack at phone widths. Hide the section if there are no files to open. When the section is present, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. Compare [details without documents](index.html#WF-02/documentsmissing) and [registration with one policy missing](index.html#WF-04/documentspartial).
+
+Append the short document name and a new-tab icon to each applicable declaration. The rules and cancellation links open the same file as the document card. The application privacy policy stays in the footer and is also linked from the data-processing declaration. The prototype opens an illustrative preview in a separate tab. See [registration display rules](../../tournaments/registration.md#tournament-documents-and-declarations) and [PRIV-AC-001](../../tournaments/consent-and-privacy.md#acceptance-criteria).
 
 ## Proposed tournament tags
 
@@ -63,7 +75,7 @@ Use the relevant screens as the visual baseline for authorized frontend work. Fo
 | [WF-09 · Review queue](index.html#WF-09/queue) | Staff · first release | [ADM-001/002/004](../../tournaments/administration.md): pending proofs, empty queue, loading, failure and restricted access. ADM-AC-002/006. |
 | [WF-10 · Payment decision](index.html#WF-10/available) | Staff · first release | [PAY-004/005/011/013](../../tournaments/payments-and-confirmation.md), [CAP-003](../../tournaments/capacity-and-waitlist.md): available/full, rejection reason, late Pix, minor evidence, changed capacity or evidence, loading, access failure and notification failure. PAY-AC-005/007/011/012, ADM-AC-003/004. |
 | [WF-11 · Paid waitlist selection](index.html#WF-11/seat) | Staff · later operations interface | [CAP-003/005/009](../../tournaments/capacity-and-waitlist.md): staff selection with/without capacity, no payment reapproval. CAP-AC-004/009. |
-| [WF-12 · Tournament settings](index.html#WF-12/edit) | Staff · later full administration | [CAT-008/009](../../tournaments/catalog.md), [CAP-009](../../tournaments/capacity-and-waitlist.md): create/edit, unknown configuration, closure, refund eligibility, rejected capacity reduction and configuration failure. CAT-AC-007, CAP-AC-007/008. |
+| [WF-12 · Tournament settings](index.html#WF-12/edit) | Staff · tournament administration | [CAT-008/009](../../tournaments/catalog.md), [CAP-009](../../tournaments/capacity-and-waitlist.md). Covers creation, editing, independent document uploads and replacement, registration closure, refund eligibility, and rejected capacity reduction. CAT-AC-007, CAP-AC-007/008. |
 | [WF-13 · Cancellation/refund](index.html#WF-13/confirm) | Participant confirmation and refund status, staff queue and transfer recording | [REG-013/016](../../tournaments/registration.md), [PAY-009/012](../../tournaments/payments-and-confirmation.md): unpaid, paid cancellation, refund pending/completed, staff recording. PAY-AC-008/009/013. |
 | [WF-14 · Results/directory](index.html#WF-14/unavailable) | Audience constrained by event · later concept | [RES-001/003/004](../../tournaments/results.md), [PRIV-006](../../tournaments/consent-and-privacy.md): unavailable/published container, limited authenticated directory, restricted internal event. RES-AC-002/003/004, PRIV-AC-003/004. |
 | [WF-15 · Association](index.html#WF-15/concept) | Member · future concept | [MEM-001–004/006](../../membership/overview.md): reserves space for own membership and dues without inventing financial policy. MEM-AC-001/004. |
@@ -108,7 +120,7 @@ These are existing question IDs, not additional questions or silent answers. Rev
 
 Reference a screen and state in the delivery issue alongside its owning rules and acceptance criteria, for example `WF-05/rejected + PAY-004 + PAY-AC-012`. A wireframe is supporting evidence of the intended interaction, never a substitute for the spec. Add implementation/tests through the normal issue workflow only after the relevant slice is agreed.
 
-Changes to behavior belong in the owning specification and all affected screens in the same review. Pure layout refinements can update these artifacts without inventing product rules. The editable sources are `index.html`, `wireframes.css`, and `wireframes.js`. Review the interactive artifact for its current states and layouts.
+Changes to behavior belong in the owning specification and all affected screens in the same review. Pure layout refinements can update these artifacts without inventing product rules. The editable sources are `index.html`, `wireframes.css`, `wireframes.js`, and [the document preview](document-preview.html). Review the interactive artifact for its current states and layouts.
 
 ## Prototype limits
 

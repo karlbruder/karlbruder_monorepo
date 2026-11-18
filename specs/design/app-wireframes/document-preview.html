@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prévia do documento · Karlbrüder</title>
+  <link rel="stylesheet" href="wireframes.css?v=20261118-7">
+</head>
+<body>
+  <main class="app-body document-preview">
+    <article class="panel">
+      <h1 id="file-title">Prévia do documento</h1>
+      <p class="muted">Arquivo de demonstração do wireframe.</p>
+    </article>
+  </main>
+  <script>
+    const fileName = new URLSearchParams(location.search).get('file');
+    if (fileName) {
+      document.getElementById('file-title').textContent = fileName;
+      document.title = fileName + ' · Karlbrüder';
+    }
+  </script>
+</body>
+</html>

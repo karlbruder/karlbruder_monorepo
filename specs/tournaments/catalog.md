@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-17
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -30,11 +30,13 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
-Staff can upload a rules document and a cancellation-policy document independently. Each is optional. Replacing a document keeps its previous versions. Catalog visibility rules apply when opening any version. A document identifier alone does not grant access.
+## Tournament documents
 
-Registration shows the current uploaded versions and records the ones displayed at acceptance.
-The staff configuration screen still edits the legacy text and URL fields during the transition.
-Registration uses those fields as a fallback when the corresponding upload is absent.
+In staff settings, place documents in a separate section after tournament details and tags. Once a tournament has been saved, staff can upload or replace the rules and cancellation policy independently. Each is optional. Show the current file and reveal the uploader when staff choose to publish or replace a file. Accept PDF, JPEG, or PNG up to 10 MiB per policy. Show progress, success, or failure on the affected document, and keep the current file available until its replacement succeeds. Preserve earlier versions and their acceptance references. See [WF-12](../design/app-wireframes/index.html#WF-12/edit).
+
+Tournament details show a document section when there is at least one file the viewer can open. Each tile shows the document title, file format, and new-tab icon. In a visible section, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. Staff can add named additional documents in a separate list. Eligible signed-in athletes see additional documents when a file is available. Open files in a new tab on demand through an authorized download. Catalog visibility rules apply to the tournament and its policy versions. Guest access and lifecycle rules for additional documents remain open. See [WF-02](../design/app-wireframes/index.html#WF-02/athlete).
+
+Registration records the policy versions displayed at acceptance. During the transition, legacy staff fields remain available and registration can fall back to the configured URL or text. The issue #88 cutover removes both legacy URL and text pairs without backfilling document versions.
 
 ## User flow
 
