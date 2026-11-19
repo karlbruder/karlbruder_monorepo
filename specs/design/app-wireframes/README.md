@@ -8,7 +8,7 @@
 | Status | Draft for product/design review, v0.1 |
 | Application | `app.karlbruder.com` |
 | Scope | Current account, registration and payment journeys, with proposed home and later-capability concepts |
-| Language | Wireframes show Portuguese; issue #21's Monomachia private registration route supports Portuguese and English interface copy |
+| Language | Portuguese screen fixtures and review notes. The application header and staff navigation support Portuguese and English. Issue #21's Monomachia private registration route supports both languages. |
 | Delivery | Offline HTML/CSS/JS artifact under specs; no frontend application changes |
 
 [Open the interactive wireframes](index.html). Open `index.html` in a browser directly, or serve the repository root with `python3 -m http.server 8766 --bind 127.0.0.1` and visit `http://127.0.0.1:8766/specs/design/app-wireframes/`. The artifact uses existing assets from `landing/`, so keep it inside the repository.
@@ -38,16 +38,21 @@ registrations early. Tag assignments stay in the authenticated application.
 Changes do not require notifications or an audit history. Staff check eligibility
 at the event. The notes in the prototype may still describe earlier proposals.
 
-## Visual identity from the landing site
+## Visual identity for the Monomachia review
 
-| Evidence in the repository | Application interpretation |
+This preview follows the guild's visual foundations and shared component guidance. It pairs the dark guild header with light forms, tables, and staff workspaces. The header and event cover use the original guild wordmark and Monomachia artwork. Square edges, thin borders, and a visible keyboard focus ring carry through the public, personal, and staff screens. The phone layout uses a collapsible menu. Dense tables scroll within their own regions. [Web design foundations](../web-design-foundations.md) · [Shared UI components](../shared-ui-components.md) · [Guild wordmark](../../../landing/public/logos/logo_white_with_name.png) · [Monomachia mark](../../../landing/public/monomachia/logo.svg)
+
+**Temporary color exception.** For this Monomachia preview, retain wine `#642226` for established actions and accents, clay `#e19861` for dark-shell navigation accents, and cream `#f8e8cb` for the event cover. Keep the existing hybrid shell and status color roles, with contrast adjustments for text and control boundaries. The guild palette migration is deferred until after Monomachia (KBWD-003–006 and KBUI-002).
+
+Use the appearance icon in the application header to choose **Claro**, **Escuro**, or **Sistema**. The icon shows the selected mode. Light is the default and uses the hybrid presentation. System follows the device appearance, including changes while the preview is open. The theme applies to the review interface and linked document previews. Open the globe menu to switch the application header and staff navigation between **Português** and **English**. Screen fixtures and review notes are in Portuguese. Both controls preserve the current screen, state, and in-progress inputs. The browser remembers both choices where local storage is available.
+
+| Typography role | Preview family and license |
 | --- | --- |
-| [Guild logo](../../../landing/public/logos/logo_white_with_name.png), used by [Header](../../../landing/src/components/Header.js) | Reuse the original white sword/shield and Karlbrüder wordmark in a charcoal application header. Do not redraw or replace the mark. |
-| [About](../../../landing/src/components/About.js), [Training](../../../landing/src/components/Training.js), [Footer](../../../landing/src/components/Footer.js) | Carry forward the dark guild framing and clear white typography. Use light content surfaces for long forms and administrative reading. |
-| [Monomachia styles](../../../landing/src/pages/MonomachiaPage.css) and [banner styles](../../../landing/src/components/Banner.css) | Preserve wine `#642226`, clay `#e19861`, cream `#f8e8cb`, and restrained serif event headings within Monomachia presentation. These are event cues, not a mandate to theme every future event identically. |
-| [Landing typography](../../../landing/src/index.css) and Monomachia's Georgia headings | System sans-serif for forms, labels, and tables; Georgia for event/editorial headings. No remote font requests. |
+| Display headings and featured card titles | Schwager W04 Black is the approved face. A licensed webfont was unavailable for this artifact. Roboto Slab Black is the bundled substitute. It retains a heavy slab silhouette with rounder letterforms and softer corners than Schwager. Line breaks can differ. [Schwager licensing](https://www.myfonts.com/products/black-schwager-127657/licenses) · [Roboto Slab license](fonts/roboto-slab-LICENSE.txt) |
+| Event titles and historical headings | Grenze Gotisch, distributed under the SIL Open Font License 1.1. [Upstream family](https://github.com/google/fonts/tree/main/ofl/grenzegotisch) · [License](fonts/grenze-gotisch-OFL.txt) |
+| Forms, tables, actions, and feedback | Source Sans 3, distributed under the SIL Open Font License 1.1. [Upstream family](https://github.com/adobe-fonts/source-sans) · [License](fonts/source-sans-3-OFL.txt) |
 
-The shared shell is guild-branded. Monomachia remains one event in a reusable catalog. The lighter workspace, spacing, navigation, components, microcopy, and responsive breakpoints are proposed design choices, not new product requirements. State labels include words rather than relying on color alone.
+The preview serves the Google Fonts Latin WOFF2 builds from its local `fonts/` directory. These builds include the Portuguese characters used in the review and require no remote requests.
 
 Use the relevant screens as the visual baseline for authorized frontend work. Follow the latest [application vocabulary](../../taxonomy.md#application-vocabulary). Product specs govern behavior and delivery scope. Illustrative controls, future screens, and fictional values do not authorize new functionality or configuration.
 
@@ -65,6 +70,8 @@ Use the relevant screens as the visual baseline for authorized frontend work. Fo
 | [WF-05 · Pix and proof](index.html#WF-05/initial) | Participant · first release | [PAY-001/003/004/006/010/011](../../tournaments/payments-and-confirmation.md): first upload, replacement, rejection/resubmission, invalid file, late payment. PAY-AC-001/003/006/010/012. |
 | [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
 | [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
+| [WF-24 · My tags](index.html#WF-24/edit) | Participant · proposed | [REG-005/008](../../tournaments/registration.md): editable selection, closed window, save feedback, and a tournament with no tags. |
+| [WF-26 · Tournament athletes](index.html#WF-26/list) | Staff · proposed | [ADM-001/002](../../tournaments/administration.md): list, empty and filtered states, and a link to registration management. |
 | [WF-25 · Manage registration](index.html#WF-25/review) | Staff · registration corrections and tags | [ADM-003/012](../../tournaments/administration.md): correct registration details and manage tags together, with separate saves. |
 | [WF-08 · Edit my registration](index.html#WF-08/edit) | Participant · proposed | [PRIV-005](../../tournaments/consent-and-privacy.md): allowed fields and duplicate conflict; declarations are read-only with contact and privacy links. PRIV-AC-007, REG-AC-017. |
 | [WF-18 · Guild panel](index.html#WF-18/overview) | Admin · proposed | [AUTH-008](../../identity/authentication-and-access.md), [ADM-001](../../tournaments/administration.md). Shared navigation, loading, error and access restriction. [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75). |
@@ -129,6 +136,12 @@ This is a navigation and state-review artifact. It has no authentication, backen
 The payment-review journey reflects existing functionality. Tournament management and user access management are proposed designs. Messaging editors, exports, results publishing, gateway checkout, and detailed membership administration are not designed as ready-to-implement workflows here. PRIV-008 operational controls remain backend/platform requirements beyond these screens.
 
 ## Design verification
+
+On 19 November 2026, Chromium rendered all 25 screens and 133 selectable states at 320, 390, 1440, and 1920 px. The preview stayed within the page width. Desktop and phone visual checks covered the catalog, event details, account access, registration, payments, personal dashboard, and staff workspaces. The checks included the newer tag and tournament document flows and representative empty, error, pending, and success states.
+
+The review exercised the screen and state selectors, width and notes controls, keyboard focus and Escape dismissal for the phone menu and payment dialog, the registration-to-payment journey, and simulated document upload and preview. Chromium loaded the revised CSS and JavaScript, fonts, and logos over loopback and when opening the file directly. Local spec links and representative text, control, and focus contrast were checked. These checks cover the prototype only.
+
+The dark-theme check repeated the 133-state layout sweep at all four widths. Rendered text contrast was sampled across every state in both themes. The header icon menus were checked open across all states in both languages at 320, 390, 768, 1030, 1440, and 1920 px. Keyboard selection, Escape dismissal, click-away dismissal, and mobile sign-in were exercised. Switching preserved the screen, selected state, and an edited registration field. Reload restored both preferences. System followed changes to the emulated device appearance, and document links opened previews in the selected theme.
 
 Checked on 18 October 2026 against the specifications in this checkout: 16 screens and 57 states rendered at desktop (1500 px) and phone (390 px) widths, with no horizontal overflow, broken loaded images, or JavaScript runtime errors. The main registration-to-proof journey and staff decision dialog were exercised, local document links and cited rule IDs were checked, and the preview snapshots available at that time were visually inspected. These checks validate the design artifact only; they do not validate application behavior, accessibility conformance, or product acceptance criteria.
 
