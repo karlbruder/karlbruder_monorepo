@@ -1,7 +1,7 @@
 # Karlbrüder frontend
 
 **Created**: 2026-01-11
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-19
 
 React and TypeScript application built with Vite. Supabase owns authentication.
 FastAPI owns domain rules and data. The public website lives in `landing/`.
@@ -136,6 +136,37 @@ npm run dev
 Open the address printed by Vite, normally `http://localhost:5173`.
 
 For container-based development and shared service configuration, follow the [root setup](../README.md#local-setup-with-docker-compose). Integration limitations are maintained in the [local-development specification](../specs/platform/local-development.md#observed-configuration-and-gaps).
+
+## Monomachia visual baseline
+
+The [application wireframes](../specs/design/app-wireframes/README.md#screen-to-spec-map)
+guide the frontend presentation. The dark guild header and light operational
+surfaces are the default. **Temporary palette exception.** The app retains
+Monomachia wine, clay, and cream until after the event (KBWD-003–006, KBUI-002).
+
+The header offers Light, Dark, and System appearance and Portuguese and English
+language. System follows changes to the device appearance. The app stores both
+choices in local storage on the current origin. A supported `lang` query value
+still takes precedence on entry. The landing site has its own browser preferences
+for now (KBWD-010). Legal document contents remain in Portuguese.
+
+Source Sans 3 and Grenze Gotisch ship as local webfonts. Roboto Slab Black is the
+display substitute while a licensed Schwager W04 Black webfont is unavailable.
+Its rounder letterforms and softer corners can change heading wraps. The
+[font licenses](public/font-licenses/) ship with the application.
+
+| Wireframes | Frontend counterpart |
+| --- | --- |
+| WF-17, WF-07 | Signed-in home and personal registration list |
+| WF-01, WF-02 | Discovery and event-detail visual patterns inform the existing Monomachia entry. The catalog and standalone detail remain proposals. |
+| WF-03 | Sign-in, sign-up, email verification, recovery, and password update |
+| WF-04, WF-05, WF-06 | Registration form, Pix and proof, and status panels within the tournament registration route |
+| WF-08, WF-24 | Participant corrections and tag selection within the existing registration journey |
+| WF-18, WF-19, WF-20, WF-12 | Guild panel navigation, tournament list, settings, deletion confirmation, and document publishing. The tournament list is the current staff entry. |
+| WF-21, WF-22 | User directory with inline role editing and feedback |
+| WF-26, WF-25 | Athlete list and registration management, including staff tag controls |
+| WF-09, WF-10, WF-13 | Payment verification queue and decision, cancellation and refund status, and staff refund recording. Existing access rules and inline confirmations apply. |
+| WF-11, WF-14, WF-15, WF-16 | Paid-waitlist selection, results and directory, membership, and inventory remain concept screens. |
 
 ## Build and checks
 

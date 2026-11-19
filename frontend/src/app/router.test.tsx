@@ -91,7 +91,9 @@ describe('Public legal documents', () => {
     const heading = screen.getByRole('heading', { name: title, level: 1 })
     expect(heading.closest('[lang]')).toHaveAttribute('lang', 'pt-BR')
     expect(screen.getByText(dateLabel)).toHaveAttribute('datetime', dateTime)
-    expect(screen.queryByRole('button', { name: 'English' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Language/ }))
+    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true')
+    expect(heading.closest('[lang]')).toHaveAttribute('lang', 'pt-BR')
   })
 
   it.each([accountRoutes.signIn, accountRoutes.signUp])('links both documents from %s before sign-in', (path) => {
@@ -110,12 +112,33 @@ describe('Account email auth flows', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('group', { name: 'Language / Idioma' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Idioma/ })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /^Idioma/ }))
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(await screen.findByRole('heading', { name: 'Welcome back.' })).toBeInTheDocument()
+  })
+
+  it('remembers the selected appearance and keeps the current form draft', () => {
+    const renderSignIn = () => render(<MemoryRouter initialEntries={[accountRoutes.signIn]}><App /></MemoryRouter>)
+    const view = renderSignIn()
+    const email = screen.getByRole('textbox', { name: 'E-mail' })
+    fireEvent.change(email, { target: { value: 'athlete@example.test' } })
+    const appearance = screen.getByRole('button', { name: 'Aparência' })
+
+    fireEvent.click(appearance)
+    fireEvent.click(screen.getByRole('button', { name: 'Escuro' }))
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(email).toHaveValue('athlete@example.test')
+    expect(appearance).toHaveFocus()
+    view.unmount()
+
+    renderSignIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Aparência' }))
+    expect(screen.getByRole('button', { name: 'Escuro' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('calls signUp from sign-up and shows the check-your-email screen', async () => {

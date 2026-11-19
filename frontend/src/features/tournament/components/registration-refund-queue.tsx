@@ -104,17 +104,35 @@ export function RegistrationRefundQueue({ token, userId, language }: {
     {query.isPending ? <p role="status">{t("Carregando reembolsos...")}</p> :
       query.isError ? <p role="alert">{t("Não foi possível carregar os reembolsos.")}</p> :
       <>
-        {query.data.items.length === 0 ? <p>{t("Nenhum reembolso pendente.")}</p> : <ul className="review-queue">
-          {query.data.items.map(refund => <li key={refund.registration_number}>
-            <div>
-              <strong>{refund.full_name}</strong>
-              <p>{refund.registration_number} · {refund.tournament_name}</p>
-              <p>{formatRefundAmount(refund.amount_owed, language)} · {t("Prazo do reembolso")} {formatRefundDeadline(refund.due_on, language)}</p>
-            </div>
-            <button type="button" disabled={query.isFetching} onClick={() => { setNotice(undefined); setSelected(refund); }}
-              aria-label={`${t("Registrar reembolso realizado")} ${refund.registration_number}`}>{t("Registrar reembolso realizado")}</button>
-          </li>)}
-        </ul>}
+        {query.data.items.length === 0 ? (
+          <div className="operational-empty"><p>{t("Nenhum reembolso pendente.")}</p></div>
+        ) : (
+          <div className="review-table-scroll" role="region" aria-label={t("Reembolsos pendentes")} tabIndex={0}>
+            <table className="review-table">
+              <thead>
+                <tr>
+                  <th scope="col">{language === "en" ? "Athlete" : "Atleta"}</th>
+                  <th scope="col">{language === "en" ? "Registration" : "Inscrição"}</th>
+                  <th scope="col">{t("Prazo do reembolso")}</th>
+                  <th scope="col">{language === "en" ? "Action" : "Ação"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {query.data.items.map(refund => (
+                  <tr key={refund.registration_number}>
+                    <th scope="row">{refund.full_name}</th>
+                    <td><strong>{refund.registration_number}</strong><small>{refund.tournament_name}</small></td>
+                    <td><strong>{formatRefundAmount(refund.amount_owed, language)}</strong><small>{formatRefundDeadline(refund.due_on, language)}</small></td>
+                    <td>
+                      <button type="button" disabled={query.isFetching} onClick={() => { setNotice(undefined); setSelected(refund); }}
+                        aria-label={`${t("Registrar reembolso realizado")} ${refund.registration_number}`}>{t("Registrar reembolso realizado")}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {(offset > 0 || offset + query.data.limit < query.data.total) &&
           <nav className="review-actions" aria-label={t("Reembolsos pendentes")}>
             <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - query.data.limit))}>{t("Anterior")}</button>

@@ -145,7 +145,7 @@ export function StaffAccountPanel({ token, actorId, language }: PanelProps) {
         </p>
       )}
       {showResults && (matches.length === 0
-        ? <p>{labels.empty}</p>
+        ? <div className="operational-empty"><p>{labels.empty}</p></div>
         : <ul className="staff-account-list">{matches.slice(start, start + pageSize).map((account) =>
             <AccountRoleForm key={account.id} account={account} token={token} actorId={actorId} language={language} />,
           )}</ul>)}

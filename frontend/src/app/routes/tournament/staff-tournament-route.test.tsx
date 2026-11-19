@@ -175,6 +175,7 @@ it("asks for deletion confirmation and explains when registrations prevent delet
 it("keeps drafts after validation errors and supports English", async () => {
   fetchMock.mockImplementation(async () => json({ detail: "bad fields" }, 422));
   render(tree("/staff/tournaments/new"));
+  fireEvent.click(screen.getByRole("button", { name: /^Idioma/ }));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Draft" } });
   fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17" } });
@@ -280,6 +281,7 @@ it("localizes validation and server errors in English", async () => {
   let detail: unknown = [{ loc: ["body", "slug"], msg: "invalid" }];
   fetchMock.mockImplementation(async () => json({ detail }, 422));
   render(tree("/staff/tournaments/new"));
+  fireEvent.click(screen.getByRole("button", { name: /^Idioma/ }));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Draft" } });
   fireEvent.change(screen.getByLabelText("Start"), { target: { value: "2027-01-17" } });

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ApplicationFooter } from "@/components/application-footer";
 import { ApplicationHeader } from "@/components/application-header";
+import { useLanguage } from "@/hooks/use-language";
 import { legalRoutes } from "@/config/legal-routes";
 
 const documentTitles = {
@@ -10,6 +11,7 @@ const documentTitles = {
 
 export function LegalDocumentRoute({ documentType }: { documentType: keyof typeof documentTitles }) {
   const title = documentTitles[documentType];
+  const { language, changeLanguage } = useLanguage();
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -20,16 +22,16 @@ export function LegalDocumentRoute({ documentType }: { documentType: keyof typeo
   }, [title]);
 
   return (
-    <div className="application-page" lang="pt-BR">
-      <ApplicationHeader language="pt" />
-      <main className="application-body legal-document">
+    <div className="application-page" lang={language === "en" ? "en" : "pt-BR"}>
+      <ApplicationHeader language={language} onLanguageChange={changeLanguage} />
+      <main className="application-body legal-document" lang="pt-BR">
         <article aria-labelledby="legal-document-title">
           <h1 id="legal-document-title">{title}</h1>
           <p className="muted">Versão preliminar · Vigência em {documentType === "privacy" ? <time dateTime="2026-11-14">14 de novembro de 2026</time> : <time dateTime="2026-11-08">8 de novembro de 2026</time>}</p>
           {documentType === "terms" ? <TermsOfUse /> : <PrivacyPolicy />}
         </article>
       </main>
-      <ApplicationFooter language="pt" />
+      <ApplicationFooter language={language} />
     </div>
   );
 }

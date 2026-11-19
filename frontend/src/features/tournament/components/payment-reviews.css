@@ -3,13 +3,13 @@
 }
 
 .payment-reviews h2 {
-  font-size: 17px;
+  font-size: 1.25rem;
 }
 
 .staff-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 22px;
+  gap: 0 22px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
@@ -18,13 +18,14 @@
   padding: 12px 0;
   font-weight: 600;
   border-bottom: 2px solid transparent;
+  text-underline-offset: .17em;
 }
 
 .staff-nav a.active {
-  border-color: var(--wine);
+  border-color: var(--accent);
 }
 
-.review-actions, .review-search, .review-queue li {
+.review-actions, .review-search {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -33,16 +34,16 @@
 }
 
 .payment-reviews button, .payment-reviews input, .payment-reviews textarea, .payment-reviews select {
-  border: 1px solid #cbd0c6;
-  border-radius: 4px;
+  border: 1px solid var(--control-line);
+
   padding: 12px;
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .payment-reviews button {
-  background: white;
+  background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
   padding: 12px 17px;
 }
@@ -50,14 +51,14 @@
 .payment-reviews label {
   display: grid;
   gap: 7px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .payment-reviews input:not([type="checkbox"]), .payment-reviews textarea, .payment-reviews select {
   width: 100%;
   min-width: 0;
-  background: white;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -67,10 +68,10 @@
 }
 
 .review-search {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 23px;
+
+  padding: var(--panel-space);
   margin: 20px 0;
   justify-content: flex-start;
   align-items: end;
@@ -82,56 +83,80 @@
 
 .review-search button[type="submit"], .review-search button:not([type]) {
   background: var(--wine);
-  color: white;
-  border-color: var(--wine);
+  color: var(--on-shell);
+  border-color: var(--action-line);
 }
 
-.review-queue, .review-documents {
+.review-documents {
   list-style: none;
   padding: 0;
 }
 
-.review-queue {
-  background: white;
+.review-table-scroll {
+  overflow-x: auto;
+  margin: 1rem 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 23px;
+  background: var(--surface);
 }
 
-.review-queue li {
+.review-table {
+  border-collapse: collapse;
+  min-width: 36rem;
+  width: 100%;
+  font-size: var(--text-sm);
+  text-align: start;
+}
+
+.review-table :is(th, td) {
   border-bottom: 1px solid var(--line);
-  padding: 20px 0;
+  padding: .875rem 1rem;
+  text-align: start;
 }
 
-.review-queue li:last-child {
+.review-table thead {
+  background: var(--surface-inset);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.review-table tbody tr:last-child > * {
   border-bottom: 0;
 }
 
-.review-queue p {
-  margin: 4px 0;
-  font-size: 12px;
+.review-table-status {
+  margin-block-start: .25rem;
+}
+
+.review-table td small {
+  display: block;
   color: var(--muted);
 }
 
-.review-queue small {
-  color: var(--muted);
+.review-table td .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
-.review-queue button {
-  color: var(--wine);
+.review-table td .secondary-button:hover {
+  text-decoration: underline;
+}
+
+.review-table .registration-notice {
+  margin: .5rem 0 0;
 }
 
 .review-documents li {
   border: 1px solid var(--line);
-  border-radius: 5px;
+
   padding: 14px;
   margin-bottom: 12px;
-  background: #f9faf6;
+  background: var(--surface-inset);
 }
 
 .review-documents p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin: 6px 0 12px;
 }
 
@@ -149,10 +174,10 @@
 }
 
 .review-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 23px;
+
+  padding: var(--panel-space);
   margin-bottom: 18px;
   overflow-wrap: anywhere;
   min-width: 0;
@@ -167,8 +192,8 @@
   justify-content: space-between;
   gap: 24px;
   padding: 12px 0;
-  border-bottom: 1px solid #eceee8;
-  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
 }
 
 .review-card dl > div:last-child {
@@ -198,14 +223,14 @@
 
 .review-card fieldset > button, .payment-reviews .staff-primary-button {
   background: var(--wine);
-  color: white;
-  border: 1px solid var(--wine);
+  color: var(--on-shell);
+  border: 1px solid var(--action-line);
 }
 
 .review-card fieldset > .review-reject {
-  background: white;
-  color: #842e31;
-  border-color: #b89190;
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger-line);
 }
 
 .payment-reviews .review-check {
@@ -224,11 +249,11 @@
 }
 
 .review-notice {
-  background: #f6eedb;
-  color: #735322;
-  border: 1px solid #e5d6b7;
-  border-left: 3px solid #9f793c;
-  border-radius: 4px;
+  background: var(--amber-tint);
+  color: var(--amber);
+  border: 1px solid var(--amber-line);
+  border-left: 3px solid var(--amber-edge);
+
   padding: 15px 17px;
   margin-bottom: 18px;
 }
@@ -240,11 +265,11 @@
   border-bottom: 1px solid var(--line);
 }
 
-.payment-reviews [role="alert"] {
-  background: #f6e8e6;
-  color: #782e32;
-  border-left: 3px solid #aa5656;
-  border-radius: 4px;
+.payment-reviews :where([role="alert"]:not(.registration-notice)) {
+  background: var(--error-tint);
+  color: var(--danger);
+  border-left: 3px solid var(--danger-edge);
+
   padding: 15px 17px;
 }
 
@@ -256,6 +281,12 @@
   margin: 20px 0 25px;
 }
 
+.staff-page-heading > .staff-primary-button {
+  background: var(--wine);
+  color: var(--on-shell);
+  border: 1px solid var(--action-line);
+}
+
 .staff-page-heading h1 {
   margin: 0;
 }
@@ -265,17 +296,17 @@
   justify-content: center;
   align-items: center;
   padding: 12px 17px;
-  border-radius: 5px;
+
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .staff-tournament-list {
   list-style: none;
-  padding: 0 23px;
+  padding: 0 var(--panel-space);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: white;
+
+  background: var(--surface);
   margin: 0 0 18px;
 }
 
@@ -320,12 +351,12 @@
 
 .staff-tournament-form > p {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .payment-reviews .staff-danger-button {
-  border-color: #b89190;
-  color: #842e31;
+  border-color: var(--danger-line);
+  color: var(--danger);
   background: transparent;
 }
 
@@ -334,10 +365,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .review-card, .review-search {
-    padding: 20px;
+    padding: var(--panel-space);
   }
-  .review-queue, .staff-tournament-list {
-    padding: 0 20px;
+  .staff-tournament-list {
+    padding: 0 var(--panel-space);
   }
   .review-search {
     align-items: stretch;
@@ -384,4 +415,9 @@
   .refund-completion .review-notice {
     margin-bottom: 0;
   }
+}
+
+.staff-delete-panel:has(.staff-danger-button:disabled),
+.staff-delete-panel:has(div > .staff-danger-button) {
+  border-inline-start: 3px solid var(--danger-edge);
 }

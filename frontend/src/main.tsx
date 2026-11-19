@@ -5,11 +5,14 @@ import { createRoot } from 'react-dom/client'
 import '@/app/global.css'
 import AppRouter from '@/app/router'
 import AppProvider from '@/app/provider'
+import { applyAppearance, readAppearance } from '@/hooks/use-appearance'
 import '@/app/app.css'
 
 import { BrowserRouter } from "react-router-dom";
 
 const onReactError = isInitialized() ? reactErrorHandler((error) => console.error(error)) : undefined
+
+applyAppearance(readAppearance())
 
 createRoot(document.getElementById('root')!, {
   onCaughtError: onReactError,

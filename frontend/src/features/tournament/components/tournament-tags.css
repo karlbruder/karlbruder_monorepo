@@ -1,15 +1,27 @@
 .tag-panel { margin-block: 1.25rem; }
 .tag-pills { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; }
-.tag-pills li { border-radius: 999px; background: #efe7df; color: #542a2c; padding: .3rem .7rem; font-weight: 600; }
+.tag-pills li { background: var(--wine-tint); color: var(--accent); padding: .3rem .7rem; font-weight: 600; }
 .tag-choices { border: 0; padding: 0; margin: 1rem 0; }
 .tag-choices legend { font-weight: 700; }
-.tag-choice { display: flex; gap: .7rem; align-items: flex-start; padding: .75rem; border: 1px solid #d7d2cc; border-radius: .35rem; margin-block: .5rem; }
+.tag-choice { display: flex; gap: .7rem; align-items: flex-start; padding: .75rem; border: 1px solid var(--line); margin-block: .5rem; }
 .tag-choice input[type="checkbox"] { flex-shrink: 0; }
 .tag-choice span span { display: block; }
-.tag-definition { padding: 1rem 0; border-bottom: 1px solid #ddd; }
+.tag-definition { padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .tag-definition p { margin: .4rem 0; }
 .tag-editor { display: grid; gap: .75rem; margin-top: 1rem; }
 .tag-editor label { display: grid; gap: .35rem; }
 .tag-editor input, .tag-editor textarea { width: 100%; }
-.tag-athletes { display: grid; gap: 1rem; padding: 0; list-style: none; }
-.tag-athletes li { padding: 1rem; border: 1px solid #ddd; border-radius: .4rem; }
+
+.tag-choice:has(input:checked) {
+  background: var(--wine-tint);
+  border-color: var(--accent);
+}
+
+.tag-choice:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.tag-panel [role="status"] {
+  color: var(--muted);
+}

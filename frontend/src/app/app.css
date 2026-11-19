@@ -9,76 +9,235 @@
 }
 
 .application-header {
-  background: var(--ink);
-  color: white;
+  position: relative;
+  z-index: 2;
+  background: var(--shell);
+  color: var(--on-shell);
+  --focus: var(--clay);
+}
+
+:root[data-theme="dark"] .application-header {
+  border-bottom: 1px solid var(--line);
 }
 
 .application-header-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 30px;
-  min-height: 90px;
-  max-width: 1224px;
-  margin: auto;
-  padding: 17px 32px;
+  gap: 20px;
+  min-height: 83px;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-4) var(--content-gutter);
 }
 
 .application-brand {
-  flex: 0 0 auto;
   display: block;
 }
 
 .application-brand img {
-  width: 174px;
+  width: 10.875rem;
   height: auto;
   display: block;
 }
 
-.application-account {
-  margin-left: auto;
+.application-navigation-content {
   display: flex;
-  gap: 18px;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: var(--text-sm);
+}
+
+.application-navigation-content nav,
+.application-account {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.application-account {
+  margin-inline-start: auto;
   min-width: 0;
 }
 
-.application-header a {
-  color: #d2d5d3;
+.application-navigation-content a {
+  color: var(--shell-muted);
+  text-decoration: none;
+  padding-block: .75rem;
+  border-bottom: 2px solid transparent;
 }
 
-.application-header a:hover {
-  color: white;
+.application-navigation-content a:hover,
+.application-navigation-content a[aria-current="page"] {
+  color: var(--on-shell);
+  border-bottom-color: var(--clay);
 }
 
-.application-header :focus-visible {
-  outline-color: var(--clay);
+.application-tools {
+  grid-column: -2;
+  justify-self: end;
 }
 
 .application-header button {
-  color: white;
+  color: var(--on-shell);
   background: transparent;
-  border: 1px solid #777e79;
-  border-radius: 4px;
+  border: 1px solid #909690;
+  min-height: 44px;
   padding: 8px 14px;
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
-.application-header .app-language-toggle button {
-  min-width: 36px;
-  min-height: 36px;
-  padding: 5px 8px;
+.application-header button:hover {
+  border-color: var(--clay);
 }
 
-.application-header .app-language-toggle button[aria-pressed="true"] {
-  background: white;
-  color: var(--ink);
-  border-color: white;
+.application-preferences {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid #49504d;
+}
+
+.application-header .header-icon-button {
+  display: inline-flex;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  color: var(--shell-muted);
+  border-color: transparent;
+}
+
+.application-header .header-icon-button:hover,
+.application-header .header-icon-button[aria-expanded="true"] {
+  border-color: #909690;
+  background: #333a34;
+  color: var(--on-shell);
+  text-decoration: none;
+}
+
+.application-header .header-icon-button[aria-expanded="true"] {
+  color: var(--clay);
+}
+
+.header-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.header-icon-chevron {
+  width: 12px;
+  height: 12px;
+}
+
+.header-icon-button[aria-expanded="true"] .header-icon-chevron {
+  transform: rotate(180deg);
+}
+
+.preference-popover {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-end: 0;
+  min-width: 10.5rem;
+  padding: 4px;
+  border: 1px solid #909690;
+  background: #292f2a;
+  box-shadow: 0 8px 20px #0005;
+}
+
+.application-header .preference-option {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-color: transparent;
+  text-align: start;
+}
+
+.application-header .preference-option:hover,
+.application-header .preference-option[aria-pressed="true"] {
+  background: #383f38;
+}
+
+.application-header .preference-option[aria-pressed="true"] {
+  color: var(--clay);
+}
+
+.preference-option:focus-visible {
+  outline-offset: -3px;
+}
+
+.preference-option .header-icon-check {
+  margin-inline-start: auto;
+  visibility: hidden;
+}
+
+.preference-option[aria-pressed="true"] .header-icon-check {
+  visibility: visible;
+}
+
+.application-header .application-menu-button {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .application-header-inner {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 4px;
+  }
+
+  .application-brand img {
+    width: min(100%, 9.6875rem);
+  }
+
+  .application-navigation {
+    grid-column: 2;
+  }
+
+  .application-header .application-menu-button {
+    display: inline-flex;
+  }
+
+  .application-menu-button[aria-expanded="false"] + .application-navigation-content {
+    display: none;
+  }
+
+  .application-navigation-content {
+    position: absolute;
+    inset: 100% 0 auto;
+    padding: var(--space-4) var(--content-gutter);
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--shell);
+    border-top: 1px solid #909690;
+    box-shadow: 0 8px 20px #0005;
+  }
+
+  .application-navigation-content nav,
+  .application-account,
+  .application-account .registration-account {
+    margin: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .application-preferences {
+    padding-inline-start: 4px;
+  }
 }
 
 .application-body {
   width: 100%;
-  max-width: 1224px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--content-gutter);
   flex: 1;
 }
 
@@ -89,8 +248,8 @@
   gap: 12px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
-  padding: 18px max(32px, calc((100vw - 1160px) / 2));
+  font-size: var(--text-xs);
+  padding: 18px max(var(--content-gutter), calc((100vw - var(--content-max)) / 2 + var(--content-gutter)));
   margin-top: auto;
 }
 
@@ -102,7 +261,7 @@
 
 .legal-document {
   max-width: 800px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   overflow-wrap: break-word;
 }
 
@@ -122,30 +281,9 @@
   text-decoration: underline;
 }
 
-.app-language-toggle {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.app-language-toggle button {
-  background: transparent;
-  border: 1px solid #c2c7be;
-  border-radius: 4px;
-  min-width: 40px;
-  min-height: 40px;
-  color: inherit;
-}
-
-.app-language-toggle button[aria-pressed="true"] {
-  background: var(--wine);
-  border-color: var(--wine);
-  color: white;
-}
-
 .eyebrow {
-  color: var(--wine);
-  font-size: 10px;
+  color: var(--accent);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 1.7px;
   margin: 0 0 10px;
@@ -172,21 +310,21 @@
 }
 
 .home-registration, .home-shortcuts {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+
   padding: 24px;
   margin-bottom: 18px;
 }
 
 .home-registration h3 {
-  font-size: 17px;
+  font-size: 1.25rem;
 }
 
 .home-registration .screen-link {
   display: inline-block;
   margin-top: 6px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .shortcut-link {
@@ -196,6 +334,7 @@
   gap: 16px;
   padding: 16px 0;
   color: var(--ink);
+  text-decoration: none;
   border-bottom: 1px solid var(--line);
 }
 
@@ -214,13 +353,13 @@
 }
 
 .secondary-button {
-  border: 1px solid #c2c7be;
+  border: 1px solid var(--control-line);
   background: transparent;
   color: var(--ink);
-  border-radius: 5px;
-  min-height: 42px;
+
+  min-height: 44px;
   padding: 10px 17px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .home-shortcuts .secondary-button {
@@ -229,7 +368,7 @@
 
 .app-center, .page {
   min-height: 100vh;
-  padding: 32px;
+  padding: var(--content-gutter);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -238,11 +377,11 @@
 }
 
 .panel {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+
   max-width: 760px;
-  padding: 23px;
+  padding: var(--panel-space);
   width: 100%;
 }
 
@@ -259,7 +398,7 @@
 }
 
 .status-list dt {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .status-list dd {
@@ -268,20 +407,20 @@
 }
 
 .primary-link, .secondary-link {
-  border: 1px solid var(--wine);
-  border-radius: 5px;
+  border: 1px solid var(--action-line);
+
   display: inline-block;
-  font-weight: 600;
+  font-weight: 700;
   padding: 12px 17px;
 }
 
 .primary-link {
   background: var(--wine);
-  color: white;
+  color: var(--on-shell);
 }
 
 .secondary-link {
-  color: var(--wine);
+  color: var(--accent);
   margin-top: 18px;
 }
 
@@ -293,7 +432,7 @@
 
 .health-grid article {
   background: var(--paper);
-  border-radius: 6px;
+
   padding: 16px;
 }
 
@@ -303,45 +442,63 @@
 }
 
 .error-message {
-  background: #f6e8e6;
-  border: 1px solid #e6c6c2;
-  border-left: 3px solid #aa5656;
-  border-radius: 4px;
-  color: #782e32;
+  background: var(--error-tint);
+  border: 1px solid var(--danger-line);
+  border-left: 3px solid var(--danger-edge);
+
+  color: var(--danger);
   padding: 16px;
 }
 
 @media (max-width: 700px) {
-  .application-header-inner {
-    padding: 17px 20px;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .application-brand img {
-    width: 155px;
-  }
-  .application-account {
-    gap: 12px;
-    flex-wrap: wrap;
-  }
   .application-body {
-    padding: 23px 20px;
+    padding: 1.5rem var(--content-gutter);
   }
   .application-footer {
-    padding: 18px 20px;
+    padding: 18px var(--content-gutter);
   }
   .home-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .home-registration, .home-shortcuts {
-    padding: 20px;
-  }
   .app-center, .page {
-    padding: 20px;
+    padding: var(--panel-space);
   }
   .status-list div {
     flex-wrap: wrap;
   }
 }
 
-.home-registrations { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.home-registrations {
+  list-style: none;
+  padding: 0;
+  max-width: 56rem;
+}
+
+.home-registration-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+}
+
+.home-next {
+  padding: 1rem;
+  background: var(--surface-inset);
+  border-inline-start: 3px solid var(--control-line);
+}
+
+.operational-empty {
+  padding: 1.5rem var(--panel-space);
+  border: 1px dashed var(--control-line);
+  background: var(--surface-inset);
+  text-align: center;
+}
+
+.operational-empty p {
+  margin-inline: auto;
+}
+
+.operational-empty p:last-child {
+  margin-bottom: 0;
+}

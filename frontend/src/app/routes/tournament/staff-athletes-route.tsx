@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { getOwnRegistration, getTournament, listStaffRegistrations } from "@/features/tournament/api/tournaments";
+import { RegistrationStatus } from "@/features/tournament/components/registration-status";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
 import "@/features/tournament/components/tournament-registration.css";
 import { TagPills } from "@/features/tournament/components/tournament-tags";
@@ -33,12 +34,56 @@ export function StaffAthletesRoute() {
     {(details.isError || tournament.isError) && <button type="button" onClick={() => navigate(`/staff/tournaments/${tournamentId}/athletes`)}>{en ? "Back" : "Voltar"}</button>}
     {details.data && tournament.data && <RegistrationEdit staff registration={details.data} tournament={tournament.data} session={session!} language={language} onBack={() => navigate(`/staff/tournaments/${tournamentId}/athletes`)} onSaved={() => { void details.refetch(); void query.refetch(); }} />}
   </section>;
-  return <section><Link to={registrationNumber ? `/staff/tournaments/${tournamentId}/athletes` : `/staff/tournaments/${tournamentId}`}>← {registrationNumber ? (en ? "Tournament athletes" : "Atletas do torneio") : (en ? "Tournament" : "Torneio")}</Link>
-    <h1>{en ? "Tournament athletes" : "Atletas do torneio"}</h1>
-    {query.isPending && <p role="status">{en ? "Loading athletes..." : "Carregando atletas..."}</p>}
-    {query.isError && <p role="alert">{en ? "Could not load athletes." : "Não foi possível carregar os atletas."} <button type="button" onClick={() => void query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
-    {!registrationNumber && query.data && <><p>{en ? "Find a registration to manage the athlete’s details and tags." : "Encontre uma inscrição para gerenciar os dados e as tags do atleta."}</p><label>{en ? "Search by name or registration number" : "Buscar por nome ou número da inscrição"}<input value={search} onChange={event => setSearch(event.target.value)} /></label>
-      {matches?.length === 0 && <p>{query.data.length === 0 ? (en ? "No registrations yet." : "Nenhuma inscrição encontrada.") : (en ? "No athletes match your search." : "Nenhum atleta encontrado para esta busca.")}</p>}
-      <ul className="tag-athletes">{matches?.map(item => <li key={item.registration_number}><strong>{item.social_name || item.full_name}</strong><p>{item.registration_number} · {item.registration_status}</p>{item.parental_consent_required && <p className="registration-notice" role="status">{en ? "Signed parental consent form missing. Verify before participation." : "Termo de responsabilidade assinado pendente. Verifique antes da participação."}</p>}<TagPills tags={item.tags} language={language} /><p><Link to={`/staff/tournaments/${encodeURIComponent(tournamentId)}/athletes/${encodeURIComponent(item.registration_number)}`}>{en ? "Manage registration" : "Gerenciar inscrição"}</Link></p></li>)}</ul></>}
-  </section>;
+  const title = en ? "Tournament athletes" : "Atletas do torneio";
+  return (
+    <section aria-labelledby="tournament-athletes-title">
+      <Link to={`/staff/tournaments/${tournamentId}`}>← {en ? "Tournament" : "Torneio"}</Link>
+      <h1 id="tournament-athletes-title">{title}</h1>
+      {query.isPending && <p role="status">{en ? "Loading athletes..." : "Carregando atletas..."}</p>}
+      {query.isError && <p role="alert">{en ? "Could not load athletes." : "Não foi possível carregar os atletas."} <button type="button" onClick={() => void query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
+      {query.data && (
+        <>
+          <p className="muted">{en ? "Find a registration to manage the athlete’s details and tags." : "Encontre uma inscrição para gerenciar os dados e as tags do atleta."}</p>
+          <div className="review-search">
+            <label>
+              {en ? "Search by name or registration number" : "Buscar por nome ou número da inscrição"}
+              <input value={search} onChange={event => setSearch(event.target.value)} />
+            </label>
+          </div>
+          {matches?.length === 0 ? (
+            <div className="operational-empty">
+              <p>{query.data.length === 0 ? (en ? "No registrations yet." : "Nenhuma inscrição encontrada.") : (en ? "No athletes match your search." : "Nenhum atleta encontrado para esta busca.")}</p>
+            </div>
+          ) : (
+            <div className="review-table-scroll" role="region" aria-labelledby="tournament-athletes-title" tabIndex={0}>
+              <table className="review-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{en ? "Athlete" : "Atleta"}</th>
+                    <th scope="col">{en ? "Registration" : "Inscrição"}</th>
+                    <th scope="col">Tags</th>
+                    <th scope="col">{en ? "Action" : "Ação"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matches?.map(item => (
+                    <tr key={item.registration_number}>
+                      <th scope="row">{item.social_name || item.full_name}</th>
+                      <td>
+                        <strong>{item.registration_number}</strong>
+                        <div className="review-table-status"><RegistrationStatus status={item.registration_status} language={language} /></div>
+                        {item.parental_consent_required && <p className="registration-notice" role="status">{en ? "Signed parental consent form missing. Verify before participation." : "Termo de responsabilidade assinado pendente. Verifique antes da participação."}</p>}
+                      </td>
+                      <td><TagPills tags={item.tags} language={language} /></td>
+                      <td><Link className="secondary-button" to={`/staff/tournaments/${encodeURIComponent(tournamentId)}/athletes/${encodeURIComponent(item.registration_number)}`}>{en ? "Manage registration" : "Gerenciar inscrição"}</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
 }

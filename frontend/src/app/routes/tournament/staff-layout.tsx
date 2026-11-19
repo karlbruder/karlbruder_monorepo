@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLanguage } from "@/hooks/use-language";
 import { ApplicationHeader } from "@/components/application-header";
@@ -15,7 +15,10 @@ export function StaffLayout() {
       <ApplicationHeader
         language={language}
         onLanguageChange={changeLanguage}
-        navigation={<Link to="/">{en ? "Home" : "Início"}</Link>}
+        navigation={<>
+          <NavLink to="/" end>{en ? "Home" : "Início"}</NavLink>
+          <NavLink to="/registrations">{en ? "My registrations" : "Minhas inscrições"}</NavLink>
+        </>}
       />
       <main className="application-body payment-reviews">
         <p className="eyebrow">{en ? "Karlbrüder Guild" : "Guilda Karlbrüder"}</p>

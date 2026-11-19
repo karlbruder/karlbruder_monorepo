@@ -1,3 +1,4 @@
+import monomachiaMark from "@/features/tournament/assets/monomachia.svg";
 import { ApplicationHeader } from "@/components/application-header";
 import { ApplicationFooter } from "@/components/application-footer";
 import { useState } from "react";
@@ -149,6 +150,9 @@ export default function TournamentRegistration({
     ? error.message === "http-401" ? "unauthorized" : error.message === "http-404" ? "missing" : "request"
     : tournament === null ? "missing" : null;
 
+  const showEventCover = !session && !registrationNumber && !invalidLink &&
+    !loading && !loadIssue && tournament && /^Monomachia\b/i.test(tournament.name);
+
   return (
     <div className="registration-page" lang={locale(language)}>
       <ApplicationHeader language={language} onLanguageChange={onLanguageChange}>
@@ -162,10 +166,14 @@ export default function TournamentRegistration({
       </ApplicationHeader>
       <main className="registration-main">
         <a className="registration-back" href="/">← {t("Início do torneio")}</a>
-        <div className="registration-intro">
-          <p className="registration-eyebrow">{tournamentId ? tournament?.name ?? "Karlbrüder" : "Monomachia · Karlbrüder"}</p>
-          <h1>{t("Inscrição pessoal")}</h1>
-          <p>{t(registrationNumber ? "Acompanhe o pagamento e a situação da sua inscrição." : "Conheça as informações do torneio antes de se inscrever.")}</p>
+        <div className={showEventCover ? "registration-cover" : "registration-intro"}>
+          <div>
+            {!showEventCover && <p className="registration-eyebrow">{tournamentId ? tournament?.name ?? "Karlbrüder" : "Monomachia · Karlbrüder"}</p>}
+            <h1 className={showEventCover ? "registration-eyebrow" : undefined}>{t("Inscrição pessoal")}</h1>
+            {showEventCover && <h2>{tournament.name}</h2>}
+            <p>{t(registrationNumber ? "Acompanhe o pagamento e a situação da sua inscrição." : "Conheça as informações do torneio antes de se inscrever.")}</p>
+          </div>
+          {showEventCover && <div className="registration-cover-mark"><img src={monomachiaMark} alt="" /></div>}
         </div>
 
         {invalidLink ? (
@@ -211,8 +219,8 @@ export default function TournamentRegistration({
 
             <aside className="registration-summary">
               <section className="registration-card registration-next" aria-labelledby="event-name">
-                <p className="registration-eyebrow">{t("Torneio")}</p>
-                <h2 id="event-name">{tournament.name}</h2>
+                {!showEventCover && <p className="registration-eyebrow">{t("Torneio")}</p>}
+                <h2 id="event-name">{showEventCover ? t("Torneio") : tournament.name}</h2>
                 <p>{t("Datas e horários no fuso do seu navegador.")}</p>
                 <dl className="registration-facts">
                   <div><dt>{t("Início do torneio")}</dt><dd>{eventDate(tournament.starts_at, language)}</dd></div>

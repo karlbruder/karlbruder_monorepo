@@ -367,6 +367,10 @@ body.mobile #prototype {
   min-height: 83px;
 }
 
+:root[data-theme="dark"] .app-header {
+  border-bottom: 1px solid var(--line);
+}
+
 .brand img {
   width: 10.875rem;
   max-width: 100%;

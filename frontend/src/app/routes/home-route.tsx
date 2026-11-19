@@ -1,6 +1,6 @@
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLanguage } from "@/hooks/use-language";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { ApplicationHeader } from "@/components/application-header";
 import { ApplicationFooter } from "@/components/application-footer";
 import { accountRoutes } from "@/config/account-routes";
@@ -13,10 +13,15 @@ export default function HomeRoute() {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const en = language === "en";
   const name = session?.user.user_metadata?.name;
+  const admin = session?.user.app_metadata?.karlbruder_role === "admin";
 
   return (
     <div className="application-page" lang={en ? "en-US" : "pt-BR"}>
-      <ApplicationHeader language={language} onLanguageChange={changeLanguage} />
+      <ApplicationHeader language={language} onLanguageChange={changeLanguage} navigation={<>
+        <NavLink to="/tournaments/registration">Monomachia</NavLink>
+        <NavLink to="/registrations">{en ? "My registrations" : "Minhas inscrições"}</NavLink>
+        {admin && <NavLink to="/staff/tournaments">{en ? "Administration" : "Administração"}</NavLink>}
+      </>} />
       <main className="application-body home-body">
         <div className="page-intro">
           <p className="eyebrow">{en ? "Personal area" : "Área pessoal"}</p>
@@ -27,11 +32,10 @@ export default function HomeRoute() {
           <section aria-labelledby="home-registration-title">
             <p className="eyebrow">{en ? "Your tournament" : "Seu torneio"}</p>
             <h2 id="home-registration-title">{en ? "Registration" : "Inscrição"}</h2>
-            <p><Link to="/registrations">{en ? "My registrations" : "Minhas inscrições"} →</Link></p>
+            <p className="muted">{en ? "Register for the tournament or follow your participation." : "Inscreva-se no torneio ou acompanhe sua participação."}</p>
             <article className="home-registration">
               <p className="eyebrow">Monomachia</p>
               <h3>{t("Inscrição Monomachia")}</h3>
-              <p className="muted">{en ? "Open the tournament to register or follow your registration." : "Acesse o torneio para se inscrever ou acompanhar sua inscrição."}</p>
               <a href="/tournaments/registration" className="screen-link">{t("Inscrição Monomachia")} <span aria-hidden="true">→</span></a>
             </article>
           </section>
@@ -44,7 +48,7 @@ export default function HomeRoute() {
               </Link>
               <button className="secondary-button" type="button" onClick={signOut}>{t("Sair")}</button>
             </section>
-            {session?.user.app_metadata?.karlbruder_role === "admin" && (
+            {admin && (
               <section className="home-shortcuts">
                 <p className="eyebrow">{en ? "Admin only" : "Somente admin"}</p>
                 <h2>{en ? "Guild" : "Guilda"}</h2>

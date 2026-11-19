@@ -7,19 +7,11 @@ import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/us
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
+import { RegistrationStatus } from "@/features/tournament/components/registration-status";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { RegistrationRefundStatus } from "@/features/tournament/components/registration-refund-status";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
-
-function statusLabel(status: string): AppCopyKey {
-  if (status === "awaiting_payment") return "Aguardando pagamento";
-  if (status === "awaiting_payment_confirmation") return "Aguardando confirmação do pagamento";
-  if (status === "confirmed") return "Confirmada";
-  if (status === "waitlist") return "Lista de espera";
-  if (status === "cancelled") return "Cancelada";
-  return "Situação indisponível";
-}
 
 function isTransientRefreshError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
@@ -110,7 +102,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       {transientRefreshError && <p role="alert">{t("Não foi possível atualizar sua inscrição. Tente novamente.")} <button type="button" onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></p>}
       <dl className="registration-status-facts">
         {registration.product_name && <div><dt>{language === "en" ? "Registration type" : "Tipo de inscrição"}</dt><dd>{registration.product_name}</dd></div>}
-        <div><dt>{t("Situação")}</dt><dd><span className={`registration-status registration-status-${registration.registration_status}`}>{t(statusLabel(registration.registration_status))}</span></dd></div>
+        <div><dt>{t("Situação")}</dt><dd><RegistrationStatus status={registration.registration_status} language={language} /></dd></div>
       </dl>
       {registration.product_description && <p>{registration.product_description}</p>}
       {!cancelled && <button type="button" onClick={() => setEditing(true)}>{language === "en" ? "Edit registration details" : "Editar dados da inscrição"}</button>}

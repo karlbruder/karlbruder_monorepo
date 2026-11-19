@@ -30,7 +30,7 @@ export function StaffTournamentListRoute() {
     {query.isLoading && <p role="status">{en ? "Loading tournaments..." : "Carregando torneios..."}</p>}
     {query.isError && <p role="alert">{en ? "Could not load tournaments." : "Não foi possível carregar os torneios."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {query.data && <><ul className="staff-tournament-list">{query.data.items.map(event => <li key={event.id}><Link to={`/staff/tournaments/${event.id}`}><strong>{event.name}</strong><span aria-hidden="true">→</span></Link></li>)}</ul>
-      {query.data.items.length === 0 && <p>{en ? "No tournaments found." : "Nenhum torneio encontrado."}</p>}
+      {query.data.items.length === 0 && <div className="operational-empty"><p>{en ? "No tournaments found." : "Nenhum torneio encontrado."}</p></div>}
       <div className="staff-pagination"><button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 20))}>{en ? "Previous" : "Anterior"}</button>{" "}
       <button disabled={offset + 20 >= query.data.total} onClick={() => setOffset(offset + 20)}>{en ? "Next" : "Próxima"}</button></div></>}
   </section>;

@@ -11,7 +11,7 @@
   align-items: center;
   gap: 16px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .registration-account span {
@@ -28,14 +28,14 @@
 .registration-main {
   margin: 0 auto;
   width: 100%;
-  max-width: 1224px;
-  padding: 32px 32px 48px;
+  max-width: var(--content-max);
+  padding: var(--content-gutter) var(--content-gutter) 3rem;
   flex: 1;
 }
 
 .registration-back {
-  color: var(--wine);
-  font-size: 11px;
+  color: var(--accent);
+  font-size: var(--text-xs);
   display: inline-block;
   margin-bottom: 22px;
 }
@@ -53,8 +53,8 @@
 }
 
 .registration-eyebrow {
-  color: var(--wine);
-  font-size: 10px;
+  color: var(--accent);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 1.7px;
   margin: 0 0 10px;
@@ -74,36 +74,36 @@
 
 .registration-signed-in {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin: 0 0 18px;
 }
 
 .registration-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 23px;
+
+  padding: var(--panel-space);
   margin-bottom: 18px;
   overflow-wrap: anywhere;
 }
 
 .registration-card h2 {
-  font-size: 17px;
+  font-size: 1.25rem;
   margin-top: 0;
 }
 
 .registration-card h3 {
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .registration-next {
-  background: #f0f2eb;
+  background: var(--surface-inset);
 }
 
 .registration-next h2 {
-  font-family: Georgia, serif;
-  font-size: 23px;
-  font-weight: 400;
+  font-family: var(--font-historical);
+  font-size: 1.875rem;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -112,12 +112,12 @@
 }
 
 .registration-facts div, .registration-success-facts div {
-  border-bottom: 1px solid #e2e6dd;
+  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 24px;
   justify-content: space-between;
   padding: 12px 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .registration-facts div:last-child, .registration-success-facts div:last-child {
@@ -138,18 +138,18 @@
 .registration-seat-note {
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin: 18px 0 0;
   padding-top: 16px;
 }
 
 .registration-auth-error, .registration-field-error {
-  color: #782e32;
+  color: var(--danger);
 }
 
 .registration-field-error {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin-top: 3px;
 }
 
@@ -181,8 +181,8 @@
 }
 
 .registration-section h2 span {
-  color: #738269;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -201,7 +201,7 @@
   flex-direction: column;
   gap: 7px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .registration-field label {
@@ -209,11 +209,11 @@
 }
 
 .registration-field input, .registration-field select, .registration-field textarea {
-  background: white;
-  border: 1px solid #cbd0c6;
-  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--control-line);
+
   color: var(--ink);
-  min-height: 42px;
+  min-height: 44px;
   padding: 12px;
   width: 100%;
 }
@@ -224,29 +224,29 @@
 }
 
 .registration-field input[readonly] {
-  background: #f0f2ed;
-  color: #646d62;
+  background: var(--surface-inset);
+  color: var(--muted);
 }
 
 .registration-field input[aria-invalid="true"], .registration-field select[aria-invalid="true"] {
-  border-color: #aa5656;
+  border-color: var(--danger-edge);
 }
 
 .registration-help {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin: 10px 0 0;
 }
 
 .registration-notice {
-  background: #eaf0f2;
-  color: #315465;
-  border: 1px solid #d0dfe5;
-  border-left: 3px solid #5b8191;
-  border-radius: 4px;
+  background: var(--blue-tint);
+  color: var(--blue);
+  border: 1px solid var(--blue-line);
+  border-left: 3px solid var(--blue-edge);
+
   padding: 15px 17px;
   margin-bottom: 18px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .registration-notice p:last-child {
@@ -254,24 +254,24 @@
 }
 
 .registration-notice-error, .registration-notice[role="alert"] {
-  background: #f6e8e6;
-  color: #782e32;
-  border-color: #e6c6c2;
-  border-left-color: #aa5656;
+  background: var(--error-tint);
+  color: var(--danger);
+  border-color: var(--danger-line);
+  border-left-color: var(--danger-edge);
 }
 
 .registration-notice-waitlist {
-  background: #f6eedb;
-  color: #735322;
-  border-color: #e5d6b7;
-  border-left-color: #9f793c;
+  background: var(--amber-tint);
+  color: var(--amber);
+  border-color: var(--amber-line);
+  border-left-color: var(--amber-edge);
 }
 
 .registration-notice-success {
-  background: #e8f0e6;
-  color: #32563d;
-  border-color: #d2dfcd;
-  border-left-color: #538060;
+  background: var(--green-tint);
+  color: var(--green);
+  border-color: var(--green-line);
+  border-left-color: var(--green-edge);
 }
 
 .registration-success-facts .registration-payment-amount {
@@ -281,11 +281,11 @@
 }
 
 .registration-error-summary {
-  background: #f6e8e6;
-  border: 1px solid #e6c6c2;
-  border-left: 3px solid #aa5656;
-  border-radius: 4px;
-  color: #782e32;
+  background: var(--error-tint);
+  border: 1px solid var(--danger-line);
+  border-left: 3px solid var(--danger-edge);
+
+  color: var(--danger);
   margin: 0;
   padding: 15px 17px;
 }
@@ -323,7 +323,7 @@
   display: flex;
   align-items: start;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -344,34 +344,34 @@
 .registration-submit-row p {
   color: var(--muted);
   flex: 1 1 210px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin: 0;
 }
 
 .registration-submit {
   background: var(--wine);
-  border: 1px solid var(--wine);
-  border-radius: 5px;
-  color: white;
-  font-size: 12px;
+  border: 1px solid var(--action-line);
+
+  color: var(--on-shell);
+  font-size: var(--text-sm);
   font-weight: 600;
-  min-height: 42px;
+  min-height: 44px;
   padding: 12px 17px;
 }
 
 .registration-card button:not(.registration-submit) {
   background: transparent;
-  border: 1px solid #c2c7be;
-  border-radius: 5px;
+  border: 1px solid var(--control-line);
+
   color: var(--ink);
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 17px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .registration-card .registration-policy button.registration-policy-open {
   border: 0;
-  color: var(--wine);
+  color: var(--accent);
   font: inherit;
   min-height: 24px;
   overflow-wrap: anywhere;
@@ -381,11 +381,11 @@
 }
 
 .registration-success {
-  border-color: #d2dfcd;
+  border-color: var(--green-line);
 }
 
 .registration-number {
-  color: var(--wine);
+  color: var(--accent);
   display: block;
   font-size: 23px;
   overflow-wrap: anywhere;
@@ -407,15 +407,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #687460;
-  font-size: 11px;
-  border-bottom: 2px solid #d9ded4;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  border-bottom: 2px solid var(--line);
   padding-bottom: 13px;
 }
 
 .registration-progress li[aria-current="step"] {
-  color: var(--wine);
-  border-color: var(--wine);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .registration-progress span {
@@ -424,7 +424,6 @@
   width: 23px;
   height: 23px;
   border: 1px solid currentColor;
-  border-radius: 50%;
   flex: 0 0 auto;
 }
 
@@ -432,12 +431,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: 4px;
+
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
-  background: #eaf0f2;
-  color: #315465;
+  background: var(--blue-tint);
+  color: var(--blue);
 }
 
 .registration-status::before {
@@ -450,18 +449,18 @@
 }
 
 .registration-status-confirmed {
-  color: #23583e;
-  background: #e4efe6;
+  color: var(--green);
+  background: var(--green-tint);
 }
 
 .registration-status-waitlist, .registration-status-awaiting_payment {
-  color: #79511c;
-  background: #f6eedb;
+  color: var(--amber);
+  background: var(--amber-tint);
 }
 
 .registration-status-cancelled {
-  color: #656b69;
-  background: #eaedeb;
+  color: var(--muted);
+  background: var(--gray-tint);
 }
 
 .registration-status-facts {
@@ -470,7 +469,7 @@
 
 .registration-status-facts dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   margin-bottom: 6px;
 }
 
@@ -480,7 +479,7 @@
 
 .registration-payment-proof-summary {
   border: 1px solid var(--line);
-  border-radius: 5px;
+
   padding: 14px;
   margin: 20px 0;
 }
@@ -488,13 +487,13 @@
 .registration-payment-proof-summary p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .registration-payment-proof-form {
-  border: 1px dashed #adb6a6;
-  background: #f9faf6;
-  border-radius: 6px;
+  border: 1px dashed var(--control-line);
+  background: var(--surface-inset);
+
   padding: 25px;
   margin: 18px 0;
   display: grid;
@@ -505,13 +504,13 @@
   border: 0;
   padding: 8px 0;
   background: transparent;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .registration-field input[type="file"]::file-selector-button, .registration-card input[type="file"]::file-selector-button {
-  border: 1px solid #c2c7be;
-  background: white;
-  border-radius: 4px;
+  border: 1px solid var(--control-line);
+  background: var(--surface);
+
   padding: 10px;
   color: var(--ink);
   cursor: pointer;
@@ -522,7 +521,7 @@
   margin-top: 18px;
   background: transparent;
   color: var(--ink);
-  border-color: #c2c7be;
+  border-color: var(--control-line);
 }
 
 .registration-card > form {
@@ -536,28 +535,16 @@
 
 @media (max-width: 700px) {
   .registration-main {
-    padding: 23px 20px 32px;
+    padding: 1.5rem var(--content-gutter) 2rem;
   }
   .registration-layout {
     grid-template-columns: minmax(0, 1fr);
   }
   .registration-card {
-    padding: 20px;
+    padding: var(--panel-space);
   }
   .registration-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .registration-page .application-account {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .registration-account {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  .registration-account span {
-    max-width: 140px;
   }
   .registration-facts div, .registration-success-facts div {
     gap: 12px;
@@ -566,7 +553,7 @@
     gap: 8px;
   }
   .registration-progress li {
-    font-size: 10px;
+    font-size: var(--text-xs);
     gap: 5px;
   }
   .registration-progress span {
@@ -574,7 +561,7 @@
     width: 20px;
   }
   .registration-payment-proof-form {
-    padding: 20px;
+    padding: var(--panel-space);
   }
 }
 
@@ -583,7 +570,7 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem 0;
-  border-top: 1px solid #d7dcd3;
+  border-top: 1px solid var(--line);
 }
 
 .registration-option input {
@@ -601,6 +588,90 @@
 }
 
 .registration-card button.registration-danger {
-  border-color: #b89190;
-  color: #842e31;
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.registration-cover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .32fr);
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.625rem;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: var(--cream);
+  color: var(--event-ink);
+  border: 1px solid var(--event-border);
+  border-top: 4px solid var(--wine);
+}
+
+.registration-cover .registration-eyebrow {
+  color: var(--wine);
+  font-family: var(--font-body);
+}
+
+.registration-cover h2 {
+  max-width: 24ch;
+  font-family: var(--font-historical);
+  font-size: clamp(2.25rem, 5.8vw, 4.5rem);
+  font-weight: 700;
+  line-height: .98;
+}
+
+.registration-cover p:last-child {
+  color: var(--event-muted);
+  margin-bottom: 0;
+}
+
+.registration-cover-mark {
+  border-inline-start: 1px solid var(--event-border);
+  padding-inline-start: 1rem;
+  text-align: center;
+}
+
+.registration-cover-mark img {
+  width: min(100%, 9rem);
+  height: auto;
+  vertical-align: middle;
+}
+
+@media (max-width: 700px) {
+  .registration-cover {
+    grid-template-columns: minmax(0, 1fr) 4.25rem;
+    gap: .75rem;
+  }
+
+  .registration-cover-mark {
+    padding-inline-start: .5rem;
+  }
+
+  .registration-progress li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .registration-progress li span {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+.registration-edit > h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+  font-weight: 900;
+  margin-block: 1rem .5rem;
+}
+
+.registration-edit > button:first-child {
+  padding: .375rem 0;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+}
+
+.registration-edit form + .registration-card,
+.registration-edit details.registration-card {
+  margin-top: 1.25rem;
 }

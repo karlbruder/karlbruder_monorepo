@@ -131,6 +131,7 @@ it("retries a failed directory load and preserves the draft when saving fails in
       ? json({ detail: "provider unavailable" }, 503)
       : json({ users: [ownAccount], next_page: null }));
   renderRoute();
+  fireEvent.click(screen.getByRole("button", { name: /^Idioma/ }));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not load user accounts.");
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));

@@ -185,6 +185,7 @@ it("uses English labels and provides guild panel navigation from home", async ()
   expect(screen.getByText("Guilda Karlbrüder")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Conferência de pagamentos" }));
   await screen.findByRole("button", { name: "Revisar T1-001" });
+  fireEvent.click(screen.getByRole("button", { name: /^Idioma/ }));
   fireEvent.click(screen.getByRole("button", { name: "English" }));
   expect(screen.getByText("Karlbrüder Guild")).toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: "Guild panel" })).toBeInTheDocument();

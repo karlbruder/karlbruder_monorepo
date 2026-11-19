@@ -1,8 +1,8 @@
 .staff-account-search {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 23px;
+
+  padding: var(--panel-space);
   margin: 24px 0 18px;
 }
 
@@ -13,17 +13,17 @@
 }
 
 .staff-account-card {
-  padding: 23px;
+  padding: var(--panel-space);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: white;
+
+  background: var(--surface);
   margin-bottom: 18px;
   overflow-wrap: anywhere;
 }
 
 .staff-account-card > p {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .staff-role-form {
@@ -52,6 +52,6 @@
 
 @media (max-width: 700px) {
   .staff-account-search, .staff-account-card {
-    padding: 20px;
+    padding: var(--panel-space);
   }
 }

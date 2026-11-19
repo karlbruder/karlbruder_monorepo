@@ -20,12 +20,32 @@ export function PaymentReviewQueue({ token, userId, language, onReview }: {
     </form>
     {query.isPending ? <p role="status">{t("Carregando análises...")}</p> : query.isError ? <p role="alert">{t("Não foi possível carregar as análises.")}</p> : <>
       <p>{t("Comprovantes aguardando análise")}: {query.data.total}</p>
-      {query.data.items.length === 0 ? <p>{t("Nenhum comprovante pendente.")}</p> : <ul className="review-queue">
-        {query.data.items.map(item => <li key={item.registration_number}>
-          <div><strong>{item.full_name}</strong><p>{item.registration_number} · {item.tournament_name}</p><small>{t("Enviado em")}: {new Date(item.submitted_at).toLocaleString(language)}</small></div>
-          <button onClick={() => onReview(item.registration_number)} aria-label={`${t("Revisar")} ${item.registration_number}`}>{t("Revisar")}</button>
-        </li>)}
-      </ul>}
+      {query.data.items.length === 0 ? (
+        <div className="operational-empty"><p>{t("Nenhum comprovante pendente.")}</p></div>
+      ) : (
+        <div className="review-table-scroll" role="region" aria-label={t("Comprovantes aguardando análise")} tabIndex={0}>
+          <table className="review-table">
+            <thead>
+              <tr>
+                <th scope="col">{language === "en" ? "Athlete" : "Atleta"}</th>
+                <th scope="col">{language === "en" ? "Registration" : "Inscrição"}</th>
+                <th scope="col">{t("Enviado em")}</th>
+                <th scope="col">{language === "en" ? "Action" : "Ação"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {query.data.items.map(item => (
+                <tr key={item.registration_number}>
+                  <th scope="row">{item.full_name}</th>
+                  <td><strong>{item.registration_number}</strong><small>{item.tournament_name}</small></td>
+                  <td>{new Date(item.submitted_at).toLocaleString(language)}</td>
+                  <td><button onClick={() => onReview(item.registration_number)} aria-label={`${t("Revisar")} ${item.registration_number}`}>{t("Revisar")}</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <nav className="review-actions" aria-label={t("Comprovantes aguardando análise")}>
         <button disabled={offset === 0 || query.isFetching} onClick={() => setOffset(Math.max(0, offset - 20))}>{t("Anterior")}</button>
         <span>{offset + (query.data.total ? 1 : 0)}–{Math.min(offset + query.data.items.length, query.data.total)} / {query.data.total}</span>
