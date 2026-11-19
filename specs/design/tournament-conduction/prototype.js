@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const demo = window.ConductionDemo;
+  const sport = window.ConductionSports;
   const $ = id => document.getElementById(id);
   const escape = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[character]));
   const arenaLabel = arena => `Arena ${arena.number}${arena.name ? ` · ${arena.name}` : ''}`;
@@ -13,10 +14,23 @@
   let batchPreview = null;
   let drafts = {};
   let menuOpen = false;
+  let audience = 'admin';
+  const sessionKey = 'kb-conduction-fictional-session-v3';
   const state = () => events.get(activeEvent);
   const personName = id => state().participants.find(person => person.id === id)?.name || 'Participante não encontrado';
   const route = id => `#${id}/${scenarioKey}`;
   const field = (id, label, value, extra = '') => `<label for="${id}">${label}<input id="${id}" name="${id}" data-draft value="${escape(value)}" ${extra}></label>`;
+  const views = window.createConductionViews({state,escape,badge,route,notify,render,audience:() => audience,drafts:() => drafts});
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(sessionKey));
+    if (saved?.version === 3 && Array.isArray(saved.events) && saved.events.some(([id]) => id === saved.activeEvent)) {
+      events.clear(); saved.events.forEach(([id,value]) => { delete value.pendingBound; sport.ensure(value); events.set(id,value); });
+      activeEvent = saved.activeEvent; scenarioKey = state().initialScenario; audience = saved.audience || 'admin';
+    }
+  } catch { /* A disabled or cleared browser session starts a fresh fictional demo. */ }
+  function persist() {
+    try { sessionStorage.setItem(sessionKey,JSON.stringify({version:3,events:[...events],activeEvent,audience})); } catch { /* Storage is optional for this offline review. */ }
+  }
 
   function notify(text, error = false) {
     $('notice').className = `notice${error ? ' error' : ''}`;
@@ -66,7 +80,7 @@
       ${!current.arenas.length ? '<p class="callout">Configure uma Arena na preparação antes de distribuir e publicar lutas.</p>' : ''}
       <div class="actions"><button type="button" data-action="prepare-round" ${published || current.participants.filter(person => person.status === 'ACTIVE').length < 2 ? 'disabled' : ''}>${current.matches.length ? 'Recriar sugestão inicial' : 'Preparar primeira rodada'}</button><button type="button" data-action="allocate" ${published || !current.matches.length ? 'disabled' : ''}>Distribuir lutas entre Arenas</button><button type="button" class="primary" data-action="publish" ${published || !current.matches.length ? 'disabled' : ''}>Publicar rodada revisada</button></div>
       <p class="helper">A distribuição usa as Arenas na sequência, sem sorteio. A publicação preserva os confrontos e libera a agenda para a audiência permitida do evento.</p></section>
-      <section class="panel"><h3>Próximas etapas esportivas</h3><p class="muted">A próxima rodada suíça depende dos resultados oficiais da anterior. Classificação, avanço e condução das lutas serão demonstrados na próxima etapa desta prévia.</p><button type="button" disabled>Preparar rodada 2</button></section><div class="actions"><a href="${route('COND-WF-04')}">Ver filas das Arenas →</a></div>`;
+      <section class="panel"><h3>Próximas etapas esportivas</h3><p class="muted">A próxima rodada depende dos resultados oficiais da anterior. O roteiro preparado permite revisar as sete rodadas e o avanço à final.</p><a href="${route('COND-WF-07')}">Ver avanço e rodadas preparadas →</a></section><div class="actions"><a href="${route('COND-WF-04')}">Ver filas das Arenas →</a></div>`;
   }
 
   function queues() {
@@ -74,33 +88,48 @@
     if (!current.arenas.length) return '<div class="empty"><h3>Configure as Arenas primeiro</h3><p>Uma Arena precisa de número. O nome é opcional.</p><a href="' + route('COND-WF-01') + '">Voltar à preparação →</a></div>';
     if (current.roundStatus !== 'PUBLISHED') return `<div class="empty"><h3>A rodada ainda não foi publicada</h3><p>Revise os confrontos e distribua as lutas para liberar as filas e chamadas.</p><a href="${route('COND-WF-03')}">Revisar rodada →</a></div>`;
     return `<p class="muted">Chame os atletas da próxima luta de cada Arena. A ordem dos confrontos permanece preservada.</p><div class="queue-grid">${current.arenas.map(arena => {
-      const queue = current.matches.filter(match => match.arenaId === arena.id);
-      const called = queue.find(match => match.status === 'CALLED');
-      return `<section class="queue"><h3>${escape(arenaLabel(arena))}</h3><p class="small muted">${queue.length} ${queue.length === 1 ? 'luta na fila' : 'lutas na fila'}</p><ol>${queue.map(match => `<li class="${match.status === 'CALLED' ? 'called' : ''}"><span class="small muted">Luta ${match.order} · Rodada 1</span><p class="athletes">${escape(personName(match.athleteA))}<br><span class="small muted">×</span><br>${escape(personName(match.athleteB))}</p>${badge(match.status === 'CALLED' ? 'Atletas chamados' : 'Aguardando chamada', match.status === 'CALLED' ? 'good' : '')}${[match.athleteA,match.athleteB].some(id => !current.participants.find(person => person.id === id)?.present) ? '<span class="subline">Há presença ainda não marcada. Nenhum WO foi declarado.</span>' : ''}</li>`).join('') || '<li class="muted">Nenhuma luta atribuída.</li>'}</ol><div class="actions"><button type="button" class="primary" data-call="${arena.id}" ${called || !queue.length ? 'disabled' : ''}>${called ? 'Atletas já chamados' : 'Chamar próxima luta'}</button>${called ? '<button type="button" disabled>Iniciar luta · próxima etapa</button>' : ''}</div></section>`;
-    }).join('')}</div><p class="helper">A chamada não cria um resultado. Cronômetro, bounds e confirmação da luta ainda não estão disponíveis nesta prévia.</p>`;
+      const queue = current.matches.filter(match => match.arenaId === arena.id && match.phase === current.phase && match.round === current.currentRound && !match.duel);
+      const called = queue.find(match => ['CALLED','RUNNING','PAUSED','AWAITING_CONFIRMATION'].includes(match.status));
+      return `<section class="queue"><h3>${escape(arenaLabel(arena))}</h3><p class="small muted">${queue.length} ${queue.length === 1 ? 'luta na fila' : 'lutas na fila'}</p><ol>${queue.map(match => `<li class="${match.status === 'CALLED' ? 'called' : ''}"><span class="small muted">Luta ${match.order} · Rodada ${match.round}</span><p class="athletes">${escape(personName(match.athleteA))}<br><span class="small muted">×</span><br>${escape(personName(match.athleteB))}</p>${badge(sport.statusLabels[match.status], match.status === 'FINALIZED' ? 'good' : '')}${[match.athleteA,match.athleteB].some(id => !current.participants.find(person => person.id === id)?.present) ? '<span class="subline">Há presença ainda não marcada. Nenhum WO foi declarado.</span>' : ''}</li>`).join('') || '<li class="muted">Nenhuma luta atribuída.</li>'}</ol><div class="actions"><button type="button" class="primary" data-call="${arena.id}" ${called || !queue.some(match => match.status === 'SCHEDULED') ? 'disabled' : ''}>${called ? 'Arena ocupada' : 'Chamar próxima luta'}</button>${called ? `<button type="button" data-sport="open" data-match="${called.id}">Operar luta</button>` : ''}</div></section>`;
+    }).join('')}</div><p class="helper">A chamada não cria um resultado. A operação do combate registra bounds e confirma o resultado separadamente.</p>`;
   }
 
   function sourceLink(id) {
+    if (id.startsWith('RES-')) return demo.sources.results + (id.includes('-AC-') ? '#acceptance-criteria' : '#rules');
     if (id.startsWith('MONO-')) return demo.sources.event + (id.includes('-AC-') ? '#acceptance-criteria' : '#conduction-rules');
     if (id.startsWith('PRIV-')) return demo.sources.privacy + '#rules';
     return demo.sources.conduction + (id.includes('-AC-') ? '#acceptance-criteria' : '#rules');
   }
 
   function render(focusHeading = false) {
+    sport.refresh(state());
+    persist();
     const screen = demo.screens.find(item => item.id === screenId);
     const activeInput = document.activeElement?.id;
+    const focusedAction = document.activeElement?.dataset.sport;
+    const focusedBound = document.activeElement?.dataset.bound;
+    const focusedMatch = document.activeElement?.dataset.match;
     $('screen-picker').value = screenId;
     $('scenario-picker').value = scenarioKey;
-    $('event-picker').innerHTML = [...events].map(([id, value]) => `<option value="${id}" ${id === activeEvent ? 'selected' : ''}>${escape(value.event.name)}</option>`).join('');
-    $('event-status').textContent = state().roundStatus === 'PUBLISHED' ? 'Rodada 1 publicada' : 'Em preparação';
-    $('section-links').innerHTML = demo.screens.map(item => `<a href="${route(item.id)}" ${item.id === screenId ? 'aria-current="page"' : ''}>${item.title}</a>`).join('');
+    $('audience-picker').value = audience;
+    $('audience-label').textContent = audience === 'admin' ? 'Equipe (admin)' : audience === 'member' ? 'Membro / jogador · consulta' : 'Visitante / espectador · consulta';
+    const allowed = sport.allowed(state(),audience);
+    document.querySelector('.event-context').hidden = !allowed;
+    document.querySelector('.app-footer span').textContent = audience === 'admin' ? 'Acesso administrativo em todos os eventos' : 'Consulta esportiva · somente leitura';
+    $('event-picker').innerHTML = allowed ? [...events].filter(([,value]) => sport.allowed(value,audience)).map(([id, value]) => `<option value="${id}" ${id === activeEvent ? 'selected' : ''}>${escape(value.event.name)}</option>`).join('') : '';
+    $('event-status').textContent = state().published ? 'Resultado final publicado' : state().roundStatus === 'PUBLISHED' ? `${state().phase === 'final' ? 'Final' : 'Classificatória'} · Rodada ${state().currentRound}` : 'Em preparação';
+    $('section-links').innerHTML = demo.screens.filter(item => audience === 'admin' || !['COND-WF-01','COND-WF-02','COND-WF-05','COND-WF-08'].includes(item.id)).map(item => `<a href="${route(item.id)}" ${item.id === screenId ? 'aria-current="page"' : ''}>${item.title}</a>`).join('');
     $('section-links').classList.toggle('open', menuOpen);
     $('menu-toggle').setAttribute('aria-expanded', String(menuOpen));
-    const body = state().serviceError ? '<div class="empty"><h3 class="error-title">Não foi possível carregar esta visão</h3><p>O torneio continua selecionado. Tente novamente para retomar a preparação.</p><button type="button" data-action="retry">Tentar novamente</button></div>' : ({'COND-WF-01':preparation, 'COND-WF-02':participants, 'COND-WF-03':round, 'COND-WF-04':queues}[screenId])();
-    $('screen-content').innerHTML = `<div class="page-title"><p class="eyebrow">Condução do torneio</p><h2 id="screen-heading" tabindex="-1">${screen.heading}</h2><p class="event-title">${escape(state().event.name)}</p></div>${body}`;
-    $('spec-notes').innerHTML = `<section><h2>Tela e estado</h2><p><strong>${screen.id}</strong><br>${screen.title}<br>Origem: ${demo.scenarioLabels[scenarioKey]}</p><p>${screen.note}</p></section><section><h2>Regras e critérios</h2><div class="rule-links">${[...screen.rules,...screen.acceptance].map(id => `<a href="${sourceLink(id)}" target="_blank" rel="noopener">${id}</a>`).join('')}</div></section><section><h2>Limites desta etapa</h2><p>Preparação, presença, primeira rodada e chamadas com dados fictícios. Sem autenticação, serviços ou resultados reais.</p><p>A formação de pares é um cenário revisável da primeira rodada. Não é um algoritmo suíço de produção.</p><p><a href="README.md">Como revisar a prévia ↗</a></p><p><a href="${demo.sources.access}#authorization-rules" target="_blank" rel="noopener">Acesso global dos admins ↗</a></p></section>`;
+    const body = !allowed ? views.view(screenId) : state().serviceError ? '<div class="empty"><h3 class="error-title">Não foi possível carregar esta visão</h3><p>O torneio continua selecionado. Tente novamente para retomar a preparação.</p><button type="button" data-action="retry">Tentar novamente</button></div>' : views.view(screenId) ?? ({'COND-WF-01':preparation, 'COND-WF-02':participants, 'COND-WF-03':round, 'COND-WF-04':queues}[screenId])();
+    $('screen-content').innerHTML = `<div class="page-title"><p class="eyebrow">Condução do torneio</p><h2 id="screen-heading" tabindex="-1">${screen.heading}</h2>${allowed ? `<p class="event-title">${escape(state().event.name)} · ${state().visibility === 'internal' ? 'Interno' : 'Não interno'}</p>` : ''}</div>${body}`;
+    $('spec-notes').innerHTML = `<section><h2>Tela e estado</h2><p><strong>${screen.id}</strong><br>${screen.title}<br>Origem: ${demo.scenarioLabels[scenarioKey]}</p><p>${screen.note}</p></section><section><h2>Regras e critérios</h2><div class="rule-links">${[...screen.rules,...screen.acceptance].map(id => `<a href="${sourceLink(id)}" target="_blank" rel="noopener">${id}</a>`).join('')}</div></section><section><h2>Limites da prévia</h2><p>Dados fictícios e sessão local recuperável ao recarregar. Reiniciar cenário limpa suas alterações. Sem autenticação, sincronização entre dispositivos ou serviços reais.</p><p>Rodadas preparadas servem ao roteiro. Não são um algoritmo suíço de produção.</p><p><a href="README.md">Como revisar a prévia ↗</a></p><p><a href="${demo.sources.access}#authorization-rules" target="_blank" rel="noopener">Acesso global dos admins ↗</a></p></section>`;
     if (focusHeading) { $('screen-heading').focus({preventScroll:true}); window.scrollTo({top:0,behavior:'auto'}); }
     else if (activeInput && document.getElementById(activeInput)) document.getElementById(activeInput).focus({preventScroll:true});
+    else if (focusedAction) {
+      const replacement = [...document.querySelectorAll('[data-sport]')].find(element => element.dataset.sport === focusedAction && element.dataset.bound === focusedBound && element.dataset.match === focusedMatch && !element.disabled);
+      (replacement || $('screen-heading')).focus({preventScroll:true});
+    }
   }
 
   function navigate() {
@@ -125,6 +154,7 @@
   $('scenario-picker').innerHTML = Object.entries(demo.scenarioLabels).map(([id,label]) => `<option value="${id}">${label}</option>`).join('');
   document.querySelector('.skip').addEventListener('click', event => { event.preventDefault(); $('workspace').focus(); $('workspace').scrollIntoView({block:'start'}); });
   $('screen-picker').addEventListener('change', event => { location.hash = route(event.target.value); });
+  $('audience-picker').addEventListener('change', event => { audience = event.target.value; $('notice').hidden = true; if (audience !== 'admin' && ['COND-WF-01','COND-WF-02','COND-WF-05','COND-WF-08'].includes(screenId)) { screenId = 'COND-WF-09'; history.replaceState(null,'',route(screenId)); } render(true); });
   $('scenario-picker').addEventListener('change', event => { location.hash = `#${screenId}/${event.target.value}`; });
   $('event-picker').addEventListener('change', event => { activeEvent = event.target.value; scenarioKey = state().initialScenario; history.replaceState(null,'',route(screenId)); drafts = {}; batchPreview = null; $('notice').hidden = true; render(); });
   $('reset-demo').addEventListener('click', () => {
@@ -159,12 +189,16 @@
     }
   });
   document.addEventListener('change', event => {
+    if (event.target.id === 'phase-picker') { state().viewPhase = event.target.value; render(); return; }
+    if (event.target.id === 'match-picker') { state().selectedMatchId = event.target.value; render(); return; }
+    if (event.target.matches('[data-draft]')) drafts[event.target.id] = event.target.value;
     if (!event.target.matches('[data-presence]')) return;
     demo.setPresence(state(), event.target.dataset.presence, event.target.checked);
     const name = personName(event.target.dataset.presence);
     render(); notify(`Presença de ${name}: ${event.target.checked ? 'marcada' : 'não marcada'}. Inscrição e resultados preservados.`);
   });
   document.addEventListener('submit', event => {
+    if (['bound-form','edit-bound-form'].includes(event.target.id)) { event.preventDefault(); try { const message = views.submit(event.target.id); render(); notify(message); } catch (error) { notify(error.message,true); } return; }
     if (!['event-form','arena-form','participant-form','batch-form'].includes(event.target.id)) return;
     event.preventDefault();
     try {
@@ -177,6 +211,8 @@
     } catch (error) { notify(error.message, true); }
   });
   document.addEventListener('click', event => {
+    const sportButton = event.target.closest('[data-sport]');
+    if (sportButton && !sportButton.disabled) { try { const message = views.handle(sportButton.dataset.sport,sportButton); render(); if (message) notify(message); } catch (error) { notify(error.message,true); } return; }
     const button = event.target.closest('[data-action],[data-call]');
     if (!button || button.disabled) return;
     try {
@@ -196,5 +232,13 @@
     } catch (error) { notify(error.message, true); }
   });
   window.addEventListener('hashchange', navigate);
+  window.addEventListener('pagehide', persist);
+  setInterval(() => {
+    const before = state().matches.map(match => match.status).join(',');
+    sport.refresh(state());
+    if (before !== state().matches.map(match => match.status).join(',')) { render(); notify('Tempo encerrado. Revise e confirme o resultado.'); return; }
+    const match = views.selected(); const clock = $('match-clock');
+    if (clock && match) clock.textContent = views.seconds(match.duel ? sport.clock(match) : Math.max(0,180-sport.clock(match)));
+  },250);
   navigate();
 })();

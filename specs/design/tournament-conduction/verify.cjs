@@ -171,19 +171,27 @@ test('all named review scenarios have valid fixture references except the intent
     assert.equal(new Set(state.participants.map(person => person.id)).size, state.participants.length);
     assert.equal(new Set(state.arenas.map(arena => arena.id)).size, state.arenas.length);
     if (key === 'conflict') assert.ok(demo.pairingErrors(state).length);
-    else assert.deepEqual(demo.pairingErrors(state), []);
+    else if (!state.matches.some(match => match.phase !== 'qualification' || match.round !== 1)) assert.deepEqual(demo.pairingErrors(state), []);
+    for (const match of state.matches) {
+      assert.ok(state.participants.some(person => person.id === match.athleteA));
+      assert.ok(state.participants.some(person => person.id === match.athleteB));
+      if (key !== 'conflict') assert.notEqual(match.athleteA,match.athleteB);
+      assert.ok(state.arenas.some(arena => arena.id === match.arenaId) || match.arenaId === null);
+    }
   }
   assert.throws(() => demo.createScenario('unknown'), /desconhecido/);
 });
+
+require('./verify-sports.cjs');
 
 test('all screen rules and acceptance references resolve to repository specifications', () => {
   const specs = Object.values(demo.sources).map(file => read(file)).join('\n');
   const definitions = [...specs.matchAll(/^- \*\*([A-Z]+-(?:AC-)?\d+):\*\*/gm)].map(match => match[1]);
   for (const screen of demo.screens) {
-    assert.match(screen.id, /^COND-WF-0[1-4]$/);
+    assert.match(screen.id, /^COND-WF-0[1-9]$/);
     for (const id of [...screen.rules,...screen.acceptance]) assert.ok(definitions.includes(id), `${screen.id}: ${id}`);
   }
-  assert.equal(new Set(demo.screens.map(screen => screen.id)).size, 4);
+  assert.equal(new Set(demo.screens.map(screen => screen.id)).size, 9);
 });
 
 function fragmentExists(filename, fragment) {

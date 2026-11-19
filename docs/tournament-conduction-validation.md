@@ -65,7 +65,7 @@ Operational proposals adopted from the source include draft/confirmation distinc
 
 ## Prototype review contract
 
-The [preparation prototype](../specs/design/tournament-conduction/README.md) supplies opening instructions, scenario selection/reset and direct screen/state links for COND-WF-01–04. The groups below also identify the remaining sporting coverage. COND-WF-05–09 are review targets for a subsequent extension, not claims of implemented or approved screens.
+The [conduction prototype](../specs/design/tournament-conduction/README.md) supplies opening instructions, scenario selection/reset and direct screen/state links for COND-WF-01–09. It demonstrates the shared sporting state through fictional interactions. The functional adoption above does not constitute the owner's approval of the rendered artifact.
 
 | Screen group | Review states | Governing rules / acceptance |
 | --- | --- | --- |
@@ -74,14 +74,14 @@ The [preparation prototype](../specs/design/tournament-conduction/README.md) sup
 | COND-WF-03, phases/rounds | Reviewed pairs/bye, unpublished/published, incomplete and completed round | TC-011–013, MONO-016, TC-AC-008/016, MONO-AC-013 |
 | COND-WF-04, Arena queues/calls | Cyclic distribution, ordered queue and next athletes | TC-008–010, TC-AC-004–007 |
 | COND-WF-05, shared match view | Running, paused, accepted bounds, pending/failed record, read-only spectator, ending conditions | TC-014–018/021/022, MONO-007–012, TC-AC-009–013 |
-| COND-WF-06, confirmation/correction | Draft/void, confirmation, reopens, reasons and affected later decisions | TC-017/019/020, MONO-020, TC-AC-011/014/015 |
-| COND-WF-07, ranking/advancement | Exact points, cards, bye/WO, cut tie, final entries and podium | MONO-013–022, MONO-AC-011–019 |
-| COND-WF-08, following the competition | Published schedule and the shared live sporting screen, internal restriction, unavailable state | RES-004/006/008/011/012, RES-AC-004/006/010–012 |
-| COND-WF-09, publication | Provisional, official, final publication and corrected republication | RES-009/010, RES-AC-007–009 |
+| COND-WF-06, classification | Exact official points, first bloods, 3-point bounds, credits and deductions | RES-006, MONO-013–015, RES-AC-006, MONO-AC-010/011 |
+| COND-WF-07, advancement/final | Seven rounds, cut tie, minigroup, four qualifiers, six final pairs, podium and final publication | MONO-006/017–019/021, RES-007, MONO-AC-014/015, RES-AC-007 |
+| COND-WF-08, corrections | Reasoned reopening/correction, private before/after history, dependency review and publication blocked by unresolved impact | TC-019/020, MONO-020/022, RES-009, TC-AC-013/014, RES-AC-009 |
+| COND-WF-09, sporting consultation | Same accepted provisional bounds/score, readonly audience, internal-event restriction and final-publication distinction | TC-018/021, RES-004/005/008/010, PRIV-006, TC-AC-012, RES-AC-004/008/010 |
 
 The reproducible walkthrough must cover preparation and presence, Arenas and calls, multiple bounds and discipline, confirmed ranking, seven qualification rounds, cut ties, four qualifiers, six final matches, podium, authorized spectator consultation and correction impacts. Reviewers can use prepared progression scenarios without entering every match manually. At least one match must support actual simulated recording that changes the same consulted sporting state.
 
-The existing application wireframes provide composition references. Current shared design contracts govern branding, geometry and typography. No matching detailed match-operation reference has been claimed. Preparation checks are recorded below, while sporting match/result screens still require their own desktop and phone review.
+The existing application wireframes provide composition references. Current shared design contracts govern branding, geometry and typography. No matching earlier detailed match-operation reference has been claimed. Preparation checks and the later sporting extension are recorded separately below.
 
 ## Preparation prototype verification
 
@@ -97,6 +97,18 @@ The exercised path marked presence, prepared eight matches, allocated the three 
 
 These checks validate the preparation simulation. They do not validate a production Swiss algorithm, synchronization, authentication, scoring, later phase progression or final publication. The owner's review and the full sporting walkthrough remain outstanding.
 
+## Sporting prototype verification
+
+On 19 November 2026, the agent extended the artifact to nine screen groups and 21 starting scenarios. The simulation shares accepted match records across staff and readonly consultation. It supports fictional session recovery, regular clock pause/resume, bounds and verbal promotions, tournament cards, WO/expulsion, official ranking, prepared seven-round progression, phase-end duels/minigroups, final scheduling, publication and reasoned corrections. WF-14 now links to this sporting consultation instead of retaining the superseded unresolved-format placeholder.
+
+Forty-nine built-in Node checks passed. They include the preparation checks and verify 1/3/3 attacks, valid versus inconclusive bounds, time/limit endings, 7 × 4 and 5 × 5 results, negative scores, first blood, fixed WO/bye credits, idempotent confirmation, verbal isolation per match, cross-match and cross-phase discipline, expulsion/future WOs, duel scoring and ranking isolation, minigroup age fallback, equal/missing dates, six unique final pairs, reasoned reopening, preserved dependents, explicit reconciliation and republication. Projection tests check allowlisted sports data and internal-event restrictions. These are checks of the artifact, not backend authorization or live-server evidence.
+
+The integrated browser exercised draft/send acceptance, failure and retry, provisional spectator updates before official confirmation, pause and reload recovery, time ending and official ranking, disciplinary WO, double WO pending, second-red expulsion and a future opponent WO, cut-line duel, four qualifiers, the six final matches and published podium. A three-duel cycle with identical fictional dates correctly stayed pending. A published qualification result was reopened, corrected, reconfirmed and explicitly reconciled before republication. Internal visitors received restricted content while members retained readonly sports. Menu Escape returned focus to its trigger. Browser console checks reported no errors or warnings.
+
+Forty-eight confirmed screen/scenario/theme combinations passed layout, control-label and image checks at actual CSS widths 1500 and 389 px. The phone target was approximately 390 px because the host window's existing scale converts integer viewport settings. No page-level horizontal overflow was found. Fonts reported loaded. The agent inspected actual desktop and phone screenshots. The initial screenshot failure was resolved by bringing the preview's host window forward. No browser-security or firewall policy was changed. The new bound/correction form columns were corrected during visual review so desktop options remain legible.
+
+Local evidence is recorded under `.local/plan-issue/` for the human checkpoint review. It includes desktop and phone captures and a JSON layout record. The local plan records their paths and execution revision. Direct file access, production services, concurrent staff sessions, real synchronization, optimized Swiss pairing and production security were not tested. The complete responsible-person walkthrough and final modeling handoff remain for checkpoint 4. This agent verification does not claim that owner review has happened.
+
 ## Validation record and remaining evidence
 
 | Evidence category | Recorded state on 19 November 2026 |
@@ -106,7 +118,8 @@ These checks validate the preparation simulation. They do not validate a product
 | Functional consolidation | Requirements are available in [conduction](../specs/tournaments/conduction.md), [Monomachia rules](../specs/tournaments/events/monomachia-2027.md#conduction-rules) and [results](../specs/tournaments/results.md) |
 | Document consistency | Eight documents checked, 118 local links and 33 fragments resolved, 109 rule/acceptance IDs unique and references valid. Three ranking examples, six unique final pairings and the 3/3/2 Arena example checked. The question index retains two current and eleven deferred entries |
 | Preparation prototype | Four screen groups with ten starting scenarios. Agent browser checks and seventeen local verification checks recorded above |
-| Responsible-person walkthrough | Not performed. The complete sporting flow is not yet available or claimed as approved |
+| Sporting extension | Nine screen groups, shared match consultation, official ranking, tie-breaks, final/publication and correction dependencies. Agent verification is recorded separately from owner approval |
+| Responsible-person walkthrough | Not performed for the complete artifact. Reserved for the next authorized checkpoint |
 | Production verification | Not performed. No production implementation is delivered by this issue |
 
 When the prototype is reviewed, record the actual artifact revision, review date, responsible person's feedback, scenarios exercised, accepted changes and any limits. Requirements adoption does not substitute for the responsible person's walkthrough of the eventual artifact. Never invent a reviewer, meeting, approval or passing runtime result.

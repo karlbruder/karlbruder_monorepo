@@ -6,7 +6,9 @@
   <title>Karlbrüder · Condução de torneio</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="prototype.css">
+  <script src="sports-demo.js" defer></script>
   <script src="scenarios.js" defer></script>
+  <script src="sports-views.js" defer></script>
   <script src="prototype.js" defer></script>
 </head>
 <body>
@@ -18,14 +20,15 @@
   <section class="review-tools" aria-label="Ferramentas de revisão">
     <label for="screen-picker">Tela<select id="screen-picker"></select></label>
     <label for="scenario-picker">Cenário<select id="scenario-picker"></select></label>
+    <label for="audience-picker">Visão simulada<select id="audience-picker"><option value="admin">Equipe (admin)</option><option value="visitor">Visitante / espectador</option><option value="member">Membro / jogador</option></select></label>
     <div class="review-actions"><button id="reset-demo" type="button">Reiniciar cenário</button><button id="toggle-notes" type="button" aria-pressed="true" aria-controls="spec-notes">Notas da spec</button></div>
   </section>
-  <p class="review-caption">Protótipo navegável · dados fictícios · alterações somente nesta sessão · preparação e chamadas</p>
+  <p class="review-caption">Protótipo navegável · dados fictícios · sessão local recuperável · nenhum servidor ou resultado real</p>
   <div class="review-layout">
     <main class="app-shell" id="workspace" tabindex="-1" aria-label="Prévia da condução">
       <header class="app-header">
         <a href="../app-wireframes/index.html#WF-18/overview" class="brand"><img src="../../../landing/public/logos/logo_white_with_name.png" width="182" height="68" alt="Karlbrüder"></a>
-        <div class="header-meta"><span>PAINEL DA GUILDA</span><span>Equipe (admin)</span></div>
+        <div class="header-meta"><span>CONDUÇÃO DO TORNEIO</span><span id="audience-label">Equipe (admin)</span></div>
         <button type="button" id="theme-toggle" class="header-button" aria-pressed="false">Tema escuro</button>
       </header>
       <div class="event-context"><label for="event-picker">Torneio em condução<select id="event-picker"></select></label><span id="event-status" class="badge">Em preparação</span></div>

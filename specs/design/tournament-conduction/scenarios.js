@@ -1,5 +1,6 @@
 (function (root) {
   'use strict';
+  const sports = typeof module === 'object' && module.exports ? require('./sports-demo.js') : root.ConductionSports;
 
   const names = ['Ana Exemplo', 'Bia Exemplo', 'Caio Exemplo', 'Davi Exemplo', 'Eva Exemplo', 'Fábio Exemplo', 'Gabi Exemplo', 'Hugo Exemplo', 'Íris Exemplo', 'João Exemplo', 'Lia Exemplo', 'Mauro Exemplo', 'Nina Exemplo', 'Otto Exemplo', 'Rita Exemplo', 'Theo Exemplo'];
   const scenarioLabels = {
@@ -7,18 +8,28 @@
     published: 'Rodada publicada', called: 'Atletas chamados', 'no-arenas': 'Sem Arenas',
     empty: 'Sem participantes', minor: 'Verificação presencial pendente',
     conflict: 'Confronto inválido', error: 'Falha de carregamento',
+    combat: 'Luta interativa', wo: 'WO e duplo WO', discipline: 'Amarelo acumulado', expulsion:'Segundo vermelho e expulsão',
+    'cut-tie':'Empate no corte', minigroup:'Minigrupo de desempate', 'equal-age':'Idades iguais',
+    correction:'Correção após publicação', 'final-ready':'Classificados e final',
+    'save-error':'Falha no envio do bound', internal:'Evento interno',
   };
   const sources = {
     conduction: '../../tournaments/conduction.md',
     event: '../../tournaments/events/monomachia-2027.md',
     access: '../../identity/authentication-and-access.md',
     privacy: '../../tournaments/consent-and-privacy.md',
+    results: '../../tournaments/results.md',
   };
   const screens = [
     {id: 'COND-WF-01', title: 'Preparação', heading: 'Preparar torneio', rules: ['TC-001', 'TC-002', 'TC-008', 'TC-009'], acceptance: ['TC-AC-001', 'TC-AC-002', 'TC-AC-004'], note: 'Arenas são áreas numeradas com nome opcional. A preparação pertence à equipe com acesso admin existente.'},
     {id: 'COND-WF-02', title: 'Participantes', heading: 'Participantes e check-in', rules: ['TC-004', 'TC-006', 'TC-007', 'PRIV-010'], acceptance: ['TC-AC-003', 'TC-AC-017', 'TC-AC-018'], note: 'Marcar presença não altera inscrição, elegibilidade, confrontos ou resultado. Dados e requisitos de menores são fictícios nesta revisão.'},
     {id: 'COND-WF-03', title: 'Rodadas', heading: 'Rodadas e confrontos', rules: ['TC-009', 'TC-011', 'TC-012', 'TC-013', 'MONO-016'], acceptance: ['TC-AC-005', 'TC-AC-006', 'TC-AC-008'], note: 'Os confrontos desta primeira rodada usam a ordem inicial do cenário. A distribuição entre Arenas é cíclica e independente da formação de adversários.'},
     {id: 'COND-WF-04', title: 'Arenas e chamadas', heading: 'Arenas e chamadas', rules: ['TC-002', 'TC-009', 'TC-010', 'TC-013'], acceptance: ['TC-AC-002', 'TC-AC-005', 'TC-AC-007'], note: 'A fila mantém a ordem das lutas. A chamada é explícita e não gera WO por ausência. Qualquer admin pode operar qualquer Arena.'},
+    {id:'COND-WF-05',title:'Luta e bounds',heading:'Conduzir luta',rules:['TC-014','TC-015','TC-016','TC-017','MONO-007','MONO-010','MONO-011'],acceptance:['TC-AC-009','TC-AC-010','TC-AC-011','MONO-AC-005'],note:'O cronômetro continua durante o registro. Bounds aceitos aparecem na consulta antes da confirmação oficial da luta.'},
+    {id:'COND-WF-06',title:'Classificação',heading:'Classificação da fase',rules:['RES-006','MONO-013','MONO-014','MONO-015'],acceptance:['RES-AC-006','MONO-AC-010','MONO-AC-011'],note:'A classificação oficial considera resultados confirmados. Valores exatos decidem a ordem. WO e folga não recebem bônus de saldo.'},
+    {id:'COND-WF-07',title:'Avanço e final',heading:'Classificados e final',rules:['MONO-006','MONO-017','MONO-018','MONO-019','MONO-021','RES-007'],acceptance:['MONO-AC-014','MONO-AC-015','RES-AC-007'],note:'Sete rodadas, desempate no corte, quatro classificados e seis confrontos únicos. Publicar o resultado final é uma ação própria.'},
+    {id:'COND-WF-08',title:'Correções',heading:'Correções e dependências',rules:['TC-019','TC-020','MONO-020','MONO-022','RES-009'],acceptance:['TC-AC-013','TC-AC-014','RES-AC-009'],note:'Reabertura e alteração exigem motivo. A história posterior fica preservada e exige revisão explícita antes de nova confirmação ou publicação.'},
+    {id:'COND-WF-09',title:'Acompanhamento',heading:'Acompanhar torneio',rules:['TC-018','TC-021','RES-004','RES-005','RES-008','RES-010','PRIV-006'],acceptance:['TC-AC-012','RES-AC-004','RES-AC-008','RES-AC-010'],note:'Mesma composição esportiva em modo de leitura. Evento interno admite somente membros e admins. Sem dados privados ou controles de edição.'},
   ];
 
   function participant(number, name, origin = 'TEST') {
@@ -44,7 +55,7 @@
       publishRound(state);
     }
     if (key === 'called') callNext(state, 'a1');
-    return state;
+    return sports.decorate(state,key);
   }
 
   function ensureDraft(state) {
@@ -150,8 +161,8 @@
   function callNext(state, arenaId) {
     if (state.roundStatus !== 'PUBLISHED') throw new Error('Publique a rodada antes de chamar os atletas.');
     if (!state.arenas.some(arena => arena.id === arenaId)) throw new Error('Arena não encontrada.');
-    const queue = state.matches.filter(match => match.arenaId === arenaId);
-    if (queue.some(match => match.status === 'CALLED')) throw new Error('Esta Arena já tem atletas chamados. O início da luta pertence à próxima etapa da prévia.');
+    const queue = state.matches.filter(match => match.arenaId === arenaId && match.phase === (state.phase || 'qualification') && match.round === (state.currentRound || 1) && !match.duel);
+    if (queue.some(match => ['CALLED','RUNNING','PAUSED','AWAITING_CONFIRMATION'].includes(match.status))) throw new Error('Esta Arena já tem atletas chamados ou uma luta em operação.');
     const match = queue.find(item => item.status === 'SCHEDULED');
     if (!match) throw new Error('Não há luta aguardando chamada nesta Arena.');
     match.status = 'CALLED';

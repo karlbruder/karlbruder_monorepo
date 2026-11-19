@@ -3,86 +3,93 @@
 **Created**: 2026-11-19
 **Last updated**: 2026-11-19
 
-[Open the navigable prototype](index.html#COND-WF-01/preparation).
+[Open preparation](index.html#COND-WF-01/preparation) or [operate a match](index.html#COND-WF-05/combat).
 
-This offline HTML/CSS/JavaScript artifact demonstrates tournament preparation, basic presence marking, reviewed first-round pairings, cyclic Arena allocation and athlete calls. It uses fictional people and local simulated state. It does not change the application or create real tournaments, registrations or accounts.
+This offline artifact demonstrates preparation, presence, Arena calls, bounds, discipline, official standings, seven qualification rounds, tie-breaks, four qualifiers, six final matches and final publication. All people, decisions and results are fictional. It changes no application or production service.
 
 ## Open and navigate
 
-Open `index.html` directly in a browser. Keep the artifact in its repository location so its fonts, logo and specification links resolve. Where browser tooling requires HTTP, serve the repository from a local terminal with an installed Python runtime:
+Keep the artifact in its repository location so local fonts, logo and specification links resolve. Open `index.html` directly, or serve the repository from a terminal with an installed Python runtime:
 
 ```sh
 python -m http.server 8766 --bind 127.0.0.1
 ```
 
-Then open [the local preview](http://127.0.0.1:8766/specs/design/tournament-conduction/index.html#COND-WF-01/preparation). This is an optional review server, not a change to application development ports. A server started in an isolated sandbox may not be reachable by the desktop browser. Start it through the normal approved host terminal in that case. Do not change firewall rules to review the artifact.
+Open [the local preview](http://127.0.0.1:8766/specs/design/tournament-conduction/index.html#COND-WF-05/combat). This optional review port does not change application ports. A sandboxed server may not be reachable from the desktop browser. Start the preview from an approved host terminal if needed. Do not change firewall rules. The integrated browser requires HTTP instead of file access.
 
-Use **Tela** to choose one of four screen groups, or the application's preparation/participant/round/Arena navigation. Use **Cenário** to load a reproducible starting story. Scenario selection deliberately replaces that event's fictional preparation. **Reiniciar cenário** clears the current story's edits. Switching between screens keeps edits and browser back/forward works within that story. Reload starts again from the URL's scenario. **Notas da spec** exposes the screen's owning rules and acceptance references outside the application frame.
+**Tela** selects nine screen groups. **Cenário** replaces the current event's fictional story. **Reiniciar cenário** clears that story's edits. **Visão simulada** switches between admin, visitor/spectator and member/player. It demonstrates visibility, not real authentication. **Notas da spec** maps each screen to its owning rules and acceptance criteria.
 
-The event selector keeps each event's session state separately. **Criar outro torneio** creates an empty fictional event with no Arenas. Presence and preparation in another event remain unchanged. Theme switching preserves input and current event context. The theme preference may persist in the same browser if local preference storage is available. No cross-domain preference synchronization is demonstrated.
+Navigation and audience switching retain the same event and match. Fictional state survives reload in the same tab through optional `sessionStorage`. A running clock retains its original time anchor. Closing the browser session can remove edits. Reset starts the selected story again. Theme preference uses a separate local key. No multi-tab, multi-device or cross-domain synchronization is claimed.
+
+Use **Luta em foco** to select a match and **Fase consultada** for qualification/final rankings and tie-break review. On narrow screens use **Menu de condução**. Dense tables have labeled inner scrollers.
 
 ## Review walkthrough
 
-1. Open [preparation](index.html#COND-WF-01/preparation). Inspect the event's phases and its three Arenas, including an Arena without a name. Rename the event or add an Arena before allocating matches. The main story starts with sixteen fictional athletes, giving eight first-round matches.
-2. Open **Participantes**. Mark a person present and verify the presence count. Presence changes neither registration status nor match outcomes. Add names individually, preview one name per line or generate eight fictional test players before preparing matches. Duplicate names remain distinct people.
-3. Open **Rodadas**, select **Preparar primeira rodada** and review the initial-order pairs. Select **Distribuir lutas entre Arenas**. With the original three Arenas and sixteen players, the eight assignments are 1, 2, 3, 1, 2, 3, 1, 2, giving queues of 3, 3 and 2.
-4. Select **Publicar rodada revisada**, then **Ver filas das Arenas**. Call the next athletes in each Arena. The call is visible in the queue and its announcement. An unmarked presence does not create a WO. Another call in the same Arena waits for that match's future operation.
-5. Compare the alternative scenarios below. Switch to the empty second event or create one and confirm that the first event's preparation is retained.
-6. Review at desktop and phone widths. On a phone use **Menu de condução**, follow a section link or press Escape to close it. Dense lists have a labeled inner horizontal scroller. Test keyboard focus, required Arena number, optional name, error messages and both themes.
+1. Inspect preparation, configure numbered Arenas with optional names, and add fictional people before preparing pairs. Homonyms remain distinct people. Check-in only marks presence.
+2. Prepare the first round. Review pairs and any bye, distribute to Arenas, then publish. Eight matches in three Arenas follow 1,2,3,1,2,3,1,2. Call athletes and choose **Operar luta**. Unmarked presence does not declare WO.
+3. Alternatively start **Luta interativa** on **Luta e bounds**. Start combat, choose the bound result, scoring side and independent warning. Save a draft, then send it. Only accepted bounds change the shared provisional scoreboard. Recording does not pause time.
+4. Pause and switch to visitor/spectator. Check the same athletes, Arena, score and accepted bounds without drafts, editor forms, private reasons or audit. Return to admin and reload. The paused score and clock remain. Resume separately.
+5. Record multiple bounds, or expand **Controle de tempo da demonstração** and simulate time expiry. Seven valid bounds also end regular combat. Sem Pontuação consumes a bound, Inconclusivo does not. Resolve or void drafts before confirming. **Confirmar resultado oficial** updates official classification once. Final publication remains separate.
+6. On **Avanço e final**, complete the other matches using the prepared review fixture. Review the next prepared round and repeat through seven. Fixtures demonstrate progression and continuous Arena allocation without claiming Swiss optimization. Prepare and operate relevant tie-break duels, then apply their order. **Empate no corte** provides a shorter path.
+7. Confirm four qualifiers. Final points and attack statistics start at zero while cards remain. Review A–D/B–C, A–C/D–B and A–B/C–D. Complete each current round and move to the next. Publish after three official rounds, required tie-breaks and dependency reviews. Check the three-place podium. **Classificados e final** starts here with prepared qualification results and resolved qualification duels.
+8. Open **Correção após publicação**, then **Correções**. Enter a private reason, reopen the official match and correct or void a bound. Review recalculated score, first blood and cards. Confirm the corrected match. Review existing qualification duels through **Fase consultada** if needed. Reconcile dependencies explicitly. This review revalidates previously closed rounds whose results are all official. Final pairs remain preserved. Changed qualifiers leave an organizational decision pending instead of automatic replacements.
+9. Compare public and internal access. In **Evento interno**, visitors receive restricted content. Members/admins can consult sporting information. Presence, full birth dates and audit stay outside consultation. Existing youth/privacy safeguards still apply to any future real release.
 
-Match operation, clock/bounds, result confirmation, standings, later Swiss rounds, qualifiers, final and sporting spectator consultation are not interactive in this artifact yet. Their controls are absent or explicitly disabled. A call does not report that combat has started or that a result exists. Round-two preparation is disabled because the preceding results are not yet demonstrated.
+## Screens and scenarios
 
-## Screen and state references
+URLs use `#COND-WF-xx/scenario`. These are review anchors, not production routes. Screen metadata in `scenarios.js` links rules and acceptance criteria.
 
-The URL uses `#COND-WF-xx/scenario`. These are review anchors, not production routes.
-
-| Screen | Review outcome | Rules and acceptance examples |
+| Screen | Demonstrated states | Main rules |
 | --- | --- | --- |
-| [COND-WF-01, preparation](index.html#COND-WF-01/preparation) | Event context, phases, Arena number/name and empty configuration | TC-001/002/008/009, TC-AC-001/002/004 |
-| [COND-WF-02, presence](index.html#COND-WF-02/preparation) | Fictional people, origins, batch review and basic check-in | TC-004/006/007, PRIV-010, TC-AC-003/017/018 |
-| [COND-WF-03, reviewed round](index.html#COND-WF-03/review) | First-round pairs, Arena distribution and explicit publication | TC-009/011–013, MONO-016, TC-AC-005/006/008 |
-| [COND-WF-04, Arena queues](index.html#COND-WF-04/published) | Per-Arena order, next athletes and explicit call | TC-002/009/010/013, TC-AC-002/005/007 |
+| [COND-WF-01](index.html#COND-WF-01/preparation) | Event, phases, Arenas, missing configuration | TC-001/002/008/009 |
+| [COND-WF-02](index.html#COND-WF-02/minor) | Entry, presence and minor safeguards | TC-004/006/007, PRIV-010 |
+| [COND-WF-03](index.html#COND-WF-03/odd) | Pairs, bye, allocation and publication | TC-009/011–013, MONO-016 |
+| [COND-WF-04](index.html#COND-WF-04/called) | Arena queues and calls | TC-002/009/010/013 |
+| [COND-WF-05](index.html#COND-WF-05/combat) | Clock, bounds, discipline, endings, confirmation | TC-014–017, MONO-007–012 |
+| [COND-WF-06](index.html#COND-WF-06/combat) | Exact ranking, first blood, 3-point bounds, credits and sanctions | RES-006, MONO-013–015 |
+| [COND-WF-07](index.html#COND-WF-07/cut-tie) | Rounds, duels, qualifiers, final, podium and publication | MONO-006/017–019/021, RES-007 |
+| [COND-WF-08](index.html#COND-WF-08/correction) | Reopening, corrections, private history, dependent review | TC-019/020, MONO-020/022, RES-009 |
+| [COND-WF-09](index.html#COND-WF-09/internal) | Shared consultation, accepted provisional bounds, restricted event | TC-018/021, RES-004/005/008/010, PRIV-006 |
 
-| Starting scenario | Reproducible alternative |
+| Starting scenarios | Alternative |
 | --- | --- |
-| [Preparation](index.html#COND-WF-01/preparation) | Sixteen fictional players and three Arenas, before match preparation |
-| [Round in review](index.html#COND-WF-03/review) | Eight draft matches ready for allocation and review |
-| [Odd field](index.html#COND-WF-03/odd) | Nine players, four matches and a separate bye without fabricated match/statistics or an early ranking credit |
-| [Published round](index.html#COND-WF-04/published) | Eight allocated matches and published queues |
-| [Athletes called](index.html#COND-WF-04/called) | The first Arena's next match is called, without starting combat |
-| [No Arenas](index.html#COND-WF-01/no-arenas) | Preparation retained, allocation/publication unavailable until configuration |
-| [No participants](index.html#COND-WF-02/empty) | Empty list with quick/batch/test entry actions |
-| [Minor safeguard](index.html#COND-WF-02/minor) | Presence does not settle an existing in-person verification requirement |
-| [Invalid match](index.html#COND-WF-03/conflict) | Self-pairing is identified and cannot be distributed/published. Recreating the initial suggestion repairs the fictional fixture |
-| [Loading failure](index.html#COND-WF-01/error) | Failed view remains in event context with an explicit retry |
+| preparation / review / published / called | Preparation through athlete call |
+| odd / no-arenas / empty | Separate bye, missing Arenas or empty list |
+| minor / conflict / error | Minor verification, invalid self-pair or loading failure |
+| [combat](index.html#COND-WF-05/combat) | Interactive match, bounds and confirmation |
+| [wo](index.html#COND-WF-05/wo) | WO for A/B or both, retaining partial score and pending double WO |
+| [discipline](index.html#COND-WF-05/discipline) | Historical yellow. Two new verbals create a second yellow and red |
+| [expulsion](index.html#COND-WF-05/expulsion) | Three historical yellows and one red. Two new verbals produce the second red, expulsion and an opponent WO in an already scheduled future match |
+| [save-error](index.html#COND-WF-05/save-error) | First send fails, draft remains, retry accepts |
+| [cut-tie](index.html#COND-WF-07/cut-tie) | Two tied athletes at the cut, one duel |
+| [minigroup](index.html#COND-WF-07/minigroup) | Three tied athletes, three duels, wins then verified age |
+| [equal-age](index.html#COND-WF-07/equal-age) | Cyclic wins and identical dates stay pending |
+| [final-ready](index.html#COND-WF-07/final-ready) | Seven rounds, resolved qualification duels and four final entries |
+| [correction](index.html#COND-WF-08/correction) | Published final and an earlier match with dependent review |
+| [internal](index.html#COND-WF-09/internal) | Member/admin consultation and visitor denial |
 
-## Design basis
+For a cyclic minigroup, let A win duel 1, B win duel 2, and A win duel 3. Each athlete has one win. Verified age then orders the tie. Missing/equal dates remain pending, with no name/order/random fallback. Dates are fictional staff-side fixture data and never appear in consultation. Duels have no regular time/seven-bound limit. Their first scoring attack wins regardless of net score. Red-card WO takes precedence. Four verbal warnings to both athletes in a fresh match demonstrate simultaneous reds without an automatic winner.
 
-Rendered references reviewed before authoring: WF-18/overview, WF-19/list, WF-20/detail and WF-14/unavailable/published/restricted at desktop and phone widths. This artifact extends their dark guild header, light operational workspace, form/list hierarchy and separate review notes. There was no existing detailed conduction reference to copy.
+## Design and verification
 
-The [current design contracts](../README.md) govern the official neutral/steel palette, restrained wine/gold accents, angular controls, legible tables, semantic themes and responsive navigation. Old event colors or placeholder result-policy text in WF-14 do not supersede the current functional specs. WF-14's sporting result view will be reconciled when that part of the prototype is delivered.
-
-The artifact reuses the official logo and existing locally licensed Source Sans 3, Grenze Gotisch and Roboto Slab files from the application wireframes. Schwager is unavailable in the repository, so Roboto Slab is an explicit display fallback. It is not presented as the approved Schwager font. No fonts or imagery were downloaded or generated.
-
-## Verification
-
-Run from the repository root with the installed Node.js runtime:
+The artifact extends rendered WF-18/19/20, the prior Arena screen and WF-14. [Current design contracts](../README.md) govern neutral/steel surfaces, restrained wine/gold, angular controls, functional text and both themes. It reuses the official logo and licensed local Source Sans 3, Grenze Gotisch and Roboto Slab. Schwager is unavailable, so Roboto Slab is a documented display fallback. No assets were downloaded.
 
 ```sh
 node --check specs/design/tournament-conduction/scenarios.js
+node --check specs/design/tournament-conduction/sports-demo.js
+node --check specs/design/tournament-conduction/sports-views.js
 node --check specs/design/tournament-conduction/prototype.js
+node --check specs/design/app-wireframes/wireframes.js
 node specs/design/tournament-conduction/verify.cjs
 git diff --check
 ```
 
-The built-in Node checks cover presence independence, minor safeguards, Arena validation/allocation, continuous allocation in batches, round invariants, odd-count byes, explicit publication and calls, retained published assignments, homonyms, event isolation, fixture references and local assets/spec references. They validate this simulation, not production authorization or an optimal Swiss engine. Behavioral checks must accompany the same changes they verify.
-
-Browser review must cover the walkthrough, narrow/desktop layout, theme/input preservation, keyboard/menu, overflow, loaded assets, console and relevant empty/error/invalid/called states. Evidence is recorded in the [conduction validation record](../../../docs/tournament-conduction-validation.md). Opening via file is supported by the local asset structure, but direct file access may be blocked by the review tool's browser policy and must not be claimed as tested if it was not.
+The verification script includes `verify-sports.cjs`. Checks cover simulation outcomes and projections, exact ranking, correction effects, discipline across matches, tie resolution, final scheduling and private-data exclusion. Exact units of 1/42 are a simulation convenience, not a production storage prescription. Browser evidence and actual limits are recorded in the [validation record](../../../docs/tournament-conduction-validation.md). Requirements adoption does not substitute for the responsible person's artifact walkthrough.
 
 ## Functional sources and limits
 
-[Conduction](../../tournaments/conduction.md), [Monomachia sporting rules](../../tournaments/events/monomachia-2027.md#conduction-rules), [results](../../tournaments/results.md) and [global admin access](../../identity/authentication-and-access.md#authorization-rules) govern the intended product.
+[Conduction](../../tournaments/conduction.md), [Monomachia rules](../../tournaments/events/monomachia-2027.md#conduction-rules), [results](../../tournaments/results.md) and [global admin access](../../identity/authentication-and-access.md#authorization-rules) own intended behavior. WF-14 links to this detailed sporting artifact and retains its limited directory reference.
 
-This preparation view represents the admin workspace only. It does not imply spectator access to presence lists, administrative notes or requirements. The later shared sporting view must preserve RES-004/011 and internal-event restrictions. Existing privacy/youth publication decisions are not resolved by showing fictional people here.
+There is no production authorization, server clock, concurrency control, real transport, generic Swiss search, schema, migration or integration contract. Projection checks do not replace backend authorization tests. The full state is fictional and deliberately inspectable in the browser. Never enter real people or private information.
 
-Pairings use a reviewed first-round initial order and prepared alternate fixtures. No complete Swiss search, live network transport, production authorization, real result, storage schema or integration contract is implemented. Editing participants after drafting pairings is intentionally outside this initial simulation. Reset to prepare a new list. That prototype limit does not establish a new production participation rule.
+Prepared progression supports the original sixteen active demo participants. Entry after drafting pairs, expulsion-dependent alternative pairings, changed qualifiers after a final starts and exceptional double WO require review/pending states. The demo does not invent replacements. These simulation limits do not establish production business rules. The complete owner walkthrough and modeling handoff remain a separate checkpoint.
