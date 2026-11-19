@@ -388,28 +388,47 @@ def test_payment_instructions_keep_fee_deadline_and_pix_consistent_during_edit(s
         _cleanup(engine, tournament_id)
 
 
-def test_policy_publications_serialize_on_tournament(migrated_database):
+@pytest.fixture
+def committed_policy_tournament(migrated_database):
     from app.core.files.models import ArchivedFile
     from app.tournaments.models import TournamentDocument, TournamentDocumentVersion
-    from app.tournaments.services.tournament_policy_documents import publish
 
     engine = migrated_database
-    actor = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
     with Session(engine) as session:
         tournament = Tournament(name="Policy race", slug=f"policy-{uuid4().hex}", starts_at=datetime(2027, 1, 17, tzinfo=UTC))
         session.add(tournament)
         session.commit()
         tournament_id = tournament.id
+    try:
+        yield engine, tournament_id
+    finally:
+        with engine.begin() as connection:
+            archives = connection.execute(select(TournamentDocumentVersion.archive_id).join(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id)).scalars().all()
+            files = connection.execute(select(ArchivedFile.file_id).where(ArchivedFile.id.in_(archives))).scalars().all()
+            connection.execute(delete(TournamentDocumentVersion).where(TournamentDocumentVersion.archive_id.in_(archives)))
+            connection.execute(delete(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id))
+            connection.execute(delete(ArchivedFile).where(ArchivedFile.id.in_(archives)))
+            connection.execute(delete(StoredFile).where(StoredFile.id.in_(files)))
+            connection.execute(delete(Tournament).where(Tournament.id == tournament_id))
 
+
+def test_policy_publications_serialize_on_tournament(committed_policy_tournament):
+    """Concurrent replacements archive in the order they acquire the tournament lock."""
+    from app.tournaments.models import TournamentDocument, TournamentDocumentVersion
+    from app.tournaments.services.tournament_policy_documents import publish
+
+    engine, tournament_id = committed_policy_tournament
+    actor = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
     entered = Event()
     release = Event()
     second_entered = Event()
     keys = [f"tournaments/{tournament_id}/staging/{actor.id}/policy/rules/{uuid4()}" for _ in range(2)]
+    payload = b"%PDF-1.4 abc"
 
     def run(key, first):
         storage = Mock()
-        storage.head_object.return_value = (12, None)
-        storage.read_object_bytes.return_value = b"%PDF-1.4 abc"
+        storage.head_object.return_value = (len(payload), None)
+        storage.read_object_bytes.return_value = payload
         def store(*args):
             if first:
                 entered.set()
@@ -434,11 +453,47 @@ def test_policy_publications_serialize_on_tournament(migrated_database):
             assert ids == [second_id, first_id]
     finally:
         release.set()
-        with engine.begin() as connection:
-            archives = connection.execute(select(TournamentDocumentVersion.archive_id).join(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id)).scalars().all()
-            files = connection.execute(select(ArchivedFile.file_id).where(ArchivedFile.id.in_(archives))).scalars().all()
-            connection.execute(delete(TournamentDocumentVersion).where(TournamentDocumentVersion.archive_id.in_(archives)))
-            connection.execute(delete(TournamentDocument).where(TournamentDocument.tournament_id == tournament_id))
-            connection.execute(delete(ArchivedFile).where(ArchivedFile.id.in_(archives)))
-            connection.execute(delete(StoredFile).where(StoredFile.id.in_(files)))
-            connection.execute(delete(Tournament).where(Tournament.id == tournament_id))
+
+
+def test_policy_archive_survives_lost_commit_acknowledgment(committed_policy_tournament):
+    """A durable replacement remains readable when its caller receives a commit error."""
+    from app.tournaments.services.tournament_policy_documents import (
+        current_documents,
+        download,
+        publish,
+    )
+
+    engine, tournament_id = committed_policy_tournament
+    actor = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+    objects = {}
+    storage = Mock()
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kwargs: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    archive_url = "https://archive.example.test/"
+    storage.create_presigned_get_url.side_effect = lambda key, **kwargs: archive_url + key
+
+    def publish_file(session, body):
+        key = f"tournaments/{tournament_id}/staging/{actor.id}/policy/rules/{uuid4()}"
+        objects[key] = body
+        return publish(session, storage, tournament_id, "rules", actor, key, "rules.pdf")
+
+    class UnacknowledgedCommitSession(Session):
+        def commit(self):
+            super().commit()
+            raise OSError("commit acknowledgment lost")
+
+    prior_bytes = b"%PDF-1.4 prior"
+    new_bytes = b"%PDF-1.4 new"
+    with Session(engine) as session:
+        prior_id = publish_file(session, prior_bytes).id
+    with UnacknowledgedCommitSession(engine) as session:
+        with pytest.raises(OSError, match="commit acknowledgment lost"):
+            publish_file(session, new_bytes)
+    with Session(engine) as session:
+        current_id = current_documents(session, tournament_id, actor)["rules"].id
+        assert current_id > prior_id
+        for version_id, expected in [(current_id, new_bytes), (prior_id, prior_bytes)]:
+            issued = download(session, storage, tournament_id, "rules", version_id, actor)
+            assert objects[issued["download_url"].removeprefix(archive_url)] == expected

@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-18
+**Last updated**: 2026-11-19
 
 | Field | Value |
 | --- | --- |
@@ -90,7 +90,7 @@ Place the Tournament documents card after tags and before Safety and participati
 
 Append the short document name and a new-tab icon inline after the matching rules or cancellation declaration when the file is available. Let the text wrap naturally on narrow screens and keep the short link and icon together. Associate the checkbox with its declaration text and give the adjacent document control its own focus target. Opening the document leaves the checkbox and form values intact. Show missing-policy messages only in the document card.
 
-Open the exact policy version shown on the form in a new tab. Request a fresh, authorized download URL on activation. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Each control communicates the new tab to keyboard and screen-reader users.
+Request a fresh authorized download URL for the exact policy version on activation. Fetch the file directly from object storage and open it in a new tab once the fetch succeeds. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Each control communicates the new tab to keyboard and screen-reader users.
 
 ## Acceptance submission
 

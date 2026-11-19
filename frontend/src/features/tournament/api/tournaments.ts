@@ -219,9 +219,9 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
   });
 }
 
-export async function getPolicyDocumentDownloadUrl(
+export async function downloadPolicyDocument(
   tournamentId: number, purpose: PolicyPurpose, versionId: number, token: string,
-): Promise<string> {
+): Promise<Blob> {
   const response = await apiFetch(
     `${apiBaseUrl()}/tournaments/${tournamentId}/policy-documents/${purpose}/${versionId}/download-url`,
     { headers: { Authorization: `Bearer ${token}` } },
@@ -231,7 +231,14 @@ export async function getPolicyDocumentDownloadUrl(
   if (typeof body?.download_url !== "string") throw new Error("invalid-policy-download-url");
   const url = new URL(body.download_url);
   if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("invalid-policy-download-url");
-  return url.href;
+
+  const download = await fetch(url.href, { credentials: "omit" });
+  if (!download.ok) throw new Error(`policy-download-${download.status}`);
+  const file = await download.blob();
+  if (!file.size || !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+    throw new Error("invalid-policy-document");
+  }
+  return file;
 }
 
 export async function getTournament(id: number, token?: string, signal?: AbortSignal): Promise<Tournament> {

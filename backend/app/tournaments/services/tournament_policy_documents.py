@@ -3,6 +3,7 @@
 from typing import Literal
 from uuid import uuid4
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,8 +11,8 @@ from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import AnonymousUser, User
 from app.auth.supabase.roles import get_application_role
 from app.core.files import FileStorage
-from app.core.files.models import ArchivedFile
 from app.core.files.archiving import archive_file
+from app.core.files.models import ArchivedFile
 from app.tournaments.exceptions import (
     RegistrationDocumentInvalidError,
     RegistrationDocumentTooLargeError,
@@ -23,11 +24,15 @@ from app.tournaments.exceptions import (
 )
 from app.tournaments.models import TournamentDocument, TournamentDocumentVersion
 from app.tournaments.services.registration_documents import delete_storage_object_quietly
-from app.tournaments.services.registration_uploads import MAX_REGISTRATION_DOCUMENT_BYTES, validate_stored_object_size_and_type
+from app.tournaments.services.registration_uploads import (
+    MAX_REGISTRATION_DOCUMENT_BYTES,
+    validate_stored_object_size_and_type,
+)
 from app.tournaments.services.tournament_catalog import load_visible_tournament
 
 PolicyPurpose = Literal["rules", "cancellation_policy"]
 URL_EXPIRY = 900
+logger = structlog.get_logger()
 
 
 def _require_admin(user: User) -> None:
@@ -54,6 +59,7 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
     if not key.startswith(prefix) or "/" in key[len(prefix):] or not key[len(prefix):]:
         raise RegistrationDocumentInvalidError("Invalid policy storage key")
     archive_key = None
+    commit_started = False
     try:
         size, _ = storage.head_object(key)
         if size < 1:
@@ -80,6 +86,7 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
         version = TournamentDocumentVersion(document=document, archive=archive)
         session.add(version)
         session.flush()
+        commit_started = True
         session.commit()
     except UploadEmptyError as error:
         session.rollback()
@@ -93,7 +100,11 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
     except Exception:
         session.rollback()
         if archive_key:
-            delete_storage_object_quietly(storage, archive_key)
+            # An interrupted commit can already have made this archive reachable.
+            if commit_started:
+                logger.warning("policy_archive_retained_after_commit_error", archive_key=archive_key)
+            else:
+                delete_storage_object_quietly(storage, archive_key)
         raise
     finally:
         delete_storage_object_quietly(storage, key)
@@ -111,8 +122,14 @@ def current_documents(session: Session, tournament_id: int, user: User | Anonymo
     return {document.purpose: document.current_version for document in documents if document.current_version is not None}
 
 
-
-def download(session: Session, storage: FileStorage, tournament_id: int, purpose: PolicyPurpose, document_id: int, user: User | AnonymousUser):
+def download(
+    session: Session,
+    storage: FileStorage,
+    tournament_id: int,
+    purpose: PolicyPurpose,
+    document_id: int,
+    user: User | AnonymousUser,
+):
     load_visible_tournament(session, tournament_id, user)
     version = session.scalar(
         select(TournamentDocumentVersion)
@@ -126,4 +143,8 @@ def download(session: Session, storage: FileStorage, tournament_id: int, purpose
     if version is None:
         raise RegistrationResourceNotFoundError("Policy document not found")
     file = version.archive.file
-    return {"download_url": storage.create_presigned_get_url(file.storage_key, expires_in=URL_EXPIRY), "content_type": file.content_type, "expires_in_seconds": URL_EXPIRY}
+    return {
+        "download_url": storage.create_presigned_get_url(file.storage_key, expires_in=URL_EXPIRY),
+        "content_type": file.content_type,
+        "expires_in_seconds": URL_EXPIRY,
+    }

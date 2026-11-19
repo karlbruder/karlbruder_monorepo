@@ -496,14 +496,26 @@ describe('Athlete submits their own registration and sees the result', () => {
 })
 
 
-it('requests fresh authorized downloads for the versions shown and allows retry after failure', async () => {
-  const downloadUrl = 'https://files.example.test/rules-17.pdf'
+it('retries a failed policy file request and opens the exact version without changing form values', async () => {
+  const downloadUrl = 'blob:http://localhost/rules-17'
+  const firstSignedRules = 'https://files.example.test/rules?signature=first'
+  const retrySignedRules = 'https://files.example.test/rules?signature=retry'
+  const inlineSignedRules = 'https://files.example.test/rules?signature=inline'
+  const signedCancellation = 'https://files.example.test/cancellation?signature=cancel'
+  const rulesFile = new Blob(['rules'], { type: 'application/pdf' })
+  const cancellationFile = new Blob(['cancellation'], { type: 'image/png' })
+  const createObjectURL = vi.fn(() => downloadUrl)
+  vi.stubGlobal('URL', class extends URL { static createObjectURL = createObjectURL })
   const request = vi.fn()
-    .mockResolvedValueOnce(response(404, {}))
-    .mockResolvedValueOnce(response(200, { download_url: downloadUrl }))
-    .mockResolvedValueOnce(response(200, { download_url: downloadUrl }))
-    .mockResolvedValueOnce(response(200, { download_url: 'https://files.example.test/cancellation-52.pdf' }))
-  const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() }
+    .mockResolvedValueOnce(response(200, { download_url: firstSignedRules }))
+    .mockResolvedValueOnce(response(503, {}))
+    .mockResolvedValueOnce(response(200, { download_url: retrySignedRules }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => rulesFile })
+    .mockResolvedValueOnce(response(200, { download_url: inlineSignedRules }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => rulesFile })
+    .mockResolvedValueOnce(response(200, { download_url: signedCancellation }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => cancellationFile })
+  const tab = { opener: window, closed: false, location: { replace: vi.fn() }, close: vi.fn() }
   vi.stubGlobal('open', vi.fn(() => tab))
   vi.stubGlobal('fetch', request)
   render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
@@ -518,6 +530,7 @@ it('requests fresh authorized downloads for the versions shown and allows retry 
   fireEvent.click(rules)
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not open the document. Please try again.')
   expect(tab.close).toHaveBeenCalledOnce()
+  expect(tab.location.replace).not.toHaveBeenCalled()
   expect(tab.opener).toBeNull()
   fireEvent.click(rules)
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl))
@@ -528,13 +541,40 @@ it('requests fresh authorized downloads for the versions shown and allows retry 
   expect(screen.getByLabelText(/Full name/)).toHaveValue('Draft name')
   fireEvent.click(cancellation)
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledTimes(3))
-  expect(request.mock.calls.map(([url]) => url)).toEqual([
-    '/api/tournaments/42/policy-documents/rules/17/download-url',
-    '/api/tournaments/42/policy-documents/rules/17/download-url',
-    '/api/tournaments/42/policy-documents/rules/17/download-url',
-    '/api/tournaments/42/policy-documents/cancellation_policy/52/download-url',
+  expect(createObjectURL.mock.calls).toEqual([[rulesFile], [rulesFile], [cancellationFile]])
+  const authorization = { headers: { Authorization: 'Bearer test-access-token' } }
+  const storageRequest = { credentials: 'omit' }
+  expect(request.mock.calls).toEqual([
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [firstSignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [retrySignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [inlineSignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/cancellation_policy/52/download-url', authorization],
+    [signedCancellation, storageRequest],
   ])
-  expect(request.mock.calls.every(([, init]) => init.headers.Authorization === 'Bearer test-access-token')).toBe(true)
+})
+
+it('keeps the policy control pending until the file body arrives and reports an interrupted download', async () => {
+  let interrupt!: (error: Error) => void
+  const pendingFile = new Promise<Blob>((_, reject) => { interrupt = reject })
+  const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() }
+  vi.stubGlobal('open', vi.fn(() => tab))
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce(response(200, { download_url: 'https://files.example.test/rules' }))
+    .mockResolvedValueOnce({ ok: true, blob: () => pendingFile }))
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
+  const rules = screen.getByRole('button', { name: /Tournament rules · rules-v1.pdf/ })
+
+  fireEvent.click(rules)
+  expect(await screen.findByText('Opening document…')).toBeVisible()
+  expect(rules).toHaveAttribute('aria-disabled', 'true')
+  expect(tab.location.replace).not.toHaveBeenCalled()
+  interrupt(new TypeError('download interrupted'))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not open the document. Please try again.')
+  expect(rules).toHaveAttribute('aria-disabled', 'false')
+  expect(tab.close).toHaveBeenCalledOnce()
 })
 
 it('refreshes a replaced policy, preserves personal fields and requires new choices before resubmission', async () => {

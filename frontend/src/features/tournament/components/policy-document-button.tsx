@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { getPolicyDocumentDownloadUrl, type PolicyPurpose } from "@/features/tournament/api/tournaments";
+import { downloadPolicyDocument, type PolicyPurpose } from "@/features/tournament/api/tournaments";
 import { appCopy, type AppLanguage } from "@/utils/app-copy";
 
 export function PolicyDocumentButton({ label, children, className, tournamentId, purpose, versionId, token, language }: {
@@ -24,10 +24,22 @@ export function PolicyDocumentButton({ label, children, className, tournamentId,
     }
     tab.opener = null;
     setState("loading");
+    let objectUrl: string | undefined;
     try {
-      tab.location.replace(await getPolicyDocumentDownloadUrl(tournamentId, purpose, versionId, token));
+      const file = await downloadPolicyDocument(tournamentId, purpose, versionId, token);
+      if (tab.closed) throw new Error("policy-tab-closed");
+      const url = URL.createObjectURL(file);
+      objectUrl = url;
+      tab.location.replace(url);
+      // Keep the bytes available while the browser's viewer can still use them.
+      const release = window.setInterval(() => {
+        if (!tab.closed) return;
+        window.clearInterval(release);
+        URL.revokeObjectURL(url);
+      }, 1000);
       setState("ready");
     } catch {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       tab.close();
       setState("error");
     }

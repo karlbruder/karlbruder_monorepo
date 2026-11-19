@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-18
+**Last updated**: 2026-11-19
 
 This module manages tournament configuration, registration, participant documents,
 payment review, and cancellation. It serves Monomachia and other tournaments
@@ -170,16 +170,19 @@ Staff publish a policy version in three steps:
    with the returned `storage_key` and an `original_file_name`.
 
 The staging key is bound to the staff account, tournament, and purpose. The
-service checks the file's actual type and size before archiving it. It accepts
-PDF, JPEG, and PNG files up to 10 MiB. An empty file or invalid staging key returns 422. An oversized file returns 413,
-and an unsupported type returns 415. Storage failures
-return 503. A failed publication preserves the prior current version.
+service checks file type and size before archiving. It accepts PDF, JPEG, and
+PNG files up to 10 MiB. Publishing makes the staff-selected upload current.
+An empty file or invalid staging key returns 422. An oversized file returns 413,
+and an unsupported type returns 415. Storage failures return 503. A rejected
+replacement leaves the prior version current. If the commit outcome is unknown,
+the service retains the candidate archive for reconciliation.
 
 `GET /api/tournaments/{tournament_id}/policy-documents` returns current policy
 versions. `GET /api/tournaments/{tournament_id}/policy-documents/{purpose}/{document_id}/download-url`
-returns a short-lived URL for the specified **version ID**. Both routes enforce
-catalog visibility. A hidden tournament or an ID outside the requested tournament
-and purpose returns 404.
+returns a short-lived signed GET URL for the specified **version ID**. Both
+routes enforce catalog visibility. A hidden tournament or an ID outside the
+requested tournament and purpose returns 404. The browser downloads the bytes
+directly from object storage and offers a retry if that request fails.
 
 The staff form saves tournament facts separately from policy publication.
 Staff can enable refunds on a saved tournament with a published cancellation

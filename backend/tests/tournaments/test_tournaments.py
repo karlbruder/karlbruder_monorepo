@@ -11,7 +11,9 @@ from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientConnectionError
 
 from app.auth.supabase import tokens
+from app.core.files import FileStorageError, get_file_storage
 from app.main import karlbruder_app
+from app.tournaments.models import TournamentDocumentVersion
 from config import settings
 
 
@@ -30,7 +32,6 @@ class OfflineJwksClient:
 
 @pytest.fixture
 def client(monkeypatch):
-    from app.core.files import get_file_storage
     from unittest.mock import Mock
 
     storage = Mock()
@@ -439,7 +440,7 @@ def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, d
 
 
 def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
-    from app.core.files import get_file_storage
+    """An eligible reader can fetch the exact archived version after replacement."""
 
     test_client, signing_key = client
     admin = _headers(signing_key, "admin")
@@ -468,7 +469,8 @@ def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
     base = f"/api/staff/tournaments/{public_id}/policy-documents/rules"
     assert test_client.post(base + "/upload-url", headers=regular).status_code == 403
     assert test_client.post(base, headers=regular, json={"storage_key": "x", "original_file_name": "x"}).status_code == 403
-    first = publish(public_id, "rules", b"%PDF-1.4 first")
+    first_pdf = b"%PDF-1.4 first"
+    first = publish(public_id, "rules", first_pdf)
     staff_path = f"/api/staff/tournaments/{public_id}"
     assert test_client.put(staff_path, headers=admin, json=_event(refunds_allowed=True)).status_code == 422
     cancellation = publish(public_id, "cancellation_policy", b"%PDF-1.4 cancel")
@@ -476,7 +478,8 @@ def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
     assert saved.status_code == 200, saved.text
     assert saved.json()["refunds_allowed"] is True
     second = publish(public_id, "rules", b"%PDF-1.4 second")
-    hidden = publish(internal_id, "rules", b"%PDF-1.4 hidden")
+    hidden_pdf = b"%PDF-1.4 hidden"
+    hidden = publish(internal_id, "rules", hidden_pdf)
     current = test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()
     assert current["rules"]["id"] == second["id"]
     assert current["cancellation_policy"]["id"] == cancellation["id"]
@@ -486,10 +489,18 @@ def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
     rules = db_session.scalar(select(TournamentDocument).where(TournamentDocument.tournament_id == public_id, TournamentDocument.purpose == "rules"))
     assert rules.current_version.id == second["id"]
     assert [version.id for version in rules.versions] == [second["id"], first["id"]]
+    storage.read_object_bytes.reset_mock()
     old_url = f"/api/tournaments/{public_id}/policy-documents/rules/{first['id']}/download-url"
     old = test_client.get(old_url)
     assert old.status_code == 200
-    assert objects[old.json()["download_url"].split("/", 3)[-1]] == b"%PDF-1.4 first"
+    assert old.json()["content_type"] == "application/pdf"
+    assert objects[old.json()["download_url"].removeprefix("https://archive.example.test/")] == first_pdf
+    storage.read_object_bytes.assert_not_called()
+    hidden_url = f"/api/tournaments/{internal_id}/policy-documents/rules/{hidden['id']}/download-url"
+    assert test_client.get(hidden_url, headers=regular).status_code == 404
+    hidden_response = test_client.get(hidden_url, headers=member)
+    assert hidden_response.status_code == 200
+    assert objects[hidden_response.json()["download_url"].removeprefix("https://archive.example.test/")] == hidden_pdf
     assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=regular).status_code == 404
     assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=member).status_code == 200
     assert test_client.get(f"/api/tournaments/{public_id}/policy-documents/rules/{hidden['id']}/download-url").status_code == 404
@@ -506,7 +517,7 @@ def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
 
 
 def test_policy_publication_failure_preserves_previous_version(client, db_session, monkeypatch):
-    from app.core.files import get_file_storage
+    """Storage and pre-commit database failures preserve the previous archive."""
 
     test_client, signing_key = client
     admin = _headers(signing_key, "admin")
@@ -529,16 +540,24 @@ def test_policy_publication_failure_preserves_previous_version(client, db_sessio
     original = test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "first.pdf"}).json()
     saved_objects = objects.copy()
     key = stage()
-    from app.core.files import FileStorageError
     storage.store_file.side_effect = FileStorageError("storage unavailable")
     assert test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"}).status_code == 503
     assert objects == saved_objects
     storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
     key = stage()
+
+    flush = db_session.flush
+
+    def fail_flush(*args, **kwargs):
+        if any(isinstance(row, TournamentDocumentVersion) for row in db_session.new):
+            raise RuntimeError("database unavailable")
+        return flush(*args, **kwargs)
+
     with monkeypatch.context() as patch:
-        patch.setattr(db_session, "commit", lambda: (_ for _ in ()).throw(RuntimeError("database unavailable")))
+        patch.setattr(db_session, "flush", fail_flush)
         with pytest.raises(RuntimeError, match="database unavailable"):
             test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"})
+    assert storage.store_file.call_count == 3
     assert objects == saved_objects
     assert test_client.get(f"/api/tournaments/{tournament_id}/policy-documents").json()["rules"]["id"] == original["id"]
 
