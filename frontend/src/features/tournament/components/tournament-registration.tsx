@@ -1,10 +1,8 @@
 import monomachiaMark from "@/features/tournament/assets/monomachia.svg";
-import { ApplicationHeader } from "@/components/application-header";
 import { ApplicationFooter } from "@/components/application-footer";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { accountRoutes } from "@/config/account-routes";
 
 import { useRegistrationTournament } from "@/features/tournament/api/use-registration-tournament";
 import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own-tournament-registrations";
@@ -24,10 +22,8 @@ type Props = {
   session: Session | null;
   authReady: boolean;
   authError: AppCopyKey | null;
-  onSignOut: () => Promise<void>;
   signInButton: ReactNode;
   language?: AppLanguage;
-  onLanguageChange?: (language: AppLanguage) => void;
 };
 
 const locale = (language: AppLanguage) => language === "pt" ? "pt-BR" : "en-US";
@@ -141,7 +137,7 @@ function SignedInRegistration({
 }
 
 export default function TournamentRegistration({
-  session, authReady, authError, onSignOut, signInButton, language = "pt", onLanguageChange, tournamentId, registrationNumber, invalidLink = false,
+  session, authReady, authError, signInButton, language = "pt", tournamentId, registrationNumber, invalidLink = false,
 }: Props) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   const { data: tournament, error, isFetching: loading, refetch } = useRegistrationTournament(tournamentId, session, !invalidLink && (!registrationNumber || Boolean(authReady && session)));
@@ -155,15 +151,6 @@ export default function TournamentRegistration({
 
   return (
     <div className="registration-page" lang={locale(language)}>
-      <ApplicationHeader language={language} onLanguageChange={onLanguageChange}>
-        {authReady && session && (
-          <div className="registration-account">
-            <span>{session.user.email}</span>
-            <a href={accountRoutes.password}>{t("Alterar senha")}</a>
-            <button type="button" onClick={onSignOut}>{t("Sair")}</button>
-          </div>
-        )}
-      </ApplicationHeader>
       <main className="registration-main">
         <a className="registration-back" href="/">← {t("Início do torneio")}</a>
         <div className={showEventCover ? "registration-cover" : "registration-intro"}>
@@ -235,7 +222,7 @@ export default function TournamentRegistration({
           </div>
         )}
       </main>
-      <ApplicationFooter language={language} />
+      <ApplicationFooter />
     </div>
   );
 }

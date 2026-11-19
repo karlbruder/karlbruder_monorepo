@@ -9,7 +9,7 @@ import { readReturnTo } from "@/features/auth/utils/account-navigation";
 
 export default function ResetPasswordRoute() {
   const auth = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ export default function ResetPasswordRoute() {
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Escolha uma nova senha")}
       subtitle={appCopy(language, "Escolha uma nova senha")}
       showRegistrationContext={false}

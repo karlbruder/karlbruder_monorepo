@@ -5,12 +5,11 @@ import { PasswordUpdateForm } from "@/features/auth/components/password-update-f
 import { appCopy } from "@/utils/app-copy";
 
 export default function ChangePasswordRoute() {
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Alterar senha")}
       subtitle={appCopy(language, "Alterar senha")}
       showRegistrationContext={false}

@@ -9,7 +9,7 @@ import { readReturnTo, readSessionExpiredFromSignIn } from "@/features/auth/util
 
 export default function SignInRoute() {
   const auth = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ export default function SignInRoute() {
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Entrar na Karlbrüder")}
       subtitle={appCopy(language, "Boas-vindas de volta.")}
     >

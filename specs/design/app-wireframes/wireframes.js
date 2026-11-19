@@ -81,14 +81,14 @@ const navigationLabels = {
   'pt-BR': {
     catalog: 'Karlbrüder, catálogo', menu: 'Menu', application: 'Aplicação',
     tournaments: 'Torneios', registrations: 'Minhas inscrições', administration: 'Administração',
-    signIn: 'Entrar', staff: 'Equipe', theme: 'Tema', language: 'Idioma',
+    home: 'Início', signIn: 'Entrar', account: 'Minha conta', password: 'Alterar senha', signOut: 'Sair', theme: 'Tema', language: 'Idioma',
     light: 'Claro', dark: 'Escuro', system: 'Sistema', guildPanel: 'Painel da Guilda',
     overview: 'Visão geral', payments: 'Pagamentos', refunds: 'Reembolsos', users: 'Usuários',
   },
   en: {
     catalog: 'Karlbrüder, catalog', menu: 'Menu', application: 'Application',
     tournaments: 'Tournaments', registrations: 'My registrations', administration: 'Administration',
-    signIn: 'Sign in', staff: 'Staff', theme: 'Theme', language: 'Language',
+    home: 'Home', signIn: 'Sign in', account: 'My account', password: 'Change password', signOut: 'Sign out', theme: 'Theme', language: 'Language',
     light: 'Light', dark: 'Dark', system: 'System', guildPanel: 'Guild panel',
     overview: 'Overview', payments: 'Payments', refunds: 'Refunds', users: 'Users',
   },
@@ -115,6 +115,8 @@ const headerIconPaths = {
   language: '<circle cx="10" cy="10" r="7.5"/><ellipse cx="10" cy="10" rx="3.25" ry="7.5"/><path d="M2.7 10h14.6"/>',
   menu: '<path d="M3 5h14M3 10h14M3 15h14"/>',
   chevron: '<path d="m5 7.5 5 5 5-5"/>',
+  password: '<circle cx="7" cy="8" r="3.5"/><path d="m9.5 10.5 7 7m-2.5-2.5 2.5-2.5"/>',
+  signOut: '<path d="M8 3H4v14h4m0-7h9m-3-3 3 3-3 3"/>',
   check: '<path d="m4.5 10 3.5 3.5 7.5-7.5"/>',
 };
 
@@ -124,8 +126,7 @@ function headerIcon(name, className = '') {
 }
 
 function headerPreferences() {
-  return `<div class="app-preferences">
-    <button class="header-icon-button" type="button" data-preference-trigger="theme"
+  return `<button class="header-icon-button" type="button" data-preference-trigger="theme"
       aria-controls="theme-choices" aria-expanded="false">
       <span class="current-theme-icon"></span>
     </button>
@@ -145,8 +146,7 @@ function headerPreferences() {
       <button type="button" class="preference-option" lang="en" data-language-choice="en">
         English${headerIcon('check', 'preference-check')}
       </button>
-    </div>
-  </div>`;
+    </div>`;
 }
 
 function refreshHeaderPreferences() {
@@ -158,6 +158,11 @@ function refreshHeaderPreferences() {
   const themeLabel = `${labels.theme}: ${labels[theme]}`;
   const languageLabel = `${labels.language}: ${languageName}`;
 
+  const accountTrigger = document.querySelector('[data-preference-trigger="account"]');
+  if (accountTrigger) {
+    const initials = accountTrigger.dataset.accountInitials;
+    accountTrigger.setAttribute('aria-label', initials ? `${labels.account} · ${initials}` : labels.account);
+  }
   themeTrigger.setAttribute('aria-label', themeLabel);
   themeTrigger.title = themeLabel;
   themeTrigger.querySelector('.current-theme-icon').innerHTML = headerIcon(theme);
@@ -170,40 +175,77 @@ function refreshHeaderPreferences() {
   }
 }
 
-function header() {
-  const staff = current.role.startsWith('Staff') ||
+let journeyRole;
+
+function headerRole() {
+  if (current.id === 'WF-03') {
+    return state === 'changepassword' ? journeyRole || 'athlete' : 'guest';
+  }
+  if (state === 'restricted' || state === 'forbidden') return 'athlete';
+  if (current.role.startsWith('Staff') ||
     (current.id === 'WF-17' && ['admin', 'currentadmin'].includes(state)) ||
-    (current.id === 'WF-13' && ['queue', 'staff'].includes(state));
-  const guest = (['WF-01', 'WF-02', 'WF-03'].includes(current.id) && state !== 'member' &&
-    !(current.id === 'WF-02' && isAthleteTournamentDetail())) ||
-    (current.id === 'WF-14' && state !== 'directory');
-  const currentHome = current.id === 'WF-17' && ['current', 'currentadmin'].includes(state);
+    (current.id === 'WF-13' && ['queue', 'staff'].includes(state))) return 'staff';
+  if (journeyRole && journeyRole !== 'guest') return journeyRole;
+  if ((current.id === 'WF-01' && state !== 'member') ||
+    (current.id === 'WF-02' && !isAthleteTournamentDetail()) ||
+    (current.id === 'WF-14' && state !== 'directory')) return 'guest';
+  return 'athlete';
+}
+
+function accountMenu(staff) {
+  const name = staff ? 'Bruno Exemplo' : 'Ana Exemplo';
+  const email = staff ? 'bruno@example.test' : 'ana@example.test';
+  const avatar = staff
+    ? '<svg viewBox="0 0 32 32" aria-hidden="true" class="avatar"><circle cx="16" cy="16" r="16" fill="#ddd1b9"/><path d="M6 32c0-7 4-11 10-11s10 4 10 11" fill="#642226"/><circle cx="16" cy="14" r="6" fill="#ad775c"/><path d="M10 13c0-6 4-8 8-7 3 1 4 3 4 6-3 0-5-1-6-3-2 3-3 4-6 4" fill="#202326"/></svg>'
+    : '<span class="avatar" aria-hidden="true">AE</span>';
+  return `<div class="header-account">
+    <button class="header-icon-button account-trigger" type="button" data-preference-trigger="account" data-account-initials="${staff ? '' : 'AE'}"
+      aria-controls="account-choices" aria-expanded="false">
+      ${avatar}
+    </button>
+    <div class="preference-popover account-popover" id="account-choices" hidden>
+      <div class="account-menu-identity"><strong>${name}</strong><small>${email}</small></div>
+      <a href="#WF-03/changepassword" class="account-action">${headerIcon('password')}<span data-nav-text="password"></span></a>
+      <a href="#WF-03/login" class="account-action account-sign-out">${headerIcon('signOut')}<span data-nav-text="signOut"></span></a>
+    </div>
+  </div>`;
+}
+
+function header() {
+  const role = headerRole();
+  const staff = role === 'staff';
+  const guest = role === 'guest';
+  const home = staff ? '#WF-17/currentadmin' : '#WF-17/current';
+  const active = id => current.id === id ? 'aria-current="page"' : '';
+  const staffSection = staff && (current.role.startsWith('Staff') || (current.id === 'WF-13' && ['queue', 'staff'].includes(state)));
   return `<header class="app-header">
-    <a class="brand" href="#WF-01" data-nav-label="catalog">
-      <img src="${A}logos/logo_white_with_name.png" alt="Karlbrüder — esgrima histórica">
+    <a class="brand" href="${guest ? '#WF-01' : home}" aria-label="Karlbrüder">
+      <img src="${A}logos/logo_white_with_name.png" alt="">
     </a>
-    <button class="app-menu-toggle header-icon-button" type="button" aria-controls="app-nav app-account"
+    <button class="app-menu-toggle header-icon-button" type="button" aria-controls="app-nav"
       aria-expanded="false" data-nav-label="menu">
       ${headerIcon('menu')}
     </button>
     <nav id="app-nav" class="app-nav" data-nav-label="application">
-      <a href="#WF-01" data-nav-text="tournaments" ${current.id === 'WF-01' ? 'aria-current="page"' : current.id === 'WF-02' ? 'aria-current="location"' : ''}></a>
-      ${!guest && !currentHome ? `<a href="#WF-07" data-nav-text="registrations" ${current.id === 'WF-07' ? 'aria-current="page"' : ''}></a>` : ''}
-      ${staff ? `<a href="#WF-09" data-nav-text="administration" aria-current="${current.id === 'WF-09' ? 'page' : 'location'}"></a>` : ''}
+      ${guest ? '' : `<a href="${home}" data-nav-text="home" ${active('WF-17')}></a>`}
+      <a href="#WF-01" data-nav-text="tournaments" ${active('WF-01')}></a>
+      ${guest ? `<a href="#WF-03/login" data-nav-text="signIn" ${current.id === 'WF-03' && state === 'login' ? 'aria-current="page"' : ''}></a>`
+        : `<a href="#WF-07" data-nav-text="registrations" ${active('WF-07')}></a>`}
+      ${staff ? `<a href="#WF-19/list" data-nav-text="administration" ${active('WF-19') || (staffSection ? 'aria-current="location"' : '')}></a>` : ''}
     </nav>
-    <div class="account" id="app-account">
-      ${guest ? button('', 'WF-03', '', 'data-nav-text="signIn"') : staff ? '<span class="avatar" aria-hidden="true">EQ</span><span data-nav-text="staff"></span>' : '<span class="avatar" aria-hidden="true">AE</span><span>Ana E.</span>'}
+    <div class="header-tools">
+      ${headerPreferences()}
+      ${guest ? '' : accountMenu(staff)}
     </div>
-    ${headerPreferences()}
   </header>`;
 }
 function catalog(){if(state==='empty'||state==='error')return `<div class="app-body">${intro('Circuito Karlbrüder','Torneios da guilda')}<div class="empty"><h3>${state==='empty'?'Nenhum torneio disponível':'Não foi possível carregar os torneios'}</h3><p class="muted">${state==='empty'?'Novos encontros aparecerão aqui quando estiverem disponíveis.':'Tente novamente. Nenhum dado de inscrição foi alterado.'}</p>${button('Voltar ao catálogo','WF-01')}</div></div>`;return `<div class="app-body">${intro('Esgrima histórica · Karlbrüder','Encontre seu próximo desafio.','Torneios, encontros e experiências para quem vive a esgrima.')}<div class="hero"><div>${tag('Inscrições abertas','wine')}<h2>Monomachia<br>Karlbrüder 2027</h2><p class="sub">Um encontro de técnica, respeito e espírito de guilda.</p><div class="hero-meta"><span>17 jan 2027</span><span>Longsword</span><span>Evento público</span></div><div class="actions">${button('Conhecer o torneio →','WF-02','','data-event="mono"')}</div></div><div class="event-mark"><img src="${A}monomachia/logo.svg" alt="Identidade Monomachia"></div></div><div class="panel-heading"><h3>Todos os torneios</h3><span class="small muted">${state==='member'?'3 eventos visíveis para membros':'2 eventos públicos · exemplo'}</span></div><div class="grid-2"><article class="event-card"><div class="cover wine"><strong>MONOMACHIA</strong><span class="small">2027</span></div><div class="content">${tag('Inscrições abertas','green')}<h3>Monomachia Karlbrüder</h3><p class="muted">Longsword · 17 de janeiro de 2027<br>Local a confirmar</p><footer><span>3 opções de inscrição</span>${button('Ver detalhes','WF-02','secondary','data-event="mono"')}</footer></div></article><article class="event-card"><div class="cover"><strong>Encontros da guilda</strong><span class="small">EXEMPLO</span></div><div class="content">${tag('Data a confirmar')}<h3>Encontro de esgrima da guilda</h3><p class="muted">Evento fictício para demonstrar o catálogo<br>Data, local e valor a confirmar</p><footer><span>Evento público</span>${button('Ver detalhes','WF-02','secondary','data-event="other" data-state="unknown"')}</footer></div></article>${state==='member'?`<article class="event-card"><div class="cover"><strong>Encontro interno</strong><span class="small">EXEMPLO</span></div><div class="content">${tag('Somente membros','blue')}<h3>Treino competitivo interno</h3><p class="muted">Acesso de membros da guilda e staff.</p>${button('Ver detalhes','','secondary','data-dialog="internal"')}</div></article>`:''}</div></div>`;}
 function detail(){const full=state==='full',unknown=state==='unknown',closed=state==='closed',athlete=isAthleteTournamentDetail();return `<div class="app-body"><a class="return-link" href="#WF-01">← Todos os torneios</a><div class="hero"><div><p class="overline">Karlbrüder apresenta</p><h2>${eventTitle()}</h2><div class="hero-meta"><span>${currentEvent==='mono'?'17 jan 2027':'Data a confirmar'}</span><span>Longsword</span><span>Público</span></div></div><div class="event-mark"><img src="${A}${currentEvent==='mono'?'monomachia/logo.svg':'logos/logo_white.png'}" alt="Marca do evento"></div></div>${full?notice('Vagas preenchidas. Inscrições continuam abertas.','Se o pagamento for aprovado sem uma vaga disponível, sua inscrição entrará na lista de espera. Inscrever-se e enviar comprovante não reservam vaga.'):closed?notice('Inscrições encerradas','Não é possível criar uma nova inscrição. Inscrições existentes continuam acessíveis.','neutral'):''}<div class="split"><section><div class="panel"><h3>Sobre o torneio</h3><p>Encontre as informações de participação, consulte o regulamento e acompanhe sua inscrição pela plataforma Karlbrüder.</p>${facts([['Modalidade','Longsword'],['Local','A confirmar'],['Programação','A confirmar'],['Participação','Inscrição individual e pessoal']])}</div><div class="panel"><h3>Antes de se inscrever</h3>${athleteDocumentSection(athlete)}<details><summary>Equipamentos obrigatórios</summary><p class="muted">A lista final de equipamentos será informada pela equipe.</p></details><p class="small muted" style="margin-top:15px">Menores precisam de termo assinado pelo responsável, acompanhamento no evento e conferência presencial dos documentos de ambos.</p></div></section><aside><div class="panel"><span class="inline-label">INSCRIÇÃO</span><div class="amount">${currentEvent==='mono'?'3 opções':'A confirmar'}</div><p class="small muted">${currentEvent==='mono'?'Social, Plena e Plus · escolha na inscrição':'Valor ainda não informado'}</p>${facts([['Período',unknown?'A confirmar':'01 nov – 10 jan · exemplo'],['Fuso','GMT-3'],['Disponibilidade',closed?'Encerrada':full?'Sem vaga confirmável':unknown?'A confirmar':'Inscrições abertas']])}<div class="actions">${closed||unknown?'<button class="button wide" disabled>Inscrições indisponíveis</button>':button(full?'Continuar com ciência da espera':'Inscrever-me',athlete?'WF-04':'WF-03','wide',athlete&&state!=='athlete'?`data-state="${state}"`:'')}</div><p class="small muted" style="margin-top:12px">${athlete?'Você só pode inscrever a si mesmo.':'Entre ou crie uma conta para se inscrever. Você só pode inscrever a si mesmo.'}</p></div></aside></div></div>`;}
 function home(){
  const currentHome=['current','currentadmin'].includes(state), admin=state==='admin';
- if(currentHome)return `<div class="app-body">${intro('Área pessoal','Olá, Ana.','Ana Exemplo · conta fictícia')}<div class="split"><section><div class="home-section-heading"><p class="overline">SEU TORNEIO</p><h3>Inscrição</h3></div><article class="home-registration"><div class="home-registration-heading"><div><p class="overline">MONOMACHIA</p><h3><a href="#WF-04">Inscrição Monomachia</a></h3></div></div><p class="muted">Acesse o torneio para se inscrever ou acompanhar sua inscrição.</p><a class="screen-link" href="#WF-04">Acessar inscrição →</a></article></section><aside><div class="panel home-shortcuts"><p class="overline">ACESSO RÁPIDO</p><h3>Minha conta</h3><ul><li><a href="#WF-03/changepassword" data-go="WF-03" data-state="changepassword"><span><strong>Alterar senha</strong><small>Atualize sua senha de acesso</small></span><span aria-hidden="true">→</span></a></li></ul>${button('Sair','WF-03','secondary')}</div>${state==='currentadmin'?`<div class="panel home-shortcuts"><p class="overline">SOMENTE ADMIN</p><h3>Guilda</h3><ul><li><a href="#WF-09"><span><strong>Conferência de pagamentos</strong><small>Revise comprovantes pendentes</small></span><span aria-hidden="true">→</span></a></li></ul></div>`:''}</aside></div></div>`;
+ if(currentHome)return `<div class="app-body">${intro('Área pessoal','Olá, Ana.','Ana Exemplo · conta fictícia')}<div class="split"><section><div class="home-section-heading"><p class="overline">SEU TORNEIO</p><h3>Inscrição</h3></div><article class="home-registration"><div class="home-registration-heading"><div><p class="overline">MONOMACHIA</p><h3><a href="#WF-04">Inscrição Monomachia</a></h3></div></div><p class="muted">Acesse o torneio para se inscrever ou acompanhar sua inscrição.</p><a class="screen-link" href="#WF-04">Acessar inscrição →</a></article></section><aside>${state==='currentadmin'?`<div class="panel home-shortcuts"><p class="overline">SOMENTE ADMIN</p><h3>Guilda</h3><ul><li><a href="#WF-09"><span><strong>Conferência de pagamentos</strong><small>Revise comprovantes pendentes</small></span><span aria-hidden="true">→</span></a></li></ul></div>`:''}</aside></div></div>`;
  const registration=state==='loading'?'<p role="status">Carregando inscrições…</p>':state==='error'?`<div role="alert"><h3>Não foi possível carregar suas inscrições.</h3><p class="muted">Tente novamente para consultar a situação.</p>${button('Tentar novamente','WF-17','secondary','data-state="list"')}</div>`:state==='empty'?`<div class="home-empty"><h3>Nenhuma inscrição ainda.</h3><p class="muted">Quando você se inscrever, poderá acompanhar sua participação aqui.</p><a class="screen-link" href="#WF-04">Inscrição Monomachia →</a></div>`:`<ul class="home-registrations"><li><article class="home-registration"><div class="home-registration-heading"><div><p class="overline">TORNEIO · EXEMPLO</p><h3><a href="#WF-06">Monomachia Karlbrüder 2027</a></h3></div>${tag('Em análise','blue')}</div><p class="muted">Longsword · 17 jan 2027</p><div class="home-next"><strong>Próximo passo</strong><span>A equipe está conferindo seu comprovante. Sua vaga ainda não está reservada.</span></div><a class="screen-link" href="#WF-06">Acompanhar inscrição →</a></article></li></ul>`;
- return `<div class="app-body">${intro('Área pessoal','Olá, Ana.','Acompanhe seus torneios e cuide da sua conta.')}${notice('Proposta para revisão','A lista pessoal entre torneios e o painel da Guilda ainda não estão implementados.','info')}<div class="split"><section><div class="home-section-heading"><div><p class="overline">SEUS TORNEIOS</p><h3>Minhas inscrições</h3></div></div>${registration}</section><aside><div class="panel home-shortcuts"><p class="overline">ACESSO RÁPIDO</p><h3>Minha conta</h3><ul><li><a href="#WF-03/changepassword" data-go="WF-03" data-state="changepassword"><span><strong>Alterar senha</strong><small>Atualize sua senha de acesso</small></span><span aria-hidden="true">→</span></a></li><li><a href="#WF-04"><span><strong>Inscrição Monomachia</strong><small>Acesse o torneio</small></span><span aria-hidden="true">→</span></a></li></ul>${button('Sair','WF-03','secondary')}</div>${admin?`<div class="panel home-shortcuts"><p class="overline">SOMENTE ADMIN</p><h3>Guilda</h3><ul><li><a href="#WF-18"><span><strong>Painel da Guilda</strong><small>Torneios, pagamentos e usuários</small></span><span aria-hidden="true">→</span></a></li></ul><p class="small muted">Painel da Guilda · proposta</p></div>`:''}</aside></div></div>`;
+ return `<div class="app-body">${intro('Área pessoal','Olá, Ana.','Acompanhe seus torneios e cuide da sua conta.')}${notice('Proposta para revisão','A lista pessoal entre torneios e o painel da Guilda ainda não estão implementados.','info')}<div class="split"><section><div class="home-section-heading"><div><p class="overline">SEUS TORNEIOS</p><h3>Minhas inscrições</h3></div></div>${registration}</section><aside><div class="panel home-shortcuts"><p class="overline">ACESSO RÁPIDO</p><h3>Seu torneio</h3><ul><li><a href="#WF-04"><span><strong>Inscrição Monomachia</strong><small>Acesse o torneio</small></span><span aria-hidden="true">→</span></a></li></ul></div>${admin?`<div class="panel home-shortcuts"><p class="overline">SOMENTE ADMIN</p><h3>Guilda</h3><ul><li><a href="#WF-18"><span><strong>Painel da Guilda</strong><small>Torneios, pagamentos e usuários</small></span><span aria-hidden="true">→</span></a></li></ul><p class="small muted">Painel da Guilda · proposta</p></div>`:''}</aside></div></div>`;
 }
 function auth(){const signup=state==='signup',recover=state==='recover',reset=state==='reset',changepassword=state==='changepassword',verify=state==='verify';return `<div class="auth-layout"><section class="auth-story"><p class="overline">Sua próxima experiência</p><h2>Da primeira inscrição<br>ao próximo encontro.</h2><p>Uma conta para acompanhar seus torneios na Karlbrüder.</p><hr class="divider">${changepassword?'<p class="small">Você já está autenticada.</p>':'<p class="small">Você está continuando a inscrição em<br><strong>'+eventTitle()+'</strong></p>'}</section><section class="auth-form">${intro('Sua conta',verify?'Confira seu e-mail':recover?'Recuperar acesso':reset?'Escolha uma nova senha':changepassword?'Alterar senha':signup?'Faça parte.':'Boas-vindas de volta.')} ${state==='expired'?notice('Sua sessão expirou','Entre novamente para continuar no torneio selecionado.','info'):''}${state==='unavailable'?notice('Serviço temporariamente indisponível','Não foi possível conectar ao serviço de acesso. Tente novamente em instantes.','error'):''}${verify?`${notice('Enviamos as instruções de verificação','Consulte sua caixa de entrada e siga o link para ativar o acesso.','success')}<p class="muted">Após verificar seu e-mail, entre para continuar.</p>${button('Voltar para entrar','WF-03','wide')}`:reset||changepassword?`${field('Nova senha','','type="password" autocomplete="new-password"')}${field('Repita a nova senha','','type="password" autocomplete="new-password"')}${button('Atualizar senha',changepassword?'WF-17':'WF-03','wide')}`:`${!recover?button('Continuar com Google','WF-04','secondary wide')+'<div class="or">ou use seu e-mail</div>':''}${field('E-mail','','type="email" placeholder="voce@exemplo.com" autocomplete="email"')}${!recover?field('Senha','','type="password" autocomplete="current-password"'):''}${button(recover?'Enviar link de recuperação':signup?'Criar minha conta':'Entrar',recover?'':signup?'WF-03':'WF-04','wide',recover?'data-dialog="recovery"':signup?'data-state="verify"':'')}${!signup&&!recover?'<div class="actions"><button class="text-button" data-go="WF-03" data-state="recover">Esqueci minha senha</button></div>':''}<hr class="divider"><p class="small">${signup||recover?'Já tem acesso?':'Ainda não tem conta?'} <button class="text-button" data-go="WF-03" data-state="${signup||recover?'login':'signup'}">${signup||recover?'Entrar':'Criar conta'}</button></p>`}</section></div>`;}
 function invalidRegistrationField() {
@@ -433,23 +475,23 @@ const screenGroups = [
  {label:'Outros conceitos futuros', ids:['WF-14','WF-15','WF-16']}
 ];
 for(const section of screenGroups){const group=document.createElement('optgroup');group.label=section.label;section.ids.forEach(id=>{const screen=screens.find(s=>s.id===id);const option=document.createElement('option');option.value=screen.id;option.textContent=screen.title;group.append(option)});picker.append(group)}
-function render(){picker.value=current.id;statePicker.innerHTML=Object.entries(current.states).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');statePicker.value=state;document.getElementById('screen-meta').textContent=`${current.id} · ${screenGroups.find(group=>group.ids.includes(current.id)).label} · ${current.role}`;document.getElementById('prototype').innerHTML=`${header()}${current.id==='WF-17'&&['current','currentadmin'].includes(state)?'<div class="future-note">AÇÕES ATUAIS · NOVO LAYOUT PROPOSTO</div>':`<div class="future-note">${['WF-03','WF-04','WF-05','WF-06','WF-09','WF-10','WF-13'].includes(current.id)?'JORNADA PARCIALMENTE IMPLEMENTADA · APRESENTAÇÃO E ESTADOS ILUSTRATIVOS':'PROPOSTA / CONCEITO · NÃO IMPLEMENTADO COMO EXIBIDO'}</div>`}${current.render()}<footer class="app-footer"><span>Karlbrüder · esgrima histórica</span><nav class="app-footer-links" aria-label="Termos e privacidade">${documentPreviewLink('Termos de Uso')}${documentPreviewLink('Política de Privacidade')}</nav><span>app.karlbruder.com</span></footer>`;document.getElementById('spec-notes').innerHTML=`<div><h2>LEITURA DA TELA</h2><p>${current.title}</p><p>${current.role} · ${current.states[state]}</p><p>${current.rules.map(r=>`<span class="rule-tag">${r}</span>`).join('')}</p></div><div><h2>CONTRATOS DE ORIGEM</h2>${current.refs.map(r=>`<a href="../../${r}">${r} ↗</a>`).join('')}</div><div><h2>O QUE PRESERVAR</h2><ul>${current.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div><div><h2>PROPOSTA VISUAL</h2><p>Layout, navegação e microcopy são propostas. Cenários e valores fictícios não alteram regras do produto.</p><p>Use os seletores acima para comparar estados e a largura de celular.</p></div>`;
+function render(){picker.value=current.id;statePicker.innerHTML=Object.entries(current.states).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');statePicker.value=state;document.getElementById('screen-meta').textContent=`${current.id} · ${screenGroups.find(group=>group.ids.includes(current.id)).label} · ${current.role}`;document.getElementById('prototype').innerHTML=`${header()}${current.id==='WF-17'&&['current','currentadmin'].includes(state)?'<div class="future-note">AÇÕES ATUAIS · NOVO LAYOUT PROPOSTO</div>':`<div class="future-note">${['WF-03','WF-04','WF-05','WF-06','WF-09','WF-10','WF-13'].includes(current.id)?'JORNADA PARCIALMENTE IMPLEMENTADA · APRESENTAÇÃO E ESTADOS ILUSTRATIVOS':'PROPOSTA / CONCEITO · NÃO IMPLEMENTADO COMO EXIBIDO'}</div>`}${current.render()}<footer class="app-footer"><nav class="app-footer-links" aria-label="Termos e privacidade">${documentPreviewLink('Termos de Uso')}${documentPreviewLink('Política de Privacidade')}</nav></footer>`;document.getElementById('spec-notes').innerHTML=`<div><h2>LEITURA DA TELA</h2><p>${current.title}</p><p>${current.role} · ${current.states[state]}</p><p>${current.rules.map(r=>`<span class="rule-tag">${r}</span>`).join('')}</p></div><div><h2>CONTRATOS DE ORIGEM</h2>${current.refs.map(r=>`<a href="../../${r}">${r} ↗</a>`).join('')}</div><div><h2>O QUE PRESERVAR</h2><ul>${current.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div><div><h2>PROPOSTA VISUAL</h2><p>Layout, navegação e microcopy são propostas. Cenários e valores fictícios não alteram regras do produto.</p><p>Use os seletores acima para comparar estados e a largura de celular.</p></div>`;
   applyNavigationLanguage();
   refreshHeaderPreferences();
 }
-function navigate(id,variant,scroll=true){current=screens.find(s=>s.id===id)||screens[0];state=variant in current.states?variant:Object.keys(current.states)[0];history.replaceState(null,'',`#${current.id}/${state}`);render();if(scroll)window.scrollTo({top:0,behavior:'instant'});}
+function navigate(id,variant,scroll=true,role){journeyRole=role;current=screens.find(s=>s.id===id)||screens[0];state=variant in current.states?variant:Object.keys(current.states)[0];history.replaceState(null,'',`#${current.id}/${state}`);render();if(scroll)window.scrollTo({top:0,behavior:'instant'});}
 picker.addEventListener('change',()=>navigate(picker.value));statePicker.addEventListener('change',()=>navigate(current.id,statePicker.value,false));
 document.getElementById('desktop').onclick=()=>{document.body.classList.remove('mobile');document.getElementById('desktop').setAttribute('aria-pressed','true');document.getElementById('mobile').setAttribute('aria-pressed','false')};document.getElementById('mobile').onclick=()=>{document.body.classList.add('mobile');document.getElementById('desktop').setAttribute('aria-pressed','false');document.getElementById('mobile').setAttribute('aria-pressed','true')};
 document.getElementById('annotations').onclick=e=>{document.body.classList.toggle('no-notes');e.currentTarget.setAttribute('aria-pressed',String(!document.body.classList.contains('no-notes')))};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go],[data-dialog],a[href^="#WF-"]');if(!b)return;e.preventDefault();if(b.dataset.event)currentEvent=b.dataset.event;if(b.dataset.dialog){const data=dialogs[b.dataset.dialog];if(data){document.getElementById('dialog-content').innerHTML=`<h2 id="dialog-title">${data[0]}</h2><p>${data[1]}</p>`;document.getElementById('dialog').showModal()}return;}const [id,linkedState]=(b.dataset.go||b.getAttribute('href').slice(1)).split('/');if (id) {
-  navigate(id, b.dataset.state || linkedState);
+  navigate(id, b.dataset.state || linkedState, true, headerRole());
   document.getElementById('prototype').focus({preventScroll: true});
 }});
 function setPreferenceMenu(trigger, open) {
   const menu = document.getElementById(trigger.getAttribute('aria-controls'));
   trigger.setAttribute('aria-expanded', String(open));
   menu.hidden = !open;
-  if (open) menu.querySelector('[aria-pressed="true"]').focus();
+  if (open) menu.querySelector('[aria-pressed="true"]')?.focus();
 }
 
 const openPreferenceTrigger = () => document.querySelector('[data-preference-trigger][aria-expanded="true"]');
@@ -460,6 +502,7 @@ document.addEventListener('click', event => {
   const option = event.target.closest('.preference-option');
   if (trigger) {
     if (openTrigger && openTrigger !== trigger) setPreferenceMenu(openTrigger, false);
+    document.querySelector('.app-menu-toggle')?.setAttribute('aria-expanded', 'false');
     setPreferenceMenu(trigger, openTrigger !== trigger);
     return;
   }

@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ApplicationHeader } from "@/components/application-header";
 import { ApplicationFooter } from "@/components/application-footer";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -7,7 +6,6 @@ import "@/features/auth/components/account-auth.css";
 
 type Props = {
   language: AppLanguage;
-  onLanguageChange: (language: AppLanguage) => void;
   title: string;
   subtitle: string;
   showRegistrationContext?: boolean;
@@ -16,7 +14,6 @@ type Props = {
 
 export function AuthPageFrame({
   language,
-  onLanguageChange,
   title,
   subtitle,
   showRegistrationContext = true,
@@ -26,7 +23,6 @@ export function AuthPageFrame({
 
   return (
     <div className="account-auth-page" lang={language === "pt" ? "pt-BR" : "en-US"}>
-      <ApplicationHeader language={language} onLanguageChange={onLanguageChange} />
       <main className="account-auth-main">
         <div className="account-auth-layout">
           <section className="account-auth-story">
@@ -50,7 +46,7 @@ export function AuthPageFrame({
           </section>
         </div>
       </main>
-      <ApplicationFooter language={language} />
+      <ApplicationFooter />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink } from "react-router-dom";
-import { ApplicationHeader } from "@/components/application-header";
+import { Link } from "react-router-dom";
 import { ApplicationFooter } from "@/components/application-footer";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { listPersonalRegistrations } from "@/features/tournament/api/tournaments";
@@ -21,16 +20,11 @@ function nextStep(status: string, en: boolean): string {
 
 export function PersonalRegistrationsRoute() {
   const { session } = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const en = language === "en";
   const query = useQuery({ queryKey: ["personal-registrations", session!.user.id], queryFn: ({ signal }) => listPersonalRegistrations(session!.access_token, signal), refetchOnMount: "always" });
   return (
     <div className="application-page" lang={en ? "en-US" : "pt-BR"}>
-      <ApplicationHeader language={language} onLanguageChange={changeLanguage} navigation={<>
-        <NavLink to="/" end>{en ? "Home" : "Início"}</NavLink>
-        <NavLink to="/tournaments/registration">Monomachia</NavLink>
-        <NavLink to="/registrations">{en ? "My registrations" : "Minhas inscrições"}</NavLink>
-      </>} />
       <main className="application-body">
         <div className="page-intro">
           <p className="eyebrow">{en ? "Personal area" : "Área pessoal"}</p>
@@ -67,7 +61,7 @@ export function PersonalRegistrationsRoute() {
           </ul>
         )}
       </main>
-      <ApplicationFooter language={language} />
+      <ApplicationFooter />
     </div>
   );
 }

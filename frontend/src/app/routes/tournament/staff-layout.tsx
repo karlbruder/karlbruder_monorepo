@@ -1,25 +1,16 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLanguage } from "@/hooks/use-language";
-import { ApplicationHeader } from "@/components/application-header";
 import { ApplicationFooter } from "@/components/application-footer";
 import { appCopy } from "@/utils/app-copy";
 import "@/features/tournament/components/payment-reviews.css";
 
 export function StaffLayout() {
   const { session } = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const en = language === "en";
   return (
     <div className="application-page" lang={en ? "en-US" : "pt-BR"}>
-      <ApplicationHeader
-        language={language}
-        onLanguageChange={changeLanguage}
-        navigation={<>
-          <NavLink to="/" end>{en ? "Home" : "Início"}</NavLink>
-          <NavLink to="/registrations">{en ? "My registrations" : "Minhas inscrições"}</NavLink>
-        </>}
-      />
       <main className="application-body payment-reviews">
         <p className="eyebrow">{en ? "Karlbrüder Guild" : "Guilda Karlbrüder"}</p>
         {session?.user.app_metadata?.karlbruder_role !== "admin" ? (
@@ -36,7 +27,7 @@ export function StaffLayout() {
           </>
         )}
       </main>
-      <ApplicationFooter language={language} />
+      <ApplicationFooter />
     </div>
   );
 }

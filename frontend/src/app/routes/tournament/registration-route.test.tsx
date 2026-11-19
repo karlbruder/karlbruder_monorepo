@@ -154,7 +154,8 @@ describe('Monomachia registration entry', () => {
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null })
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: { message: 'unavailable' } } as Awaited<ReturnType<typeof supabase.auth.signOut>>)
     renderApp()
-    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
+    fireEvent.click(await screen.findByRole('button', { name: /^My account/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('We could not sign you out.')
   })
 

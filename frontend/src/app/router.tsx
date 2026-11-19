@@ -9,6 +9,7 @@ import { StaffTournamentListRoute, StaffTournamentCreateRoute, StaffTournamentDe
 import { StaffAthletesRoute } from "@/app/routes/tournament/staff-athletes-route";
 import { PaymentReviewRoute } from "@/app/routes/tournament/payment-review-route";
 import { RegistrationRefundRoute } from "@/app/routes/tournament/registration-refund-route";
+import { ApplicationLayout } from "@/app/routes/application-layout";
 import { AuthenticatedLayout } from "@/app/routes/authenticated-layout";
 import HomeRoute from "@/app/routes/home-route";
 import { LegalDocumentRoute } from "@/app/routes/legal-document-route";
@@ -26,31 +27,33 @@ const AppRoutes = isInitialized() ? wrapReactRouterRouting(Routes) : Routes;
 export default function AppRouter() {
   return (
     <AppRoutes>
-      <Route path={legalRoutes.terms} element={<LegalDocumentRoute documentType="terms" />} />
-      <Route path={legalRoutes.privacy} element={<LegalDocumentRoute documentType="privacy" />} />
-      <Route path="/tournaments/registration" element={<RegistrationRoute />} />
-      <Route path={accountRoutes.signIn} element={<SignInRoute />} />
-      <Route path={accountRoutes.signUp} element={<SignUpRoute />} />
-      <Route path={accountRoutes.checkEmail} element={<CheckEmailRoute />} />
-      <Route path={accountRoutes.recover} element={<PasswordRecoveryRoute />} />
-      <Route path={accountRoutes.newPassword} element={<ResetPasswordRoute />} />
-      <Route element={<AuthenticatedLayout />}>
-        <Route path={accountRoutes.password} element={<ChangePasswordRoute />} />
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/registrations" element={<PersonalRegistrationsRoute />} />
-        <Route element={<StaffLayout />}>
-          <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
-          <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />
-          <Route path="/staff/tournaments/:tournamentId" element={<StaffTournamentDetailRoute />} />
-          <Route path="/staff/tournaments/:tournamentId/athletes" element={<StaffAthletesRoute />} />
-          <Route path="/staff/tournaments/:tournamentId/athletes/:registrationNumber" element={<StaffAthletesRoute />} />
-          <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />
-          <Route path="/staff/payment-reviews/:registrationNumber" element={<PaymentReviewRoute />} />
-          <Route path="/staff/refunds" element={<RegistrationRefundRoute />} />
-          <Route path="/staff/users" element={<StaffAccountsRoute />} />
+      <Route element={<ApplicationLayout />}>
+        <Route path={legalRoutes.terms} element={<LegalDocumentRoute documentType="terms" />} />
+        <Route path={legalRoutes.privacy} element={<LegalDocumentRoute documentType="privacy" />} />
+        <Route path="/tournaments/registration" element={<RegistrationRoute />} />
+        <Route path={accountRoutes.signIn} element={<SignInRoute />} />
+        <Route path={accountRoutes.signUp} element={<SignUpRoute />} />
+        <Route path={accountRoutes.checkEmail} element={<CheckEmailRoute />} />
+        <Route path={accountRoutes.recover} element={<PasswordRecoveryRoute />} />
+        <Route path={accountRoutes.newPassword} element={<ResetPasswordRoute />} />
+        <Route element={<AuthenticatedLayout />}>
+          <Route path={accountRoutes.password} element={<ChangePasswordRoute />} />
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/registrations" element={<PersonalRegistrationsRoute />} />
+          <Route element={<StaffLayout />}>
+            <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
+            <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />
+            <Route path="/staff/tournaments/:tournamentId" element={<StaffTournamentDetailRoute />} />
+            <Route path="/staff/tournaments/:tournamentId/athletes" element={<StaffAthletesRoute />} />
+            <Route path="/staff/tournaments/:tournamentId/athletes/:registrationNumber" element={<StaffAthletesRoute />} />
+            <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />
+            <Route path="/staff/payment-reviews/:registrationNumber" element={<PaymentReviewRoute />} />
+            <Route path="/staff/refunds" element={<RegistrationRefundRoute />} />
+            <Route path="/staff/users" element={<StaffAccountsRoute />} />
+          </Route>
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
     </AppRoutes>
   );
 }

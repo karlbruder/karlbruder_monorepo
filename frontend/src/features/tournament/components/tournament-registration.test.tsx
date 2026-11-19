@@ -66,7 +66,7 @@ describe('Tournament registration', () => {
         : url.endsWith('/registrations') ? [] : catalogBody({ ...tournament, is_registration_closed: true }),
     }))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistration session={signedInSession} authReady authError={null} onSignOut={vi.fn()} signInButton={null} />)
+    render(<TournamentRegistration session={signedInSession} authReady authError={null} signInButton={null} />)
     expect(await screen.findByRole('button', { name: /Guia do competidor · guide.pdf/ })).toHaveTextContent('PDF')
     expect(screen.getAllByText(/conteúdo ainda não disponível/)).toHaveLength(2)
     expect(request).toHaveBeenCalledWith('/api/tournaments/42/documents', expect.objectContaining({
@@ -84,7 +84,7 @@ describe('Tournament registration', () => {
         } },
       },
     })
-    render(<TournamentRegistration session={signedInSession} authReady authError={null} onSignOut={vi.fn()} signInButton={null} />)
+    render(<TournamentRegistration session={signedInSession} authReady authError={null} signInButton={null} />)
     expect(await screen.findByRole('region', { name: 'Documentos do torneio' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /rules.pdf/ })).toBeInTheDocument()
     expect(screen.getByText(/Política de cancelamento: conteúdo ainda não disponível/)).toBeInTheDocument()
@@ -98,7 +98,6 @@ describe('Tournament registration', () => {
         session={null}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -114,7 +113,6 @@ describe('Tournament registration', () => {
         session={signedInSession}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -127,7 +125,6 @@ describe('Tournament registration', () => {
         session={null}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -141,7 +138,6 @@ describe('Tournament registration', () => {
         session={null}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -190,7 +186,7 @@ describe('Tournament registration', () => {
     render(
       <TournamentRegistration
         session={signedInSession} authReady authError={null}
-        onSignOut={vi.fn()} signInButton={<button>Entrar</button>}
+        signInButton={<button>Entrar</button>}
       />,
     )
     const form = await screen.findByRole('form', { name: 'Formulário de inscrição' })
@@ -265,7 +261,6 @@ describe('Tournament registration', () => {
         session={signedInSession}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     );
@@ -302,7 +297,6 @@ describe('Tournament registration', () => {
         session={signedInSession}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     );
@@ -364,7 +358,6 @@ describe('Tournament registration', () => {
         session={adminSession}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -404,7 +397,6 @@ describe('Tournament registration', () => {
         session={adminSession}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -491,7 +483,6 @@ function SwitchableRegistration({ nextSession }: { nextSession: Session }) {
         session={session}
         authReady
         authError={null}
-        onSignOut={vi.fn()}
         signInButton={<button>Entrar</button>}
       />
     </>

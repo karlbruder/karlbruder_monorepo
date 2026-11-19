@@ -46,6 +46,8 @@ This preview follows the guild's visual foundations and shared component guidanc
 
 Use the appearance icon in the application header to choose **Claro**, **Escuro**, or **Sistema**. The icon shows the selected mode. Light is the default and uses the hybrid presentation. System follows the device appearance, including changes while the preview is open. The theme applies to the review interface and linked document previews. Open the globe menu to switch the application header and staff navigation between **Português** and **English**. Screen fixtures and review notes are in Portuguese. Both controls preserve the current screen, state, and in-progress inputs. The browser remembers both choices where local storage is available.
 
+Signed-in screens use the same main navigation and account menu. Open the avatar to find **Alterar senha** and **Sair**. The avatar stays at the far right beside the appearance and language controls. The open menu shows the account name and email. The athlete fixture shows initials. Staff views show a fictional portrait to illustrate the profile-photo variant. Navigating with the header preserves the illustrated account, including on the password screen. Staff navigation remains available to the staff fixture.
+
 | Typography role | Preview family and license |
 | --- | --- |
 | Display headings and featured card titles | Schwager W04 Black is the approved face. A licensed webfont was unavailable for this artifact. Roboto Slab Black is the bundled substitute. It retains a heavy slab silhouette with rounder letterforms and softer corners than Schwager. Line breaks can differ. [Schwager licensing](https://www.myfonts.com/products/black-schwager-127657/licenses) · [Roboto Slab license](fonts/roboto-slab-LICENSE.txt) |

@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { ApplicationFooter } from "@/components/application-footer";
-import { ApplicationHeader } from "@/components/application-header";
 import { useLanguage } from "@/hooks/use-language";
 import { legalRoutes } from "@/config/legal-routes";
 
@@ -11,7 +10,7 @@ const documentTitles = {
 
 export function LegalDocumentRoute({ documentType }: { documentType: keyof typeof documentTitles }) {
   const title = documentTitles[documentType];
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -23,7 +22,6 @@ export function LegalDocumentRoute({ documentType }: { documentType: keyof typeo
 
   return (
     <div className="application-page" lang={language === "en" ? "en" : "pt-BR"}>
-      <ApplicationHeader language={language} onLanguageChange={changeLanguage} />
       <main className="application-body legal-document" lang="pt-BR">
         <article aria-labelledby="legal-document-title">
           <h1 id="legal-document-title">{title}</h1>
@@ -31,7 +29,7 @@ export function LegalDocumentRoute({ documentType }: { documentType: keyof typeo
           {documentType === "terms" ? <TermsOfUse /> : <PrivacyPolicy />}
         </article>
       </main>
-      <ApplicationFooter language={language} />
+      <ApplicationFooter />
     </div>
   );
 }

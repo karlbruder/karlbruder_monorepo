@@ -150,6 +150,13 @@ choices in local storage on the current origin. A supported `lang` query value
 still takes precedence on entry. The landing site has its own browser preferences
 for now (KBWD-010). Legal document contents remain in Portuguese.
 
+The account avatar stays at the right end of the header beside the language
+and appearance controls. Its menu shows the name, email, password change and
+sign-out actions. The avatar uses a Google profile photo when available, then
+uppercase first and last initials. Accounts without a saved name use their
+email initial. Navigation only shows
+Administration when the session has the admin role.
+
 Source Sans 3 and Grenze Gotisch ship as local webfonts. Roboto Slab Black is the
 display substitute while a licensed Schwager W04 Black webfont is unavailable.
 Its rounder letterforms and softer corners can change heading wraps. The

@@ -5,6 +5,9 @@ const paths = {
   globe: <><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18" /></>,
   chevron: <path d="m6 9 6 6 6-6" />,
   check: <path d="m5 12 4 4L19 6" />,
+  person: <><circle cx="12" cy="8" r="3" /><path d="M5 20v-1a7 7 0 0 1 14 0v1" /></>,
+  password: <><circle cx="8" cy="8" r="4" /><path d="m11 11 9 9m-3-3 3-3" /></>,
+  signOut: <path d="M10 3H5v18h5m0-9h11m-4-4 4 4-4 4" />,
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
 };
 

@@ -7,13 +7,12 @@ import { accountRoutes } from "@/config/account-routes";
 import { readReturnTo } from "@/features/auth/utils/account-navigation";
 
 export default function PasswordRecoveryRoute() {
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? accountRoutes.signIn;
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Recuperar acesso")}
       subtitle={appCopy(language, "Recuperar acesso")}
       showRegistrationContext={false}

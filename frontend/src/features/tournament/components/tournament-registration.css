@@ -6,25 +6,6 @@
   flex-direction: column;
 }
 
-.registration-account {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-  font-size: var(--text-sm);
-}
-
-.registration-account span {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.registration-account a {
-  white-space: nowrap;
-}
-
 .registration-main {
   margin: 0 auto;
   width: 100%;

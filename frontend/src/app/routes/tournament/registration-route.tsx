@@ -6,7 +6,7 @@ import RegistrationSignInPrompt from "@/features/auth/components/registration-si
 
 export default function RegistrationRoute() {
   const auth = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
   const params = new URLSearchParams(location.search);
@@ -23,10 +23,8 @@ export default function RegistrationRoute() {
       invalidLink={invalidLink}
       session={auth.session}
       authReady={auth.authReady}
-      authError={auth.authError}
+      authError={auth.authError === "Não foi possível sair. Tente novamente." ? null : auth.authError}
       language={language}
-      onLanguageChange={changeLanguage}
-      onSignOut={auth.signOut}
       signInButton={
         <RegistrationSignInPrompt
           language={language}

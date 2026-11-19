@@ -380,6 +380,8 @@ body.mobile #prototype {
 
 .app-nav {
   display: flex;
+  justify-content: flex-start;
+  text-align: start;
   gap: 16px;
   flex: 1;
   align-items: center;
@@ -403,23 +405,80 @@ body.mobile #prototype {
   border-bottom: 2px solid var(--clay);
 }
 
-.account {
-  margin-left: auto;
-  color: var(--on-shell);
-  font-size: var(--text-xs);
+.header-tools {
+  position: relative;
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid #49504d;
+}
+
+.header-account {
+  position: relative;
 }
 
 .avatar {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  flex: none;
   border-radius: 50%;
   background: #49504d;
+  color: var(--on-shell);
   font-size: var(--text-xs);
+}
+
+.app-header button.header-icon-button.account-trigger {
+  padding-inline: 4px;
+}
+
+.preference-popover.account-popover {
+  --account-popover-available: calc(100cqi - 2 * var(--content-gutter));
+  inline-size: max-content;
+  min-inline-size: min(14rem, var(--account-popover-available));
+  max-inline-size: var(--account-popover-available);
+}
+
+.account-menu-identity {
+  display: grid;
+  gap: 2px;
+  text-align: start;
+  margin: 0 8px;
+  padding: 8px 2px;
+  border-bottom: 1px solid #666e67;
+  font-size: var(--text-sm);
+}
+
+.account-menu-identity small {
+  color: var(--shell-muted);
+}
+
+.account-action {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--on-shell);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  text-align: start;
+}
+
+.account-action:hover {
+  background: #383f38;
+  text-decoration: underline;
+}
+
+.account-action:focus-visible {
+  outline-offset: -3px;
+}
+
+.account-sign-out {
+  color: var(--clay);
 }
 
 .app-header button {
@@ -440,14 +499,6 @@ body.mobile #prototype {
   display: none;
 }
 
-.app-preferences {
-  position: relative;
-  display: flex;
-  gap: 4px;
-  padding-inline-start: 10px;
-  border-inline-start: 1px solid #49504d;
-}
-
 .app-header button.header-icon-button {
   min-width: 44px;
   padding: 0 10px;
@@ -457,7 +508,7 @@ body.mobile #prototype {
   justify-content: center;
 }
 
-.app-preferences .header-icon-button,
+.header-tools .header-icon-button,
 .current-theme-icon {
   display: inline-flex;
 }
@@ -545,9 +596,7 @@ body.mobile #prototype {
   padding: 18px 32px;
   border-top: 1px solid var(--line);
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  justify-content: space-between;
+  justify-content: center;
   color: var(--muted);
   font-size: var(--text-xs);
 }
@@ -1606,7 +1655,7 @@ dialog p {
   }
 
   .brand img {
-    width: 9.6875rem;
+    width: min(100%, 9.6875rem);
   }
 
   .app-menu-toggle {
@@ -1637,26 +1686,17 @@ dialog p {
     padding-inline-start: 12px;
   }
 
-  .account {
-    display: none;
-    grid-column: 1 / -1;
-    margin: 0;
-    padding-top: 8px;
-    border-top: 1px solid #49504d;
-  }
-
-  .app-menu-toggle[aria-expanded="true"] ~ .account {
-    display: flex;
-  }
-
-  .account .avatar {
-    display: none;
-  }
-
-  .app-preferences {
+  .header-tools {
     grid-column: 3;
     grid-row: 1;
     padding-inline-start: 4px;
+  }
+}
+
+@container (max-width: 340px) {
+  .language-trigger .language-code,
+  .language-trigger .language-chevron {
+    display: none;
   }
 }
 
@@ -2420,12 +2460,6 @@ dialog p {
 .app-footer-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px 12px;
-}
-
-@container (max-width: 700px) {
-  .app-footer-links {
-    flex-basis: 100%;
-    order: 1;
-  }
 }

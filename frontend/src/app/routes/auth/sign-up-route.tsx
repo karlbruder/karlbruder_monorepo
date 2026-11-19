@@ -9,14 +9,13 @@ import { readReturnTo } from "@/features/auth/utils/account-navigation";
 
 export default function SignUpRoute() {
   const auth = useAuthSession();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
   const navigate = useNavigate();
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Criar conta na Karlbrüder")}
       subtitle={appCopy(language, "Faça parte.")}
     >

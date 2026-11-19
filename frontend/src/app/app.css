@@ -2,6 +2,23 @@
   min-height: 100vh;
 }
 
+.application-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.application-shell > :is(.application-page, .account-auth-page, .registration-page, .app-center) {
+  min-height: 0;
+  flex: 1;
+}
+
+.shell-notice {
+  width: calc(100% - 2 * var(--content-gutter));
+  max-width: calc(var(--content-max) - 2 * var(--content-gutter));
+  margin: 1rem auto 0;
+}
+
 .application-page {
   min-height: 100vh;
   display: flex;
@@ -43,23 +60,12 @@
 
 .application-navigation-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: var(--text-sm);
-}
-
-.application-navigation-content nav,
-.application-account {
-  display: flex;
+  justify-content: flex-start;
+  text-align: start;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 16px;
-}
-
-.application-account {
-  margin-inline-start: auto;
-  min-width: 0;
+  font-size: var(--text-sm);
 }
 
 .application-navigation-content a {
@@ -70,14 +76,21 @@
 }
 
 .application-navigation-content a:hover,
-.application-navigation-content a[aria-current="page"] {
+.application-navigation-content a[aria-current="page"],
+.application-navigation-content .current-section {
   color: var(--on-shell);
   border-bottom-color: var(--clay);
 }
 
 .application-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   grid-column: -2;
   justify-self: end;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid #49504d;
 }
 
 .application-header button {
@@ -92,14 +105,6 @@
 
 .application-header button:hover {
   border-color: var(--clay);
-}
-
-.application-preferences {
-  position: relative;
-  display: flex;
-  gap: 4px;
-  padding-inline-start: 10px;
-  border-inline-start: 1px solid #49504d;
 }
 
 .application-header .header-icon-button {
@@ -183,11 +188,87 @@
   visibility: visible;
 }
 
+.application-account {
+  position: relative;
+}
+
+.account-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #49504d;
+  color: var(--on-shell);
+  font-size: var(--text-xs);
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.application-header button.account-trigger {
+  padding-inline: 4px;
+}
+
+.account-popover {
+  --account-popover-available: calc(100vw - 2 * var(--content-gutter));
+  inline-size: max-content;
+  min-inline-size: min(14rem, var(--account-popover-available));
+  max-inline-size: var(--account-popover-available);
+}
+
+.account-menu-identity {
+  display: grid;
+  gap: 2px;
+  text-align: start;
+  margin: 0 8px;
+  padding: 8px 2px;
+  border-bottom: 1px solid #666e67;
+  font-size: var(--text-sm);
+}
+
+.account-menu-identity small {
+  color: var(--shell-muted);
+}
+
+.application-header .account-action {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  color: var(--on-shell);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-decoration: none;
+  text-align: start;
+}
+
+.application-header .account-action:hover {
+  background: #383f38;
+  text-decoration: underline;
+}
+
+.account-action:focus-visible {
+  outline-offset: -3px;
+}
+
+.application-header .account-sign-out {
+  color: var(--clay);
+}
+
 .application-header .application-menu-button {
   display: none;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .application-header-inner {
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 4px;
@@ -215,21 +296,21 @@
     padding: var(--space-4) var(--content-gutter);
     flex-direction: column;
     align-items: stretch;
+    gap: 0;
     background: var(--shell);
     border-top: 1px solid #909690;
     box-shadow: 0 8px 20px #0005;
   }
 
-  .application-navigation-content nav,
-  .application-account,
-  .application-account .registration-account {
-    margin: 0;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .application-preferences {
+  .application-tools {
     padding-inline-start: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .language-trigger span,
+  .language-trigger .header-icon-chevron {
+    display: none;
   }
 }
 
@@ -243,9 +324,7 @@
 
 .application-footer {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: center;
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: var(--text-xs);
@@ -256,6 +335,7 @@
 .application-footer-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px 16px;
 }
 

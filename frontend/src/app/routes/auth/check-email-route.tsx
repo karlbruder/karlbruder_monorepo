@@ -6,13 +6,12 @@ import EmailConfirmationNotice from "@/features/auth/components/email-confirmati
 import { readReturnTo } from "@/features/auth/utils/account-navigation";
 
 export default function CheckEmailRoute() {
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const returnTo = readReturnTo(searchParams) ?? "/";
   return (
     <AuthPageFrame
       language={language}
-      onLanguageChange={changeLanguage}
       title={appCopy(language, "Confira seu e-mail")}
       subtitle={appCopy(language, "Confira seu e-mail")}
     >

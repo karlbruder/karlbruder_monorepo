@@ -298,6 +298,50 @@ describe('Account password updates', () => {
     vi.mocked(supabase.auth.updateUser).mockResolvedValue({ data: { user: signedInSession.user }, error: null })
   })
 
+  it('keeps the same admin account menu through navigation and falls back to initials if the Google photo fails', async () => {
+    const photo = 'https://lh3.googleusercontent.com/sample-avatar'
+    const admin = {
+      ...signedInSession,
+      user: {
+        ...signedInSession.user,
+        app_metadata: { provider: 'google', karlbruder_role: 'admin' },
+        user_metadata: { full_name: 'Ana Maria Exemplo', avatar_url: photo },
+      },
+    }
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: admin }, error: null })
+    vi.mocked(supabase.auth.signOut).mockImplementation(async () => {
+      authStateListener?.('SIGNED_OUT', null)
+      return { error: null }
+    })
+    render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>)
+
+    const menu = await screen.findByRole('button', { name: 'Minha conta' })
+    const avatar = menu.querySelector('img')!
+    expect(avatar).toHaveAttribute('src', photo)
+    expect(avatar).toHaveAttribute('referrerpolicy', 'no-referrer')
+    fireEvent.error(avatar)
+    expect(menu).toHaveTextContent(/^AE$/)
+    fireEvent.click(menu)
+    expect(screen.getByText('Ana Maria Exemplo', { exact: true })).toBeVisible()
+    expect(screen.getByText('athlete@example.test')).toBeVisible()
+
+    fireEvent.keyDown(menu, { key: 'Escape' })
+    expect(menu).toHaveAttribute('aria-expanded', 'false')
+    expect(menu).toHaveFocus()
+    fireEvent.click(menu)
+    fireEvent.click(screen.getByRole('link', { name: 'Alterar senha' }))
+    expect(await screen.findByLabelText('Nova senha')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Minha conta · AE' })).toBe(menu)
+    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute('href', '/staff/tournaments')
+
+    fireEvent.click(menu)
+    fireEvent.click(screen.getByRole('button', { name: 'Sair' }))
+    expect(await screen.findByRole('heading', { name: 'Boas-vindas de volta.' })).toBeInTheDocument()
+    expect(supabase.auth.signOut).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('button', { name: /Minha conta/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Administração' })).not.toBeInTheDocument()
+  })
+
   it('calls updateUser from the signed-in change-password screen and keeps the session on success', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.password]}>
@@ -310,7 +354,8 @@ describe('Account password updates', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
     await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'ValidPass1!' }))
-    expect(await screen.findByText('athlete@example.test')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Boas-vindas.' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Minha conta · A' }))
     expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
     expect(supabase.auth.signOut).not.toHaveBeenCalled()
   })
@@ -327,7 +372,9 @@ describe('Account password updates', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
 
     await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'ValidPass1!' }))
-    expect(await screen.findByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Boas-vindas.' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Minha conta · A' }))
+    expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
   })
 
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {
@@ -410,8 +457,9 @@ describe('Session route guard', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
-    expect(screen.getByText('athlete@example.test')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Minha conta · A' }))
+    expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Minha conta · A' }).querySelector('.account-avatar')).toHaveTextContent('A')
   })
 
   it('still renders sign-in without a session when opened directly', async () => {
