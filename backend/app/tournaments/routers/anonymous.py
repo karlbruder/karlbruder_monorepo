@@ -4,16 +4,18 @@ from datetime import date
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import AuthenticatedUser, get_current_user
 from app.auth.models import AnonymousUser, User
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
 from app.tournaments.services import tournament_policy_documents as policy_documents
 from app.tournaments.schemas import PolicyDocumentRead, policy_document_read, PaymentProofDownloadUrlRead
 from app.tournaments.schemas import (
+    AdditionalDocumentRead,
     TournamentList,
     TournamentRead,
     TournamentProductRead,
+    additional_document_read,
 )
 from app.tournaments.services.registration_acceptances import current_policy_versions
 from app.tournaments.services.tournament_catalog import (
@@ -93,3 +95,26 @@ def get_policy_document_download_url(
     storage: Annotated[FileStorage, Depends(get_file_storage)],
 ):
     return policy_documents.download(session, storage, tournament_id, purpose, document_id, user)
+
+
+@router.get("/{tournament_id}/documents", response_model=list[AdditionalDocumentRead])
+def get_additional_documents(
+    tournament_id: int,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    return [
+        additional_document_read(document)
+        for document in policy_documents.additional_documents(session, tournament_id, user)
+    ]
+
+
+@router.get("/{tournament_id}/documents/{version_id}/download-url", response_model=PaymentProofDownloadUrlRead)
+def get_additional_document_download_url(
+    tournament_id: int,
+    version_id: int,
+    user: AuthenticatedUser,
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    return policy_documents.download(session, storage, tournament_id, None, version_id, user)

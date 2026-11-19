@@ -86,11 +86,11 @@ and its file metadata in one transaction.
 
 ## Tournament documents and declarations
 
-Place the Tournament documents card after tags and before Safety and participation when at least one document is available. Show each available file as a tile with its title, format, and new-tab icon. Use the media type validated by the backend to identify the format. Make the whole tile clickable and stack tiles on narrow screens. In a visible card, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. The application privacy policy belongs in the shared footer and at the data-processing declaration. See [WF-04](../design/app-wireframes/index.html#WF-04/adult).
+Place the Tournament documents card after tags and before Safety and participation when at least one document is available. Show each available file as a tile with its title, format, and new-tab icon. Show additional tournament documents using their staff-entered titles. Use the media type validated by the backend to identify the format. Make the whole tile clickable and stack tiles on narrow screens. In a visible card, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. The application privacy policy belongs in the shared footer and at the data-processing declaration. See [WF-04](../design/app-wireframes/index.html#WF-04/adult).
 
 Append the short document name and a new-tab icon inline after the matching rules or cancellation declaration when the file is available. Let the text wrap naturally on narrow screens and keep the short link and icon together. Associate the checkbox with its declaration text and give the adjacent document control its own focus target. Opening the document leaves the checkbox and form values intact. Show missing-policy messages only in the document card.
 
-Request a fresh authorized download URL for the exact policy version on activation. Fetch the file directly from object storage and open it in a new tab once the fetch succeeds. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Each control communicates the new tab to keyboard and screen-reader users.
+Request a fresh authorized download URL for the exact policy version on activation. Fetch the file directly from object storage and open it in a new tab once the fetch succeeds. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Additional documents are reference material and do not add a declaration or change the acceptance token. Each control communicates the new tab to keyboard and screen-reader users.
 
 ## Acceptance submission
 

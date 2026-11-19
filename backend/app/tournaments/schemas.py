@@ -3,7 +3,7 @@
 import re
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -12,6 +12,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StringConstraints,
     field_validator,
     model_validator,
 )
@@ -548,6 +549,29 @@ class PolicyDocumentPublish(BaseModel):
     model_config = ConfigDict(extra="forbid")
     storage_key: str = Field(min_length=1, max_length=512)
     original_file_name: str = Field(min_length=1, max_length=255)
+
+
+class AdditionalDocumentPublish(PolicyDocumentPublish):
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+class AdditionalDocumentRead(BaseModel):
+    id: int
+    title: str
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+
+
+def additional_document_read(version) -> AdditionalDocumentRead:
+    file = version.archive.file
+    return AdditionalDocumentRead(
+        id=version.id,
+        title=version.document.title,
+        original_file_name=file.original_file_name,
+        content_type=file.content_type,
+        size_bytes=file.size_bytes,
+    )
 
 
 class PolicyDocumentRead(BaseModel):

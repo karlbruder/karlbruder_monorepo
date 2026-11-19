@@ -4,6 +4,13 @@ import { apiBaseUrl } from "@/config/environment";
 
 export type PolicyPurpose = "rules" | "cancellation_policy";
 
+export type AdditionalTournamentDocument = {
+  id: number;
+  title: string;
+  original_file_name: string;
+  content_type: string;
+};
+
 export type PolicyVersion = {
   version_id: number;
   original_file_name: string;
@@ -219,11 +226,12 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
   });
 }
 
-export async function downloadPolicyDocument(
-  tournamentId: number, purpose: PolicyPurpose, versionId: number, token: string,
+export async function downloadTournamentDocument(
+  tournamentId: number, purpose: PolicyPurpose | undefined, versionId: number, token: string,
 ): Promise<Blob> {
+  const collection = purpose ? `policy-documents/${purpose}` : "documents";
   const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/policy-documents/${purpose}/${versionId}/download-url`,
+    `${apiBaseUrl()}/tournaments/${tournamentId}/${collection}/${versionId}/download-url`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
   if (!response.ok) throw new Error(`http-${response.status}`);

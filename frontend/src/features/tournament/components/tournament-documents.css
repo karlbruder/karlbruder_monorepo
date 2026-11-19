@@ -3,6 +3,11 @@
   margin: 0 0 12px;
 }
 
+.staff-registration-documents-title {
+  font-size: 14px;
+  margin: 0;
+}
+
 .registration-fieldset .tournament-document-card {
   margin-bottom: 0;
 }
@@ -188,6 +193,20 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.staff-additional-documents {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.staff-additional-documents li {
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 640px) {

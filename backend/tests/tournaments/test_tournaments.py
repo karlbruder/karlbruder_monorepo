@@ -562,6 +562,58 @@ def test_policy_publication_failure_preserves_previous_version(client, db_sessio
     assert test_client.get(f"/api/tournaments/{tournament_id}/policy-documents").json()["rules"]["id"] == original["id"]
 
 
+def test_staff_publish_titled_documents_for_signed_in_tournament_viewers(client):
+    """Custom files are tournament-scoped reading material and leave acceptance terms intact."""
+    http, signing_key = client
+    admin = _headers(signing_key, "admin")
+    regular = _headers(signing_key, "regular_user")
+    member = _headers(signing_key, "guild_member")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    objects = {}
+    storage.create_presigned_put_url.return_value = "https://upload.test"
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kwargs: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    tournament = http.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    internal = http.post("/api/staff/tournaments", json=_event(internal=True), headers=admin).json()["id"]
+    catalog = f"/api/tournaments/{tournament}"
+    terms = http.get(catalog, headers=regular).json()["acceptance_tokens"]
+    staff = f"/api/staff/tournaments/{tournament}"
+    upload = staff + "/documents/upload-url"
+
+    assert http.post(upload, headers=regular).status_code == 403
+    for title in ["Competitor's Guide", "Venue Map"]:
+        issued = http.post(upload, headers=admin)
+        assert issued.status_code == 200
+        key = issued.json()["storage_key"]
+        objects[key] = b"%PDF-1.4 guide"
+        payload = {"storage_key": key, "title": f" {title} ", "original_file_name": "guide.pdf"}
+        assert http.post(staff + "/documents", headers=regular, json=payload).status_code == 403
+        assert http.post(staff + "/documents", headers=admin, json={**payload, "title": "  "}).status_code == 422
+        assert http.post(staff + "/policy-documents/rules", headers=admin, json={
+            "storage_key": key, "original_file_name": "guide.pdf",
+        }).status_code == 422
+        published = http.post(staff + "/documents", headers=admin, json=payload)
+        assert published.status_code == 201, published.text
+        assert published.json()["title"] == title
+
+    assert http.get(catalog + "/documents").status_code == 401
+    listing = http.get(catalog + "/documents", headers=regular)
+    assert [doc["title"] for doc in listing.json()] == ["Competitor's Guide", "Venue Map"]
+    assert http.get(catalog, headers=regular).json()["acceptance_tokens"] == terms
+    assert http.get(catalog + "/policy-documents", headers=regular).json() == {}
+    version_id = listing.json()[0]["id"]
+    link = f"/documents/{version_id}/download-url"
+    assert http.get(catalog + link).status_code == 401
+    signed = http.get(catalog + link, headers=regular)
+    assert objects[signed.json()["download_url"].removeprefix("https://archive.example.test/")] == b"%PDF-1.4 guide"
+    assert http.get(f"/api/tournaments/{internal}/documents", headers=regular).status_code == 404
+    assert http.get(f"/api/tournaments/{internal}/documents", headers=member).json() == []
+    assert http.get(f"/api/tournaments/{internal}" + link, headers=member).status_code == 404
+    assert http.get(catalog + f"/policy-documents/rules/{version_id}/download-url", headers=regular).status_code == 404
+
+
 def test_policy_staging_is_bound_to_staff_tournament_and_purpose(client):
     from app.core.files import get_file_storage
 

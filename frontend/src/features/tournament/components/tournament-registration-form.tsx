@@ -10,14 +10,14 @@ import {
   RegistrationRequestError,
   uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
-import type { RegistrationCreate, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
+import type { AdditionalTournamentDocument, RegistrationCreate, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
 import type { TournamentProduct } from "@/features/tournament/api/tournaments";
 import { isMinorAtTournamentStart } from "@/features/tournament/utils/is-minor-at-tournament-start";
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import { RegistrationProgress } from "@/features/tournament/components/registration-progress";
-import { PolicyDocumentButton } from "@/features/tournament/components/policy-document-button";
+import { TournamentDocumentButton } from "@/features/tournament/components/tournament-document-button";
 import { TournamentDocuments } from "@/features/tournament/components/tournament-documents";
 import { TagChoices } from "@/features/tournament/components/tournament-tags";
 import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
@@ -25,6 +25,7 @@ import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags
 type Props = {
   tournament: Tournament;
   session: Session;
+  additionalDocuments?: AdditionalTournamentDocument[];
   language?: AppLanguage;
   onRegistrationCreated?: (registration: RegistrationCreated) => void;
 };
@@ -225,6 +226,7 @@ function Success({ result, tournament, language }: { result: RegistrationCreated
 export default function TournamentRegistrationForm({
   tournament: initialTournament,
   session,
+  additionalDocuments,
   language = "pt",
   onRegistrationCreated,
 }: Props) {
@@ -439,7 +441,7 @@ export default function TournamentRegistrationForm({
         </section>
 
         <TournamentDocuments policies={acceptanceContent.policies} tournamentId={tournament.id}
-          token={session.access_token} language={language} />
+          additionalDocuments={additionalDocuments} token={session.access_token} language={language} />
 
         <section className="registration-card registration-section" aria-labelledby="registration-safety-title">
           <h2 id="registration-safety-title"><span>03</span> {t("Segurança e participação")}</h2>
@@ -495,10 +497,10 @@ export default function TournamentRegistrationForm({
                     <span>
                       <label htmlFor={inputId}>{acceptanceContent.declarations[name]} *</label>
                       {file && purpose && policyName && (
-                        <> <PolicyDocumentButton key={file.version_id} label={t(policyName)} className="registration-policy-inline"
+                        <> <TournamentDocumentButton key={file.version_id} label={t(policyName)} className="registration-policy-inline"
                           tournamentId={tournament.id} purpose={purpose} versionId={file.version_id} token={session.access_token} language={language}>
                           {t(policyName)} <span aria-hidden="true">↗</span>
-                        </PolicyDocumentButton></>
+                        </TournamentDocumentButton></>
                       )}
                       {name === "accepts_data_processing" && (
                         <> <a className="registration-policy-inline" href={legalRoutes.privacy} target="_blank" rel="noopener noreferrer"

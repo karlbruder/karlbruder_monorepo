@@ -14,6 +14,8 @@ from app.core.files import FileStorage, get_file_storage
 from app.tournaments.services import tournament_policy_documents as policy_documents
 from app.tournaments.schemas import PolicyDocumentPublish, PolicyDocumentRead, policy_document_read, PaymentProofUploadUrlRead
 from app.tournaments.schemas import (
+    AdditionalDocumentPublish,
+    AdditionalDocumentRead,
     StaffRegistrationSummaryRead,
     TagInput,
     TagRead,
@@ -30,6 +32,7 @@ from app.tournaments.schemas import (
     StaffTournamentRead,
     TournamentCreate,
     TournamentRead,
+    additional_document_read,
 )
 from app.tournaments.services import payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
 from app.tournaments.services.tournament_administration import (
@@ -298,3 +301,28 @@ def publish_policy_document(
 ):
     document = policy_documents.publish(session, storage, tournament_id, purpose, admin, payload.storage_key, payload.original_file_name)
     return policy_document_read(document)
+
+
+@router.post("/{tournament_id}/documents/upload-url", response_model=PaymentProofUploadUrlRead)
+def create_additional_document_upload_url(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    return policy_documents.create_upload(session, storage, tournament_id, None, admin)
+
+
+@router.post("/{tournament_id}/documents", response_model=AdditionalDocumentRead, status_code=201)
+def publish_additional_document(
+    tournament_id: int,
+    payload: AdditionalDocumentPublish,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    document = policy_documents.publish(
+        session, storage, tournament_id, None, admin, payload.storage_key,
+        payload.original_file_name, title=payload.title,
+    )
+    return additional_document_read(document)

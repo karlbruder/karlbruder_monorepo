@@ -21,6 +21,7 @@ beforeEach(() => {
   window.localStorage.clear(); window.history.replaceState({}, "", "/"); vi.stubEnv("VITE_API_BASE_URL", "/api");
   fetchMock.mockReset().mockImplementation(async (url: string, init?: RequestInit) => {
     if (url.endsWith("/policy-documents")) return json({});
+    if (url.endsWith("/documents")) return json([]);
     if (init?.method === "DELETE") return json({ detail: "Tournament with registrations cannot be deleted" }, 409);
     if (init?.method === "PUT" || init?.method === "POST") return json(event);
     if (url.includes("?")) return json({ items: [event, { ...event, id: 2, name: "Second event" }], total: 2 });
@@ -120,6 +121,47 @@ it("publishes both policies independently and keeps the current file on a failed
   const [, finalize] = fetchMock.mock.calls.find(([url]) => url === endpoint + "/rules")!;
   expect(finalize.headers.Authorization).toBe("Bearer staff-token");
   expect(JSON.parse(finalize.body)).toEqual({ storage_key: "stage-rules", original_file_name: "regras-novas.pdf" });
+});
+
+it("adds a titled competitor’s guide without saving the tournament form", async () => {
+  const listing = "/api/tournaments/1/documents";
+  const endpoint = "/api/staff/tournaments/1/documents";
+  const uploadUrl = "https://storage.example.test/guide";
+  const guide = { id: 9, title: "Guia do competidor", original_file_name: "guide.pdf", content_type: "application/pdf" };
+  let documents: typeof guide[] = [];
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === listing) return json(documents);
+    if (url.endsWith("/policy-documents")) return json({});
+    if (url === endpoint + "/upload-url") return json({
+      storage_key: "staged-guide", upload_url: uploadUrl, required_headers: { "Content-Type": "application/octet-stream" },
+    });
+    if (url === uploadUrl) return new Response(null, { status: 200 });
+    if (url === endpoint) {
+      documents = [guide];
+      return json(guide, 201);
+    }
+    return json(event);
+  });
+  render(tree("/staff/tournaments/1"));
+  const additional = within(await screen.findByRole("region", { name: "Documentos adicionais" }));
+  expect(await additional.findByText("Nenhum documento adicionado.")).toBeInTheDocument();
+  const add = additional.getByRole("button", { name: "Adicionar documento" });
+  fireEvent.click(add);
+  const title = additional.getByLabelText("Título do documento");
+  expect(title).toHaveFocus();
+  const file = new File(["%PDF"], "guide.pdf", { type: "application/pdf" });
+  fireEvent.change(additional.getByLabelText("Arquivo"), { target: { files: [file] } });
+  expect(additional.getByRole("button", { name: "Adicionar arquivo" })).toBeDisabled();
+  fireEvent.change(title, { target: { value: " Guia do competidor " } });
+  fireEvent.click(additional.getByRole("button", { name: "Adicionar arquivo" }));
+  expect(await additional.findByRole("button", { name: /Guia do competidor · guide.pdf/ })).toBeInTheDocument();
+  expect(add).toHaveFocus();
+  expect(fetchMock).toHaveBeenCalledWith(uploadUrl, expect.objectContaining({ method: "PUT", body: file }));
+  const [, publish] = fetchMock.mock.calls.find(([url]) => url === endpoint)!;
+  expect(JSON.parse(publish.body)).toEqual({
+    storage_key: "staged-guide", title: "Guia do competidor", original_file_name: "guide.pdf",
+  });
+  expect(fetchMock.mock.calls.some(([url, options]) => url === "/api/staff/tournaments/1" && options?.method === "PUT")).toBe(false);
 });
 
 it("asks for deletion confirmation and explains when registrations prevent deletion", async () => {

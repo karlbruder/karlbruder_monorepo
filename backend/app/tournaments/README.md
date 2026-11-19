@@ -189,6 +189,20 @@ Staff can enable refunds on a saved tournament with a published cancellation
 policy. Create the tournament first, then publish the policy before enabling
 refunds.
 
+### Additional tournament documents
+
+Staff request a staged upload from
+`POST /api/staff/tournaments/{tournament_id}/documents/upload-url`. They upload
+the file to the signed URL and publish with
+`POST /api/staff/tournaments/{tournament_id}/documents`. The request includes
+`title`, `storage_key`, and `original_file_name`. File limits match policy
+uploads. Additional documents do not participate in registration acceptance.
+
+Signed-in viewers can list them at `GET /api/tournaments/{tournament_id}/documents`
+and obtain a signed GET URL for an exact version from
+`GET /api/tournaments/{tournament_id}/documents/{version_id}/download-url`.
+Both routes enforce tournament visibility.
+
 ### Registration documents
 
 `TournamentRegistrationDocument` associates a `StoredFile` with a registration.

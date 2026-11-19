@@ -1,4 +1,4 @@
-"""Publish and retrieve tournament-owned policy archive versions."""
+"""Publish and retrieve tournament document archive versions."""
 
 from typing import Literal
 from uuid import uuid4
@@ -7,7 +7,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.auth.exceptions import AdminAccessRequiredException
+from app.auth.exceptions import AdminAccessRequiredException, InvalidCredentialsException
 from app.auth.models import AnonymousUser, User
 from app.auth.supabase.roles import get_application_role
 from app.core.files import FileStorage
@@ -40,11 +40,12 @@ def _require_admin(user: User) -> None:
         raise AdminAccessRequiredException()
 
 
-def _prefix(tournament_id: int, purpose: PolicyPurpose, user: User) -> str:
-    return f"tournaments/{tournament_id}/staging/{user.id}/policy/{purpose}/"
+def _prefix(tournament_id: int, purpose: PolicyPurpose | None, user: User) -> str:
+    document_path = f"policy/{purpose}" if purpose else "documents"
+    return f"tournaments/{tournament_id}/staging/{user.id}/{document_path}/"
 
 
-def create_upload(session: Session, storage: FileStorage, tournament_id: int, purpose: PolicyPurpose, user: User):
+def create_upload(session: Session, storage: FileStorage, tournament_id: int, purpose: PolicyPurpose | None, user: User):
     _require_admin(user)
     load_visible_tournament(session, tournament_id, user)
     key = _prefix(tournament_id, purpose, user) + str(uuid4())
@@ -52,12 +53,28 @@ def create_upload(session: Session, storage: FileStorage, tournament_id: int, pu
     return {"storage_key": key, "upload_url": storage.create_presigned_put_url(key, content_type=content_type, expires_in=URL_EXPIRY), "expires_in_seconds": URL_EXPIRY, "required_headers": {"Content-Type": content_type}}
 
 
-def publish(session: Session, storage: FileStorage, tournament_id: int, purpose: PolicyPurpose, user: User, key: str, filename: str) -> TournamentDocumentVersion:
+def publish(
+    session: Session,
+    storage: FileStorage,
+    tournament_id: int,
+    purpose: PolicyPurpose | None,
+    user: User,
+    key: str,
+    filename: str,
+    *,
+    title: str | None = None,
+) -> TournamentDocumentVersion:
     _require_admin(user)
     load_visible_tournament(session, tournament_id, user, lock=True)
+    if purpose is None:
+        title = (title or "").strip()
+        if not title or len(title) > 200:
+            raise RegistrationDocumentInvalidError("Invalid document title")
+    else:
+        title = "Rules" if purpose == "rules" else "Cancellation policy"
     prefix = _prefix(tournament_id, purpose, user)
     if not key.startswith(prefix) or "/" in key[len(prefix):] or not key[len(prefix):]:
-        raise RegistrationDocumentInvalidError("Invalid policy storage key")
+        raise RegistrationDocumentInvalidError("Invalid document storage key")
     archive_key = None
     commit_started = False
     try:
@@ -70,17 +87,19 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
         content_type = validate_stored_object_size_and_type(len(payload), payload[:16])
         archive = archive_file(storage, body=payload, original_file_name=filename, content_type=content_type)
         archive_key = archive.file.storage_key
-        document = session.scalar(
-            select(TournamentDocument).where(
-                TournamentDocument.tournament_id == tournament_id,
-                TournamentDocument.purpose == purpose,
+        document = None
+        if purpose is not None:
+            document = session.scalar(
+                select(TournamentDocument).where(
+                    TournamentDocument.tournament_id == tournament_id,
+                    TournamentDocument.purpose == purpose,
+                )
             )
-        )
         if document is None:
             document = TournamentDocument(
                 tournament_id=tournament_id,
                 purpose=purpose,
-                title="Rules" if purpose == "rules" else "Cancellation policy",
+                title=title,
             )
             session.add(document)
         version = TournamentDocumentVersion(document=document, archive=archive)
@@ -90,13 +109,13 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
         session.commit()
     except UploadEmptyError as error:
         session.rollback()
-        raise RegistrationDocumentInvalidError("Policy file is empty") from error
+        raise RegistrationDocumentInvalidError("Document file is empty") from error
     except UploadTooLargeError as error:
         session.rollback()
-        raise RegistrationDocumentTooLargeError("Policy file is too large") from error
+        raise RegistrationDocumentTooLargeError("Document file is too large") from error
     except UploadDisallowedTypeError as error:
         session.rollback()
-        raise RegistrationDocumentTypeNotAllowedError("Policy file type is not allowed") from error
+        raise RegistrationDocumentTypeNotAllowedError("Document file type is not allowed") from error
     except Exception:
         session.rollback()
         if archive_key:
@@ -112,24 +131,41 @@ def publish(session: Session, storage: FileStorage, tournament_id: int, purpose:
 
 
 def current_documents(session: Session, tournament_id: int, user: User | AnonymousUser):
+    versions = _current_versions(session, tournament_id, user, additional=False)
+    return {version.document.purpose: version for version in versions}
+
+
+def additional_documents(session: Session, tournament_id: int, user: User):
+    return _current_versions(session, tournament_id, user, additional=True)
+
+
+def _current_versions(
+    session: Session, tournament_id: int, user: User | AnonymousUser, *, additional: bool,
+) -> list[TournamentDocumentVersion]:
+    if additional and isinstance(user, AnonymousUser):
+        raise InvalidCredentialsException()
     load_visible_tournament(session, tournament_id, user)
+    purpose = TournamentDocument.purpose
     documents = session.scalars(
         select(TournamentDocument)
-        .where(TournamentDocument.tournament_id == tournament_id, TournamentDocument.purpose.is_not(None))
+        .where(TournamentDocument.tournament_id == tournament_id, purpose.is_(None) if additional else purpose.is_not(None))
+        .order_by(TournamentDocument.id)
         .options(selectinload(TournamentDocument.versions).joinedload(TournamentDocumentVersion.archive).joinedload(ArchivedFile.file))
         .execution_options(populate_existing=True)
     ).all()
-    return {document.purpose: document.current_version for document in documents if document.current_version is not None}
+    return [version for document in documents if (version := document.current_version) is not None]
 
 
 def download(
     session: Session,
     storage: FileStorage,
     tournament_id: int,
-    purpose: PolicyPurpose,
+    purpose: PolicyPurpose | None,
     document_id: int,
     user: User | AnonymousUser,
 ):
+    if purpose is None and isinstance(user, AnonymousUser):
+        raise InvalidCredentialsException()
     load_visible_tournament(session, tournament_id, user)
     version = session.scalar(
         select(TournamentDocumentVersion)
@@ -141,7 +177,7 @@ def download(
         )
     )
     if version is None:
-        raise RegistrationResourceNotFoundError("Policy document not found")
+        raise RegistrationResourceNotFoundError("Tournament document not found")
     file = version.archive.file
     return {
         "download_url": storage.create_presigned_get_url(file.storage_key, expires_in=URL_EXPIRY),

@@ -7,6 +7,7 @@ import { accountRoutes } from "@/config/account-routes";
 
 import { useRegistrationTournament } from "@/features/tournament/api/use-registration-tournament";
 import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own-tournament-registrations";
+import { useAdditionalTournamentDocuments } from "@/features/tournament/api/use-additional-tournament-documents";
 import type { OwnerRegistration, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
 import TournamentRegistrationPanel from "@/features/tournament/components/tournament-registration-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
@@ -65,6 +66,7 @@ function SignedInRegistration({
 }) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   const ownRegistrationsQuery = useOwnTournamentRegistrations(registrationNumber ? undefined : tournament.id, session.access_token, session.user.id);
+  const additionalDocuments = useAdditionalTournamentDocuments(session.access_token, session.user.id, tournament.id, !registrationNumber);
   const [createdRegistration, setCreatedRegistration] = useState<RegistrationCreated | null>(null);
   const [cancelledNumber, setCancelledNumber] = useState<string>();
   const activeRegistration = createdRegistration ?? selectOwnActiveRegistration(ownRegistrationsQuery.data, session.user.id);
@@ -88,9 +90,15 @@ function SignedInRegistration({
   return (
     <>
       <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
+      {!registrationNumber && additionalDocuments.isError && (
+        <p className="registration-notice" role="alert">
+          {language === "en" ? "Could not load additional documents." : "Não foi possível carregar os documentos adicionais."}
+          {" "}<button type="button" onClick={() => void additionalDocuments.refetch()}>{t("Tentar novamente")}</button>
+        </p>
+      )}
       {!registrationNumber && (selectedRegistrationNumber || (ownRegistrationsQuery.isSuccess && unavailable)) && (
         <TournamentDocuments policies={tournament.acceptance_content[language].policies} tournamentId={tournament.id}
-          token={session.access_token} language={language} />
+          additionalDocuments={additionalDocuments.data} token={session.access_token} language={language} />
       )}
       {!selectedRegistrationNumber && ownRegistrationsQuery.isPending ? (
         <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
@@ -113,6 +121,7 @@ function SignedInRegistration({
         <TournamentRegistrationForm
           tournament={tournament}
           session={session}
+          additionalDocuments={additionalDocuments.data}
           language={language}
           onRegistrationCreated={handleRegistrationCreated}
         />

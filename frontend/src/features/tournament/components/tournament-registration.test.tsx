@@ -37,7 +37,7 @@ function mockTournament(response: unknown = tournament) {
   const request = vi.fn(async (url: string) => ({
     ok: true,
     status: 200,
-    json: async () => url.endsWith("/registrations") ? [] : catalogBody(response),
+    json: async () => url.endsWith("/registrations") || url.endsWith("/documents") ? [] : catalogBody(response),
   }))
   vi.stubGlobal('fetch', request)
   return request
@@ -59,6 +59,20 @@ afterEach(() => {
 })
 
 describe('Tournament registration', () => {
+  it('shows a titled guide even when both policies are missing on the signed-in tournament view', async () => {
+    const guide = { id: 23, title: 'Guia do competidor', original_file_name: 'guide.pdf', content_type: 'application/pdf' }
+    const request = vi.fn(async (url: string) => ({
+      ok: true, status: 200, json: async () => url.endsWith('/documents') ? [guide]
+        : url.endsWith('/registrations') ? [] : catalogBody({ ...tournament, is_registration_closed: true }),
+    }))
+    vi.stubGlobal('fetch', request)
+    render(<TournamentRegistration session={signedInSession} authReady authError={null} onSignOut={vi.fn()} signInButton={null} />)
+    expect(await screen.findByRole('button', { name: /Guia do competidor · guide.pdf/ })).toHaveTextContent('PDF')
+    expect(screen.getAllByText(/conteúdo ainda não disponível/)).toHaveLength(2)
+    expect(request).toHaveBeenCalledWith('/api/tournaments/42/documents', expect.objectContaining({
+      headers: { Authorization: 'Bearer test-token' },
+    }))
+  })
   it('shows available policy files to the signed-in athlete when registration is closed', async () => {
     mockTournament({
       ...tournament, is_registration_closed: true,

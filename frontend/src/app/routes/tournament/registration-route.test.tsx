@@ -51,7 +51,7 @@ function catalogBody(response: unknown) {
 
 function mockTournament(response: unknown = tournament) {
   const request = vi.fn(async (url: string) => {
-    if (url === '/api/tournaments/42/registrations') {
+    if (url === '/api/tournaments/42/registrations' || url === '/api/tournaments/42/documents') {
       return { ok: true, status: 200, json: async () => [] }
     }
     return {

@@ -577,6 +577,29 @@ it('keeps the policy control pending until the file body arrives and reports an 
   expect(tab.close).toHaveBeenCalledOnce()
 })
 
+it('opens a custom document from its tile without adding a declaration', async () => {
+  const guide = { id: 23, title: "Competitor's Guide", original_file_name: 'guide.pdf', content_type: 'application/pdf' }
+  const signedUrl = 'https://files.example.test/guide'
+  const objectUrl = 'blob:http://localhost/guide'
+  const request = vi.fn()
+    .mockResolvedValueOnce(response(200, { download_url: signedUrl }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => new Blob(['guide'], { type: 'application/pdf' }) })
+  const tab = { opener: window, closed: false, location: { replace: vi.fn() }, close: vi.fn() }
+  vi.stubGlobal('URL', class extends URL { static createObjectURL = vi.fn(() => objectUrl) })
+  vi.stubGlobal('fetch', request)
+  vi.stubGlobal('open', vi.fn(() => tab))
+  render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" additionalDocuments={[guide]} />)
+  const card = screen.getByRole('region', { name: 'Tournament documents' })
+  expect(card.nextElementSibling).toContainElement(screen.getByRole('heading', { name: /Safety and participation/ }))
+  expect(screen.queryByRole('checkbox', { name: /Competitor's Guide/ })).not.toBeInTheDocument()
+  fireEvent.click(within(card).getByRole('button', { name: /Competitor's Guide · guide.pdf/ }))
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(objectUrl))
+  expect(request).toHaveBeenNthCalledWith(1, '/api/tournaments/42/documents/23/download-url', {
+    headers: { Authorization: 'Bearer test-access-token' },
+  })
+  expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: 'omit' })
+})
+
 it('refreshes a replaced policy, preserves personal fields and requires new choices before resubmission', async () => {
   const updated = {
     ...tournamentWithPolicies,
