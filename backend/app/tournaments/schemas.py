@@ -5,7 +5,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-from urllib.parse import urlsplit
 
 from pydantic import (
     AwareDatetime,
@@ -37,28 +36,9 @@ class TournamentCreate(BaseModel):
     payment_due_at: AwareDatetime | None = None
     location: str | None = Field(default=None, max_length=300)
     schedule: str | None = None
-    rules_text: str | None = None
-    rules_url: str | None = None
     equipment_requirements: str | None = None
-    cancellation_policy_text: str | None = None
-    cancellation_policy_url: str | None = None
     refunds_allowed: StrictBool = False
     pix_key: str | None = Field(default=None, max_length=512)
-
-    @field_validator("rules_url", "cancellation_policy_url")
-    @classmethod
-    def validate_policy_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        parsed = urlsplit(value)
-        if (
-            parsed.scheme not in {"http", "https"}
-            or not parsed.hostname
-            or any(c.isspace() for c in value)
-        ):
-            raise ValueError("Policy URLs must use HTTP or HTTPS")
-        return value
 
     @field_validator("name")
     @classmethod
@@ -115,11 +95,7 @@ class TournamentRead(BaseModel):
     payment_due_at: datetime | None
     location: str | None
     schedule: str | None
-    rules_text: str | None
-    rules_url: str | None
     equipment_requirements: str | None
-    cancellation_policy_text: str | None
-    cancellation_policy_url: str | None
     refunds_allowed: bool
     acceptance_content: dict[str, dict]
     acceptance_tokens: dict[str, str]

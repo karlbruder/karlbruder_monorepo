@@ -30,11 +30,6 @@ from app.tournaments.services.tournament_payment_settings import create_tourname
 from app.tournaments.services.tournament_slugs import resolve_tournament_slug
 
 
-_LEGACY_POLICY_FIELDS = {
-    "rules_text", "rules_url", "cancellation_policy_text", "cancellation_policy_url"
-}
-
-
 def _require_admin(actor: User) -> None:
     if get_application_role(actor) != "admin":
         raise RegistrationNotAllowedError("Guild staff access is required")
@@ -105,8 +100,7 @@ def update_tournament(
     ):
         raise RegistrationResourceNotFoundError("Tournament not found")
 
-    omitted_policy_fields = _LEGACY_POLICY_FIELDS - payload.model_fields_set
-    values = payload.model_dump(exclude={"pix_key", *omitted_policy_fields})
+    values = payload.model_dump(exclude={"pix_key"})
     values["slug"] = resolve_tournament_slug(
         payload.name, payload.discipline, payload.starts_at, payload.slug
     )
@@ -149,15 +143,11 @@ def update_tournament(
         )
         if duplicate is not None:
             raise RegistrationConflictError("Tournament slug already exists")
+        versions = current_policy_versions(session, [tournament.id])[tournament.id]
+        if payload.refunds_allowed and "cancellation_policy" not in versions:
+            raise ValueError("Refunds require a cancellation policy")
         for name, value in values.items():
             setattr(tournament, name, value)
-        versions = current_policy_versions(session, [tournament.id])[tournament.id]
-        if payload.refunds_allowed and not (
-            "cancellation_policy" in versions
-            or tournament.cancellation_policy_url
-            or (tournament.cancellation_policy_text or "").strip()
-        ):
-            raise ValueError("Refunds require a cancellation policy")
         pix_key = (payload.pix_key or "").strip() or None
         if payment is None and pix_key is not None:
             session.add(
@@ -216,9 +206,7 @@ def create_tournament_configuration(
 ) -> TournamentRead:
     if get_application_role(actor) != "admin":
         raise RegistrationNotAllowedError("Guild staff access is required")
-    if payload.refunds_allowed and not (
-        payload.cancellation_policy_url or (payload.cancellation_policy_text or "").strip()
-    ):
+    if payload.refunds_allowed:
         raise ValueError("Refunds require a cancellation policy")
     slug = resolve_tournament_slug(
         payload.name, payload.discipline, payload.starts_at, payload.slug

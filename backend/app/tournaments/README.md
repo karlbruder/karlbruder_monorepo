@@ -103,7 +103,7 @@ participant fields include `social_name`, `state_or_province`,
 and `category_or_eligibility_note`. Experience may be free text or a start year.
 A HEMA Ratings reference need not be a URL. Category notes are not staff approval.
 
-### Declarations and current policy transition
+### Declarations and policy versions
 
 Tournament reads return `acceptance_content` and `acceptance_tokens` for
 `pt` and `en`. Each language's `policies.rules` and
@@ -111,10 +111,9 @@ Tournament reads return `acceptance_content` and `acceptance_tokens` for
 `version_id`, `original_file_name`, and the validated `content_type` when a version has been published.
 An absent upload has a null `document` field.
 
-The token covers declarations, equipment requirements, uploaded document
-descriptors, and legacy policy text and URLs. Registration requires the
-displayed language and token. Publication and registration creation share
-the tournament lock. If the terms have changed, the API returns 409 and
+The token covers declarations, equipment requirements, and uploaded document
+descriptors. Registration requires the displayed language and token. Publication
+and registration creation share the tournament lock. If the terms have changed, the API returns 409 and
 the athlete must review the updated terms and confirm their choices again.
 
 `RegistrationAcceptance` records the choices, verified user UUID, language,
@@ -124,8 +123,8 @@ reads return `rules_version_id` and `cancellation_policy_version_id`.
 Athletes can open recorded versions from the read-only declarations panel.
 
 The registration form displays uploaded policies and requests an authorized
-download when an athlete opens one. Legacy configuration remains in the backend
-until the coordinated cutover. Final legal wording remains open under PRIV-Q1.
+download when an athlete opens one. Final legal wording remains open under
+PRIV-Q1.
 
 ### Tags
 
@@ -184,8 +183,8 @@ and purpose returns 404.
 
 The staff form saves tournament facts separately from policy publication.
 Staff can enable refunds on a saved tournament with a published cancellation
-policy. During the transition, staff updates that omit the legacy policy fields
-preserve their stored values.
+policy. Create the tournament first, then publish the policy before enabling
+refunds.
 
 ### Registration documents
 

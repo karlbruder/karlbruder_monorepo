@@ -85,12 +85,8 @@ def build_registration_acceptance_content(
 ) -> dict:
     versions = versions or {}
     policies = {
-        name: {
-            "text": getattr(tournament, f"{name}_text"),
-            "source_url": getattr(tournament, f"{name}_url"),
-            "document": versions.get(name),
-        }
-        for name in ("rules", "cancellation_policy")
+        purpose: {"document": versions.get(purpose)}
+        for purpose in ("rules", "cancellation_policy")
     }
     return {
         "language": language,

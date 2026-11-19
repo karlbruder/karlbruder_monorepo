@@ -58,7 +58,7 @@ Acceptance records reference the uploaded policy versions displayed at registrat
 Existing records retain null references. Athletes can open recorded versions alongside their read-only declarations.
 
 The registration form uses server-provided draft declarations in the selected interface language.
-Its submitted token must match the current policy versions, equipment requirements, and declarations. During the transition it also covers configured legacy policy text and links.
+Its submitted token must match the current policy versions, equipment requirements, and declarations.
 On mismatch the athlete reviews the current content and confirms the choices again.
 Personal fields are retained while required choices are cleared.
 
@@ -66,7 +66,7 @@ The application privacy policy stays in the shared footer. In the registration f
 
 ## Delivery boundary
 
-Issue #21 deferred the full consent package to a later issue. PROD-011 defines the first-release scope for required declarations and data protections. The tournament owns the uploaded rules and cancellation policy. Legacy text and links remain available as fallback during the transition. Final legal wording remains open under PRIV-Q1. The interim retention policy is indefinite.
+Issue #21 deferred the full consent package to a later issue. PROD-011 defines the first-release scope for required declarations and data protections. The tournament owns the uploaded rules and cancellation policy. Final legal wording remains open under PRIV-Q1. The interim retention policy is indefinite.
 
 ## Acceptance criteria
 

@@ -1,4 +1,4 @@
-"""Associate registration acceptances with published policy versions.
+"""Record accepted policy versions and drop legacy tournament policy fields.
 
 Revision ID: 20261117_0002
 Revises: 20261117_0001
@@ -12,8 +12,15 @@ down_revision = "20261117_0001"
 branch_labels = None
 depends_on = None
 
+LEGACY_POLICY_COLUMNS = (
+    "rules_text",
+    "rules_url",
+    "cancellation_policy_text",
+    "cancellation_policy_url",
+)
 
-def upgrade():
+
+def upgrade() -> None:
     for column in ("rules_version_id", "cancellation_policy_version_id"):
         op.add_column(
             "registration_acceptances",
@@ -31,8 +38,15 @@ def upgrade():
             ondelete="RESTRICT",
         )
 
+    for column in LEGACY_POLICY_COLUMNS:
+        op.drop_column("tournaments", column, schema="public")
 
-def downgrade():
+
+def downgrade() -> None:
+    for column in LEGACY_POLICY_COLUMNS:
+        op.add_column(
+            "tournaments", sa.Column(column, sa.Text(), nullable=True), schema="public"
+        )
     for column in ("cancellation_policy_version_id", "rules_version_id"):
         op.drop_constraint(
             f"fk_registration_acceptances_{column}",

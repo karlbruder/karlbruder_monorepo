@@ -12,11 +12,17 @@ from app.main import karlbruder_app
 from app.tournaments.models import Tournament
 from tests.tournaments.test_payment_proof_reviews import _pending
 from tests.tournaments.test_payment_review_decisions import _decide
-from tests.tournaments.test_tournament_registrations import _event, _headers, setup as registration_setup
+from tests.tournaments.test_tournament_registrations import (
+    _create_event,
+    _event,
+    _headers,
+    _publish_policy,
+    _staff_update_payload,
+    setup as registration_setup,
+)
 
 
 QUEUE = "/api/staff/tournaments/refunds"
-REFUNDABLE_POLICY = {"refunds_allowed": True, "cancellation_policy_text": "Full refunds on cancellation."}
 
 
 @pytest.fixture(name="setup")
@@ -24,8 +30,21 @@ def refund_setup(monkeypatch, db_session):
     yield from registration_setup.__wrapped__(monkeypatch, db_session)
 
 
+def _pending_refundable(setup, *, internal=False):
+    client, key, _session, _storage = setup
+    tournament_id = _create_event(client, key, internal=internal)
+    _publish_policy(setup, tournament_id, "cancellation_policy", "cancellation.pdf")
+    saved = client.put(
+        f"/api/staff/tournaments/{tournament_id}",
+        headers=_headers(key, role="admin"),
+        json=_staff_update_payload(client, tournament_id, key, refunds_allowed=True),
+    )
+    assert saved.status_code == 200, saved.text
+    return _pending(setup, internal=internal, tournament_id=tournament_id)
+
+
 def test_unpaid_cancellation_has_no_refund_and_rejects_another_user(setup):
-    registration, _ = _pending(setup, **REFUNDABLE_POLICY)
+    registration, _ = _pending_refundable(setup)
     client, key, session, _ = setup
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}"
     assert client.post(f"{path}/cancel", headers=_headers(key)).status_code == 404
@@ -38,7 +57,7 @@ def test_unpaid_cancellation_has_no_refund_and_rejects_another_user(setup):
 
 def test_paid_cancellation_records_full_refund_and_completion_notifies_current_email(setup):
     """PAY-AC-008/013: expose the obligation, record completion once, and notify after commit."""
-    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    registration, documents = _pending_refundable(setup)
     client, key, session, _ = setup
     accounts, sender = Mock(), Mock()
     accounts.read_email.return_value = "current@example.test"
@@ -120,7 +139,7 @@ def test_staff_cannot_enable_refunds_without_a_cancellation_policy(setup):
     response = client.post(
         "/api/staff/tournaments",
         headers=_headers(key, role="admin"),
-        json=_event(refunds_allowed=True, cancellation_policy_text=" ", cancellation_policy_url=None),
+        json=_event(refunds_allowed=True),
     )
     assert response.status_code == 422
     assert "Refunds require a cancellation policy" in response.text
@@ -128,7 +147,7 @@ def test_staff_cannot_enable_refunds_without_a_cancellation_policy(setup):
 
 @pytest.mark.parametrize("decision", ["approved", "rejected"])
 def test_cancelled_pending_proof_remains_reviewable_without_restoring_participation(setup, decision):
-    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    registration, documents = _pending_refundable(setup)
     client, key, session, _ = setup
     owner = _headers(key, user_id=registration.user_id)
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}"
@@ -152,7 +171,7 @@ def test_cancelled_pending_proof_remains_reviewable_without_restoring_participat
 
 
 def test_internal_cancellation_requires_current_guild_access(setup):
-    registration, _ = _pending(setup, internal=True, **REFUNDABLE_POLICY)
+    registration, _ = _pending_refundable(setup, internal=True)
     client, key, session, _ = setup
     session.commit()
     path = f"/api/tournaments/{registration.tournament_id}/registrations/{registration.registration_number}/cancel"
@@ -178,7 +197,7 @@ def test_unlinked_receipt_cannot_cancel_until_reconciled(setup):
     from app.karlmart.orders.models import OrderItem
     from app.karlmart.payments.services.records import add_payment_record
 
-    registration, _ = _pending(setup, **REFUNDABLE_POLICY)
+    registration, _ = _pending_refundable(setup)
     client, key, session, _ = setup
     now = datetime.now(UTC)
     order = session.get(OrderItem, registration.order_item_id)
@@ -196,7 +215,7 @@ def test_existing_unlinked_refund_remains_visible_and_completable(setup):
     from app.karlmart.payments.services.records import add_payment_record, add_refund_record
     from app.tournaments.services.tournament_local_dates import refund_due_date
 
-    registration, _ = _pending(setup, **REFUNDABLE_POLICY)
+    registration, _ = _pending_refundable(setup)
     client, key, session, _ = setup
     now = datetime.now(UTC)
     order_item = session.get(OrderItem, registration.order_item_id)
@@ -219,7 +238,7 @@ def test_refund_read_service_and_route_enforce_internal_visibility_after_change(
     from app.tournaments.exceptions import RegistrationResourceNotFoundError
     from app.tournaments.services.registration_cancellations import read_registration_refund
 
-    registration, documents = _pending(setup, **REFUNDABLE_POLICY)
+    registration, documents = _pending_refundable(setup)
     client, key, session, _ = setup
     assert _decide(setup, registration, documents[-1]).status_code == 200
     tournament_id = registration.tournament_id

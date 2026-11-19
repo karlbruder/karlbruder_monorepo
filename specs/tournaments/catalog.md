@@ -36,7 +36,7 @@ In staff settings, place documents in a separate section after tournament detail
 
 Tournament details show a document section when there is at least one file the viewer can open. Each tile shows the document title, file format, and new-tab icon. In a visible section, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. The wireframe also proposes a separate tournament details screen and named additional documents. Issue #88 delivers the two registration policies in the registration flow and existing signed-in tournament view. Open files in a new tab on demand through an authorized download. Catalog visibility rules apply to the tournament and its policy versions. Guest access and lifecycle rules for additional documents remain open. See [WF-02](../design/app-wireframes/index.html#WF-02/athlete).
 
-Registration records the policy versions displayed at acceptance. The staff form and athlete view use uploaded files. Staff can enable refunds after publishing a cancellation policy that permits them. The legacy API fields and stored values remain during the transition. The coordinated cutover removes both legacy URL and text pairs without backfilling document versions.
+Registration records the policy versions displayed at acceptance. Staff can enable refunds after publishing a cancellation policy that permits them.
 
 ## User flow
 

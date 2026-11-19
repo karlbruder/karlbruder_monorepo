@@ -66,11 +66,7 @@ class Tournament(BaseModel):
     payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     location: Mapped[str | None] = mapped_column(String(300))
     schedule: Mapped[str | None] = mapped_column(Text)
-    rules_text: Mapped[str | None] = mapped_column(Text)
-    rules_url: Mapped[str | None] = mapped_column(Text)
     equipment_requirements: Mapped[str | None] = mapped_column(Text)
-    cancellation_policy_text: Mapped[str | None] = mapped_column(Text)
-    cancellation_policy_url: Mapped[str | None] = mapped_column(Text)
     refunds_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )

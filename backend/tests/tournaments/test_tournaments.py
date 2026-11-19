@@ -368,54 +368,39 @@ def test_catalog_routes_have_explicit_response_contracts(client):
     } >= {"name", "starts_from", "starts_to", "limit", "offset"}
 
 
-@pytest.mark.parametrize(
-    "policies",
-    [
-        {"rules_text": "Fixture rules", "cancellation_policy_text": "Fixture policy"},
-        {
-            "rules_url": "https://example.test/rules",
-            "cancellation_policy_url": "https://example.test/cancel",
-        },
-        {"rules_text": "Fixture rules", "rules_url": "https://example.test/rules"},
-        {},
-    ],
-)
-def test_tournament_edit_preserves_omitted_legacy_policy_text_and_urls(client, policies):
+def test_staff_and_catalog_use_uploaded_policies_exclusively(client):
+    """Legacy fields are absent from reads and rejected in staff writes."""
     test_client, key = client
-    created = test_client.post(
-        "/api/staff/tournaments", json=_event(**policies), headers=_headers(key, "admin")
-    )
+    admin = _headers(key, "admin")
+    staff_path = "/api/staff/tournaments"
+    created = test_client.post(staff_path, json=_event(), headers=admin)
     assert created.status_code == 201, created.text
-    updated = test_client.put(
-        f"/api/staff/tournaments/{created.json()['id']}",
-        json=_event("Updated fixture"), headers=_headers(key, "admin"),
-    )
-    assert updated.status_code == 200, updated.text
-    for name in (
-        "rules_text",
-        "rules_url",
-        "cancellation_policy_text",
-        "cancellation_policy_url",
+    event_id = created.json()["id"]
+    legacy = {
+        "rules_text": "Fixture rules",
+        "rules_url": "https://example.test/rules",
+        "cancellation_policy_text": "Fixture policy",
+        "cancellation_policy_url": "https://example.test/policy",
+    }
+    for read in (
+        created,
+        test_client.get(f"{staff_path}/{event_id}", headers=admin),
+        test_client.get(f"/api/tournaments/{event_id}"),
     ):
-        assert updated.json()[name] == policies.get(name)
-    public = test_client.get(f"/api/tournaments/{created.json()['id']}")
-    assert public.status_code == 200
-    assert public.json()["rules_url"] == policies.get("rules_url")
-    assert "pix_key" not in public.json()
+        assert read.status_code in (200, 201), read.text
+        value = read.json()
+        assert legacy.keys().isdisjoint(value)
+        assert value["acceptance_content"]["pt"]["policies"] == {
+            "rules": {"document": None},
+            "cancellation_policy": {"document": None},
+        }
 
-
-@pytest.mark.parametrize("field", ["rules_url", "cancellation_policy_url"])
-@pytest.mark.parametrize(
-    "value", ["javascript:alert(1)", "file:///etc/passwd", "not a URL"]
-)
-def test_policy_url_rejects_non_web_links(client, field, value):
-    test_client, key = client
-    response = test_client.post(
-        "/api/staff/tournaments",
-        json=_event(**{field: value}),
-        headers=_headers(key, "admin"),
-    )
-    assert response.status_code == 422
+    for write in (
+        test_client.post(staff_path, json=_event(**legacy), headers=admin),
+        test_client.put(f"{staff_path}/{event_id}", json=_event(**legacy), headers=admin),
+    ):
+        assert write.status_code == 422, write.text
+        assert {error["loc"][-1] for error in write.json()["detail"]} == legacy.keys()
 
 
 def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, db_session):

@@ -92,12 +92,10 @@ Append the short document name and a new-tab icon inline after the matching rule
 
 Open the exact policy version shown on the form in a new tab. Request a fresh, authorized download URL on activation. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Each control communicates the new tab to keyboard and screen-reader users.
 
-The upload-based interface shows published documents and does not display legacy text or URLs. The backend retains the legacy values until the coordinated cutover.
-
 ## Acceptance submission
 
 Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response.
-The token detects changes to policy versions, equipment requirements, and declarations. During the transition it also covers configured legacy policy text and URLs.
+The token detects changes to policy versions, equipment requirements, and declarations.
 A stale form returns 409. Refresh the displayed content, preserve the entered personal data, and clear the required choices for review and explicit acceptance.
 
 Save the initial RegistrationAcceptance and any required parental document in the registration transaction.
