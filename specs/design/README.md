@@ -1,7 +1,7 @@
 # Web and application design
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-11
+**Last updated**: 2026-11-19
 
 The design contracts guide the public website and application. The wireframes illustrate proposed screens for `app.karlbruder.com`. These documents are review material, not proof of frontend implementation or changes to product policy.
 
@@ -12,5 +12,6 @@ For authorized frontend UI changes, use the relevant contracts and screens as th
 - [Institutional website experience](institutional-site-experience.md) (`KBWEB`, draft): public site composition, community imagery, classes discovery and visual handoff to the application. [WEB](../public-website/presentation-and-navigation.md) owns routes, event facts and the handoff behavior.
 - [Application wireframes](app-wireframes/README.md): visual direction, screen-to-rule traceability, delivery boundaries, and review scenarios.
 - [Open the clickable wireframes](app-wireframes/index.html): desktop/mobile layouts and selectable states, with no external dependencies or live services.
+- [Tournament conduction prototype](tournament-conduction/README.md): navigable preparation, check-in, reviewed first-round pairings, cyclic Arena distribution and calls with fictional data. [Open the preparation flow](tournament-conduction/index.html#COND-WF-01/preparation). Match recording and sporting results are not interactive in this initial artifact.
 
 Review the designs against the owning specs. Resolve business questions in those specs, then update the affected wireframes. Delivery issues should reference both the governing rule/acceptance IDs and the relevant `WF-xx` screen/state. Layout approval alone does not resolve an open policy question.

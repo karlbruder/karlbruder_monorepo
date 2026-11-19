@@ -7,7 +7,7 @@
 
 This record preserves the functional sources and product-owner decisions for [issue #91](https://github.com/karlbruder/karlbruder_monorepo/issues/91). It gives a later reviewer enough context to use the specifications without reconstructing a chat or opening a personal file path.
 
-The owner adopted the source's confirmed rules and functional MVP proposals on 19 November 2026. They also supplied the presence, Arena and shared-live-view decisions below. This is evidence of requirements adoption. No navigable prototype walkthrough, visual approval, production implementation or third-party regulatory review has yet been recorded. Do not treat the source's technical examples as required APIs or database structures.
+The owner adopted the source's confirmed rules and functional MVP proposals on 19 November 2026. They also supplied the presence, Arena and shared-live-view decisions below. This is evidence of requirements adoption. A preparation prototype and agent browser checks are now available as recorded below. The responsible person's full prototype walkthrough, visual approval, production implementation and third-party regulatory review have not been recorded. Do not treat the source's technical examples as required APIs or database structures.
 
 ## Sources and precedence
 
@@ -65,7 +65,7 @@ Operational proposals adopted from the source include draft/confirmation distinc
 
 ## Prototype review contract
 
-The prototype's future entry point must supply opening instructions, scenario selection/reset and direct screen/state links. The groups below identify the functional coverage to be linked by that artifact. They are not claims that a screen exists or has been reviewed.
+The [preparation prototype](../specs/design/tournament-conduction/README.md) supplies opening instructions, scenario selection/reset and direct screen/state links for COND-WF-01–04. The groups below also identify the remaining sporting coverage. COND-WF-05–09 are review targets for a subsequent extension, not claims of implemented or approved screens.
 
 | Screen group | Review states | Governing rules / acceptance |
 | --- | --- | --- |
@@ -81,7 +81,21 @@ The prototype's future entry point must supply opening instructions, scenario se
 
 The reproducible walkthrough must cover preparation and presence, Arenas and calls, multiple bounds and discipline, confirmed ranking, seven qualification rounds, cut ties, four qualifiers, six final matches, podium, authorized spectator consultation and correction impacts. Reviewers can use prepared progression scenarios without entering every match manually. At least one match must support actual simulated recording that changes the same consulted sporting state.
 
-Desktop and phone review, keyboard/focus, overflow, images, console and specification links must be recorded when that artifact is available. The existing application wireframes provide composition references. Current shared design contracts govern branding, geometry and typography. No matching detailed match-operation reference has been claimed.
+The existing application wireframes provide composition references. Current shared design contracts govern branding, geometry and typography. No matching detailed match-operation reference has been claimed. Preparation checks are recorded below, while sporting match/result screens still require their own desktop and phone review.
+
+## Preparation prototype verification
+
+On 19 November 2026, the agent inspected rendered WF-18/overview, WF-19/list, WF-20/detail and WF-14/unavailable/published/restricted at 1500 and 390 px before creating the separate artifact. Its composition preserves the dark guild shell, functional workspace and separate specification notes. It applies current shared tokens and angular controls. Existing locally licensed fonts are reused, with Roboto Slab documented as the fallback for unavailable Schwager.
+
+The prototype has four screen groups and ten reproducible starting scenarios. Seventeen Node checks pass for attendance independence, minor safeguards, Arena configuration and allocation, two allocation batches, round invariants, odd-count bye, publication, calls, participant names, empty-preparation feedback, event isolation and source/assets references. The script is kept with the artifact and its commands are in the prototype README.
+
+Browser verification used the integrated browser over a loopback-only HTTP preview. The initial server was listening but did not respond to host requests from its sandboxed launch. Restarting that task server outside the sandbox restored HTTP 200 and browser access. No firewall or browser-security policy was changed. Direct file-backed preview was blocked by the browser tool and is not claimed as browser-tested.
+
+The agent checked fourteen relevant screen/scenario combinations at 1500 and 390 px in each theme, followed by the empty-round state at those widths and themes after tightening its feedback, totaling 60 layout checks. None produced page-level horizontal overflow. Expected images and fonts loaded and no console errors or warnings were reported. Sixteen representative text/background samples across the two themes had contrast above 4.5:1, with the lowest sampled ratio 5.47:1. This is sampled verification, not full accessibility certification.
+
+The exercised path marked presence, prepared eight matches, allocated the three Arenas in the 3/3/2 distribution, published the round and called the first Arena's athletes without starting combat. Additional interactions covered event creation and switching with retained state, required Arena number and optional name, individual/batch/test entry with homonyms, empty/error recovery, invalid self-pairing rejection, a separate odd-count bye, preserved minor requirements after presence marking, input preservation during theme change, browser back/forward, the skip link, Escape/menu focus and keyboard scrolling inside the narrow participant table.
+
+These checks validate the preparation simulation. They do not validate a production Swiss algorithm, synchronization, authentication, scoring, later phase progression or final publication. The owner's review and the full sporting walkthrough remain outstanding.
 
 ## Validation record and remaining evidence
 
@@ -91,7 +105,8 @@ Desktop and phone review, keyboard/focus, overflow, images, console and specific
 | Rule adoption | Explicit owner adoption of confirmed rules and MVP proposals, followed by P2/P3 operational clarifications |
 | Functional consolidation | Requirements are available in [conduction](../specs/tournaments/conduction.md), [Monomachia rules](../specs/tournaments/events/monomachia-2027.md#conduction-rules) and [results](../specs/tournaments/results.md) |
 | Document consistency | Eight documents checked, 118 local links and 33 fragments resolved, 109 rule/acceptance IDs unique and references valid. Three ranking examples, six unique final pairings and the 3/3/2 Arena example checked. The question index retains two current and eleven deferred entries |
-| Prototype review | Not performed. No navigable conduction artifact or responsible-person walkthrough is claimed |
+| Preparation prototype | Four screen groups with ten starting scenarios. Agent browser checks and seventeen local verification checks recorded above |
+| Responsible-person walkthrough | Not performed. The complete sporting flow is not yet available or claimed as approved |
 | Production verification | Not performed. No production implementation is delivered by this issue |
 
 When the prototype is reviewed, record the actual artifact revision, review date, responsible person's feedback, scenarios exercised, accepted changes and any limits. Requirements adoption does not substitute for the responsible person's walkthrough of the eventual artifact. Never invent a reviewer, meeting, approval or passing runtime result.

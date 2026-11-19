@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Karlbrüder · Condução de torneio</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="prototype.css">
+  <script src="scenarios.js" defer></script>
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#workspace">Pular para o conteúdo</a>
+  <header class="review-heading">
+    <div><p class="eyebrow">KARLBRÜDER / REVISÃO DE FLUXOS</p><h1>Condução de torneio</h1></div>
+    <a href="README.md">Roteiro e limites da prévia ↗</a>
+  </header>
+  <section class="review-tools" aria-label="Ferramentas de revisão">
+    <label for="screen-picker">Tela<select id="screen-picker"></select></label>
+    <label for="scenario-picker">Cenário<select id="scenario-picker"></select></label>
+    <div class="review-actions"><button id="reset-demo" type="button">Reiniciar cenário</button><button id="toggle-notes" type="button" aria-pressed="true" aria-controls="spec-notes">Notas da spec</button></div>
+  </section>
+  <p class="review-caption">Protótipo navegável · dados fictícios · alterações somente nesta sessão · preparação e chamadas</p>
+  <div class="review-layout">
+    <main class="app-shell" id="workspace" tabindex="-1" aria-label="Prévia da condução">
+      <header class="app-header">
+        <a href="../app-wireframes/index.html#WF-18/overview" class="brand"><img src="../../../landing/public/logos/logo_white_with_name.png" width="182" height="68" alt="Karlbrüder"></a>
+        <div class="header-meta"><span>PAINEL DA GUILDA</span><span>Equipe (admin)</span></div>
+        <button type="button" id="theme-toggle" class="header-button" aria-pressed="false">Tema escuro</button>
+      </header>
+      <div class="event-context"><label for="event-picker">Torneio em condução<select id="event-picker"></select></label><span id="event-status" class="badge">Em preparação</span></div>
+      <div class="section-nav"><button type="button" id="menu-toggle" aria-expanded="false" aria-controls="section-links">Menu de condução</button><nav id="section-links" aria-label="Condução do torneio"></nav></div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="screen-content" class="app-content"></div>
+      <footer class="app-footer">Karlbrüder · Condução do torneio <span>Acesso administrativo em todos os eventos</span></footer>
+    </main>
+    <aside id="spec-notes" class="spec-notes" aria-label="Referências da tela"></aside>
+  </div>
+  <noscript>Ative JavaScript para navegar e testar os dados fictícios desta prévia.</noscript>
+</body>
+</html>
