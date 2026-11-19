@@ -65,16 +65,9 @@ services:
       LANDING_HOSTNAMES: ${LANDING_HOSTNAMES}
       APPLICATION_HOSTNAMES: ${APPLICATION_HOSTNAMES}
 
-    depends_on:
-      landing:
-        condition: service_started
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-
     volumes:
       - origin_certs:/etc/nginx/certs
+      - ./maintenance:/var/run/karlbruder-maintenance:ro
 
     ports:
       - "443:443"

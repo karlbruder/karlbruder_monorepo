@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-18
+**Last updated**: 2026-11-19
 
 | Field | Value |
 | --- | --- |
@@ -81,7 +81,7 @@ A DNS-only record skips Cloudflare TLS. The browser then sees the self-signed or
 
 Only Nginx publishes an application port on a cloud host, 443. Backend and frontend services are reachable through the Compose network and do not publish host ports. The existing local ports remain development configuration rather than a new product decision.
 
-Nginx reads the Host header. A landing name goes to the landing container. An application name sends `/api` to the backend and every other path to the frontend. After a landing, frontend, or backend container is replaced, the deploy starts the edge Nginx container again so it looks up the new address.
+Nginx reads the Host header. A landing name goes to the landing container. An application name sends `/api` to the backend and every other path to the frontend. Nginx resolves service addresses dynamically and serves a maintenance page when an upstream is unavailable.
 
 ## Guild staff access
 

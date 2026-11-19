@@ -105,6 +105,7 @@ class DeploymentTests(unittest.TestCase):
             Path(folder, 'source.yml').write_text('services: {}')
             source = dict(CONFIG, DEPLOY_PATH=folder, APPLICATION_HOSTNAMES='app.karlbruder.com app-prod.karlbruder.com' if environment == 'prod' else 'app-dev.karlbruder.com')
             host.main([*cli_args(source, *HOST_ARGUMENT_NAMES), '--compose-file', str(Path(folder, 'source.yml'))])
+            self.assertFalse(Path(folder, 'maintenance', 'enabled').exists())
             self.assertEqual(Path(folder, 'compose.production.yml').read_text(), 'services: {}')
             self.assertEqual(
                 Path(folder, 'backend.env').read_text(),
@@ -118,6 +119,11 @@ class DeploymentTests(unittest.TestCase):
                 run = self.run_host(environment, 'registry/service:test-sha')
                 pull = next(call for call in run.call_args_list if call.args[-1] == 'pull')
                 self.assertEqual(pull.kwargs['env']['APPLICATION_HOSTNAMES'], hostname)
+                compose_calls = [call.args[4:] for call in run.call_args_list if call.args[:4] == ('docker', 'compose', '-f', 'compose.production.yml')]
+                self.assertEqual(compose_calls[:3], [
+                    ('pull',), ('up', '-d', '--no-deps', '--wait', 'nginx'),
+                    ('up', '-d', '--wait'),
+                ])
                 self.assertEqual(sum(call.args[:2] == ('docker', 'inspect') for call in run.call_args_list), 4)
                 self.assertEqual(run.call_args.args, ('docker', 'image', 'prune', '-f'))
 

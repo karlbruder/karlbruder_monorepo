@@ -1,7 +1,7 @@
 # Application deployment
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-12
+**Last updated**: 2026-11-19
 
 This guide explains the deployment implemented by
 [the workflow](../.github/workflows/deploy-application.yml),
@@ -211,9 +211,17 @@ The application host needs Python 3, the AWS CLI, and Docker with Compose.
 Session Manager launches the host script through its shell document.
 
 The host script supplies Compose interpolation values through its process
-environment, logs in to ECR, pulls all four release-SHA images, and updates the
-stack with `up --wait`. It then recreates edge Nginx to refresh container addresses,
-verifies each container's image tag, and prunes dangling images. There is no zip
+environment, logs in to ECR, pulls all four release-SHA images, and starts
+Nginx first without waiting for the other services. A host-side maintenance flag
+makes it serve the maintenance page while it updates the stack with `up --wait`.
+After verifying each container's image tag, the script clears the flag and prunes
+dangling images. A failed update leaves the flag in place. A successful redeploy
+clears it. An operator can also remove `/opt/karlbruder/maintenance/enabled` after
+checking and restoring the stack.
+Nginx resolves upstream container addresses dynamically. When an upstream cannot be
+reached or times out, Nginx returns its bundled maintenance page with HTTP 503 and
+no-store caching. Upstream-generated errors pass through. The fallback is available
+only while the host and Nginx are running. There is no zip
 or SCP deployment path. A landing-only build still uses this combined release path.
 
 ## Release verification

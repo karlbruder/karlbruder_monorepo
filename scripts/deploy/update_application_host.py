@@ -66,13 +66,18 @@ def main(argv=None):
 
     compose = ("docker", "compose", "-f", "compose.production.yml")
     run_checked_command(*compose, "pull", env=env)
+    maintenance_dir = deploy_path / "maintenance"
+    maintenance_dir.mkdir(exist_ok=True)
+    maintenance_flag = maintenance_dir / "enabled"
+    maintenance_flag.touch()
+    run_checked_command(*compose, "up", "-d", "--no-deps", "--wait", "nginx", env=env)
     run_checked_command(*compose, "up", "-d", "--wait", env=env)
-    run_checked_command(*compose, "up", "-d", "--no-deps", "--force-recreate", "--wait", "nginx", env=env)
     for service in ("backend", "frontend", "landing", "nginx"):
         container = run_checked_command(*compose, "ps", "-q", service, env=env, capture_output=True).stdout.strip()
         image = run_checked_command("docker", "inspect", "--format", "{{.Config.Image}}", container, capture_output=True).stdout.strip()
         if not image.endswith(f":{config['RELEASE_SHA']}"):
             raise SystemExit(f"unexpected {service} image {image}")
+    maintenance_flag.unlink()
     run_checked_command("docker", "image", "prune", "-f")
 
 

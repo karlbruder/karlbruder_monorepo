@@ -1,7 +1,7 @@
 # 0003: Local and production stacks
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-19
 
 | Field | Value |
 | --- | --- |
@@ -31,7 +31,7 @@ The private frontend hosting draft is resolved. Backend-only topology and the `c
 
 The earlier SCP, Session Manager, and ECR issues can still inform deployment transport and artifact delivery. They must be reconciled with this topology before implementation rather than treated as instructions to omit the frontend or Nginx.
 
-The repository defines `compose.production.yml` and the deploy workflow. A push to `master` deploys `dev`. A manual run can deploy `dev` or `prod`. The workflow builds the images whose paths changed, pushes them to ECR, and replaces those containers through Session Manager. Nginx writes its hostnames when it starts, and it creates a self-signed origin certificate on first start. A live Cloudflare, EC2, and HTTPS check is still separate work. S3 file storage and SES email are still separate application work. Local SMTP remains deferred.
+The repository defines `compose.production.yml` and the deploy workflow. A push to `master` deploys `dev`. A manual run can deploy `dev` or `prod`. The workflow builds the images whose paths changed, pushes them to ECR, and replaces those containers through Session Manager. Nginx starts independently and serves a maintenance page when an upstream is unavailable. It writes its hostnames when it starts, and it creates a self-signed origin certificate on first start. A live Cloudflare, EC2, and HTTPS check is still separate work. S3 file storage and SES email are still separate application work. Local SMTP remains deferred.
 
 ## References
 
