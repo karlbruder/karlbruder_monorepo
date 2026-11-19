@@ -68,7 +68,7 @@ class DeploymentTests(unittest.TestCase):
         payload = json.loads(aws.call_args_list[1].args[3])
         self.assertEqual(payload['InstanceIds'], ['i-test'])
         command = shlex.split(payload['Parameters']['commands'][0])
-        self.assertEqual(command[:2], ['python3', '-c'])
+        self.assertEqual(command[:5], ['flock', '-x', '/var/lock/karlbruder-deploy.lock', 'python3', '-c'])
         self.assertIn('--release-sha', command)
         self.assertIn('test-sha', command)
         self.assertIn('--compose-content-b64', command)
@@ -81,6 +81,10 @@ class DeploymentTests(unittest.TestCase):
         for status in ('Failed', 'Cancelled', 'TimedOut', 'Cancelling'):
             with self.subTest(status=status), self.assertRaisesRegex(SystemExit, 'remote error'):
                 self.run_deploy(['i-test', 'command-test', {'Status': status, 'StandardErrorContent': 'remote error'}])
+
+    def test_terminal_failure_reports_remote_stdout_when_stderr_is_empty(self):
+        with self.assertRaisesRegex(SystemExit, 'host diagnostic'):
+            self.run_deploy(['i-test', 'command-test', {'Status': 'Failed', 'StandardOutputContent': 'host diagnostic', 'StandardErrorContent': ''}])
 
     def test_polling_stops_after_timeout(self):
         with self.assertRaisesRegex(SystemExit, 'did not finish'):

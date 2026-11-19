@@ -181,6 +181,35 @@ SSM_SUDOERS_EOF
   chmod 440 /etc/sudoers.d/90-ssm-user-nopasswd
 }
 
+configure_docker_cleanup() {
+  log "Configuring Docker image cleanup"
+  cat > /etc/systemd/system/karlbruder-docker-cleanup.service << 'SERVICE_EOF'
+[Unit]
+Description=Remove old unused Docker images
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flock -n -E 0 /var/lock/karlbruder-deploy.lock /usr/bin/docker image prune -a -f --filter until=168h
+SERVICE_EOF
+
+  cat > /etc/systemd/system/karlbruder-docker-cleanup.timer << 'TIMER_EOF'
+[Unit]
+Description=Clean up old unused Docker images twice daily
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+TIMER_EOF
+
+  systemctl daemon-reload
+  systemctl enable --now karlbruder-docker-cleanup.timer
+}
+
 main() {
   ${userdata_pre_install}
 
@@ -191,6 +220,7 @@ main() {
   configure_users_and_paths
   ensure_session_manager_agent
   ensure_ssm_user_docker_access
+  configure_docker_cleanup
 
   ${userdata_post_install}
 

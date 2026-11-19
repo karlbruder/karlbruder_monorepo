@@ -57,7 +57,9 @@ def main(argv=None):
     host_args = ["--compose-content-b64", base64.b64encode(config.pop("compose").encode()).decode()]
     for name, value in config.items():
         host_args.extend((f"--{name.lower().replace(chr(95), chr(45))}", value))
-    command = " ".join(shlex.quote(part) for part in ["python3", "-c", launcher, *host_args])
+    command = " ".join(shlex.quote(part) for part in [
+        "flock", "-x", "/var/lock/karlbruder-deploy.lock", "python3", "-c", launcher, *host_args,
+    ])
     payload = {
         "DocumentName": "AWS-RunShellScript",
         "InstanceIds": [instance_id],
@@ -81,7 +83,9 @@ def main(argv=None):
             return
         if status in {"Failed", "Cancelled", "TimedOut", "Cancelling"}:
             raise SystemExit(
-                f"Session Manager command {status}.\n{result.get('StandardErrorContent', '')}"
+                f"Session Manager command {status}.\n"
+                f"Standard output:\n{result.get('StandardOutputContent', '')}\n"
+                f"Standard error:\n{result.get('StandardErrorContent', '')}"
             )
         time.sleep(10)
     raise SystemExit(f"Session Manager command {command_id} did not finish.")

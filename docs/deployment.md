@@ -94,6 +94,22 @@ AMI or bootstrap edits do not replace a running instance automatically.
 Replacement is deliberate. Retained volumes and versioned objects do not establish
 verified backups or recovery.
 
+New hosts install a systemd timer that removes unused Docker images older than seven
+days twice daily. It does not prune containers, networks, or volumes. The cleanup
+and deploy command share a lock, so cleanup skips a run while deployment is active.
+Image age is the image creation time, not the time since it was last deployed.
+Older rollback images may need to be pulled from ECR again.
+
+User-data changes do not update existing hosts. To install the timer there, apply
+the `configure_docker_cleanup` function from the [user-data template](../infra/modules/ec2-instance/templates/user_data.sh.tftpl)
+as root through an approved operator path. Deploy the version of the workflow with
+the shared lock before enabling the timer. Check the timer with:
+
+```sh
+systemctl list-timers karlbruder-docker-cleanup.timer
+journalctl -u karlbruder-docker-cleanup.service
+```
+
 ## External services
 
 Follow the [S3 runbook](runbooks/application-files-s3-bucket.md) for the private
