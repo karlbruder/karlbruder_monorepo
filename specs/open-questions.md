@@ -1,9 +1,9 @@
 # Open-question index
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-19
 
-There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
+There are **2 current-scope question entries** and **11 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
 The counts refer to numbered entries, not individual question marks or subchoices. Current scope means relevant to the tournament/public-website product; an entry blocks only work that depends on its answer. Deferred entries apply to later capabilities and do not block the first registration/proof-review release.
 
@@ -26,10 +26,12 @@ Tournament fee, Pix destination, dates, venue, equipment, regulation, and eligib
 | [Category capacity](tournaments/capacity-and-waitlist.md#deferred-questions) | CAP-Q5 | 1 |
 | [Payment gateway](tournaments/payments-and-confirmation.md#deferred-questions) | PAY-Q6 | 1 |
 | [Exports](tournaments/administration.md#deferred-questions) | ADM-Q2 | 1 |
-| [Results](tournaments/results.md#deferred-questions) | RES-Q1–RES-Q4 | 4 |
+| [Results](tournaments/results.md#deferred-questions) | RES-Q4, external correction notifications | 1 |
 | [Messaging extensions](tournaments/communications.md#deferred-questions) | COM-Q3 | 1 |
 | [Association membership](membership/overview.md#deferred-questions) | MEM-Q1–MEM-Q5 | 5 |
-| **Total** | | **14** |
+| **Total** | | **11** |
+
+Conduction decisions adopted on 19 November 2026 resolve RES-Q1–Q3 through [RES-006–009](tournaments/results.md#confirmed-direction). RES-Q4 retains its unanswered external-notification part. Correction history, review and in-view updates are specified, not silently discarded. The [conduction validation record](../docs/tournament-conduction-validation.md) identifies the source and approval. Unresolved exceptional sporting outcomes remain pending organizational review under [MONO-022](tournaments/events/monomachia-2027.md#conduction-rules), without an invented automatic winner. Fictional prototype data do not resolve PRIV-Q1 or authorize real youth publication.
 
 ## Implementation and operations work
 
