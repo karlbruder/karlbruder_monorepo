@@ -1,7 +1,7 @@
 # Taxonomy
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-17
 
 These names are the shared vocabulary for the rest of the specifications.
 
@@ -17,7 +17,7 @@ These names are the shared vocabulary for the rest of the specifications.
 | Stored file | `StoredFile` identifies a stored object. Shared metadata and storage operations belong to `app/core/files/` |
 | Archived file | `ArchivedFile` preserves a captured content version. `archive_file` belongs to `app/core/files/`. The consuming domain owns purpose, validation, access, retention, and current-version selection |
 | Registration document | `TournamentRegistrationDocument` associates a submitted file with a registration and its purpose |
-| Acceptance | `RegistrationAcceptance` retains separate choices, language, identity, time and IP. Policy documents are managed outside the application |
+| Acceptance | `RegistrationAcceptance` retains separate choices, language, identity, time, IP, and references to the uploaded tournament policy versions shown to the athlete |
 | Payment and refund | Payments owns generic `Payment` and `Refund` facts. Tournaments owns settings, proof reviews, and the proof-to-payment association |
 | Awaiting payment | The participant still needs to pay. Generating a future gateway QR code leaves payment in this state |
 | Awaiting payment confirmation | Use `awaiting_payment_confirmation` after a proof is uploaded. A future gateway flow can use the same label when payment has been initiated and confirmation is pending |

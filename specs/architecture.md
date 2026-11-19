@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -165,7 +165,7 @@ Source inspection on 4 November 2026 established the following implementation ba
 - Local Compose runs landing, frontend, backend, PostgreSQL, Ministack, and small nginx server for the frontend wireframes. The frontend uses Vite on 5173 for serving, health checks, and `/api` forwarding to the backend. The API prefix is preserved. See [local development](platform/local-development.md#observed-configuration-and-gaps) for configuration details and remaining gaps.
 - Production Compose uses the separate `nginx` service to send application `/api` requests directly to the backend, preserving the prefix. Other application requests go to the frontend image, whose own Nginx serves the built assets. The API path does not pass through the frontend container.
 - Health and metadata endpoints are documented in the [backend README](../backend/README.md#diagnostics). Frontend production build configuration is documented in the [frontend README](../frontend/README.md#configuration).
-- Tournament registration, private uploads, acceptance records, and financial evidence records are implemented. Policy documents are managed externally. Staff payment-review commands now persist exact-proof decisions and capacity outcomes atomically. Refund commands remain future work. The [tournament API guide](../backend/app/tournaments/README.md) describes the implemented routes and persistence boundaries.
+- Tournament registration, private uploads, acceptance records, and financial evidence records are implemented. Staff publishes rules and cancellation policies as versioned documents. Registration acceptance records the displayed policy version IDs. Staff payment-review commands now persist exact-proof decisions and capacity outcomes atomically. Refund commands remain future work. The [tournament API guide](../backend/app/tournaments/README.md) describes the implemented routes and persistence boundaries.
 - The payment-instructions read currently returns 404 to an admin who does not own the registration. This differs from the global admin-access requirement in ARCH-014 and AUTH-008. The API guide describes the implemented restriction. It does not establish a product-policy exception.
 - Application CI runs in Docker. The deployment workflow targets `dev` on qualifying pushes to `master`. Workflow and rollout details belong in the [deployment guide](../docs/deployment.md). Backend SMTP and current-account email lookup clients now exist. Lifespan owns their resources. The decision command invokes Portuguese payment-review notices after commit. Real SES delivery and hosted Auth read privileges remain unverified.
 

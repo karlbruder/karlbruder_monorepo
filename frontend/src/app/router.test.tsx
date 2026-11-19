@@ -44,11 +44,7 @@ const tournament = {
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,
-  rules_text: null,
-  rules_url: 'https://example.test/rules',
   ...acceptanceEvidence,
-  cancellation_policy_text: 'Policy fixture',
-  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 

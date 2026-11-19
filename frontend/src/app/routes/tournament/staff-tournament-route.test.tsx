@@ -1,6 +1,6 @@
 vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
@@ -11,7 +11,7 @@ import { createQueryClient } from "@/lib/query-client";
 
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
 const admin = { access_token: "staff-token", user: { id: "staff", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
-const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules" };
+const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, pix_key: "fixture" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const fetchMock = vi.fn();
 function tree(path: string, session: Session | null = admin, ready = true, client: QueryClient = createQueryClient()) {
@@ -20,6 +20,7 @@ function tree(path: string, session: Session | null = admin, ready = true, clien
 beforeEach(() => {
   window.localStorage.clear(); window.history.replaceState({}, "", "/"); vi.stubEnv("VITE_API_BASE_URL", "/api");
   fetchMock.mockReset().mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/policy-documents")) return json({});
     if (init?.method === "DELETE") return json({ detail: "Tournament with registrations cannot be deleted" }, 409);
     if (init?.method === "PUT" || init?.method === "POST") return json(event);
     if (url.includes("?")) return json({ items: [event, { ...event, id: 2, name: "Second event" }], total: 2 });
@@ -29,33 +30,98 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
-it("lists multiple tournaments and saves an edit with null fields and policy links", async () => {
+it("lists multiple tournaments and saves tournament settings independently of document uploads", async () => {
   render(tree("/staff/tournaments"));
   fireEvent.click(await screen.findByRole("link", { name: "First event" }));
   await screen.findByDisplayValue("fixture");
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Updated event" } });
-  fireEvent.change(screen.getByLabelText("Política de cancelamento", { exact: true }), { target: { value: "Reembolso integral." } });
   const refunds = screen.getByRole("checkbox", { name: "Permitir reembolsos conforme a política de cancelamento" });
   expect(refunds).not.toBeChecked();
   fireEvent.click(refunds);
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
-  expect(JSON.parse(init.body)).toMatchObject({ name: "Updated event", competitor_capacity: null, pix_key: "fixture", rules_url: "https://example.test/rules" });
-  expect(JSON.parse(init.body)).toMatchObject({ refunds_allowed: true, cancellation_policy_text: "Reembolso integral." });
+  const payload = JSON.parse(init.body);
+  expect(payload).toMatchObject({ name: "Updated event", competitor_capacity: null, pix_key: "fixture", refunds_allowed: true });
+  for (const field of ["rules_text", "rules_url", "cancellation_policy_text", "cancellation_policy_url"]) {
+    expect(payload).not.toHaveProperty(field);
+  }
   expect(JSON.parse(init.body)).not.toHaveProperty("registration_fee_amount");
   expect(init.headers.Authorization).toBe("Bearer staff-token");
   await screen.findByRole("link", { name: "Second event" });
 });
-it("creates a tournament and sends explicit unconfigured values", async () => {
+it("opens the saved tournament for document uploads after creating it", async () => {
   render(tree("/staff/tournaments/new"));
+  expect(screen.getByText("Salve o torneio para enviar os documentos.")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Enviar arquivo" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "New event" } });
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true));
   const [, init] = fetchMock.mock.calls.find(([, options]) => options?.method === "POST")!;
   expect(JSON.parse(init.body)).toMatchObject({ name: "New event", pix_key: null, competitor_capacity: null, is_internal: false, refunds_allowed: false });
+  expect(await screen.findAllByRole("button", { name: "Enviar arquivo" })).toHaveLength(2);
 });
+it("publishes both policies independently and keeps the current file on a failed replacement", async () => {
+  const previousRules = { id: 2, original_file_name: "regras-anteriores.pdf" };
+  const endpoint = "/api/staff/tournaments/1/policy-documents";
+  const storage = "https://storage.example.test";
+  let finishRules!: (response: Response) => void;
+  let attempts = 0;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === "/api/tournaments/1/policy-documents") return json({ rules: previousRules });
+    if (url === endpoint + "/rules/upload-url") return json({
+      storage_key: "stage-rules", upload_url: storage + "/rules",
+      required_headers: { "Content-Type": "application/octet-stream" },
+    });
+    if (url === endpoint + "/cancellation_policy/upload-url") return json({
+      storage_key: "stage-cancellation", upload_url: storage + "/cancellation",
+      required_headers: { "Content-Type": "application/octet-stream" },
+    });
+    if (url.startsWith(storage)) return new Response(null, { status: 200 });
+    if (url === endpoint + "/rules") {
+      attempts += 1;
+      if (attempts === 1) return new Promise<Response>(resolve => { finishRules = resolve; });
+      return json({ id: 8, original_file_name: "regras-novas.pdf" }, 201);
+    }
+    if (url === endpoint + "/cancellation_policy") return json({ id: 7, original_file_name: "cancelamento.pdf" }, 201);
+    return json(event);
+  });
+
+  render(tree("/staff/tournaments/1"));
+  const rules = within(await screen.findByRole("region", { name: "Regulamento" }));
+  const cancellation = within(screen.getByRole("region", { name: "Política de cancelamento" }));
+  fireEvent.click(rules.getByRole("button", { name: "Substituir" }));
+  const newRules = new File(["%PDF"], "regras-novas.pdf", { type: "application/pdf" });
+  fireEvent.change(rules.getByLabelText("Arquivo"), { target: { files: [newRules] } });
+  fireEvent.click(rules.getByRole("button", { name: "Publicar documento" }));
+  await waitFor(() => expect(finishRules).toBeDefined());
+  expect(rules.getByRole("status")).toHaveTextContent("Publicando documento");
+  expect(rules.getByRole("button", { name: /regras-anteriores.pdf/ })).toBeInTheDocument();
+  expect(rules.getByRole("button", { name: "Publicar documento" })).toBeDisabled();
+
+  fireEvent.click(cancellation.getByRole("button", { name: "Enviar arquivo" }));
+  fireEvent.change(cancellation.getByLabelText("Arquivo"), { target: { files: [new File(["%PDF"], "cancelamento.pdf")] } });
+  fireEvent.click(cancellation.getByRole("button", { name: "Publicar documento" }));
+  expect(await cancellation.findByRole("button", { name: /cancelamento.pdf/ })).toBeInTheDocument();
+
+  finishRules(json({ detail: "Policy file type is not allowed" }, 415));
+  expect(await rules.findByRole("alert")).toHaveTextContent("Escolha um arquivo PDF, JPEG ou PNG.");
+  expect(rules.getByRole("button", { name: /regras-anteriores.pdf/ })).toBeInTheDocument();
+  fireEvent.click(rules.getByRole("button", { name: "Publicar documento" }));
+  expect(await rules.findByRole("button", { name: /regras-novas.pdf/ })).toBeInTheDocument();
+  expect(rules.getByRole("status")).toHaveTextContent("Documento publicado.");
+  expect(cancellation.getByRole("button", { name: /cancelamento.pdf/ })).toBeInTheDocument();
+
+  const [, put] = fetchMock.mock.calls.find(([url]) => url === storage + "/rules")!;
+  expect(put.method).toBe("PUT");
+  expect([...put.headers]).toEqual([["content-type", "application/octet-stream"]]);
+  expect(put.body).toBe(newRules);
+  const [, finalize] = fetchMock.mock.calls.find(([url]) => url === endpoint + "/rules")!;
+  expect(finalize.headers.Authorization).toBe("Bearer staff-token");
+  expect(JSON.parse(finalize.body)).toEqual({ storage_key: "stage-rules", original_file_name: "regras-novas.pdf" });
+});
+
 it("asks for deletion confirmation and explains when registrations prevent deletion", async () => {
   render(tree("/staff/tournaments/1"));
   fireEvent.click(await screen.findByRole("button", { name: "Excluir torneio" }));

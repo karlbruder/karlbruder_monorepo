@@ -13,7 +13,7 @@ resource "aws_s3_bucket_cors_configuration" "application_files" {
 
   cors_rule {
     allowed_headers = ["Content-Type"]
-    allowed_methods = ["PUT"]
+    allowed_methods = ["GET", "PUT"]
     allowed_origins = [
       "https://app.karlbruder.com",
       "https://app-prod.karlbruder.com",

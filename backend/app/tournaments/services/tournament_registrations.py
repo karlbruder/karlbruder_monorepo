@@ -241,7 +241,9 @@ def create_tournament_registration(
         )
         inspect_staged_parental_consent_form_upload(file_storage, staged_storage_key)
 
-    acceptance = create_registration_acceptance(tournament, user.id, payload, accepted_from_ip)
+    acceptance = create_registration_acceptance(
+        session, tournament, user.id, payload, accepted_from_ip
+    )
     tournament_product, product, price = option
     order = Order(user_id=user.id, status="pending", currency=price.currency)
     session.add(order)
@@ -462,7 +464,10 @@ def build_tournament_registration_read(registration: TournamentRegistration, *, 
 
     schema = StaffRegistrationRead if staff else RegistrationRead
     snapshot = registration.acceptances[-1]
-    evidence_fields = {*CHOICE_FIELDS, "accepted_at", "accepted_from_ip"}
+    evidence_fields = {
+        *CHOICE_FIELDS, "accepted_at", "accepted_from_ip",
+        "rules_version_id", "cancellation_policy_version_id",
+    }
     values = {
         name: getattr(snapshot if name in evidence_fields else registration, name)
         for name in schema.model_fields if name not in {"parental_consent_required", "product_name", "product_description"}

@@ -5,6 +5,7 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useLanguage } from "@/hooks/use-language";
 import { deleteStaffTournament, StaffTournamentError, useStaffTournament, useStaffTournaments } from "@/features/tournament/api/staff-tournaments";
 import { StaffTournamentForm } from "@/features/tournament/components/staff-tournament-form";
+import { StaffTournamentDocuments } from "@/features/tournament/components/staff-tournament-documents";
 import { StaffTagConfiguration } from "@/features/tournament/components/tournament-tags";
 
 function useActiveVisit() {
@@ -40,7 +41,18 @@ export function StaffTournamentCreateRoute() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const isActiveVisit = useActiveVisit();
-  return <section><h1>{language === "en" ? "Create tournament" : "Criar torneio"}</h1><StaffTournamentForm token={session!.access_token} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); if (isActiveVisit()) navigate("/staff/tournaments"); }} /></section>;
+  const en = language === "en";
+  return <section>
+    <h1>{en ? "Create tournament" : "Criar torneio"}</h1>
+    <StaffTournamentForm token={session!.access_token} language={language} onSaved={(saved) => {
+      void client.invalidateQueries({ queryKey: ["staff-tournaments"] });
+      if (isActiveVisit()) navigate(`/staff/tournaments/${saved.id}`);
+    }} />
+    <section className="review-card staff-tournament-documents">
+      <h2>{en ? "Tournament documents" : "Documentos do torneio"}</h2>
+      <p>{en ? "Save the tournament to upload its documents." : "Salve o torneio para enviar os documentos."}</p>
+    </section>
+  </section>;
 }
 export function StaffTournamentDetailRoute() {
   const { tournamentId = "" } = useParams();
@@ -73,6 +85,7 @@ export function StaffTournamentDetailRoute() {
     {query.isError && <p role="alert">{en ? "Could not load this tournament." : "Não foi possível carregar este torneio."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {query.data && !missing && <><h1>{query.data.name}</h1><p><Link to={`/staff/tournaments/${tournamentId}/athletes`}>{en ? "Manage athletes" : "Gerenciar atletas"}</Link>{" · "}<Link to="/staff/payment-reviews">{en ? "Payment review" : "Conferência de pagamentos"}</Link></p><StaffTournamentForm key={query.data.id} token={session!.access_token} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" }); if (isActiveVisit()) navigate("/staff/tournaments"); }} />
       <StaffTagConfiguration token={session!.access_token} userId={session!.user.id} tournamentId={tournamentId} language={language} />
+      <StaffTournamentDocuments key={`policies-${query.data.id}`} token={session!.access_token} userId={session!.user.id} tournamentId={query.data.id} language={language} />
       <div className="review-card staff-delete-panel">
       {!confirming ? <button className="staff-danger-button" onClick={() => setConfirming(true)}>{en ? "Delete tournament" : "Excluir torneio"}</button> : <div><p>{en ? "Delete this tournament? This cannot be undone." : "Excluir este torneio? Esta ação não pode ser desfeita."}</p><button className="staff-danger-button" disabled={deleting} onClick={remove}>{en ? "Confirm deletion" : "Confirmar exclusão"}</button>{" "}<button disabled={deleting} onClick={() => setConfirming(false)}>{en ? "Cancel" : "Cancelar"}</button></div>}
       </div>

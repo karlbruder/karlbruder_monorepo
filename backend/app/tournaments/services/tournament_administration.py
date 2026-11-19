@@ -24,6 +24,7 @@ from app.tournaments.schemas import (
     TournamentCreate,
     TournamentRead,
 )
+from app.tournaments.services.registration_acceptances import PolicyVersions, current_policy_versions
 from app.tournaments.services.tournament_catalog import build_tournament_read
 from app.tournaments.services.tournament_payment_settings import create_tournament_payment_settings
 from app.tournaments.services.tournament_slugs import resolve_tournament_slug
@@ -35,10 +36,10 @@ def _require_admin(actor: User) -> None:
 
 
 def _staff_projection(
-    tournament: Tournament, pix_key: str | None
+    tournament: Tournament, pix_key: str | None, versions: PolicyVersions
 ) -> StaffTournamentRead:
     return StaffTournamentRead(
-        **build_tournament_read(tournament).model_dump(),
+        **build_tournament_read(tournament, versions).model_dump(),
         pix_key=pix_key,
     )
 
@@ -58,8 +59,9 @@ def list_staff_tournaments(
         .limit(limit)
         .offset(offset)
     ).all()
+    snapshots = current_policy_versions(session, [event.id for event, _ in rows])
     return StaffTournamentList(
-        items=[_staff_projection(event, pix_key) for event, pix_key in rows],
+        items=[_staff_projection(event, pix_key, snapshots[event.id]) for event, pix_key in rows],
         total=total,
         limit=limit,
         offset=offset,
@@ -80,7 +82,9 @@ def read_staff_tournament(
     ).one_or_none()
     if row is None:
         raise RegistrationResourceNotFoundError("Tournament not found")
-    return _staff_projection(row[0], row[1])
+    tournament, pix_key = row
+    versions = current_policy_versions(session, [tournament_id])[tournament_id]
+    return _staff_projection(tournament, pix_key, versions)
 
 
 def update_tournament(
@@ -139,6 +143,9 @@ def update_tournament(
         )
         if duplicate is not None:
             raise RegistrationConflictError("Tournament slug already exists")
+        versions = current_policy_versions(session, [tournament.id])[tournament.id]
+        if payload.refunds_allowed and "cancellation_policy" not in versions:
+            raise ValueError("Refunds require a cancellation policy")
         for name, value in values.items():
             setattr(tournament, name, value)
         pix_key = (payload.pix_key or "").strip() or None
@@ -149,7 +156,7 @@ def update_tournament(
         elif payment is not None:
             payment.pix_key = pix_key
         session.flush()
-        result = _staff_projection(tournament, pix_key)
+        result = _staff_projection(tournament, pix_key, versions)
         session.commit()
         return result
     except Exception as error:
@@ -199,6 +206,8 @@ def create_tournament_configuration(
 ) -> TournamentRead:
     if get_application_role(actor) != "admin":
         raise RegistrationNotAllowedError("Guild staff access is required")
+    if payload.refunds_allowed:
+        raise ValueError("Refunds require a cancellation policy")
     slug = resolve_tournament_slug(
         payload.name, payload.discipline, payload.starts_at, payload.slug
     )

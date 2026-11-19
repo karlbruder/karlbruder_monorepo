@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+import pytest
+
 from app.karlmart.catalog.models import Price, Product
 from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.models import TournamentProduct, TournamentRegistration
@@ -10,8 +12,13 @@ from tests.tournaments.test_tournament_registrations import (
     _headers,
     _post_registration,
     _registration,
-    setup,
+    setup as registration_setup,
 )
+
+
+@pytest.fixture(name="setup")
+def product_registration_setup(monkeypatch, db_session):
+    yield from registration_setup.__wrapped__(monkeypatch, db_session)
 
 
 def test_registration_snapshots_the_selected_product_and_price(setup):

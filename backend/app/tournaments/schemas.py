@@ -5,7 +5,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-from urllib.parse import urlsplit
 
 from pydantic import (
     AwareDatetime,
@@ -37,28 +36,9 @@ class TournamentCreate(BaseModel):
     payment_due_at: AwareDatetime | None = None
     location: str | None = Field(default=None, max_length=300)
     schedule: str | None = None
-    rules_text: str | None = None
-    rules_url: str | None = None
     equipment_requirements: str | None = None
-    cancellation_policy_text: str | None = None
-    cancellation_policy_url: str | None = None
     refunds_allowed: StrictBool = False
     pix_key: str | None = Field(default=None, max_length=512)
-
-    @field_validator("rules_url", "cancellation_policy_url")
-    @classmethod
-    def validate_policy_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        parsed = urlsplit(value)
-        if (
-            parsed.scheme not in {"http", "https"}
-            or not parsed.hostname
-            or any(c.isspace() for c in value)
-        ):
-            raise ValueError("Policy URLs must use HTTP or HTTPS")
-        return value
 
     @field_validator("name")
     @classmethod
@@ -96,14 +76,6 @@ class TournamentCreate(BaseModel):
             )
         return self
 
-    @model_validator(mode="after")
-    def require_policy_when_refunds_are_allowed(self) -> "TournamentCreate":
-        if self.refunds_allowed and not (
-            self.cancellation_policy_url or (self.cancellation_policy_text or "").strip()
-        ):
-            raise ValueError("Refunds require a cancellation policy")
-        return self
-
 
 class TournamentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -123,11 +95,7 @@ class TournamentRead(BaseModel):
     payment_due_at: datetime | None
     location: str | None
     schedule: str | None
-    rules_text: str | None
-    rules_url: str | None
     equipment_requirements: str | None
-    cancellation_policy_text: str | None
-    cancellation_policy_url: str | None
     refunds_allowed: bool
     acceptance_content: dict[str, dict]
     acceptance_tokens: dict[str, str]
@@ -429,6 +397,8 @@ class RegistrationRead(BaseModel):
     acknowledges_inherent_risks: bool
     accepts_cancellation_policy: bool
     accepted_at: datetime
+    rules_version_id: int | None
+    cancellation_policy_version_id: int | None
     created_at: datetime
     updated_at: datetime
 
@@ -572,3 +542,22 @@ class PersonalRegistrationSummary(BaseModel):
     tournament_name: str
     registration_number: str
     registration_status: str
+
+
+class PolicyDocumentPublish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    storage_key: str = Field(min_length=1, max_length=512)
+    original_file_name: str = Field(min_length=1, max_length=255)
+
+
+class PolicyDocumentRead(BaseModel):
+    id: int
+    purpose: str
+    original_file_name: str
+    content_type: str
+    size_bytes: int
+
+
+def policy_document_read(document) -> PolicyDocumentRead:
+    file = document.archive.file
+    return PolicyDocumentRead(id=document.id, purpose=document.document.purpose, original_file_name=file.original_file_name, content_type=file.content_type, size_bytes=file.size_bytes)

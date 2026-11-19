@@ -56,7 +56,31 @@ it.each([
   fireEvent.click(screen.getByText(summary));
   expect(screen.getByRole("link", { name: "suporte@karlbruder.com" })).toHaveAttribute("href", "mailto:suporte@karlbruder.com");
   expect(screen.getByRole("link", { name: privacy })).toHaveAttribute("href", "/privacy-policy");
+  expect(screen.queryByRole("button", { name: /regulamento aceito|accepted tournament rules/ })).not.toBeInTheDocument();
   expect(screen.getByText(language === "pt" ? "Informações verdadeiras: Não aceita" : "Truthful information: Not accepted")).toBeInTheDocument();
+});
+
+it("opens the accepted rules version from the read-only declarations", async () => {
+  const downloadUrl = "blob:http://localhost/accepted-rules";
+  const signedUrl = "https://files.example.test/accepted-rules?signature=fixture";
+  vi.stubGlobal("URL", class extends URL { static createObjectURL = vi.fn(() => downloadUrl) });
+  const request = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ download_url: signedUrl }) })
+    .mockResolvedValueOnce({ ok: true, blob: async () => new Blob(["rules"], { type: "application/pdf" }) });
+  const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() };
+  vi.stubGlobal("open", vi.fn(() => tab));
+  vi.stubGlobal("fetch", request);
+  renderWithQuery(<RegistrationEdit session={session} tournament={tournament}
+    registration={{ ...registration, rules_version_id: 11, cancellation_policy_version_id: null }}
+    language="en" onBack={() => {}} onSaved={() => {}} />);
+  fireEvent.click(screen.getByText("Review my declarations"));
+  expect(screen.queryByRole("button", { name: /accepted cancellation policy/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /accepted tournament rules/ }));
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl));
+  expect(request).toHaveBeenNthCalledWith(1, "/api/tournaments/42/policy-documents/rules/11/download-url", {
+    headers: { Authorization: "Bearer token" },
+  });
+  expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: "omit" });
 });
 
 

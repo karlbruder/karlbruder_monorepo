@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-19
 
 | Field | Value |
 | --- | --- |
@@ -84,11 +84,23 @@ owner/admin retrieval, accepted types and sizes, proof history and latest-proof
 visibility. Creation saves the registration, any required parental document,
 and its file metadata in one transaction.
 
+## Tournament documents and declarations
+
+Place the Tournament documents card after tags and before Safety and participation when at least one document is available. Show each available file as a tile with its title, format, and new-tab icon. Use the media type validated by the backend to identify the format. Make the whole tile clickable and stack tiles on narrow screens. In a visible card, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. The application privacy policy belongs in the shared footer and at the data-processing declaration. See [WF-04](../design/app-wireframes/index.html#WF-04/adult).
+
+Append the short document name and a new-tab icon inline after the matching rules or cancellation declaration when the file is available. Let the text wrap naturally on narrow screens and keep the short link and icon together. Associate the checkbox with its declaration text and give the adjacent document control its own focus target. Opening the document leaves the checkbox and form values intact. Show missing-policy messages only in the document card.
+
+Request a fresh authorized download URL for the exact policy version on activation. Fetch the file directly from object storage and open it in a new tab once the fetch succeeds. A failed download shows a retryable error on the form. Apply the new-tab behavior to additional document and privacy-policy links in the form. Each control communicates the new tab to keyboard and screen-reader users.
+
 ## Acceptance submission
 
-Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response. The token detects changes to configured text, URLs, or declaration labels while the form is open. A stale form returns 409 and requires explicit acceptance after refresh. The token does not fetch or preserve linked documents.
+Creation requires the displayed `acceptance_language` and `acceptance_token` from the tournament read response.
+The token detects changes to policy versions, equipment requirements, and declarations.
+A stale form returns 409. Refresh the displayed content, preserve the entered personal data, and clear the required choices for review and explicit acceptance.
 
-The initial RegistrationAcceptance and any required parental document are saved in the registration transaction. Choices, language, source IP and time are retained in acceptance records. Policy links point to externally managed documents. The application does not snapshot their contents. When a policy has both a link and inline text, show the link. Show inline text when there is no link. If neither is available, say the content is not yet available. On changed configuration, clear required choices and ask the athlete to review again.
+Save the initial RegistrationAcceptance and any required parental document in the registration transaction.
+Retain choices, language, source IP, time, and references to the uploaded versions shown to the athlete.
+Policy replacement leaves earlier acceptance references intact.
 
 ## Lifecycle boundary
 

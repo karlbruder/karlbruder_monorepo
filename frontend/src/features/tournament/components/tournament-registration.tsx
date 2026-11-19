@@ -10,6 +10,7 @@ import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own
 import type { OwnerRegistration, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
 import TournamentRegistrationPanel from "@/features/tournament/components/tournament-registration-panel";
 import TournamentRegistrationForm from "@/features/tournament/components/tournament-registration-form";
+import { TournamentDocuments } from "@/features/tournament/components/tournament-documents";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
 import "@/features/tournament/components/tournament-registration.css";
@@ -77,6 +78,7 @@ function SignedInRegistration({
 
   const selectedRegistrationNumber = registrationNumber ?? cancelledNumber ?? activeRegistration?.registration_number;
   const personalRegistrationUrl = `/tournaments/registration?tournament_id=${tournament.id}`;
+  const unavailable = tournament.is_registration_closed || !tournament.registration_opens_on || !tournament.registration_closes_on;
 
   const handleRegistrationCreated = (registration: RegistrationCreated) => {
     setCreatedRegistration(registration);
@@ -86,6 +88,10 @@ function SignedInRegistration({
   return (
     <>
       <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
+      {!registrationNumber && (selectedRegistrationNumber || (ownRegistrationsQuery.isSuccess && unavailable)) && (
+        <TournamentDocuments policies={tournament.acceptance_content[language].policies} tournamentId={tournament.id}
+          token={session.access_token} language={language} />
+      )}
       {!selectedRegistrationNumber && ownRegistrationsQuery.isPending ? (
         <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
       ) : !selectedRegistrationNumber && ownRegistrationsQuery.isError ? (

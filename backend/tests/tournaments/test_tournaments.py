@@ -11,7 +11,9 @@ from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientConnectionError
 
 from app.auth.supabase import tokens
+from app.core.files import FileStorageError, get_file_storage
 from app.main import karlbruder_app
+from app.tournaments.models import TournamentDocumentVersion
 from config import settings
 
 
@@ -30,7 +32,6 @@ class OfflineJwksClient:
 
 @pytest.fixture
 def client(monkeypatch):
-    from app.core.files import get_file_storage
     from unittest.mock import Mock
 
     storage = Mock()
@@ -368,49 +369,39 @@ def test_catalog_routes_have_explicit_response_contracts(client):
     } >= {"name", "starts_from", "starts_to", "limit", "offset"}
 
 
-@pytest.mark.parametrize(
-    "policies",
-    [
-        {"rules_text": "Fixture rules", "cancellation_policy_text": "Fixture policy"},
-        {
-            "rules_url": "https://example.test/rules",
-            "cancellation_policy_url": "https://example.test/cancel",
-        },
-        {"rules_text": "Fixture rules", "rules_url": "https://example.test/rules"},
-        {},
-    ],
-)
-def test_catalog_preserves_separate_optional_policy_text_and_urls(client, policies):
+def test_staff_and_catalog_use_uploaded_policies_exclusively(client):
+    """Legacy fields are absent from reads and rejected in staff writes."""
     test_client, key = client
-    created = test_client.post(
-        "/api/staff/tournaments", json=_event(**policies), headers=_headers(key, "admin")
-    )
+    admin = _headers(key, "admin")
+    staff_path = "/api/staff/tournaments"
+    created = test_client.post(staff_path, json=_event(), headers=admin)
     assert created.status_code == 201, created.text
-    for name in (
-        "rules_text",
-        "rules_url",
-        "cancellation_policy_text",
-        "cancellation_policy_url",
+    event_id = created.json()["id"]
+    legacy = {
+        "rules_text": "Fixture rules",
+        "rules_url": "https://example.test/rules",
+        "cancellation_policy_text": "Fixture policy",
+        "cancellation_policy_url": "https://example.test/policy",
+    }
+    for read in (
+        created,
+        test_client.get(f"{staff_path}/{event_id}", headers=admin),
+        test_client.get(f"/api/tournaments/{event_id}"),
     ):
-        assert created.json()[name] == policies.get(name)
-    public = test_client.get(f"/api/tournaments/{created.json()['id']}")
-    assert public.status_code == 200
-    assert public.json()["rules_url"] == policies.get("rules_url")
-    assert "pix_key" not in public.json()
+        assert read.status_code in (200, 201), read.text
+        value = read.json()
+        assert legacy.keys().isdisjoint(value)
+        assert value["acceptance_content"]["pt"]["policies"] == {
+            "rules": {"document": None},
+            "cancellation_policy": {"document": None},
+        }
 
-
-@pytest.mark.parametrize("field", ["rules_url", "cancellation_policy_url"])
-@pytest.mark.parametrize(
-    "value", ["javascript:alert(1)", "file:///etc/passwd", "not a URL"]
-)
-def test_policy_url_rejects_non_web_links(client, field, value):
-    test_client, key = client
-    response = test_client.post(
-        "/api/staff/tournaments",
-        json=_event(**{field: value}),
-        headers=_headers(key, "admin"),
-    )
-    assert response.status_code == 422
+    for write in (
+        test_client.post(staff_path, json=_event(**legacy), headers=admin),
+        test_client.put(f"{staff_path}/{event_id}", json=_event(**legacy), headers=admin),
+    ):
+        assert write.status_code == 422, write.text
+        assert {error["loc"][-1] for error in write.json()["detail"]} == legacy.keys()
 
 
 def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, db_session):
@@ -446,3 +437,163 @@ def test_tournament_products_follow_visibility_and_keep_empty_catalogs(client, d
     tournament.is_internal = True
     db_session.flush()
     assert test_client.get(f"/api/tournaments/{internal_id}/products").status_code == 404
+
+
+def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
+    """An eligible reader can fetch the exact archived version after replacement."""
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    regular = _headers(signing_key, "regular_user")
+    member = _headers(signing_key, "guild_member")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    objects = {}
+    storage.create_presigned_put_url.side_effect = lambda key, **kw: f"https://upload.test/{key}"
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kw: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    public_id = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    internal_id = test_client.post("/api/staff/tournaments", json=_event(internal=True), headers=admin).json()["id"]
+
+    def publish(tournament_id, purpose, body):
+        base = f"/api/staff/tournaments/{tournament_id}/policy-documents/{purpose}"
+        issued = test_client.post(base + "/upload-url", headers=admin)
+        assert issued.status_code == 200
+        staged = issued.json()["storage_key"]
+        objects[staged] = body
+        result = test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "policy.pdf"})
+        assert result.status_code == 201, result.text
+        return result.json()
+
+    base = f"/api/staff/tournaments/{public_id}/policy-documents/rules"
+    assert test_client.post(base + "/upload-url", headers=regular).status_code == 403
+    assert test_client.post(base, headers=regular, json={"storage_key": "x", "original_file_name": "x"}).status_code == 403
+    first_pdf = b"%PDF-1.4 first"
+    first = publish(public_id, "rules", first_pdf)
+    staff_path = f"/api/staff/tournaments/{public_id}"
+    assert test_client.put(staff_path, headers=admin, json=_event(refunds_allowed=True)).status_code == 422
+    cancellation = publish(public_id, "cancellation_policy", b"%PDF-1.4 cancel")
+    saved = test_client.put(staff_path, headers=admin, json=_event(refunds_allowed=True))
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["refunds_allowed"] is True
+    second = publish(public_id, "rules", b"%PDF-1.4 second")
+    hidden_pdf = b"%PDF-1.4 hidden"
+    hidden = publish(internal_id, "rules", hidden_pdf)
+    current = test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()
+    assert current["rules"]["id"] == second["id"]
+    assert current["cancellation_policy"]["id"] == cancellation["id"]
+    from sqlalchemy import select
+    from app.tournaments.models import TournamentDocument
+
+    rules = db_session.scalar(select(TournamentDocument).where(TournamentDocument.tournament_id == public_id, TournamentDocument.purpose == "rules"))
+    assert rules.current_version.id == second["id"]
+    assert [version.id for version in rules.versions] == [second["id"], first["id"]]
+    storage.read_object_bytes.reset_mock()
+    old_url = f"/api/tournaments/{public_id}/policy-documents/rules/{first['id']}/download-url"
+    old = test_client.get(old_url)
+    assert old.status_code == 200
+    assert old.json()["content_type"] == "application/pdf"
+    assert objects[old.json()["download_url"].removeprefix("https://archive.example.test/")] == first_pdf
+    storage.read_object_bytes.assert_not_called()
+    hidden_url = f"/api/tournaments/{internal_id}/policy-documents/rules/{hidden['id']}/download-url"
+    assert test_client.get(hidden_url, headers=regular).status_code == 404
+    hidden_response = test_client.get(hidden_url, headers=member)
+    assert hidden_response.status_code == 200
+    assert objects[hidden_response.json()["download_url"].removeprefix("https://archive.example.test/")] == hidden_pdf
+    assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=regular).status_code == 404
+    assert test_client.get(f"/api/tournaments/{internal_id}/policy-documents", headers=member).status_code == 200
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents/rules/{hidden['id']}/download-url").status_code == 404
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents/cancellation_policy/{first['id']}/download-url").status_code == 404
+    staged = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+    objects[staged] = b"invalid"
+    assert test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "bad.pdf"}).status_code == 415
+    assert test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()["rules"]["id"] == second["id"]
+    for body, expected in [(b"", 422), (b"%PDF" + b"x" * (10 * 1024 * 1024), 413)]:
+        staged = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+        objects[staged] = body
+        assert test_client.post(base, headers=admin, json={"storage_key": staged, "original_file_name": "bad.pdf"}).status_code == expected
+    assert test_client.delete(f"/api/staff/tournaments/{internal_id}", headers=admin).status_code == 204
+
+
+def test_policy_publication_failure_preserves_previous_version(client, db_session, monkeypatch):
+    """Storage and pre-commit database failures preserve the previous archive."""
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    objects = {}
+    storage.create_presigned_put_url.return_value = "https://upload.test"
+    storage.head_object.side_effect = lambda key: (len(objects[key]), None)
+    storage.read_object_bytes.side_effect = lambda key, **kw: objects[key]
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    storage.delete_file.side_effect = lambda key: objects.pop(key, None)
+    tournament_id = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    base = f"/api/staff/tournaments/{tournament_id}/policy-documents/rules"
+
+    def stage():
+        key = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+        objects[key] = b"%PDF-1.4 contents"
+        return key
+
+    key = stage()
+    original = test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "first.pdf"}).json()
+    saved_objects = objects.copy()
+    key = stage()
+    storage.store_file.side_effect = FileStorageError("storage unavailable")
+    assert test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"}).status_code == 503
+    assert objects == saved_objects
+    storage.store_file.side_effect = lambda key, body, content_type: objects.update({key: body})
+    key = stage()
+
+    flush = db_session.flush
+
+    def fail_flush(*args, **kwargs):
+        if any(isinstance(row, TournamentDocumentVersion) for row in db_session.new):
+            raise RuntimeError("database unavailable")
+        return flush(*args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(db_session, "flush", fail_flush)
+        with pytest.raises(RuntimeError, match="database unavailable"):
+            test_client.post(base, headers=admin, json={"storage_key": key, "original_file_name": "second.pdf"})
+    assert storage.store_file.call_count == 3
+    assert objects == saved_objects
+    assert test_client.get(f"/api/tournaments/{tournament_id}/policy-documents").json()["rules"]["id"] == original["id"]
+
+
+def test_policy_staging_is_bound_to_staff_tournament_and_purpose(client):
+    from app.core.files import get_file_storage
+
+    test_client, signing_key = client
+    admin = _headers(signing_key, "admin")
+    other_admin = _headers(signing_key, "admin")
+    storage = karlbruder_app.dependency_overrides[get_file_storage]()
+    storage.create_presigned_put_url.return_value = "https://upload.test"
+    first = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    second = test_client.post("/api/staff/tournaments", json=_event(), headers=admin).json()["id"]
+    base = f"/api/staff/tournaments/{first}/policy-documents/rules"
+    key = test_client.post(base + "/upload-url", headers=admin).json()["storage_key"]
+    payload = {"storage_key": key, "original_file_name": "rules.pdf"}
+    assert test_client.post(base, headers=other_admin, json=payload).status_code == 422
+    assert test_client.post(f"/api/staff/tournaments/{second}/policy-documents/rules", headers=admin, json=payload).status_code == 422
+    assert test_client.post(f"/api/staff/tournaments/{first}/policy-documents/cancellation_policy", headers=admin, json=payload).status_code == 422
+    storage.head_object.assert_not_called()
+
+
+def test_tournament_documents_allow_multiple_resources_but_one_policy_per_purpose(db_session):
+    from sqlalchemy.exc import IntegrityError
+    from app.tournaments.models import Tournament, TournamentDocument
+
+    tournament = Tournament(name="Documents", slug=f"documents-{uuid4()}", starts_at=datetime.now(UTC))
+    db_session.add(tournament)
+    db_session.flush()
+    db_session.add_all([
+        TournamentDocument(tournament_id=tournament.id, purpose=None, title="City guide"),
+        TournamentDocument(tournament_id=tournament.id, purpose=None, title="Travel guide"),
+        TournamentDocument(tournament_id=tournament.id, purpose="rules", title="Rules"),
+    ])
+    db_session.flush()
+    with pytest.raises(IntegrityError), db_session.begin_nested():
+        db_session.add(TournamentDocument(tournament_id=tournament.id, purpose="rules", title="Other rules"))
+        db_session.flush()

@@ -1,353 +1,322 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-19
 
-The application stores reusable `Tournament`, `TournamentRegistration`, and
-`TournamentRegistrationDocument` records in PostgreSQL `public`. Monomachia is one event
-using the same capability as later tournaments. Staff access applies globally.
-Account sign-up remains a separate Supabase Auth operation.
+This module manages tournament configuration, registration, participant documents,
+payment review, and cancellation. It serves Monomachia and other tournaments
+through the same models and routes. Guild staff can administer every tournament.
+Supabase Auth owns account identity. Tournament records live in PostgreSQL `public`.
 
-Owners and guild staff can replace editable personal, sporting, and emergency-contact
-details with `PUT /api/tournaments/{tournament_id}/registrations/{number}`.
-Other accounts receive 404. Cancelled registrations are read-only for their owners.
-The request
-does not change ownership, status, purchased options, or acceptance evidence.
-Normalized duplicate email and document checks remain in force. A correction to
-birth date can make a parental consent form necessary before participation.
+The [tournament specifications](../../../specs/README.md#capability-index) describe
+the intended behavior. This README describes the current backend contracts and
+ownership. [Karlmart](../karlmart/README.md) owns shared products, orders, payments,
+and refunds.
 
-`GET /api/tournaments/registrations` lists only the authenticated account’s registrations across tournaments, including cancelled registrations. The summary contains the tournament ID and name, registration number, and status. Admins receive only their own registrations on this endpoint.
+## Catalog and access
 
-## Tournament tags
+`GET /api/tournaments` returns a paginated catalog with `items`, `total`, `limit`,
+and `offset`. `GET /api/tournaments/{tournament_id}` returns one tournament.
+Guests and regular users can see non-internal tournaments. Guild members and
+admins can also see internal tournaments. An inaccessible tournament returns 404.
+An invalid token returns 401, including on routes that allow guests.
 
-Authenticated users can read visible tournament tag definitions at
-`GET /api/tournaments/{tournament_id}/tags`. Staff create, replace, and delete
-definitions under `/api/staff/tournaments/{tournament_id}/tags`. A referenced
-tag cannot be deleted. Registration creation accepts `tag_ids`. Owners read or
-replace their selection at `/api/tournaments/{tournament_id}/registrations/{number}/tags`.
-Replacement is limited to the registration window and is blocked when staff
-close registration early. Staff use the equivalent `/api/staff/` route to read
-or replace a selection after the window closes. Duplicate IDs and tags from
-another tournament are rejected.
+The catalog accepts a case-insensitive `name` filter. `starts_from` and `starts_to`
+filter the event start by inclusive calendar dates in UTC−03:00. A tournament slug
+is unique. Staff may provide it or let the application derive it from the name,
+discipline, and event year. Duplicate slugs return 409.
 
-`GET /api/staff/tournaments/{tournament_id}/registrations` returns registration
-numbers, names, status, missing parental consent indicator, and selected tags for that tournament. It excludes
-contact details, payment data, and safety notes. Only staff can use this route.
-
-## Pricing transition
-
-Registration selects a product through `TournamentProduct` and records the
-selected product and price on an order item. Payment review links the receipt to
-the order.
-See [Karlmart](../karlmart/README.md).
-
-## Catalog and policies
-
-`GET /api/tournaments` returns `items`, `total`, `limit`, and `offset`.
-`GET /api/tournaments/{tournament_id}` returns one event. Guests and regular
-users see non-internal events. Guild members and admins also see internal events.
-An inaccessible event returns 404. A supplied invalid token returns 401 even
-on a guest-readable route. Only admins may use the staff configuration endpoints.
-
-`name` filters display names without case sensitivity. `starts_from` and
-`starts_to` filter the event start by inclusive calendar dates in UTC-03:00.
-The unique slug may be supplied or derived from name, `discipline`, and event year.
-A duplicate slug returns 409.
-
-Event timestamps are `starts_at` and `ends_at`. Registration windows use inclusive
-`registration_opens_on` and `registration_closes_on` dates in fixed UTC−03:00. `is_registration_closed`
-is an independent staff closure flag. `competitor_capacity` may be null for unlimited
-capacity. `payment_due_at` is a timestamp.
-
-Policies have explicit `rules_text`, `rules_url`, `cancellation_policy_text`, and
-`cancellation_policy_url` fields. Text and HTTP(S) URLs may be configured together
-or separately. Missing content remains visibly unconfigured. Text is displayed as
-text even when it resembles a URL. Approved legal wording remains unresolved under PRIV-Q1.
+`starts_at` and `ends_at` are event timestamps. Registration uses inclusive
+`registration_opens_on` and `registration_closes_on` dates in fixed UTC−03:00.
+Staff may close registration independently with `is_registration_closed`.
+A null `competitor_capacity` means unlimited capacity. `payment_due_at` is a
+timestamp.
 
 ## Staff tournament configuration
 
-`GET /api/staff/tournaments` lists all events with `items`, `total`, `limit`,
-and `offset`. `GET /api/staff/tournaments/{tournament_id}` reads one event.
-These staff projections include `pix_key`. Public catalog responses do not
-expose it. `POST /api/staff/tournaments`
-keeps its existing create contract.
+Only admins can use `/api/staff/tournaments`. Guests receive 401 and signed-in
+non-admins receive 403.
 
-`PUT /api/staff/tournaments/{tournament_id}` replaces the configuration. Send
-the create fields. The last staff save replaces the configuration. A duplicate
-slug or capacity below confirmed participation returns 409. A failed database transaction publishes no partial change. `DELETE` on the same resource
-returns 204 for an eligible event. It returns 409 when any registration exists.
-Missing events return 404. Guests receive 401 and non-admins receive 403.
+- `GET /api/staff/tournaments` lists all tournaments with pagination.
+- `POST /api/staff/tournaments` creates a tournament.
+- `GET /api/staff/tournaments/{tournament_id}` reads its configuration.
+- `PUT /api/staff/tournaments/{tournament_id}` replaces the configuration using
+  the create fields. The last staff save takes effect.
+- `DELETE /api/staff/tournaments/{tournament_id}` deletes a tournament with no
+  registrations. It returns 204 on success and 409 if a registration exists.
 
-Notifications for event changes remain future work. Future results must also
-prevent deletion.
-
-## Consent for an existing registration
-
-The registration owner can submit a missing parental consent form after an event
-change makes them a minor. Registration responses include `parental_consent_required` when an active
-registration needs the form. The owner
-uses the existing parental consent upload URL and posts its staging key and original
-file name to `POST /api/tournaments/{tournament_id}/registrations/{registration_number}/parental-consent-form`.
-The service checks ownership, age, and existing evidence. It validates the uploaded
-file before attaching it. A successful submission does not change registration status.
-
-## Policies and acceptance
-
-Staff configures policy URLs and optional text. The application links to those URLs directly. It does not fetch or archive linked documents. Organizers manage policy documents and their history outside the application.
-
-Tournament reads include `acceptance_content` and `acceptance_tokens` keyed by `pt` and `en`. The digest detects changes to configured text, URLs and declaration labels while the form is open. It does not inspect linked content. Registration creation requires the displayed language and token. Changed configuration returns 409 and asks the athlete to review and accept again.
-
-RegistrationAcceptance retains choices, verified user UUID, language, server time and source IP. It does not store policy content. The acceptance and required parental document commit with registration. Database operators can correct records directly.
+Staff projections include `pix_key`. Public catalog responses do not. A duplicate
+slug or a capacity below confirmed participation returns 409. A failed database
+transaction does not publish a partial configuration. Tournament change
+notifications are not implemented. Future results must also prevent deletion.
 
 ## Registration
 
 `POST /api/tournaments/{tournament_id}/registrations` registers the verified
-account owner. The JSON body supplies participant information and separate
-boolean declarations. Required declarations must be JSON `true`. Image permission
-is an independent choice and may be `false`. Missing or invalid choices return 422.
-The submitted email must match the current account email under the existing
-normalization rule. Ownership uses the verified Supabase UUID, not email.
+account owner. The submitted email must match the current account email under
+the existing normalization rule. Ownership uses the verified Supabase UUID.
+The client cannot choose the owner, status, registration number, or staff safety
+note.
 
-Identity fields are `identity_document_type` and `identity_document_number`.
-Other descriptive names include `state_or_province`, `school_or_team_name`,
-`instructor_name`, `hema_experience_description`, `hema_started_year`,
-`previous_tournament_count`, `hema_ratings_reference`, and
-`category_or_eligibility_note`. HEMA experience remains free text and/or a start
-year. A HEMA Ratings reference is not required to be a URL. `social_name` remains
-available. Category notes do not constitute staff eligibility approval.
+Creation requires an open registration window. Missing window configuration,
+staff closure, or dates outside the window return 400. Active duplicate owners,
+normalized emails, or normalized identity documents within a tournament return
+409. A cancelled registration permits a replacement.
 
-The declarations retain separate truthful-information, equipment, physical-fitness,
-risk, data-processing, rules, and cancellation-policy choices. Field names include
-`declares_has_required_equipment` and `accepts_rules`. The organization manages the linked rules and their history.
-The backend records accepted content, acceptance time, and `accepted_from_ip`.
-Clients select a displayed language and content digest. The server supplies
-content, time, IP and ownership. Clients cannot choose the owner, `registration_status`,
-`registration_number`, or `staff_safety_note`.
+The request includes participant details and separate declarations. Required
+declarations must be JSON `true`. Image permission is independent and may be
+`false`. Invalid or missing choices return 422. The server records the acceptance
+time and source IP. The current acceptance contract is described below.
 
-Creation requires an open registration window.
-Missing configuration, staff closure, or dates outside that window return 400.
-Active duplicate owners, normalized emails, or normalized identity documents within
-a tournament return 409. Cancelled registrations permit replacement.
+A new registration starts as `awaiting_payment`. Creating it or submitting a
+proof does not consume a seat, even when capacity is full. Staff payment review
+can later set `confirmed` or `waitlist`. Other states are
+`awaiting_payment_confirmation` and `cancelled`.
 
-Every creation starts as `awaiting_payment`. Creation and proof submission consume
-no seat, including when capacity is full or zero. Staff confirmation is a later
-workflow. The existing states remain `awaiting_payment`, `awaiting_payment_confirmation`,
-`confirmed`, `waitlist`, and `cancelled`.
+The registration number has the format `T<tournament id>-<six-digit serial>-<Luhn digit>`.
+It is a reference, not a credential. The tournament row lock protects allocation
+of its serial number.
 
-`registration_number` retains `T<tournament id>-<six-digit serial>-<Luhn digit>`.
-It is a reference, not a credential. `next_registration_number` is an integer
-counter allocated under the tournament row lock. Concurrent creates cannot reuse
-its value. It does not store a formatted reference string.
+### Reading and editing registrations
 
-`GET /api/tournaments/{tournament_id}/registrations` returns only the caller's
-registrations, including cancelled rows. Admins receive every registration with
-the staff projection. `GET .../registrations/{registration_number}` permits the
-owner or an admin. Other callers receive 404. Owner responses omit
-`staff_safety_note` and `accepted_from_ip`. No public directory is introduced.
+`GET /api/tournaments/registrations` lists the signed-in account's registrations
+across tournaments, including cancelled ones. Admins also receive only their own
+registrations on this route.
 
-## Private documents
+`GET /api/tournaments/{tournament_id}/registrations` returns the caller's
+registrations for that tournament. Admins receive all registrations with the
+staff projection. `GET .../registrations/{registration_number}` permits the
+owner or an admin. Other callers receive 404. Owner responses omit the staff safety
+note and acceptance IP address.
 
-Minors first call
+Owners and admins can replace editable personal, sporting, and emergency-contact
+details with `PUT .../registrations/{registration_number}`. A cancelled
+registration is read-only for its owner. The update does not change ownership,
+status, purchased options, or acceptance evidence. Duplicate email and identity
+document checks still apply. Changing a birth date can make a parental consent
+form necessary.
+
+Identity uses `identity_document_type` and `identity_document_number`. Other
+participant fields include `social_name`, `state_or_province`,
+`school_or_team_name`, `instructor_name`, `hema_experience_description`,
+`hema_started_year`, `previous_tournament_count`, `hema_ratings_reference`,
+and `category_or_eligibility_note`. Experience may be free text or a start year.
+A HEMA Ratings reference need not be a URL. Category notes are not staff approval.
+
+### Declarations and policy versions
+
+Tournament reads return `acceptance_content` and `acceptance_tokens` for
+`pt` and `en`. Each language's `policies.rules` and
+`policies.cancellation_policy` has a `document` field. It contains
+`version_id`, `original_file_name`, and the validated `content_type` when a version has been published.
+An absent upload has a null `document` field.
+
+The token covers declarations, equipment requirements, and uploaded document
+descriptors. Registration requires the displayed language and token. Publication
+and registration creation share the tournament lock. If the terms have changed, the API returns 409 and
+the athlete must review the updated terms and confirm their choices again.
+
+`RegistrationAcceptance` records the choices, verified user UUID, language,
+server time, source IP, and references to the uploaded policy versions shown
+on the form. Earlier records keep null references. Owner and staff registration
+reads return `rules_version_id` and `cancellation_policy_version_id`.
+Athletes can open recorded versions from the read-only declarations panel.
+
+The registration form displays uploaded policies and requests an authorized
+download when an athlete opens one. Final legal wording remains open under
+PRIV-Q1.
+
+### Tags
+
+Authenticated users can read definitions at
+`GET /api/tournaments/{tournament_id}/tags`. Staff create, replace, and delete
+definitions under `/api/staff/tournaments/{tournament_id}/tags`. A referenced
+tag cannot be deleted.
+
+Registration creation accepts `tag_ids`. Owners can read or replace their
+selection at `.../registrations/{registration_number}/tags`. Owner changes
+require an open registration window and are blocked by staff closure. Staff use
+the equivalent `/api/staff/` routes and can update a selection after the window
+closes. Duplicate IDs and tags belonging to another tournament are rejected.
+
+`GET /api/staff/tournaments/{tournament_id}/registrations` gives staff a summary
+of registrations, selected tags, and missing parental consent. It excludes
+contact details, payment data, and safety notes.
+
+## Documents and storage
+
+The core files capability owns `StoredFile`, `ArchivedFile`, and storage
+operations. Tournament services decide each file's purpose, validation, access,
+and retention. There is no generic endpoint that grants access from a file ID.
+Production uses private S3 storage. Local development uses Ministack. See
+[decision 0008](../../../specs/decisions/0008-shared-files-and-archives.md) for
+the ownership boundary.
+
+### Tournament policy documents
+
+`TournamentDocument` identifies a tournament document and its purpose.
+`TournamentDocumentVersion` links one published version to an `ArchivedFile`.
+The latest version is current. Publishing a replacement retains earlier versions
+and their archived files. A tournament can have one `rules` document and one
+`cancellation_policy` document. The model also permits documents without a
+policy purpose, but this API does not yet publish or manage general resources.
+
+Staff publish a policy version in three steps:
+
+1. Call `POST /api/staff/tournaments/{tournament_id}/policy-documents/{purpose}/upload-url`.
+   The purpose is `rules` or `cancellation_policy`.
+2. Upload the file to the returned URL with the required headers.
+3. Call `POST /api/staff/tournaments/{tournament_id}/policy-documents/{purpose}`
+   with the returned `storage_key` and an `original_file_name`.
+
+The staging key is bound to the staff account, tournament, and purpose. The
+service checks file type and size before archiving. It accepts PDF, JPEG, and
+PNG files up to 10 MiB. Publishing makes the staff-selected upload current.
+An empty file or invalid staging key returns 422. An oversized file returns 413,
+and an unsupported type returns 415. Storage failures return 503. A rejected
+replacement leaves the prior version current. If the commit outcome is unknown,
+the service retains the candidate archive for reconciliation.
+
+`GET /api/tournaments/{tournament_id}/policy-documents` returns current policy
+versions. `GET /api/tournaments/{tournament_id}/policy-documents/{purpose}/{document_id}/download-url`
+returns a short-lived signed GET URL for the specified **version ID**. Both
+routes enforce catalog visibility. A hidden tournament or an ID outside the
+requested tournament and purpose returns 404. The browser downloads the bytes
+directly from object storage and offers a retry if that request fails.
+
+The staff form saves tournament facts separately from policy publication.
+Staff can enable refunds on a saved tournament with a published cancellation
+policy. Create the tournament first, then publish the policy before enabling
+refunds.
+
+### Registration documents
+
+`TournamentRegistrationDocument` associates a `StoredFile` with a registration.
+Its types are `parental_consent_form` and `payment_proof`. A registration can
+have one parental consent form and multiple retained payment proofs. Each
+submission uses a separate stored file.
+
+The upload policy in `services/registration_uploads.py` accepts PDF, JPEG, and
+PNG up to 10 MiB. The service validates the permanent copy before attaching it.
+Registration changes, file metadata, and the document association commit
+together. On database failure, the service removes the newly promoted object.
+Authorized download routes return short-lived URLs. They do not stream file bytes.
+
+For a minor, the owner requests
 `POST /api/tournaments/{tournament_id}/registrations/parental-consent-form/upload-url`,
-then upload through the returned presigned URL. Creation includes
-`parental_consent_form_storage_key` and
-`parental_consent_form_original_file_name`. The minor's registration and
-accepted parental document metadata are saved together. Adults do not submit that form.
+uploads the file, and supplies the staging key and original filename when
+creating the registration. Adults do not submit this form.
 
-`TournamentRegistrationDocument` records `registration_id`, `file_id`,
-`document_type`, and `submitted_at`. Document types are `parental_consent_form`
-and `payment_proof`. Each submission references a separate `StoredFile` through
-a restrictive foreign key. One registration may have one parental consent form
-and multiple retained payment proofs. The same stored file cannot be attached
-twice within tournament registrations.
+An owner whose existing registration needs a form can use the same upload URL,
+then call `POST .../registrations/{registration_number}/parental-consent-form`
+with its staging key and filename. The service checks ownership, age, and existing
+evidence. Submission does not change registration status. The owner or an admin
+can request a download URL with `GET .../registrations/{registration_number}/parental-consent-form`.
+Other participants receive 404.
 
-`app/core/files/` owns file metadata and storage operations. Tournament services
-own purpose, validation, access, retention, and version selection. Core files
-does not import tournaments. See [decision 0008](../../../specs/decisions/0008-shared-files-and-archives.md)
-for the boundary and future reuse examples.
+## Payment and proof review
 
-The tournament upload policy lives in `services/registration_uploads.py`.
-It accepts PDF, JPEG, or PNG up to 10 MB and validates the copied permanent bytes.
-Registration, stored-file metadata and document association commit together.
-A database failure rolls them back and removes the newly promoted object.
+A registration selects a `TournamentProduct`. Its order item records the selected
+product and price. Tournament payment settings optionally store a `pix_key`.
+A blank key creates no settings row. The public catalog does not expose the key.
 
-File metadata is retrieved through authorized tournament operations. There is
-no generic file-access endpoint. Owner/staff permissions and latest-proof-only
-owner reads stay in the tournament domain.
-Storage remains private S3 in production and Ministack locally.
+The owner reads `GET .../registrations/{registration_number}/payment` for the
+registration status, purchased price, deadline, optional Pix key, and latest
+proof metadata. Other callers, including admins, receive 404. An absent key is
+returned as null.
 
-`GET .../registrations/{registration_number}/parental-consent-form`
-returns a short-lived download URL to the owner or an admin. Other participants
-receive 404. The API does not stream file bytes. Event-day accompaniment and
-identity-document checks remain separate requirements.
+The owner requests `POST .../payment-proof/upload-url`, uploads using its
+required headers, then submits `storage_key` and `original_file_name` to
+`POST .../payment-proof`. The optional filename supplied when requesting the URL
+also determines the extension retained in storage keys. A first valid proof sets
+`awaiting_payment_confirmation`. Replacement is allowed while awaiting payment
+or confirmation. Earlier proofs are retained, but the owner download route
+`GET .../payment-proof` returns only the latest.
 
-## Payment settings and instructions
+### Staff review
 
-The tournaments domain owns optional `TournamentPaymentSettings`, with a unique
-`tournament_id` and a directly stored `pix_key`. There is no shared-recipient
-indirection. A blank key creates no settings row. The public catalog never exposes
-Pix configuration. Admins may supply `pix_key` at tournament creation.
+`GET /api/staff/tournaments/payment-reviews` lists pending reviews across
+tournaments. It supports pagination and an exact `registration_number` filter.
+The queue includes the latest undecided proof for registrations awaiting review,
+including eligible cancelled registrations. It omits contact, identity, safety,
+and storage fields.
 
-`RegistrationPaymentInstructions` is an assembled response, not a table.
-`GET .../registrations/{registration_number}/payment` combines the registration
-number/status, purchased price and payment deadline, optional `payment_options.pix.pix_key`,
-and metadata for the latest proof. Only the owner may read these instructions.
-Other callers, including admins, receive 404. An absent destination is returned
-as null and shown as unconfigured. No key is invented or bundled in the frontend.
+`GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the
+staff registration projection, price, deadline, capacity, proof history,
+parental form metadata, and review history. A staff member can request a
+short-lived URL for a proof or parental form at
+`GET .../payment-reviews/{registration_number}/documents/{document_id}/download-url`.
+Mismatched documents return 404. Storage failures return 503. Staff routes
+require admin access.
 
-For payment proof, the owner calls `POST .../payment-proof/upload-url` with an optional
-`original_file_name`. The generated staging and permanent object keys keep
-its extension. The owner uploads
-with the required headers, then calls `POST .../payment-proof` with `storage_key`
-and `original_file_name`. The first valid submission sets `awaiting_payment_confirmation`.
-Replacement is allowed while `awaiting_payment` or `awaiting_payment_confirmation`.
-Every submitted proof is retained. The owner retrieves only the latest through
-`GET .../payment-proof`. The staff decision endpoint is documented below.
+Staff submit a decision with
+`POST /api/staff/tournaments/payment-reviews/{registration_number}/decisions`.
+The request identifies the displayed `document_id`. Approval requires
+`requirements_checked=true` and a nonnegative finite BRL `amount_received` with
+at most two decimal places. Rejection requires a nonblank reason and no amount.
+The amount received can differ from the purchased price. The server records the
+actor and time.
 
-A proof alone is evidence. Payment verifications now record verified receipts and
-participation outcomes, with rejection and paid-waitlist notices. Refund actions
-remain future work. The frontend entry
-is `/tournaments/registration`.
+Only the latest undecided proof is eligible. Stale or repeated decisions return
+409. Approval of an active minor's registration also requires a parental form.
+Payment deadlines and closed registration windows do not prevent review.
 
-## Financial evidence records
+Approval records the review, payment, association, and participation outcome in
+one transaction. An active registration becomes `confirmed` or `waitlist` based
+on capacity. Rejection returns an active registration to `awaiting_payment`.
+A new proof clears the current rejection projection while retaining its history.
+A cancelled registration stays cancelled when its pending proof is reviewed.
 
-Tournaments owns the proof review and its link to the verified payment.
-`PaymentProofPayment` requires an approved review of a proof from the same
-registration order. Karlmart owns the [payment and refund facts](../karlmart/payments/README.md).
-A tournament refund owes the full amount received and records its deadline on
-`Refund`. An absent refund means there is no recorded obligation.
+The response includes the review, registration status, and notification result.
+The service attempts applicable Portuguese notices after commit. A delivery failure
+does not undo the decision. Templates live in
+[`templates/email_notifications.py`](templates/email_notifications.py).
+Supabase manages account email templates separately. See the
+[Auth email runbook](../../../docs/runbooks/supabase-auth-email-ses.md).
 
-The staff payment-review workflow authorizes the actor and commits review, receipt,
-association, and participation changes atomically. Cancellation records the
-participation change and any refund obligation in the same transaction.
-Shared persistence helpers use the caller's transaction. Payment review and
-cancellation acquire the tournament and registration locks in the same order.
+## Cancellation and refunds
 
-The [payment spec](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract)
-owns the persistence requirements. [Decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md)
-explains ownership. [Decision 0010](../../../specs/decisions/0010-database-functions-trigger-and-procedures.md)
-forbids application-defined database functions, triggers and procedures. Services enforce authorization and
-staff workflows.
+`POST .../registrations/{registration_number}/cancel` lets staff cancel a
+registration. The owner can cancel when `refunds_allowed` is true. Repeated
+cancellation or unavailable self-service returns 409. Cancellation releases an
+occupied seat and preserves the order, proof, and payment evidence.
 
-## Migration boundary
+For an eligible tournament, a verified payment creates a refund obligation for
+the full amount received. Its deadline is the tenth weekday after cancellation
+in UTC−03:00, ignoring holidays. A receipt without the required approved proof
+association must be reconciled before cancellation. A pending proof can still
+be reviewed after cancellation. Approval records the payment without restoring
+participation and creates a refund obligation when applicable.
 
-Revision `20261103_0001` creates the current schema directly. The product owner
-authorized a clean baseline for this pre-data refactor. The previous revision
-chain and the intermediate rename migration are removed. There is no old-schema
-upgrade or old request-field/route alias. The development reset must include
-`public.alembic_version`, with Supabase-managed `auth` objects left intact.
-See [migration notes](../../../docs/database-migrations.md) for the reset and test boundaries.
+The owner or staff can read `GET .../registrations/{registration_number}/refund`.
+It returns null when no obligation exists. Staff list outstanding obligations at
+`GET /api/staff/tournaments/refunds`, with pagination and an optional exact
+registration number.
 
-## Staff payment-review evidence
-
-Admins can read pending work across all tournaments with
-`GET /api/staff/tournaments/payment-reviews`. The queue supports `limit` (1–100),
-`offset`, and an optional exact `registration_number`. It includes only registrations
-in `awaiting_payment_confirmation` whose latest proof has no decision. Results are ordered by
-current proof ID. The queue excludes contact, identity, safety, and storage fields.
-
-`GET /api/staff/tournaments/payment-reviews/{registration_number}` returns the staff
-registration projection, purchased price, deadline, equipment requirements, capacity, confirmed
-count, proof versions, parental form metadata, and review history. Decided records
-remain readable. Reads do not allocate seats or record decisions.
-
-`GET /api/staff/tournaments/payment-reviews/{registration_number}/documents/{document_id}/download-url`
-issues a short-lived URL only for a proof or parental form belonging to that
-registration. Metadata reads do not call storage. Unknown registrations and mismatched
-documents return 404. Storage failures return 503. Guests receive 401 and authenticated
-non-admins receive 403 on all three endpoints. Owner proof access remains latest-only.
-
-
-## Payment review decisions
-
-`routers/staff.py` owns the payment-review HTTP endpoints.
-`services/payment_proof_reviews.py` owns evidence reads and recording staff
-decisions. Its private helpers group lock acquisition, current-proof checks,
-and payment approval. `services/payment_review_notifications.py` owns delivery
-availability and delivery-result logging. Portuguese tournament email subjects and
-bodies are in [`templates/email_notifications.py`](templates/email_notifications.py). Edit the matching template
-there and retain its placeholders. Changes require a deployment. Supabase manages
-account email templates separately. See the [Auth email runbook](../../../docs/runbooks/supabase-auth-email-ses.md).
-
-`POST /api/staff/tournaments/payment-reviews/{registration_number}/decisions`
-requires an admin and the displayed `document_id`. Use `decision=approved` with an
-explicit nonnegative finite BRL `amount_received` (at most two decimal places,
-Numeric(12,2) range) and `requirements_checked=true`. Received amount is independent
-of the purchased price. Use `decision=rejected` with a nonblank `rejection_reason`
-and no amount. Actors and timestamps are server-owned.
-
-Only the latest undecided payment proof of a registration in `awaiting_payment_confirmation`
-is eligible. Invalid/stale/repeated decisions return 409 without a new review,
-receipt, or notice. Minor approval also requires a stored parental form. Passed
-payment deadlines and closed registration windows do not prevent staff review.
-
-The workflow locks Tournament then TournamentRegistration and reloads locked
-values. Approval saves PaymentProofReview, shared Payment, PaymentProofPayment,
-and `confirmed` or `waitlist` in one transaction. Only confirmed rows consume
-capacity. Rejection writes a review, sets `awaiting_payment`, and creates no receipt.
-Its current-proof reason appears in the owner payment response as `current_review`.
-A new valid proof restores `awaiting_payment_confirmation` and clears that projection, while
-retaining older evidence. Confirmed/waitlist owners cannot replace proofs.
-
-The response contains `review`, `registration_status`, and `notification_result`.
-Confirmed approval, rejection, and paid waitlist attempt one Portuguese notice to the registrant's
-current account email after commit and lock release. Delivery failures return the saved outcome with a failure result.
-Unavailable configuration returns `unavailable`. No automatic retry replays a notice.
-
-
-## Router organization
-
-`routers/__init__.py` assembles the tournament API without defining or adding
-prefixes. Each endpoint router declares its full prefix.
-`routers/anonymous.py` contains catalog endpoints that guests may call. Signed-in
-users use the same endpoints with their existing visibility rules.
-`routers/authenticated.py` contains registration and document endpoints requiring
-sign-in, including the existing staff-aware registration reads.
-`routers/staff.py` contains tournament creation and staff payment review under
-`/api/staff/tournaments`. The anonymous and authenticated routers each use
-`/api/tournaments`.
-The authenticated router declares its access guard once. Its handlers receive
-the verified caller through `AuthenticatedUser`. Staff endpoints keep their explicit
-admin dependency. Tournament creation
-is now `POST /api/staff/tournaments`. The former creation path and
-`/api/tournaments/staff/...` payment-review paths are not registered. Catalog,
-owner registration/document URLs, identifiers, and response contracts are preserved.
-
-
-## Cancellation and manual refunds
-
-`POST /api/tournaments/{tournament_id}/registrations/{registration_number}/cancel`
-lets staff cancel participation. The owner can cancel when the tournament has
-`refunds_allowed = true`. It returns 204 on success and 409 if participation
-was already cancelled or the owner cannot self-cancel. Any occupied seat is
-released at commit. A verified payment in an eligible tournament creates an
-obligation for the full amount received. Eligibility defaults to false and
-requires cancellation policy text or a policy URL when enabled. Its deadline
-is the tenth weekday after cancellation in fixed UTC−03:00, ignoring holidays.
-For a refundable tournament, if a receipt lacks an approved proof association for
-this registration, cancellation returns 409 until staff reconciles the evidence. Existing refund obligations remain
-visible and completable. Cancellation leaves the order, proof, and payment evidence intact. Pending proof
-remains in the staff review queue. Approval records the receipt without restoring
-participation. If refunds were allowed at cancellation, it creates the obligation
-using the cancellation time and policy eligibility. Rejection keeps participation
-cancelled. Declined late transfers in non-refundable tournaments create no refund
-obligation.
-
-`GET /api/tournaments/{tournament_id}/registrations/{registration_number}/refund`
-returns the refund amount, status, deadline, and completion time to the owner
-or staff under the tournament visibility rules. It returns JSON `null` when
-there is no recorded obligation.
-
-`GET /api/staff/tournaments/refunds` lists outstanding refunds across tournaments
-in deadline order. It accepts `limit` (1–100), `offset`, and an optional exact
-`registration_number`. Staff can follow the registration number to the payment
-review record for evidence.
-
-After transferring the full amount outside the application, staff submits the
-actual timestamp as an offset-aware `completed_at` to
+After transferring the full amount outside the application, staff record the
+actual offset-aware `completed_at` with
 `POST /api/staff/tournaments/{tournament_id}/registrations/{registration_number}/refund/complete`.
-It returns 409 for an already completed refund, a missing obligation, or a
-transfer time outside the interval from cancellation through the current time.
-The command records completion time and actor while participation stays cancelled.
-It attempts email delivery after commit and reports the delivery result. Turning
-refund eligibility off leaves existing obligations visible and completable.
+The service rejects a missing or completed obligation and a timestamp outside
+the interval from cancellation to the current time. It records the actor and
+attempts an email after commit. Turning refund eligibility off does not remove
+existing obligations.
+
+## Code and persistence boundaries
+
+`routers/__init__.py` assembles the routes. `routers/anonymous.py` owns catalog
+and policy-document reads available to guests. `routers/authenticated.py` owns
+signed-in registration and participant-document routes. `routers/staff.py` owns
+staff configuration, policy publication, and staff workflows. Each staff route
+requires admin access. Services also enforce record-level rules.
+
+Tournament services own registration, proof review, and their associations.
+Karlmart owns shared payment and refund facts. Payment review and cancellation
+lock the tournament and registration in the same order and commit related facts
+in one transaction. See the [payment persistence contract](../../../specs/tournaments/payments-and-confirmation.md#persistence-contract),
+[decision 0009](../../../specs/decisions/0009-shared-payments-and-domain-associations.md),
+and [decision 0010](../../../specs/decisions/0010-database-functions-trigger-and-procedures.md).
+
+Alembic manages the application schema. The initial revision replaced an earlier
+development schema and has no upgrade path from it. See the
+[migration notes](../../../docs/database-migrations.md) before applying or resetting
+migrations. Supabase-managed `auth` objects are outside this history.

@@ -1,0 +1,197 @@
+.tournament-document-card h2,
+.staff-tournament-documents h2 {
+  margin: 0 0 12px;
+}
+
+.registration-fieldset .tournament-document-card {
+  margin-bottom: 0;
+}
+
+.tournament-document-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tournament-document-list li {
+  min-width: 0;
+}
+
+.registration-card .tournament-document-list button.tournament-document-tile {
+  align-items: center;
+  background: #f6f6f0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  height: 100%;
+  padding: 12px;
+  text-align: start;
+  width: 100%;
+}
+
+.registration-card .tournament-document-list button.tournament-document-tile:hover {
+  background: #efede5;
+  border-color: var(--wine);
+}
+
+.tournament-document-icon {
+  align-items: center;
+  background: #ebe3d4;
+  color: var(--wine);
+  display: grid;
+  height: 34px;
+  justify-items: center;
+  width: 34px;
+}
+
+.tournament-document-icon > span {
+  border: 1px solid;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  height: 17px;
+  padding: 0 3px;
+  width: 14px;
+}
+
+.tournament-document-icon > span::before,
+.tournament-document-icon > span::after {
+  border-top: 1px solid;
+  content: "";
+}
+
+.tournament-document-title {
+  display: grid;
+  gap: 3px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.tournament-document-title small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tournament-document-arrow {
+  align-self: start;
+  color: var(--wine);
+  font-size: 15px;
+}
+
+.tournament-document-card .registration-policy-missing {
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+
+.registration-card .registration-choice button.registration-policy-inline,
+.registration-card a.registration-policy-inline,
+.payment-reviews button.staff-policy-file {
+  background: none;
+  border: 0;
+  color: var(--wine);
+  font: inherit;
+  min-height: 0;
+  padding: 0;
+  text-align: start;
+  text-decoration: underline;
+}
+
+.registration-card .registration-policy-inline {
+  display: inline-block;
+}
+
+.registration-policy > [role="alert"],
+.registration-policy > [role="status"] {
+  display: block;
+  margin-top: 4px;
+}
+
+.tournament-document-list .registration-policy {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.staff-tournament-documents > p,
+.staff-policy-heading p,
+.staff-policy-upload p,
+.staff-policy-saved {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.staff-policy-row {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.staff-policy-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.staff-policy-heading > div {
+  flex: 1 1 165px;
+  min-width: 0;
+}
+
+.staff-policy-heading h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.staff-policy-upload {
+  background: #f6f6f0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.staff-policy-upload input {
+  width: 100%;
+  min-width: 0;
+}
+
+.staff-policy-upload input::file-selector-button {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+  margin-inline-end: 8px;
+  padding: 6px 10px;
+}
+
+.staff-policy-upload [role="alert"],
+.staff-policy-heading [role="alert"] {
+  color: var(--wine);
+}
+
+.staff-policy-row .staff-policy-saved {
+  color: #36533c;
+}
+
+.staff-policy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .tournament-document-list {
+    grid-template-columns: 1fr;
+  }
+}

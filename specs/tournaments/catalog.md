@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-19
 
 | Field | Value |
 | --- | --- |
@@ -24,18 +24,19 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-005:** Guests and regular users can browse public, non-internal tournaments. Internal tournaments are excluded from public listings and restricted to guild members, including guild staff (admins), for viewing and participation. The backend enforces these rules on direct requests as well as listings.
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
-- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier regulation acceptances when text changes.
+- **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier policy acceptances when documents change.
 - **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Pix destination and receiving-account details are payment configuration.
 - **CAT-010:** Staff may change products and prices for future registrations. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
-Policy content uses separate `rules_text`, `rules_url`, `cancellation_policy_text`, and `cancellation_policy_url` fields. Text and HTTP(S) links are independently optional. Both may be configured.
+## Tournament documents
 
-Linked documents are managed outside the application. The registration form links directly to the configured URL. The application does not fetch or preserve linked documents. Organizers retain documents and manage changes outside the application.
+In staff settings, place documents in a separate section after tournament details and tags. Once a tournament has been saved, staff can upload or replace the rules and cancellation policy independently. Each is optional. Show the current file and reveal the uploader when staff choose to publish or replace a file. Accept PDF, JPEG, or PNG up to 10 MiB per policy. Publishing makes the staff-selected file current. Show progress, success, or failure on the affected document, and keep the current file available until its replacement succeeds. Preserve earlier versions and their acceptance references. See [WF-12](../design/app-wireframes/index.html#WF-12/edit).
 
-Staff may save both a URL and inline text for either policy. The settings form
-warns that athletes will see the linked document when both are provided.
+Tournament details show a document section when there is at least one file the viewer can open. Each tile shows the document title, file format, and new-tab icon. In a visible section, show “conteúdo ainda não disponível” for a missing rules document or cancellation policy. The wireframe also proposes a separate tournament details screen and named additional documents. Issue #88 delivers the two registration policies in the registration flow and existing signed-in tournament view. Open files in a new tab on demand through an authorized download. Catalog visibility rules apply to the tournament and its policy versions. Guest access and lifecycle rules for additional documents remain open. See [WF-02](../design/app-wireframes/index.html#WF-02/athlete).
+
+Registration records the policy versions displayed at acceptance. Staff can enable refunds after publishing a cancellation policy that permits them.
 
 ## User flow
 

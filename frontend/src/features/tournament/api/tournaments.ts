@@ -2,7 +2,16 @@ import type { TournamentTag } from "@/features/tournament/api/tournament-tags";
 import { apiFetch } from "@/lib/api-fetch";
 import { apiBaseUrl } from "@/config/environment";
 
+export type PolicyPurpose = "rules" | "cancellation_policy";
+
+export type PolicyVersion = {
+  version_id: number;
+  original_file_name: string;
+  content_type: string;
+};
+
 export type AcceptanceContent = {
+  policies: Record<PolicyPurpose, { document: PolicyVersion | null }>;
   declarations: {
     accepts_rules: string; accepts_data_processing: string; declares_truthful_information: string;
     acknowledges_inherent_risks: string; declares_has_required_equipment: string;
@@ -24,10 +33,6 @@ export type Tournament = {
   registration_closes_on: string | null;
   is_registration_closed: boolean;
   refunds_allowed?: boolean;
-  rules_text: string | null;
-  rules_url: string | null;
-  cancellation_policy_text: string | null;
-  cancellation_policy_url: string | null;
   equipment_requirements: string | null;
 };
 
@@ -116,6 +121,8 @@ export type RegistrationCreated = {
 export type OwnerRegistration = RegistrationCreated & {
   parental_consent_required?: boolean;
   user_id?: string;
+  rules_version_id?: number | null;
+  cancellation_policy_version_id?: number | null;
 };
 
 export async function updateRegistrationDetails(
@@ -185,15 +192,53 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
+function isVersionId(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function isPolicyVersion(value: unknown): value is PolicyVersion | null {
+  if (value === null) return true;
+  if (!value || typeof value !== "object") return false;
+  const { version_id, original_file_name, content_type } = value as Partial<PolicyVersion>;
+  return isVersionId(version_id)
+    && typeof original_file_name === "string" && original_file_name.trim().length > 0
+    && typeof content_type === "string" && content_type.length > 0;
+}
+
 function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
   return ["pt", "en"].every(language => {
     const key = language as "pt" | "en";
-    const declarations = event.acceptance_content?.[key]?.declarations;
+    const content = event.acceptance_content?.[key];
+    const declarations = content?.declarations;
     return typeof event.acceptance_tokens?.[key] === "string"
       && /^[a-f0-9]{64}$/.test(event.acceptance_tokens[key])
+      && isPolicyVersion(content?.policies?.rules?.document)
+      && isPolicyVersion(content?.policies?.cancellation_policy?.document)
       && declarations !== undefined
       && ["accepts_rules", "accepts_data_processing", "declares_truthful_information", "acknowledges_inherent_risks", "declares_has_required_equipment", "declares_physically_fit", "accepts_cancellation_policy"].every(name => typeof declarations[name as keyof typeof declarations] === "string");
   });
+}
+
+export async function downloadPolicyDocument(
+  tournamentId: number, purpose: PolicyPurpose, versionId: number, token: string,
+): Promise<Blob> {
+  const response = await apiFetch(
+    `${apiBaseUrl()}/tournaments/${tournamentId}/policy-documents/${purpose}/${versionId}/download-url`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) throw new Error(`http-${response.status}`);
+  const body = await response.json();
+  if (typeof body?.download_url !== "string") throw new Error("invalid-policy-download-url");
+  const url = new URL(body.download_url);
+  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("invalid-policy-download-url");
+
+  const download = await fetch(url.href, { credentials: "omit" });
+  if (!download.ok) throw new Error(`policy-download-${download.status}`);
+  const file = await download.blob();
+  if (!file.size || !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+    throw new Error("invalid-policy-document");
+  }
+  return file;
 }
 
 export async function getTournament(id: number, token?: string, signal?: AbortSignal): Promise<Tournament> {
@@ -220,10 +265,6 @@ function isTournament(value: unknown): value is Tournament {
     isNullableString(event.location) &&
     isNullableString(event.registration_opens_on) &&
     isNullableString(event.registration_closes_on) &&
-    isNullableString(event.rules_text) &&
-    isNullableString(event.rules_url) &&
-    isNullableString(event.cancellation_policy_text) &&
-    isNullableString(event.cancellation_policy_url) &&
     isNullableString(event.equipment_requirements)
   );
 }
@@ -336,6 +377,8 @@ function isOwnerRegistration(value: unknown): value is OwnerRegistration {
   const accountIdIsOptional = !("user_id" in record) || typeof record.user_id === "string";
   return (
     accountIdIsOptional &&
+    (record.rules_version_id == null || isVersionId(record.rules_version_id)) &&
+    (record.cancellation_policy_version_id == null || isVersionId(record.cancellation_policy_version_id)) &&
     (record.product_name === undefined || isNullableString(record.product_name)) &&
     (record.product_description === undefined || isNullableString(record.product_description)) &&
     typeof record.registration_number === "string" &&

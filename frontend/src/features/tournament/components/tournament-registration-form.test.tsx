@@ -2,7 +2,7 @@ vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...a
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import TournamentRegistrationForm from '@/features/tournament/components/tournament-registration-form'
 import type { Tournament } from '@/features/tournament/api/tournaments'
@@ -27,11 +27,7 @@ const tournament: Tournament = {
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,
-  rules_text: null,
-  rules_url: 'https://example.test/rules_text',
   ...acceptanceEvidence,
-  cancellation_policy_text: 'Policy fixture',
-  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 
@@ -39,6 +35,18 @@ const session = {
   access_token: 'test-access-token',
   user: { id: 'athlete-uuid', email: 'athlete@example.test' },
 } as Session
+
+const policies = {
+  rules: { document: { version_id: 17, original_file_name: 'rules-v1.pdf', content_type: 'application/pdf' } },
+  cancellation_policy: { document: { version_id: 52, original_file_name: 'cancellation.pdf', content_type: 'image/png' } },
+}
+const tournamentWithPolicies = {
+  ...tournament,
+  acceptance_content: {
+    pt: { ...tournament.acceptance_content.pt, policies },
+    en: { ...tournament.acceptance_content.en, policies },
+  },
+}
 
 const created = {
   registration_number: 'T42-000001-5',
@@ -51,7 +59,7 @@ const created = {
 }
 
 function change(label: RegExp, value: string) {
-  fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  fireEvent.change(screen.getByLabelText(label, { selector: "input, select, textarea" }), { target: { value } })
 }
 
 async function fillRequired({ declarations = true, birthDate = '2000-01-01' }: {
@@ -160,10 +168,11 @@ describe('Athlete submits their own registration and sees the result', () => {
     const registration = request.mock.calls.find(([url, init]) => String(url).endsWith('/registrations') && init?.method === 'POST')
     expect(JSON.parse(String(registration?.[1]?.body)).tag_ids).toEqual([3])
   })
-  it('shows English draft controls and submits the rules acceptance without an image choice', async () => {
+  it('renders the server-provided English declaration and submits its token without an image choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    expect(screen.getByRole('checkbox', { name: 'Sample rules declaration *' })).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     expect(screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("name"))).toEqual([
       "accepts_rules", "accepts_cancellation_policy", "accepts_data_processing",
@@ -456,19 +465,27 @@ describe('Athlete submits their own registration and sees the result', () => {
     expect(screen.getByRole('form', { name: 'Formulário de inscrição' })).toBeInTheDocument()
   })
 
-  it.each(['pt', 'en'] as const)('prefers the policy URL and translates unavailable content in %s', (language) => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'Fixture rules text', rules_url: 'https://example.test/rules', cancellation_policy_text: null, cancellation_policy_url: null }} session={session} language={language} />)
-    expect(screen.queryByText('Fixture rules text')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Consultar regulamento|View tournament rules/ })).toHaveAttribute('href', 'https://example.test/rules')
-    expect(screen.getByText(/conteúdo ainda não disponível|content is not yet available/i)).toBeInTheDocument()
+  it.each(['pt', 'en'] as const)('shows the document card and one missing policy in %s', (language) => {
+    const partial = { ...tournamentWithPolicies, acceptance_content: {
+      ...tournamentWithPolicies.acceptance_content,
+      [language]: { ...tournamentWithPolicies.acceptance_content[language], policies: { ...policies, cancellation_policy: { document: null } } },
+    } }
+    render(<TournamentRegistrationForm tournament={partial} session={session} language={language} />)
+    const card = screen.getByRole('region', { name: /Documentos do torneio|Tournament documents/ })
+    expect(within(card).getByRole('button', { name: /rules-v1.pdf/ })).toBeInTheDocument()
+    expect(within(card).getAllByText(/conteúdo ainda não disponível|content is not yet available/i)).toHaveLength(1)
+    const safety = screen.getByRole('region', { name: /Segurança e participação|Safety and participation/ })
+    expect(card.nextElementSibling).toBe(safety)
+    expect(within(safety).queryByRole('button', { name: /Política de cancelamento|Cancellation policy/ })).not.toBeInTheDocument()
   })
 
-  it('renders URL-like policy text as text when no policy URL is configured', () => {
-    render(<TournamentRegistrationForm tournament={{ ...tournament, rules_text: 'https://example.test/plain-text', rules_url: null }} session={session} />)
-    expect(screen.getByText('https://example.test/plain-text')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Consultar regulamento/ })).not.toBeInTheDocument()
+  it('omits the document card and its placeholders when neither policy is available', () => {
+    const legacy = { ...tournament, rules_text: 'Legacy rules text', rules_url: 'https://example.test/legacy' }
+    render(<TournamentRegistrationForm tournament={legacy} session={session} />)
+    expect(screen.queryByRole('region', { name: 'Documentos do torneio' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/conteúdo ainda não disponível|Legacy rules text/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Política de Privacidade/ })).toHaveAttribute('target', '_blank')
   })
-
 
   it('labels the minor document as a parental consent form in English', () => {
     render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
@@ -479,30 +496,116 @@ describe('Athlete submits their own registration and sees the result', () => {
 })
 
 
-it('refreshes changed terms, preserves personal fields and requires new choices before resubmission', async () => {
+it('retries a failed policy file request and opens the exact version without changing form values', async () => {
+  const downloadUrl = 'blob:http://localhost/rules-17'
+  const firstSignedRules = 'https://files.example.test/rules?signature=first'
+  const retrySignedRules = 'https://files.example.test/rules?signature=retry'
+  const inlineSignedRules = 'https://files.example.test/rules?signature=inline'
+  const signedCancellation = 'https://files.example.test/cancellation?signature=cancel'
+  const rulesFile = new Blob(['rules'], { type: 'application/pdf' })
+  const cancellationFile = new Blob(['cancellation'], { type: 'image/png' })
+  const createObjectURL = vi.fn(() => downloadUrl)
+  vi.stubGlobal('URL', class extends URL { static createObjectURL = createObjectURL })
+  const request = vi.fn()
+    .mockResolvedValueOnce(response(200, { download_url: firstSignedRules }))
+    .mockResolvedValueOnce(response(503, {}))
+    .mockResolvedValueOnce(response(200, { download_url: retrySignedRules }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => rulesFile })
+    .mockResolvedValueOnce(response(200, { download_url: inlineSignedRules }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => rulesFile })
+    .mockResolvedValueOnce(response(200, { download_url: signedCancellation }))
+    .mockResolvedValueOnce({ ok: true, blob: async () => cancellationFile })
+  const tab = { opener: window, closed: false, location: { replace: vi.fn() }, close: vi.fn() }
+  vi.stubGlobal('open', vi.fn(() => tab))
+  vi.stubGlobal('fetch', request)
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
+  const rules = screen.getByRole('button', { name: /Tournament rules · rules-v1.pdf/ })
+  const cancellation = screen.getByRole('button', { name: /Cancellation policy · cancellation.pdf/ })
+  expect(cancellation).toHaveTextContent('PNG')
+  const inline = screen.getByRole('button', { name: 'Tournament rules (opens in a new tab)' })
+  const declaration = within(inline.closest('.registration-choice')!).getByRole('checkbox')
+  fireEvent.change(screen.getByLabelText(/Full name/), { target: { value: 'Draft name' } })
+  expect(request).not.toHaveBeenCalled()
+
+  fireEvent.click(rules)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not open the document. Please try again.')
+  expect(tab.close).toHaveBeenCalledOnce()
+  expect(tab.location.replace).not.toHaveBeenCalled()
+  expect(tab.opener).toBeNull()
+  fireEvent.click(rules)
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  fireEvent.click(inline)
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledTimes(2))
+  expect(declaration).not.toBeChecked()
+  expect(screen.getByLabelText(/Full name/)).toHaveValue('Draft name')
+  fireEvent.click(cancellation)
+  await waitFor(() => expect(tab.location.replace).toHaveBeenCalledTimes(3))
+  expect(createObjectURL.mock.calls).toEqual([[rulesFile], [rulesFile], [cancellationFile]])
+  const authorization = { headers: { Authorization: 'Bearer test-access-token' } }
+  const storageRequest = { credentials: 'omit' }
+  expect(request.mock.calls).toEqual([
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [firstSignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [retrySignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
+    [inlineSignedRules, storageRequest],
+    ['/api/tournaments/42/policy-documents/cancellation_policy/52/download-url', authorization],
+    [signedCancellation, storageRequest],
+  ])
+})
+
+it('keeps the policy control pending until the file body arrives and reports an interrupted download', async () => {
+  let interrupt!: (error: Error) => void
+  const pendingFile = new Promise<Blob>((_, reject) => { interrupt = reject })
+  const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() }
+  vi.stubGlobal('open', vi.fn(() => tab))
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce(response(200, { download_url: 'https://files.example.test/rules' }))
+    .mockResolvedValueOnce({ ok: true, blob: () => pendingFile }))
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
+  const rules = screen.getByRole('button', { name: /Tournament rules · rules-v1.pdf/ })
+
+  fireEvent.click(rules)
+  expect(await screen.findByText('Opening document…')).toBeVisible()
+  expect(rules).toHaveAttribute('aria-disabled', 'true')
+  expect(tab.location.replace).not.toHaveBeenCalled()
+  interrupt(new TypeError('download interrupted'))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not open the document. Please try again.')
+  expect(rules).toHaveAttribute('aria-disabled', 'false')
+  expect(tab.close).toHaveBeenCalledOnce()
+})
+
+it('refreshes a replaced policy, preserves personal fields and requires new choices before resubmission', async () => {
   const updated = {
-    ...tournament,
+    ...tournamentWithPolicies,
     acceptance_tokens: { ...tournament.acceptance_tokens, pt: 'c'.repeat(64) },
     acceptance_content: {
-      ...tournament.acceptance_content,
-      pt: { ...tournament.acceptance_content.pt, declarations: { ...tournament.acceptance_content.pt.declarations, accepts_rules: 'Updated rules choice' } },
+      ...tournamentWithPolicies.acceptance_content,
+      pt: {
+        ...tournamentWithPolicies.acceptance_content.pt,
+        policies: { ...policies, rules: { document: { version_id: 18, original_file_name: 'rules-v2.pdf', content_type: 'application/pdf' } } },
+      },
     },
-    rules_text: 'Updated official rules',
-    rules_url: null,
   }
   const request = vi.fn()
     .mockResolvedValueOnce(response(409, { detail: 'Registration terms changed; refresh before accepting' }))
     .mockResolvedValueOnce(response(200, updated))
     .mockResolvedValueOnce(response(201, created))
   vi.stubGlobal('fetch', request)
-  render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} />)
+  expect(screen.getByRole('button', { name: /rules-v1.pdf/ })).toBeInTheDocument()
   await fillRequired()
   submit()
-  expect(await screen.findByText('Updated official rules')).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: /rules-v2.pdf/ })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /rules-v1.pdf/ })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /cancellation.pdf/ })).toBeInTheDocument()
   expect(await screen.findByRole('alert')).toHaveTextContent(/Os termos mudaram/)
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue(' Ana Teste ')
-  expect(screen.getByLabelText(/Updated rules choice/)).toBeInTheDocument()
   expect(screen.getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true)
+  submit()
+  expect(request).toHaveBeenCalledTimes(2)
   for (const checkbox of screen.getAllByRole('checkbox')) fireEvent.click(checkbox)
   submit()
   expect(await screen.findByText(created.registration_number)).toBeInTheDocument()

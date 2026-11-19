@@ -46,7 +46,7 @@ aws \
       "CORSRules": [
         {
           "AllowedOrigins": ["http://localhost:5173"],
-          "AllowedMethods": ["PUT"],
+          "AllowedMethods": ["GET", "PUT"],
           "AllowedHeaders": ["Content-Type"],
           "MaxAgeSeconds": 3000
         }

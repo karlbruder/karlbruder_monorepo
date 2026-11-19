@@ -16,11 +16,7 @@ const tournament = {
   registration_opens_on: '2026-11-01',
   registration_closes_on: '2026-12-31',
   is_registration_closed: false,
-  rules_text: null,
-  rules_url: 'https://example.test/rules',
   ...acceptanceEvidence,
-  cancellation_policy_text: 'Policy fixture',
-  cancellation_policy_url: null,
   equipment_requirements: null,
 }
 
@@ -63,6 +59,24 @@ afterEach(() => {
 })
 
 describe('Tournament registration', () => {
+  it('shows available policy files to the signed-in athlete when registration is closed', async () => {
+    mockTournament({
+      ...tournament, is_registration_closed: true,
+      acceptance_content: {
+        ...acceptanceEvidence.acceptance_content,
+        pt: { ...acceptanceEvidence.acceptance_content.pt, policies: {
+          rules: { document: { version_id: 19, original_file_name: 'rules.pdf', content_type: 'application/pdf' } },
+          cancellation_policy: { document: null },
+        } },
+      },
+    })
+    render(<TournamentRegistration session={signedInSession} authReady authError={null} onSignOut={vi.fn()} signInButton={null} />)
+    expect(await screen.findByRole('region', { name: 'Documentos do torneio' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /rules.pdf/ })).toBeInTheDocument()
+    expect(screen.getByText(/Política de cancelamento: conteúdo ainda não disponível/)).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Formulário de inscrição' })).not.toBeInTheDocument()
+  })
+
   it('shows an unavailable state when the catalog has no match, without choosing another event', async () => {
     const request = mockTournament(null)
     render(

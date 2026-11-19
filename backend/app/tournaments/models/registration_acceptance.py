@@ -52,4 +52,15 @@ class RegistrationAcceptance(BaseModel):
     )
     accepted_from_ip: Mapped[str] = mapped_column(String(45), nullable=False)
     language: Mapped[str] = mapped_column(String(2), nullable=False)
+    rules_version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("public.tournament_document_versions.id", ondelete="RESTRICT")
+    )
+    cancellation_policy_version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("public.tournament_document_versions.id", ondelete="RESTRICT")
+    )
+
     registration = relationship("TournamentRegistration", back_populates="acceptances")
+    rules_version = relationship("TournamentDocumentVersion", foreign_keys=[rules_version_id])
+    cancellation_policy_version = relationship(
+        "TournamentDocumentVersion", foreign_keys=[cancellation_policy_version_id]
+    )

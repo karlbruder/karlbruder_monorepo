@@ -1337,13 +1337,13 @@ def test_stale_acceptance_rejects_creation_without_allocating_a_number(setup):
     from app.tournaments.models import RegistrationAcceptance
 
     client, key, session, _storage = setup
-    event_id = _create_event(client, key, rules_text="First version")
+    event_id = _create_event(client, key, equipment_requirements="Gloves")
     owner = _headers(key)
     token = client.get(f"/api/tournaments/{event_id}", headers=owner).json()[
         "acceptance_tokens"
     ]["pt"]
     event = session.get(Tournament, event_id)
-    event.rules_text = "Changed without changing its version label"
+    event.equipment_requirements = "Gloves and mask"
     session.commit()
     response = _post_registration(
         client, event_id, owner, _registration(acceptance_token=token)
@@ -1887,33 +1887,158 @@ def test_registration_read_services_enforce_ownership_and_staff_projection(setup
     assert read_tournament_registration(session, event_id, number, admin).user_id == owner_id
 
 
-def test_linked_policies_are_returned_directly_without_archiving(setup):
-    client, key, session, storage = setup
-    url = "https://example.test/rules.pdf"
-    event_id = _create_event(client, key, rules_url=url)
-    view = client.get(f"/api/tournaments/{event_id}").json()
-    assert view["rules_url"] == url
-    assert "rules_archive_url" not in view
-    assert storage.objects == {}
-    owner = _headers(key)
-    created = _post_registration(client, event_id, owner)
-    assert created.status_code == 201, created.text
-    registration = session.scalar(select(TournamentRegistration).where(TournamentRegistration.registration_number == created.json()["registration_number"]))
-    assert registration.acceptances[0].accepts_rules is True
-    assert not hasattr(registration.acceptances[0], "content")
-    assert storage.objects == {}
+def _publish_policy(setup, event_id, purpose, name):
+    client, key, _session, storage = setup
+    admin = _headers(key, role="admin")
+    base = f"/api/staff/tournaments/{event_id}/policy-documents/{purpose}"
+    issued = client.post(f"{base}/upload-url", headers=admin)
+    assert issued.status_code == 200, issued.text
+    staged_key = issued.json()["storage_key"]
+    storage.objects[staged_key] = (_pdf_bytes(name.encode()), "application/pdf")
+    published = client.post(
+        base, headers=admin,
+        json={"storage_key": staged_key, "original_file_name": name},
+    )
+    assert published.status_code == 201, published.text
+    return published.json()["id"]
 
 
-def test_changed_policy_url_rejects_stale_registration_without_fetching(setup):
+@pytest.mark.parametrize("purpose", ["rules", "cancellation_policy"])
+@pytest.mark.parametrize("include_other_policy", [False, True])
+def test_registration_records_displayed_policies_and_rejects_replacement(
+    setup, purpose, include_other_policy
+):
+    """REG-AC-007: acceptances retain the displayed versions and their files."""
+    from app.tournaments.models import RegistrationAcceptance
+    from app.tournaments.services.registration_acceptances import CHOICE_FIELDS
+
     client, key, session, storage = setup
-    event_id = _create_event(client, key, rules_url="https://example.test/old")
-    owner = _headers(key)
-    old_token = client.get(f"/api/tournaments/{event_id}").json()["acceptance_tokens"]["pt"]
-    payload = _staff_update_payload(client, event_id, key, rules_url="https://example.test/new")
-    updated = client.put(f"/api/staff/tournaments/{event_id}", headers=_headers(key, role="admin"), json=payload)
-    assert updated.status_code == 200
-    assert updated.json()["rules_url"] == "https://example.test/new"
-    stale = _post_registration(client, event_id, owner, _registration(acceptance_token=old_token))
+    event_id = _create_event(client, key)
+    owner_id = uuid4()
+    owner = _headers(key, user_id=owner_id)
+    other = "cancellation_policy" if purpose == "rules" else "rules"
+
+    def read_event():
+        result = client.get(f"/api/tournaments/{event_id}", headers=owner)
+        assert result.status_code == 200, result.text
+        return result.json()
+
+    first_id = _publish_policy(setup, event_id, purpose, "first.pdf")
+    other_id = _publish_policy(setup, event_id, other, "other.pdf") if include_other_policy else None
+    first = read_event()
+    policies = first["acceptance_content"]["en"]["policies"]
+    assert policies[purpose]["document"]["version_id"] == first_id
+    other_document = {"version_id": other_id, "original_file_name": "other.pdf", "content_type": "application/pdf"}
+    assert policies[other]["document"] == (other_document if include_other_policy else None)
+
+    second_id = _publish_policy(setup, event_id, purpose, "second.pdf")
+    stale = _post_registration(client, event_id, owner, _registration(
+        acceptance_language="en", acceptance_token=first["acceptance_tokens"]["en"],
+    ))
     assert stale.status_code == 409
+    assert stale.json()["detail"] == "Registration terms changed; refresh before accepting"
     assert session.scalar(select(func.count()).select_from(TournamentRegistration)) == 0
-    assert storage.objects == {}
+    assert session.scalar(select(func.count()).select_from(RegistrationAcceptance)) == 0
+
+    refreshed = read_event()
+    assert refreshed["acceptance_content"]["en"]["policies"][purpose]["document"] == {
+        "version_id": second_id, "original_file_name": "second.pdf", "content_type": "application/pdf",
+    }
+    created = _post_registration(client, event_id, owner, _registration(
+        acceptance_language="en", acceptance_token=refreshed["acceptance_tokens"]["en"],
+    ))
+    assert created.status_code == 201, created.text
+    acceptance = session.scalar(select(RegistrationAcceptance))
+    assert acceptance.accepted_by_user_id == owner_id
+    assert acceptance.language == "en"
+    assert acceptance.accepted_from_ip == "testclient"
+    assert acceptance.accepted_at is not None
+    assert all(getattr(acceptance, name) is True for name in CHOICE_FIELDS)
+
+    _publish_policy(setup, event_id, purpose, "third.pdf")
+    session.refresh(acceptance)
+    number = created.json()["registration_number"]
+    saved = client.get(f"/api/tournaments/{event_id}/registrations/{number}", headers=owner)
+    assert saved.status_code == 200, saved.text
+    for policy, version_id in ((purpose, second_id), (other, other_id)):
+        assert saved.json()[f"{policy}_version_id"] == version_id
+        assert getattr(acceptance, f"{policy}_version_id") == version_id
+
+    downloaded = client.get(
+        f"/api/tournaments/{event_id}/policy-documents/{purpose}/{second_id}/download-url",
+        headers=owner,
+    )
+    assert downloaded.status_code == 200, downloaded.text
+    storage_key = downloaded.json()["download_url"].removeprefix("https://mock.example/download/")
+    assert storage.objects[storage_key][0] == _pdf_bytes(b"second.pdf")
+
+
+def test_policy_migration_preserves_earlier_acceptances_and_uploads(setup):
+    """PRIV-003/009: remove obsolete columns and keep earlier evidence and files."""
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import inspect, text
+
+    client, key, session, storage = setup
+    legacy_event = _create_event(client, key)
+    without_documents = _post_registration(client, legacy_event, _headers(key))
+    assert without_documents.status_code == 201, without_documents.text
+    assert without_documents.json()["rules_version_id"] is None
+    assert without_documents.json()["cancellation_policy_version_id"] is None
+
+    event = _create_event(client, key)
+    rules = _publish_policy(setup, event, "rules", "rules.pdf")
+    policy = _publish_policy(setup, event, "cancellation_policy", "policy.pdf")
+    current_rules = _publish_policy(setup, event, "rules", "rules-current.pdf")
+
+    connection = session.connection()
+    config = Config()
+    config.set_main_option("script_location", "alembic")
+    config.attributes["connection"] = connection
+    command.downgrade(config, "20261117_0001")
+
+    connection.execute(text("""
+        UPDATE public.tournaments
+        SET rules_text = 'Old rules', rules_url = 'https://example.test/rules',
+            cancellation_policy_text = 'Old policy',
+            cancellation_policy_url = 'https://example.test/policy'
+        WHERE id = :id
+    """), {"id": legacy_event})
+
+    acceptance_sql = text("SELECT * FROM public.registration_acceptances")
+    acceptance = dict(connection.execute(acceptance_sql).mappings().one())
+    assert "rules_version_id" not in acceptance
+    assert "cancellation_policy_version_id" not in acceptance
+
+    tables = ("tournament_documents", "tournament_document_versions", "archived_files", "stored_files")
+    before = {
+        table: connection.execute(text(f"SELECT * FROM public.{table} ORDER BY id")).all()
+        for table in tables
+    }
+    command.upgrade(config, "head")
+    assert dict(connection.execute(acceptance_sql).mappings().one()) == {
+        **acceptance, "rules_version_id": None, "cancellation_policy_version_id": None,
+    }
+    columns = {
+        column["name"]
+        for column in inspect(connection).get_columns("tournaments", schema="public")
+    }
+    assert columns.isdisjoint({
+        "rules_text", "rules_url", "cancellation_policy_text", "cancellation_policy_url",
+    })
+    for table, rows in before.items():
+        assert connection.execute(text(f"SELECT * FROM public.{table} ORDER BY id")).all() == rows
+
+    owner = _headers(key)
+    with_documents = _post_registration(client, event, owner)
+    assert with_documents.status_code == 201, with_documents.text
+    assert with_documents.json()["rules_version_id"] == current_rules
+    assert with_documents.json()["cancellation_policy_version_id"] == policy
+
+    download = client.get(
+        f"/api/tournaments/{event}/policy-documents/rules/{rules}/download-url",
+        headers=owner,
+    )
+    assert download.status_code == 200, download.text
+    archive_key = download.json()["download_url"].removeprefix("https://mock.example/download/")
+    assert storage.objects[archive_key][0] == _pdf_bytes(b"rules.pdf")

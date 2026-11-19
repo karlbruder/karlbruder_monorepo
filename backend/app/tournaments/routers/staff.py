@@ -11,6 +11,8 @@ from app.auth.dependencies import (
 from app.auth.models import User
 from app.core.db.session import get_session
 from app.core.files import FileStorage, get_file_storage
+from app.tournaments.services import tournament_policy_documents as policy_documents
+from app.tournaments.schemas import PolicyDocumentPublish, PolicyDocumentRead, policy_document_read, PaymentProofUploadUrlRead
 from app.tournaments.schemas import (
     StaffRegistrationSummaryRead,
     TagInput,
@@ -272,3 +274,27 @@ def set_staff_registration_tags(
     session: Annotated[Session, Depends(get_session)],
 ):
     return tournament_tags.registration_tags(session, tournament_id, number, admin, payload.tag_ids, staff=True)
+
+
+@router.post("/{tournament_id}/policy-documents/{purpose}/upload-url", response_model=PaymentProofUploadUrlRead)
+def create_policy_upload_url(
+    tournament_id: int,
+    purpose: policy_documents.PolicyPurpose,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    return policy_documents.create_upload(session, storage, tournament_id, purpose, admin)
+
+
+@router.post("/{tournament_id}/policy-documents/{purpose}", response_model=PolicyDocumentRead, status_code=201)
+def publish_policy_document(
+    tournament_id: int,
+    purpose: policy_documents.PolicyPurpose,
+    payload: PolicyDocumentPublish,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+    storage: Annotated[FileStorage, Depends(get_file_storage)],
+):
+    document = policy_documents.publish(session, storage, tournament_id, purpose, admin, payload.storage_key, payload.original_file_name)
+    return policy_document_read(document)

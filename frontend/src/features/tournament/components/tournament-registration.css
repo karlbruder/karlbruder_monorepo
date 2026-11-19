@@ -369,6 +369,17 @@
   font-size: 12px;
 }
 
+.registration-card .registration-policy button.registration-policy-open {
+  border: 0;
+  color: var(--wine);
+  font: inherit;
+  min-height: 24px;
+  overflow-wrap: anywhere;
+  padding: 0;
+  text-align: start;
+  text-decoration: underline;
+}
+
 .registration-success {
   border-color: #d2dfcd;
 }
