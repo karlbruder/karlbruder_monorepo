@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiBaseUrl } from "@/config/environment";
+import { uploadFileToPresignedUrl, type ParentalConsentFormUploadUrl, type PolicyPurpose } from "@/features/tournament/api/tournaments";
 import { apiFetch } from "@/lib/api-fetch";
 
 export type StaffTournament = {
@@ -47,4 +48,48 @@ export function saveStaffTournament(token: string, values: Record<string, unknow
 }
 export function deleteStaffTournament(token: string, id: string) {
   return request<void>(token, `/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+type StaffPolicyDocument = {
+  id: number;
+  original_file_name: string;
+};
+
+type StaffPolicyDocuments = Partial<Record<PolicyPurpose, StaffPolicyDocument>>;
+
+function policyDocumentsKey(userId: string, tournamentId: number) {
+  return ["staff-policy-documents", userId, tournamentId];
+}
+
+export function useStaffPolicyDocuments(token: string, userId: string, tournamentId: number) {
+  return useQuery({
+    queryKey: policyDocumentsKey(userId, tournamentId),
+    queryFn: async ({ signal }): Promise<StaffPolicyDocuments> => {
+      const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/policy-documents`, {
+        headers: { Authorization: `Bearer ${token}` }, signal,
+      });
+      if (!response.ok) throw new StaffTournamentError(response.status, null);
+      return response.json();
+    },
+  });
+}
+
+export function usePublishPolicyDocument(token: string, userId: string, tournamentId: number, purpose: PolicyPurpose) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const path = `/${tournamentId}/policy-documents/${purpose}`;
+      const { storage_key, upload_url, required_headers } = await request<ParentalConsentFormUploadUrl>(token, `${path}/upload-url`, { method: "POST" });
+      await uploadFileToPresignedUrl(upload_url, file, required_headers);
+      return request<StaffPolicyDocument>(token, path, {
+        method: "POST", body: JSON.stringify({ storage_key, original_file_name: file.name }),
+      });
+    },
+    onSuccess: async (document) => {
+      const queryKey = policyDocumentsKey(userId, tournamentId);
+      await client.cancelQueries({ queryKey });
+      client.setQueryData<StaffPolicyDocuments>(queryKey, (current) => ({ ...current, [purpose]: document }));
+      void client.invalidateQueries({ queryKey: ["tournaments"], refetchType: "none" });
+    },
+  });
 }

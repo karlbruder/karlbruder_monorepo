@@ -38,6 +38,7 @@ CHOICE_FIELDS = (
 class PolicyVersionDescriptor(TypedDict):
     version_id: int
     original_file_name: str
+    content_type: str
 
 
 PolicyVersions = dict[str, PolicyVersionDescriptor]
@@ -74,6 +75,7 @@ def current_policy_versions(
             snapshots[document.tournament_id][document.purpose] = {
                 "version_id": version.id,
                 "original_file_name": version.archive.file.original_file_name,
+                "content_type": version.archive.file.content_type,
             }
     return snapshots
 

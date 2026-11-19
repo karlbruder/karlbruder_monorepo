@@ -1,7 +1,7 @@
 # 0008: Shared files and archived content
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-17
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -40,7 +40,7 @@ allowed formats, size limits, submission history and owner/staff access.
 
 A `TournamentDocument` belongs to a tournament. A `TournamentDocumentVersion` links one published version to an `ArchivedFile`. Rules and cancellation policies each have a distinct purpose. Staff uploads create new versions, and tournament visibility rules govern access to earlier versions. The model permits documents without a policy purpose. Publishing general resources is not yet implemented.
 
-Issue #88 is transitioning policy configuration from external links and text to uploaded documents. Registration acceptance still uses the legacy fields until a later checkpoint.
+Issue #88 is transitioning policy configuration from external links and text to uploaded documents. Registration records the version IDs from the displayed policy snapshot. Earlier acceptances retain their original evidence. The coordinated cutover removes the legacy fields.
 
 ## Future use
 

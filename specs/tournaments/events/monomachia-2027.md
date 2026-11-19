@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-18
 
 | Field | Value |
 | --- | --- |
@@ -45,8 +45,8 @@ Event values are staff-managed Tournament configuration, not product questions. 
 | Payment deadline and prices | `payment_due_at` and tournament registration products with prices in BRL |
 | Capacity | `competitor_capacity`. Null means unlimited. No waitlist-size limit |
 | Venue and schedule | `location`, `schedule` |
-| Regulation | `rules_text` and `rules_url`. Retain versioned acceptance evidence |
-| Equipment and cancellation | `equipment_requirements`, `cancellation_policy_text` and `cancellation_policy_url` (text or URL). Monomachia is non-refundable and uses `refunds_allowed = false`. |
+| Regulation | Publish a versioned rules document in tournament settings. Retain the version recorded at acceptance. |
+| Equipment and cancellation | `equipment_requirements` and a versioned cancellation policy document. Monomachia is non-refundable and uses `refunds_allowed = false`. |
 | Record creation | `created_at` |
 | Pix destination | Receiving account and Pix key are payment configuration, not fixed product-spec values |
 

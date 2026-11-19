@@ -96,14 +96,6 @@ class TournamentCreate(BaseModel):
             )
         return self
 
-    @model_validator(mode="after")
-    def require_policy_when_refunds_are_allowed(self) -> "TournamentCreate":
-        if self.refunds_allowed and not (
-            self.cancellation_policy_url or (self.cancellation_policy_text or "").strip()
-        ):
-            raise ValueError("Refunds require a cancellation policy")
-        return self
-
 
 class TournamentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

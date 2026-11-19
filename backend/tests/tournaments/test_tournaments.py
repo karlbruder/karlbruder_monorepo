@@ -380,19 +380,24 @@ def test_catalog_routes_have_explicit_response_contracts(client):
         {},
     ],
 )
-def test_catalog_preserves_separate_optional_policy_text_and_urls(client, policies):
+def test_tournament_edit_preserves_omitted_legacy_policy_text_and_urls(client, policies):
     test_client, key = client
     created = test_client.post(
         "/api/staff/tournaments", json=_event(**policies), headers=_headers(key, "admin")
     )
     assert created.status_code == 201, created.text
+    updated = test_client.put(
+        f"/api/staff/tournaments/{created.json()['id']}",
+        json=_event("Updated fixture"), headers=_headers(key, "admin"),
+    )
+    assert updated.status_code == 200, updated.text
     for name in (
         "rules_text",
         "rules_url",
         "cancellation_policy_text",
         "cancellation_policy_url",
     ):
-        assert created.json()[name] == policies.get(name)
+        assert updated.json()[name] == policies.get(name)
     public = test_client.get(f"/api/tournaments/{created.json()['id']}")
     assert public.status_code == 200
     assert public.json()["rules_url"] == policies.get("rules_url")
@@ -479,7 +484,12 @@ def test_policy_versions_are_scoped_visible_and_retained(client, db_session):
     assert test_client.post(base + "/upload-url", headers=regular).status_code == 403
     assert test_client.post(base, headers=regular, json={"storage_key": "x", "original_file_name": "x"}).status_code == 403
     first = publish(public_id, "rules", b"%PDF-1.4 first")
+    staff_path = f"/api/staff/tournaments/{public_id}"
+    assert test_client.put(staff_path, headers=admin, json=_event(refunds_allowed=True)).status_code == 422
     cancellation = publish(public_id, "cancellation_policy", b"%PDF-1.4 cancel")
+    saved = test_client.put(staff_path, headers=admin, json=_event(refunds_allowed=True))
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["refunds_allowed"] is True
     second = publish(public_id, "rules", b"%PDF-1.4 second")
     hidden = publish(internal_id, "rules", b"%PDF-1.4 hidden")
     current = test_client.get(f"/api/tournaments/{public_id}/policy-documents").json()

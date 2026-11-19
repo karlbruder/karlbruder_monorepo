@@ -1958,7 +1958,7 @@ def test_registration_records_displayed_policies_and_rejects_replacement(
     first = read_event()
     policies = first["acceptance_content"]["en"]["policies"]
     assert policies[purpose]["document"]["version_id"] == first_id
-    other_document = {"version_id": other_id, "original_file_name": "other.pdf"}
+    other_document = {"version_id": other_id, "original_file_name": "other.pdf", "content_type": "application/pdf"}
     assert policies[other]["document"] == (other_document if include_other_policy else None)
 
     second_id = publish_version(purpose, "second.pdf")
@@ -1972,7 +1972,7 @@ def test_registration_records_displayed_policies_and_rejects_replacement(
 
     refreshed = read_event()
     assert refreshed["acceptance_content"]["en"]["policies"][purpose]["document"] == {
-        "version_id": second_id, "original_file_name": "second.pdf",
+        "version_id": second_id, "original_file_name": "second.pdf", "content_type": "application/pdf",
     }
     created = _post_registration(client, event_id, owner, _registration(
         acceptance_language="en", acceptance_token=refreshed["acceptance_tokens"]["en"],

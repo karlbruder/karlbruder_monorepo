@@ -7,6 +7,7 @@ export type PolicyPurpose = "rules" | "cancellation_policy";
 export type PolicyVersion = {
   version_id: number;
   original_file_name: string;
+  content_type: string;
 };
 
 export type AcceptanceContent = {
@@ -32,10 +33,6 @@ export type Tournament = {
   registration_closes_on: string | null;
   is_registration_closed: boolean;
   refunds_allowed?: boolean;
-  rules_text: string | null;
-  rules_url: string | null;
-  cancellation_policy_text: string | null;
-  cancellation_policy_url: string | null;
   equipment_requirements: string | null;
 };
 
@@ -202,9 +199,10 @@ function isVersionId(value: unknown): value is number {
 function isPolicyVersion(value: unknown): value is PolicyVersion | null {
   if (value === null) return true;
   if (!value || typeof value !== "object") return false;
-  const { version_id, original_file_name } = value as Partial<PolicyVersion>;
+  const { version_id, original_file_name, content_type } = value as Partial<PolicyVersion>;
   return isVersionId(version_id)
-    && typeof original_file_name === "string" && original_file_name.trim().length > 0;
+    && typeof original_file_name === "string" && original_file_name.trim().length > 0
+    && typeof content_type === "string" && content_type.length > 0;
 }
 
 function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
@@ -260,10 +258,6 @@ function isTournament(value: unknown): value is Tournament {
     isNullableString(event.location) &&
     isNullableString(event.registration_opens_on) &&
     isNullableString(event.registration_closes_on) &&
-    isNullableString(event.rules_text) &&
-    isNullableString(event.rules_url) &&
-    isNullableString(event.cancellation_policy_text) &&
-    isNullableString(event.cancellation_policy_url) &&
     isNullableString(event.equipment_requirements)
   );
 }

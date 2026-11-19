@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-17
+**Last updated**: 2026-11-18
 
 This module manages tournament configuration, registration, participant documents,
 payment review, and cancellation. It serves Monomachia and other tournaments
@@ -108,7 +108,7 @@ A HEMA Ratings reference need not be a URL. Category notes are not staff approva
 Tournament reads return `acceptance_content` and `acceptance_tokens` for
 `pt` and `en`. Each language's `policies.rules` and
 `policies.cancellation_policy` has a `document` field. It contains
-`version_id` and `original_file_name` when a version has been published.
+`version_id`, `original_file_name`, and the validated `content_type` when a version has been published.
 An absent upload has a null `document` field.
 
 The token covers declarations, equipment requirements, uploaded document
@@ -123,10 +123,9 @@ on the form. Earlier records keep null references. Owner and staff registration
 reads return `rules_version_id` and `cancellation_policy_version_id`.
 Athletes can open recorded versions from the read-only declarations panel.
 
-The registration form requests an authorized download when an athlete opens
-an uploaded policy. Until the staff configuration form switches to uploads,
-registration falls back to the legacy URL or text when that policy has no
-uploaded version. Final legal wording remains open under PRIV-Q1.
+The registration form displays uploaded policies and requests an authorized
+download when an athlete opens one. Legacy configuration remains in the backend
+until the coordinated cutover. Final legal wording remains open under PRIV-Q1.
 
 ### Tags
 
@@ -182,6 +181,11 @@ versions. `GET /api/tournaments/{tournament_id}/policy-documents/{purpose}/{docu
 returns a short-lived URL for the specified **version ID**. Both routes enforce
 catalog visibility. A hidden tournament or an ID outside the requested tournament
 and purpose returns 404.
+
+The staff form saves tournament facts separately from policy publication.
+Staff can enable refunds on a saved tournament with a published cancellation
+policy. During the transition, staff updates that omit the legacy policy fields
+preserve their stored values.
 
 ### Registration documents
 

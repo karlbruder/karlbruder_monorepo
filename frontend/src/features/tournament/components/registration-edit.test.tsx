@@ -71,7 +71,7 @@ it("opens the accepted rules version from the read-only declarations", async () 
     language="en" onBack={() => {}} onSaved={() => {}} />);
   fireEvent.click(screen.getByText("Review my declarations"));
   expect(screen.queryByRole("button", { name: /accepted cancellation policy/ })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /View accepted tournament rules/ }));
+  fireEvent.click(screen.getByRole("button", { name: /accepted tournament rules/ }));
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl));
   expect(request).toHaveBeenCalledWith("/api/tournaments/42/policy-documents/rules/11/download-url", {
     headers: { Authorization: "Bearer token" },
