@@ -1,0 +1,104 @@
+# End-to-end tests
+
+**Created**: 2026-11-20
+**Last updated**: 2026-11-20
+
+These tests exercise the application through a browser and real service boundaries.
+The stack and its data are disposable. The current suite contains readiness and
+sign-in smoke checks. Registration and payment journeys are still being added.
+
+## What runs where
+
+Docker Compose runs the frontend, backend, PostgreSQL, Supabase Auth, and
+Ministack. PostgreSQL has separate domain and Auth databases. The backend checks
+real Auth tokens against the local Auth service's JWKS. Ministack supplies S3
+for private uploads. Vite forwards `/api` requests to the backend.
+
+Node.js, Playwright, and Chromium run on the host. Docker, Docker Compose,
+OpenSSL, and `make` are also required on the host. The stack does not need the
+ordinary development environment files or a hosted Supabase project. The backend
+SMTP and Sentry integrations are disabled. Auth uses automatic confirmation and
+a no-op mailer.
+
+The frontend, Auth gateway, and S3 endpoint bind only to loopback ports 5174,
+54331, and 4567. PostgreSQL and the backend are not published. The normal
+development stack keeps its existing ports.
+
+## Install and run
+
+From the repository or worktree root:
+
+```sh
+npm ci --prefix tests/e2e
+npx --prefix tests/e2e playwright install chromium
+make test-e2e
+```
+
+`npm ci` installs the locked Playwright package under this folder. The install
+command downloads the matching Chromium to the host's Playwright browser cache.
+The test command builds and starts the services, waits for readiness, applies
+Alembic migrations, seeds synthetic data, runs the tests, and removes the
+project's containers, network, and volumes. It also tears down after a failure.
+
+Each run chooses a project name beginning with `kb-e2e-`. Set `E2E_PROJECT` to
+another unique name with that prefix if needed. A run refuses to reuse an
+existing project's resources. Runs use fixed host ports and cannot run in
+parallel with another E2E run on the same host.
+
+The bootstrap creates temporary Auth signing keys, an internal HTTPS certificate,
+and fixture metadata. They are deleted during cleanup and are not test artifacts.
+The fixture accounts and password are synthetic. Their values are in
+[`scripts/e2e/seed.py`](../../scripts/e2e/seed.py). Never use them outside this
+stack.
+
+After a failure, service logs are retained in `tests/e2e/artifacts/services.log`.
+The HTML report is in `tests/e2e/playwright-report/`. Failure traces are in
+`tests/e2e/test-results/`. These generated files are ignored by Git. Open the
+report with:
+
+```sh
+./tests/e2e/node_modules/.bin/playwright show-report tests/e2e/playwright-report
+```
+
+## Playwright agents and Codex
+
+The planner explores a live application and writes a browser plan. The generator
+uses that plan to create tests. The healer proposes changes for failing tests.
+Review plans, generated tests, and healer changes before accepting them. Keep
+important assertions when fixing a test.
+
+The generated definitions are in [`.codex/agents/`](../../.codex/agents/). The
+project's [`.codex/config.toml`](../../.codex/config.toml) connects the
+`playwright-test` MCP server to the parent Codex session. The server uses the
+locked Playwright package and `playwright.agents.config.ts`. That config discovers
+only `tests/seed.spec.ts`. The regular config excludes the seed from test runs.
+
+After installing the dependencies above:
+
+1. Open this repository or worktree as the Codex project and trust the project
+   configuration when prompted. Start a new Codex session after adding or changing
+   the MCP configuration. An already running session may not load the new server.
+2. From the worktree root, run `codex mcp list` and check that `playwright-test`
+   is enabled. In the Codex terminal interface, `/mcp` shows active connections.
+   A listed server does not by itself prove that an existing chat connected to it.
+3. In a separate terminal, run `E2E_MODE=explore make test-e2e`. Wait for the
+   frontend URL and temporary fixture metadata path. Leave the terminal open
+   while the agents explore. The metadata identifies the seeded tournaments, payment registration, and
+   staff account UUID. Press Enter when finished to tear down the stack.
+4. In the new session, ask Codex to use the Playwright planner with the agent seed
+   and the relevant journey. Review the resulting plan. Then ask it to use the
+   generator against that plan. Run `make test-e2e` from fresh data to verify the
+   result. Use the healer for a focused proposed fix when a test fails.
+
+The agents need the parent session's MCP connection. An MCP entry inside an agent
+definition alone does not connect the parent session. No global `codex mcp add`
+command is needed for this project configuration. If the server cannot start,
+confirm the project is trusted, `node` is on the host PATH, `npm ci` succeeded,
+and Codex is running from the worktree root. Check the active MCP list in the
+new session. Keep credentials and browser session files out of plans and artifacts.
+
+The definitions were generated with `playwright init-agents --loop=codex` and
+adapted to the worktree's locked package and agent config. Regenerate and review
+them when Playwright changes. Regeneration can overwrite those adaptations.
+See [Playwright Test Agents](https://playwright.dev/docs/test-agents) and
+[Codex MCP configuration](https://developers.openai.com/codex/mcp).
