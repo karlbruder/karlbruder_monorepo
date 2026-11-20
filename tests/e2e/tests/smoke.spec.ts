@@ -11,7 +11,7 @@ test('participant and staff can sign in and reach the API', async ({ page }) => 
     const result = await page.evaluate(async ({ account }) => {
       const signIn = await fetch('http://localhost:54331/auth/v1/token?grant_type=password', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', apikey: 'sb_publishable_e2e' },
+        headers: { 'content-type': 'application/json', apikey: 'sb_publishable_e2e', 'x-supabase-api-version': '2024-01-01' },
         body: JSON.stringify({ email: `${account}@example.test`, password: 'E2e-fixture-password-2026!' }),
       })
       if (!signIn.ok) return { status: signIn.status, user: null }
