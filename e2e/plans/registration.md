@@ -8,11 +8,11 @@ Exercise guest sign-in and registration through the real application, starting f
 
 ### 1. Tournament registration
 
-**Seed:** `tests/e2e/tests/seed.spec.ts`
+**Seed:** `e2e/tests/seed.spec.ts`
 
 #### 1.1. Guest signs in and registers for the selected tournament
 
-**File:** `tests/e2e/tests/registration.spec.ts`
+**File:** `e2e/tests/registration.spec.ts`
 
 **Steps:**
   1. Load fixture metadata and open /tournaments/registration?tournament_id=<registration_tournament_id> in a fresh browser context.

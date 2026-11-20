@@ -78,7 +78,7 @@ Read-only `gh` commands, such as viewing, retrieving, and listing, do not requir
 
 - For Playwright agent workflows, prefer Cursor with an available Grok model.
   If Cursor, Grok, or the required integration is unavailable, use the Codex
-  Playwright agents. Follow the setup in [the E2E README](tests/e2e/README.md).
+  Playwright agents. Follow the setup in [the E2E README](e2e/README.md).
   Use a model and reasoning effort suited to the task. Keep context and agent
   calls focused to limit token use. Ordinary test runs do not require an agent.
 - Follow the relevant rules and acceptance criteria. Cite a rule ID in the test description or in verification notes when that helps a reader find the rule. Do not use the ID as the whole test name.

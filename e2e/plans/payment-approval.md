@@ -8,11 +8,11 @@ Exercise the separately seeded payable registration from a fresh disposable stac
 
 ### 1. Payment review
 
-**Seed:** `tests/e2e/tests/seed.spec.ts`
+**Seed:** `e2e/tests/seed.spec.ts`
 
 #### 1.1. Owner submits proof and staff confirms the available seat
 
-**File:** `tests/e2e/tests/payment-approval.spec.ts`
+**File:** `e2e/tests/payment-approval.spec.ts`
 
 **Steps:**
   1. Load fixture metadata and sign in as owner@example.test in a fresh owner context. Open the independent E2E Payment registration.

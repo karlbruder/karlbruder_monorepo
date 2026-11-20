@@ -141,15 +141,15 @@ for focused checks and host development.
 
 ### Browser checks
 
-The application services run in Docker. Playwright and its Chromium browser run on the host. Install Node.js, Docker Compose, and OpenSSL on the host. The commands below install the locked Playwright package in `tests/e2e/node_modules` and download Chromium to the host Playwright cache. Run them from the repository root:
+The application services run in Docker. Playwright and its Chromium browser run on the host. Install Node.js, Docker Compose, and OpenSSL on the host. The commands below install the locked Playwright package in `e2e/node_modules` and download Chromium to the host Playwright cache. Run them from the repository root:
 
 ```sh
-npm ci --prefix tests/e2e
-npx --prefix tests/e2e playwright install chromium
+npm ci --prefix e2e
+npx --prefix e2e playwright install chromium
 make test-e2e
 ```
 
-For the stack design, troubleshooting, and Codex agent setup, see the [E2E guide](tests/e2e/README.md).
+For the stack design, troubleshooting, and Codex agent setup, see the [E2E guide](e2e/README.md).
 
 The command creates disposable PostgreSQL, Supabase Auth, Ministack, backend, and
 frontend services. It seeds synthetic accounts and tournaments, runs migrations,
@@ -157,7 +157,7 @@ and removes its Compose project and volumes even on failure. Frontend, Auth, and
 S3 use loopback ports 5174, 54331, and 4567. Development ports are unchanged.
 The command uses a unique project name by default. Set `E2E_PROJECT` to a unique
 name starting with `kb-e2e-` when a stable name is needed. Failure logs are in
-`tests/e2e/artifacts/`. Playwright writes its report to `tests/e2e/playwright-report/`.
+`e2e/artifacts/`. Playwright writes its report to `e2e/playwright-report/`.
 
 For agent exploration, run `E2E_MODE=explore make test-e2e` in a terminal. The
 command prints the frontend URL and the temporary fixture metadata path. Press
