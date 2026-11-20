@@ -51,5 +51,5 @@ if [[ ${E2E_MODE:-test} == explore ]]; then
   echo 'Press Enter to tear it down.'
   read -r _ || true
 else
-  E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix tests/e2e test
+  E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix tests/e2e test -- "$@"
 fi

@@ -4,8 +4,8 @@
 **Last updated**: 2026-11-20
 
 These tests exercise the application through a browser and real service boundaries.
-The stack and its data are disposable. The current suite contains readiness and
-sign-in smoke checks. Registration and payment journeys are still being added.
+The stack and its data are disposable. The suite covers readiness, sign-in,
+registration for a selected tournament, and staff payment approval.
 
 ## What runs where
 
@@ -39,6 +39,11 @@ command downloads the matching Chromium to the host's Playwright browser cache.
 The test command builds and starts the services, waits for readiness, applies
 Alembic migrations, seeds synthetic data, runs the tests, and removes the
 project's containers, network, and volumes. It also tears down after a failure.
+To run the payment journey alone on a fresh stack, use:
+
+```sh
+./scripts/e2e/run.sh tests/payment-approval.spec.ts
+```
 
 Each run chooses a project name beginning with `kb-e2e-`. Set `E2E_PROJECT` to
 another unique name with that prefix if needed. A run refuses to reuse an
@@ -64,8 +69,13 @@ report with:
 
 The planner explores a live application and writes a browser plan. The generator
 uses that plan to create tests. The healer proposes changes for failing tests.
-Review plans, generated tests, and healer changes before accepting them. Keep
-important assertions when fixing a test.
+Agents use model calls only when invoked. Normal test runs execute the checked-in
+Playwright code without invoking an agent or requiring model API credentials.
+
+The healer cannot reliably decide whether a failure is a stale test or a product
+regression. Review its proposed diff against the expected behavior and failure
+evidence. Keep meaningful assertions. Fix the application when it violates the
+expected behavior.
 
 The generated definitions are in [`.codex/agents/`](../../.codex/agents/). The
 project's [`.codex/config.toml`](../../.codex/config.toml) connects the
@@ -76,16 +86,19 @@ only `tests/seed.spec.ts`. The regular config excludes the seed from test runs.
 After installing the dependencies above:
 
 1. Open this repository or worktree as the Codex project and trust the project
-   configuration when prompted. Start a new Codex session after adding or changing
-   the MCP configuration. An already running session may not load the new server.
-2. From the worktree root, run `codex mcp list` and check that `playwright-test`
-   is enabled. In the Codex terminal interface, `/mcp` shows active connections.
-   A listed server does not by itself prove that an existing chat connected to it.
+   configuration when prompted. After changing MCP configuration, restart the
+   app if needed and reopen the same chat. Verify that the server is connected.
+2. If the Codex CLI is installed on your PATH, run `codex mcp list` from the
+   worktree root and check that `playwright-test` is enabled. In the Codex
+   terminal interface, `/mcp` shows active connections. The desktop app can be
+   used without a separately installed CLI. In that case, ask Codex in this chat
+   to check the active Playwright MCP tools. A listed server does not by itself
+   prove that the chat connected to it.
 3. In a separate terminal, run `E2E_MODE=explore make test-e2e`. Wait for the
    frontend URL and temporary fixture metadata path. Leave the terminal open
-   while the agents explore. The metadata identifies the seeded tournaments, payment registration, and
-   staff account UUID. Press Enter when finished to tear down the stack.
-4. In the new session, ask Codex to use the Playwright planner with the agent seed
+   while the agents explore. The metadata identifies the seeded tournaments, payment registration,
+   and staff account UUID. Press Enter when finished to tear down the stack.
+4. In the chat, ask Codex to use the Playwright planner with the agent seed
    and the relevant journey. Review the resulting plan. Then ask it to use the
    generator against that plan. Run `make test-e2e` from fresh data to verify the
    result. Use the healer for a focused proposed fix when a test fails.
@@ -95,7 +108,7 @@ definition alone does not connect the parent session. No global `codex mcp add`
 command is needed for this project configuration. If the server cannot start,
 confirm the project is trusted, `node` is on the host PATH, `npm ci` succeeded,
 and Codex is running from the worktree root. Check the active MCP list in the
-new session. Keep credentials and browser session files out of plans and artifacts.
+chat. Keep credentials and browser session files out of plans and artifacts.
 
 The definitions were generated with `playwright init-agents --loop=codex` and
 adapted to the worktree's locked package and agent config. Regenerate and review

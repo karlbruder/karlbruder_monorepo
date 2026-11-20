@@ -31,3 +31,6 @@ __pycache__/
 
 # Local Ministack persistence (bind-mounted from compose.yml)
 ministack/data/
+
+# Playwright agent browser output
+.playwright-mcp/
