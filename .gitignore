@@ -1,6 +1,9 @@
 # Editor and local agent state
 .vscode
-.cursor
+!.cursor/
+.cursor/*
+!.cursor/mcp.json
+!.cursor/agents/
 .idea
 .local
 

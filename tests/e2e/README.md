@@ -65,7 +65,7 @@ report with:
 ./tests/e2e/node_modules/.bin/playwright show-report tests/e2e/playwright-report
 ```
 
-## Playwright agents and Codex
+## Playwright agents
 
 The planner explores a live application and writes a browser plan. The generator
 uses that plan to create tests. The healer proposes changes for failing tests.
@@ -76,6 +76,43 @@ The healer cannot reliably decide whether a failure is a stale test or a product
 regression. Review its proposed diff against the expected behavior and failure
 evidence. Keep meaningful assertions. Fix the application when it violates the
 expected behavior.
+
+For agent-assisted Playwright work, prefer Cursor with a Grok model when Cursor,
+Grok, and the integration are available. Otherwise use the Codex setup below.
+Choose a model and reasoning effort appropriate to the task. Start with a lower
+effort for straightforward work and increase it when the evidence calls for it.
+Keep prompts and delegated tasks focused. Check the model actually used and its
+usage in Cursor. Model availability and pricing depend on the account.
+
+### Cursor setup
+
+1. Install the dependencies and Chromium using the commands above. Open the
+   repository root as a Cursor project.
+2. In Cursor's MCP settings, enable `playwright-test` from the project's
+   [`.cursor/mcp.json`](../../.cursor/mcp.json) and check that its tools connect.
+   The configuration uses the same locked Playwright package and agent seed as
+   Codex. No separate global MCP entry is required.
+3. Select an available Grok model in Cursor. The project subagents inherit that
+   model. If Grok or the MCP connection is unavailable, use Codex instead.
+   Cursor may choose another model if a configured model is unavailable, so
+   inspect the subagent task card rather than assuming which model ran.
+4. Run `E2E_MODE=explore make test-e2e` in a separate terminal and wait for the
+   frontend URL and fixture metadata. Keep it running during browser work.
+5. Ask Cursor to use `/playwright-planner` for the desired journey, then
+   `/playwright-generator` for the reviewed plan. Use `/playwright-healer` to
+   investigate a failing test. Review its diagnosis before changing behavior.
+   Press Enter in the exploration terminal when finished, then run
+   `make test-e2e` against fresh data.
+
+The Cursor definitions in [`.cursor/agents/`](../../.cursor/agents/) adapt the
+Playwright planner, generator, and healer workflows to Cursor subagents.
+Playwright does not provide a Cursor-specific `init-agents` option. Review the
+definitions and MCP connection after updating Playwright or Cursor.
+See [Playwright Test Agents](https://playwright.dev/docs/test-agents),
+[Cursor MCP](https://cursor.com/docs/mcp), and
+[Cursor subagents](https://cursor.com/docs/subagents).
+
+### Codex setup
 
 The generated definitions are in [`.codex/agents/`](../../.codex/agents/). The
 project's [`.codex/config.toml`](../../.codex/config.toml) connects the
