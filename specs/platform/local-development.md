@@ -1,7 +1,7 @@
 # Local development
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-20
 
 | Field | Value |
 | --- | --- |
@@ -54,7 +54,8 @@ service addresses, environment files, source mounts, and rebuild commands.
 Application READMEs own [backend checks](../../backend/README.md#tests-and-lint)
 and [frontend checks](../../frontend/README.md#build-and-checks). Backend tests use
 an isolated Compose database with no published ports. Frontend checks use the
-development image.
+development image. Browser checks use a separate disposable Compose stack with
+local Auth and dedicated loopback ports. See [browser checks](../../README.md#browser-checks).
 
 Remaining gap:
 
@@ -78,7 +79,7 @@ None about local ports, database placement, hosted authentication, or the `/api`
 ## Implementation decisions
 
 - Local Compose includes the landing development server. Landing Jest and frontend Vitest do not use `compose.test.yml`, because those suites do not need the private test database. Run them with `docker compose run --rm --no-deps` against the local development services. Production landing deploys with the application workflow when landing files change.
-- Choose frontend and end-to-end tooling to verify feature acceptance criteria as part of implementation. Issue #21 aligned the observed forwarding and health-check mismatches with the selected local settings; live browser acceptance remains a separate verification step.
+- Use the isolated browser stack for end-to-end checks. Ordinary local development continues to use hosted Auth. Issue #21 aligned the observed forwarding and health-check mismatches with the selected local settings.
 
 Local SMTP is a deferred implementation choice, likely SES with real credentials. Existing development ports and `/api` forwarding are implementation settings, not open product questions.
 

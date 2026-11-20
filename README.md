@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-20
 
 Monorepo for the Karlbrüder public website and tournament application.
 Association membership and equipment inventory are future capabilities.
@@ -15,6 +15,7 @@ Association membership and equipment inventory are future capabilities.
 | `backend/` | FastAPI, token verification, domain rules, and database access | [Backend README](backend/README.md) |
 | `compose.yml` | Local website, application, PostgreSQL, and Ministack | [Local setup](#local-setup-with-docker-compose) |
 | `compose.test.yml` | Isolated backend tests without host ports | [Backend checks](backend/README.md#tests-and-lint) |
+| `compose.e2e.yml` | Disposable application and local Auth for browser checks | [Browser checks](#browser-checks) |
 | `compose.production.yml` | Cloud stack on both dev and prod hosts | [Deployment guide](docs/deployment.md) |
 | `Makefile` | Local service, database, and check commands | `make help` |
 | `specs/` | Requirements, architecture, ADRs, and open questions | [Specification index](specs/README.md) |
@@ -126,6 +127,7 @@ Run these targets from the repository root:
 
 | Command | Checks |
 | --- | --- |
+| `make test-e2e` | Chromium browser checks against a disposable stack |
 | `make test-backend TEST_PROJECT=kb-test-your-name` | Pytest in isolated Compose. Choose a unique project name |
 | `make lint-backend TEST_PROJECT=kb-test-your-name` | Ruff in isolated Compose |
 | `make test-frontend` | Vitest in the frontend development image |
@@ -136,6 +138,29 @@ Backend targets clean up their test project. Frontend and landing test targets
 use local Compose and require its environment files. `make ci` uses CI placeholders
 without developer environment files or live Supabase. See each application README
 for focused checks and host development.
+
+### Browser checks
+
+Install Node.js, Docker Compose, and OpenSSL. From the repository root, run:
+
+```sh
+npm ci --prefix tests/e2e
+npx --prefix tests/e2e playwright install chromium
+make test-e2e
+```
+
+The command creates disposable PostgreSQL, Supabase Auth, Ministack, backend, and
+frontend services. It seeds synthetic accounts and tournaments, runs migrations,
+and removes its Compose project and volumes even on failure. Frontend, Auth, and
+S3 use loopback ports 5174, 54331, and 4567. Development ports are unchanged.
+The command uses a unique project name by default. Set `E2E_PROJECT` to a unique
+name starting with `kb-e2e-` when a stable name is needed. Failure logs are in
+`tests/e2e/artifacts/`. Playwright writes its report to `tests/e2e/playwright-report/`.
+
+For agent exploration, run `E2E_MODE=explore make test-e2e` in a terminal. The
+command prints the frontend URL and the temporary fixture metadata path. Press
+Enter to remove the stack and its data. The synthetic account names and password
+are in `scripts/e2e/seed.py`. Do not use these credentials outside this stack.
 
 ## Agentic development
 

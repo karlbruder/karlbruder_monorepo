@@ -5,7 +5,7 @@ FRONTEND_CI_SUPABASE_URL ?= https://ci.example.supabase.co
 FRONTEND_CI_SUPABASE_PUBLISHABLE_KEY ?= sb_publishable_ci_not_a_real_key
 LANDING_CI_APPLICATION_URL ?= https://app.example.test
 
-.PHONY: help up down down-volumes recreate-backend recreate-frontend recreate-landing db-drop db-seed db-reset test-backend lint-backend test-frontend test-landing build-backend build-frontend build-landing ci-backend ci-frontend ci-landing ci
+.PHONY: help test-e2e up down down-volumes recreate-backend recreate-frontend recreate-landing db-drop db-seed db-reset test-backend lint-backend test-frontend test-landing build-backend build-frontend build-landing ci-backend ci-frontend ci-landing ci
 
 help:
 	@echo "Local commands. Run them from the repository root."
@@ -19,6 +19,7 @@ help:
 	@echo "  make db-reset            Drop, migrate, and seed the local Compose database"
 	@echo "  make db-drop             Recreate public and apply Alembic head"
 	@echo "  make db-seed             Insert the local Monomachia event when it is missing"
+	@echo "  make test-e2e            Run Chromium against a disposable application stack"
 	@echo "  make test-backend        Run backend pytest in an isolated Compose project"
 	@echo "  make lint-backend        Run Ruff in that same test project"
 	@echo "  make test-frontend       Run Vitest in the local frontend container"
@@ -61,6 +62,9 @@ db-seed:
 
 db-reset:
 	./scripts/local_database.sh reset
+
+test-e2e:
+	./scripts/e2e/run.sh
 
 test-backend:
 	docker compose -f compose.test.yml -p $(TEST_PROJECT) run --rm backend pytest -x; \
