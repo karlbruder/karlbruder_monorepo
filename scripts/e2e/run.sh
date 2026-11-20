@@ -21,8 +21,8 @@ cleanup() {
   status=$?
   trap - EXIT
   if (( status != 0 )) && [[ -f "$runtime/env" ]]; then
-    mkdir -p tests/e2e/artifacts
-    "${compose[@]}" logs --no-color > tests/e2e/artifacts/services.log 2>&1 || true
+    mkdir -p e2e/artifacts
+    "${compose[@]}" logs --no-color > e2e/artifacts/services.log 2>&1 || true
   fi
   if [[ -f "$runtime/env" ]]; then
     if ! "${compose[@]}" down -v --remove-orphans; then
@@ -51,5 +51,5 @@ if [[ ${E2E_MODE:-test} == explore ]]; then
   echo 'Press Enter to tear it down.'
   read -r _ || true
 else
-  E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix tests/e2e test -- "$@"
+  E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix e2e test -- "$@"
 fi

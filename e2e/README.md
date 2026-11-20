@@ -29,8 +29,8 @@ development stack keeps its existing ports.
 From the repository or worktree root:
 
 ```sh
-npm ci --prefix tests/e2e
-npx --prefix tests/e2e playwright install chromium
+npm ci --prefix e2e
+npx --prefix e2e playwright install chromium
 make test-e2e
 ```
 
@@ -53,16 +53,16 @@ parallel with another E2E run on the same host.
 The bootstrap creates temporary Auth signing keys, an internal HTTPS certificate,
 and fixture metadata. They are deleted during cleanup and are not test artifacts.
 The fixture accounts and password are synthetic. Their values are in
-[`scripts/e2e/seed.py`](../../scripts/e2e/seed.py). Never use them outside this
+[`scripts/e2e/seed.py`](../scripts/e2e/seed.py). Never use them outside this
 stack.
 
-After a failure, service logs are retained in `tests/e2e/artifacts/services.log`.
-The HTML report is in `tests/e2e/playwright-report/`. Failure traces are in
-`tests/e2e/test-results/`. These generated files are ignored by Git. Open the
+After a failure, service logs are retained in `e2e/artifacts/services.log`.
+The HTML report is in `e2e/playwright-report/`. Failure traces are in
+`e2e/test-results/`. These generated files are ignored by Git. Open the
 report with:
 
 ```sh
-./tests/e2e/node_modules/.bin/playwright show-report tests/e2e/playwright-report
+./e2e/node_modules/.bin/playwright show-report e2e/playwright-report
 ```
 
 ## Playwright agents
@@ -89,7 +89,7 @@ usage in Cursor. Model availability and pricing depend on the account.
 1. Install the dependencies and Chromium using the commands above. Open the
    repository root as a Cursor project.
 2. In Cursor's MCP settings, enable `playwright-test` from the project's
-   [`.cursor/mcp.json`](../../.cursor/mcp.json) and check that its tools connect.
+   [`.cursor/mcp.json`](../.cursor/mcp.json) and check that its tools connect.
    The configuration uses the same locked Playwright package and agent seed as
    Codex. No separate global MCP entry is required.
 3. Select an available Grok model in Cursor. The project subagents inherit that
@@ -104,7 +104,7 @@ usage in Cursor. Model availability and pricing depend on the account.
    Press Enter in the exploration terminal when finished, then run
    `make test-e2e` against fresh data.
 
-The Cursor definitions in [`.cursor/agents/`](../../.cursor/agents/) adapt the
+The Cursor definitions in [`.cursor/agents/`](../.cursor/agents/) adapt the
 Playwright planner, generator, and healer workflows to Cursor subagents.
 Playwright does not provide a Cursor-specific `init-agents` option. Review the
 definitions and MCP connection after updating Playwright or Cursor.
@@ -114,8 +114,8 @@ See [Playwright Test Agents](https://playwright.dev/docs/test-agents),
 
 ### Codex setup
 
-The generated definitions are in [`.codex/agents/`](../../.codex/agents/). The
-project's [`.codex/config.toml`](../../.codex/config.toml) connects the
+The generated definitions are in [`.codex/agents/`](../.codex/agents/). The
+project's [`.codex/config.toml`](../.codex/config.toml) connects the
 `playwright-test` MCP server to the parent Codex session. The server uses the
 locked Playwright package and `playwright.agents.config.ts`. That config discovers
 only `tests/seed.spec.ts`. The regular config excludes the seed from test runs.
