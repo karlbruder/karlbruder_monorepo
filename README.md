@@ -141,13 +141,15 @@ for focused checks and host development.
 
 ### Browser checks
 
-Install Node.js, Docker Compose, and OpenSSL. From the repository root, run:
+The application services run in Docker. Playwright and its Chromium browser run on the host. Install Node.js, Docker Compose, and OpenSSL on the host. The commands below install the locked Playwright package in `tests/e2e/node_modules` and download Chromium to the host Playwright cache. Run them from the repository root:
 
 ```sh
 npm ci --prefix tests/e2e
 npx --prefix tests/e2e playwright install chromium
 make test-e2e
 ```
+
+For the stack design, troubleshooting, and Codex agent setup, see the [E2E guide](tests/e2e/README.md).
 
 The command creates disposable PostgreSQL, Supabase Auth, Ministack, backend, and
 frontend services. It seeds synthetic accounts and tournaments, runs migrations,
