@@ -18,7 +18,8 @@ Node.js, Playwright, and Chromium run on the host. Docker, Docker Compose,
 OpenSSL, and `make` are also required on the host. The stack does not need the
 ordinary development environment files or a hosted Supabase project. The backend
 SMTP and Sentry integrations are disabled. Auth uses automatic confirmation and
-a no-op mailer.
+a no-op mailer. The E2E backend uses an empty container-only `.env` file and
+Compose settings, so a developer's `backend/.env` does not affect the run.
 
 The frontend, Auth gateway, and S3 endpoint bind only to loopback ports 5174,
 54331, and 4567. PostgreSQL and the backend are not published. The normal
@@ -88,16 +89,18 @@ usage in Cursor. Model availability and pricing depend on the account.
 
 1. Install the dependencies and Chromium using the commands above. Open the
    repository root as a Cursor project.
-2. In Cursor's MCP settings, enable `playwright-test` from the project's
+2. In Cursor's MCP settings, enable `playwright-test` and `playwright-healer` from the project's
    [`.cursor/mcp.json`](../.cursor/mcp.json) and check that its tools connect.
-   The configuration uses the same locked Playwright package and agent seed as
-   Codex. No separate global MCP entry is required.
+   Both use the locked Playwright package. The planner and generator use the
+   seed-only configuration. The healer uses the normal test configuration.
 3. Select an available Grok model in Cursor. The project subagents inherit that
    model. If Grok or the MCP connection is unavailable, use Codex instead.
    Cursor may choose another model if a configured model is unavailable, so
    inspect the subagent task card rather than assuming which model ran.
 4. Run `E2E_MODE=explore make test-e2e` in a separate terminal and wait for the
-   frontend URL and fixture metadata. Keep it running during browser work.
+   frontend URL and fixture metadata. Keep it running during browser work. The
+   exploration stack exposes fixture metadata through an ignored temporary link
+   that is removed with the stack. Start a fresh stack for each journey.
 5. Ask Cursor to use `/playwright-planner` for the desired journey, then
    `/playwright-generator` for the reviewed plan. Use `/playwright-healer` to
    investigate a failing test. Review its diagnosis before changing behavior.
@@ -116,9 +119,10 @@ See [Playwright Test Agents](https://playwright.dev/docs/test-agents),
 
 The generated definitions are in [`.codex/agents/`](../.codex/agents/). The
 project's [`.codex/config.toml`](../.codex/config.toml) connects the
-`playwright-test` MCP server to the parent Codex session. The server uses the
-locked Playwright package and `playwright.agents.config.ts`. That config discovers
-only `tests/seed.spec.ts`. The regular config excludes the seed from test runs.
+`playwright-test` and `playwright-healer` MCP servers to the parent Codex session.
+The former uses `playwright.agents.config.ts` and discovers only the seed. The
+healer uses the regular configuration, which discovers the journey tests and
+excludes the seed. Both use the locked Playwright package.
 
 After installing the dependencies above:
 
@@ -129,7 +133,7 @@ After installing the dependencies above:
    worktree root and check that `playwright-test` is enabled. In the Codex
    terminal interface, `/mcp` shows active connections. The desktop app can be
    used without a separately installed CLI. In that case, ask Codex in this chat
-   to check the active Playwright MCP tools. A listed server does not by itself
+   to check both active Playwright MCP connections. A listed server does not by itself
    prove that the chat connected to it.
 3. In a separate terminal, run `E2E_MODE=explore make test-e2e`. Wait for the
    frontend URL and temporary fixture metadata path. Leave the terminal open
@@ -138,7 +142,8 @@ After installing the dependencies above:
 4. In the chat, ask Codex to use the Playwright planner with the agent seed
    and the relevant journey. Review the resulting plan. Then ask it to use the
    generator against that plan. Run `make test-e2e` from fresh data to verify the
-   result. Use the healer for a focused proposed fix when a test fails.
+   result. Use the `playwright-healer` server for a focused proposed fix when a
+   test fails. A fresh exploration stack supplies its fixture metadata.
 
 The agents need the parent session's MCP connection. An MCP entry inside an agent
 definition alone does not connect the parent session. No global `codex mcp add`

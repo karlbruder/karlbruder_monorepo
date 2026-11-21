@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 type FixtureData = {
   registration_tournament_id: number
@@ -8,8 +9,7 @@ type FixtureData = {
 }
 
 export function fixtureData(): FixtureData {
-  const path = process.env.E2E_FIXTURE_FILE
-  if (!path) throw new Error('E2E_FIXTURE_FILE is required. Start the stack with scripts/e2e/run.sh.')
+  const path = process.env.E2E_FIXTURE_FILE || join(__dirname, '.explore-fixtures.json')
   return JSON.parse(readFileSync(path, 'utf8')) as FixtureData
 }
 

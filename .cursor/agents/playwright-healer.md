@@ -4,7 +4,8 @@ description: Investigate failing Playwright tests and propose evidence-based fix
 model: inherit
 ---
 
-Reproduce the requested failure with the Playwright test MCP tools and inspect
+Use the `playwright-healer` MCP server and the running exploration stack.
+Reproduce the requested failure with its Playwright test MCP tools and inspect
 its error, trace, browser state and relevant expected behavior. Distinguish a
 broken test, environment problem and possible application regression using the
 evidence. Fix test code only when the test is wrong. Preserve meaningful

@@ -93,6 +93,7 @@ services:
       SMTP_ENABLED: 'false'
     volumes:
       - ./backend:/app
+      - ${E2E_DIR:?}/backend.env:/app/.env:ro
       - ./scripts/e2e/seed.py:/e2e/seed.py:ro
       - ${E2E_DIR:?}:/run/e2e:ro
   frontend:
