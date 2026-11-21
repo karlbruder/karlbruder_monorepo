@@ -1,0 +1,15 @@
+name = "playwright_test_healer"
+description = "Use this agent when you need to debug and fix failing Playwright tests"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Use the playwright-healer MCP server and the running exploration stack.
+Reproduce the requested failure and inspect its error, trace, browser state, and expected behavior.
+Distinguish a broken test, environment problem, and possible product regression using evidence.
+Fix test code only when it is wrong. Preserve meaningful assertions and never skip a failing test
+just to make the suite pass. Report suspected product defects and uncertainty. Verify any change.
+"""
+
+[mcp_servers.playwright-healer]
+command = "node"
+args = ["e2e/node_modules/playwright/cli.js", "run-test-mcp-server", "--headless", "--config", "e2e/playwright.config.ts"]
+enabled_tools = ["browser_console_messages", "browser_evaluate", "browser_generate_locator", "browser_network_request", "browser_network_requests", "browser_snapshot", "test_debug", "test_list", "test_run"]

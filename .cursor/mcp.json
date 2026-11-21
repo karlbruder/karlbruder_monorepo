@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "playwright-test": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/e2e/node_modules/playwright/cli.js",
+        "run-test-mcp-server",
+        "--headless",
+        "--config",
+        "${workspaceFolder}/e2e/playwright.agents.config.ts"
+      ]
+    },
+    "playwright-healer": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/e2e/node_modules/playwright/cli.js",
+        "run-test-mcp-server",
+        "--headless",
+        "--config",
+        "${workspaceFolder}/e2e/playwright.config.ts"
+      ]
+    }
+  }
+}

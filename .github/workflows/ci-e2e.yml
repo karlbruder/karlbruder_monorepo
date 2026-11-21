@@ -1,0 +1,56 @@
+name: CI - End-to-end
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'ministack/**'
+      - 'e2e/**'
+      - 'scripts/e2e/**'
+      - 'compose.e2e.yml'
+      - 'Makefile'
+      - '.github/workflows/ci-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install Playwright
+        run: npm ci --prefix e2e
+
+      - name: Install Chromium and system dependencies
+        run: ./e2e/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        env:
+          E2E_PROJECT: kb-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+        run: make test-e2e
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/**/trace.zip
+            e2e/artifacts/services.log
+          if-no-files-found: warn
