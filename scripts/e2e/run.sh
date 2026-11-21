@@ -2,6 +2,15 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")/../.."
 project=${E2E_PROJECT:-kb-e2e-$$}
+fixture_link=e2e/.explore-fixtures.json
+if [[ ${E2E_MODE:-test} == explore ]]; then
+  if [[ -L $fixture_link && ! -e $fixture_link ]]; then
+    rm "$fixture_link"
+  elif [[ -e $fixture_link || -L $fixture_link ]]; then
+    echo "Exploration fixture link already exists: $fixture_link. Stop the active exploration session first." >&2
+    exit 1
+  fi
+fi
 if [[ ! $project =~ ^kb-e2e-[a-z0-9][a-z0-9_-]*$ ]]; then
   echo 'E2E_PROJECT must start with kb-e2e- and contain lowercase letters, digits, hyphens or underscores' >&2
   exit 2
@@ -17,13 +26,14 @@ done
 runtime=$(mktemp -d "${TMPDIR:-/tmp}/kb-e2e.XXXXXXXX")
 chmod 700 "$runtime"
 touch "$runtime/backend.env"
-fixture_link=e2e/.explore-fixtures.json
 owns_fixture_link=false
 compose=(docker compose --env-file "$runtime/env" -f compose.e2e.yml -p "$project")
 cleanup() {
   status=$?
   trap - EXIT
-  if [[ $owns_fixture_link == true ]]; then rm -f "$fixture_link"; fi
+  if [[ $owns_fixture_link == true && -L $fixture_link && $(readlink "$fixture_link") == "$runtime/fixtures.json" ]]; then
+    rm -f "$fixture_link"
+  fi
   if (( status != 0 )) && [[ -f "$runtime/env" ]]; then
     mkdir -p e2e/artifacts
     "${compose[@]}" logs --no-color > e2e/artifacts/services.log 2>&1 || true
