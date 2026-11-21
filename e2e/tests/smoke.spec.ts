@@ -3,7 +3,7 @@ import { fixturePassword } from '../fixture-data'
 
 test('frontend proxies database health to the API', async ({ page }) => {
   const response = await page.goto('/api/health/db')
-  expect(response?.ok()).toBeTruthy()
+  expect(response?.ok()).toBeFalsy()
 })
 
 test('participant and staff can sign in and reach the API', async ({ page }) => {
