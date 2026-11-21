@@ -16,10 +16,14 @@ for resource in container network volume; do
 done
 runtime=$(mktemp -d "${TMPDIR:-/tmp}/kb-e2e.XXXXXXXX")
 chmod 700 "$runtime"
+touch "$runtime/backend.env"
+fixture_link=e2e/.explore-fixtures.json
+owns_fixture_link=false
 compose=(docker compose --env-file "$runtime/env" -f compose.e2e.yml -p "$project")
 cleanup() {
   status=$?
   trap - EXIT
+  if [[ $owns_fixture_link == true ]]; then rm -f "$fixture_link"; fi
   if (( status != 0 )) && [[ -f "$runtime/env" ]]; then
     mkdir -p e2e/artifacts
     "${compose[@]}" logs --no-color > e2e/artifacts/services.log 2>&1 || true
@@ -34,6 +38,7 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
+rm -f e2e/artifacts/services.log
 node scripts/e2e/keys.js "$runtime"
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$runtime/gateway.key" -out "$runtime/gateway.crt" -days 1 -subj '/CN=auth-gateway' -addext 'subjectAltName=DNS:auth-gateway' >/dev/null 2>&1
 "${compose[@]}" up -d --build
@@ -47,6 +52,8 @@ done
 "${compose[@]}" exec -T -e PYTHONPATH=/app backend python /e2e/seed.py > "$runtime/fixtures.json"
 "${compose[@]}" exec -T ministack aws --endpoint-url http://localhost:4566 --region us-east-2 s3api put-bucket-cors --bucket kb-local-bucket --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:5174"],"AllowedMethods":["GET","PUT"],"AllowedHeaders":["Content-Type"],"MaxAgeSeconds":3000}]}'
 if [[ ${E2E_MODE:-test} == explore ]]; then
+  ln -s "$runtime/fixtures.json" "$fixture_link"
+  owns_fixture_link=true
   echo "E2E stack ready at http://localhost:5174. Fixture metadata: $runtime/fixtures.json"
   echo 'Press Enter to tear it down.'
   read -r _ || true
