@@ -3,7 +3,7 @@ import { appCopy } from "@/utils/app-copy";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import EmailConfirmationNotice from "@/features/auth/components/email-confirmation-notice";
-import { readReturnTo } from "@/features/auth/utils/account-navigation";
+import { isTournamentRegistrationReturnTo, readReturnTo } from "@/features/auth/utils/account-navigation";
 
 export default function CheckEmailRoute() {
   const { language } = useLanguage();
@@ -14,6 +14,7 @@ export default function CheckEmailRoute() {
       language={language}
       title={appCopy(language, "Confira seu e-mail")}
       subtitle={appCopy(language, "Confira seu e-mail")}
+      showRegistrationContext={isTournamentRegistrationReturnTo(returnTo)}
     >
       <EmailConfirmationNotice
         language={language}

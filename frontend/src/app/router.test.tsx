@@ -1,7 +1,7 @@
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { AuthRetryableFetchError, AuthWeakPasswordError } from '@supabase/supabase-js'
 import AppRouter from '@/app/router'
@@ -27,6 +27,11 @@ vi.mock('@/lib/supabase-client', () => ({
 
 function App() {
   return <AppProvider><AppRouter /></AppProvider>
+}
+
+function CurrentLocation() {
+  const location = useLocation()
+  return <output data-testid="current-location">{location.pathname}{location.search}</output>
 }
 
 const signedInSession = {
@@ -105,6 +110,29 @@ describe('Public legal documents', () => {
 })
 
 describe('Account email auth flows', () => {
+  it.each([accountRoutes.signIn, accountRoutes.signUp, accountRoutes.checkEmail])(
+    'does not show registration context on %s without a return path',
+    (path) => {
+      render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
+      expect(screen.queryByText('Você está continuando sua inscrição no torneio.')).not.toBeInTheDocument()
+    },
+  )
+
+  it.each([accountRoutes.signIn, accountRoutes.signUp, accountRoutes.checkEmail])(
+    'shows registration context on %s only for a registration return path',
+    (path) => {
+      const renderRoute = (returnTo: string) => render(
+        <MemoryRouter initialEntries={[`${path}?returnTo=${encodeURIComponent(returnTo)}`]}><App /></MemoryRouter>,
+      )
+      const view = renderRoute('/staff/tournaments')
+      expect(screen.queryByText('Você está continuando sua inscrição no torneio.')).not.toBeInTheDocument()
+      view.unmount()
+      renderRoute('/tournaments/registration?tournament_id=42')
+      expect(screen.getByText('Você está continuando sua inscrição no torneio.')).toBeInTheDocument()
+      expect(screen.queryByText('Monomachia Karlbrüder 2027')).not.toBeInTheDocument()
+    },
+  )
+
   it('shows PT and EN on sign-in while signed out and switches visible copy to English', async () => {
     render(
       <MemoryRouter initialEntries={[accountRoutes.signIn]}>
@@ -170,6 +198,7 @@ describe('Account email auth flows', () => {
     render(
       <MemoryRouter initialEntries={['/tournaments/registration?source=landing']}>
         <App />
+        <CurrentLocation />
       </MemoryRouter>,
     )
 
@@ -186,6 +215,7 @@ describe('Account email auth flows', () => {
     }))
     expect(await screen.findByText(/Você está conectado como athlete@example.test/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Inscrição pessoal' })).toBeInTheDocument()
+    expect(screen.getByTestId('current-location')).toHaveTextContent('/tournaments/registration?source=landing')
   })
 
   it('shows WF-03 unavailable when sign-in receives a retryable network error from Supabase', async () => {
@@ -375,6 +405,22 @@ describe('Account password updates', () => {
     await screen.findByRole('heading', { name: 'Boas-vindas.' })
     fireEvent.click(await screen.findByRole('button', { name: 'Minha conta · A' }))
     expect(screen.getByRole('link', { name: 'Alterar senha' })).toBeInTheDocument()
+  })
+
+  it('returns to registration with its query string after a successful password reset', async () => {
+    const destination = '/tournaments/registration?tournament_id=42&source=landing'
+    render(
+      <MemoryRouter initialEntries={[`${accountRoutes.newPassword}?returnTo=${encodeURIComponent(destination)}`]}>
+        <App />
+        <CurrentLocation />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('Nova senha'), { target: { value: 'ValidPass1!' } })
+    fireEvent.change(screen.getByLabelText('Repita a nova senha'), { target: { value: 'ValidPass1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar senha' }))
+
+    await waitFor(() => expect(screen.getByTestId('current-location')).toHaveTextContent(destination))
   })
 
   it('keeps the signed-in session when updateUser fails on the change-password screen', async () => {

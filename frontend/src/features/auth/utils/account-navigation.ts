@@ -18,6 +18,10 @@ export function readReturnTo(searchParams: URLSearchParams): string | null {
   return value;
 }
 
+export function isTournamentRegistrationReturnTo(returnTo: string): boolean {
+  return returnTo.split("?")[0] === "/tournaments/registration";
+}
+
 export const SESSION_EXPIRED_QUERY_PARAM = "sessionExpired";
 
 export function signInPathWithReturnTo(returnTo: string, options?: { sessionExpired?: boolean }): string {

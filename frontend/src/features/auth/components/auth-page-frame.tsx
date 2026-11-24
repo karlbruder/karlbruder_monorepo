@@ -16,7 +16,7 @@ export function AuthPageFrame({
   language,
   title,
   subtitle,
-  showRegistrationContext = true,
+  showRegistrationContext = false,
   children,
 }: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
@@ -34,7 +34,7 @@ export function AuthPageFrame({
               <>
                 <hr className="account-auth-divider" />
                 <p className="account-auth-muted">
-                  {t("Você está continuando a inscrição em")} <strong>{t("Monomachia Karlbrüder 2027")}</strong>
+                  {t("Você está continuando sua inscrição no torneio.")}
                 </p>
               </>
             )}

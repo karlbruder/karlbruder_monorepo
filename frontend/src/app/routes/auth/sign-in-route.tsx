@@ -5,7 +5,7 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import SignInForm from "@/features/auth/components/sign-in-form";
-import { readReturnTo, readSessionExpiredFromSignIn } from "@/features/auth/utils/account-navigation";
+import { isTournamentRegistrationReturnTo, readReturnTo, readSessionExpiredFromSignIn } from "@/features/auth/utils/account-navigation";
 
 export default function SignInRoute() {
   const auth = useAuthSession();
@@ -19,6 +19,7 @@ export default function SignInRoute() {
       language={language}
       title={appCopy(language, "Entrar na Karlbrüder")}
       subtitle={appCopy(language, "Boas-vindas de volta.")}
+      showRegistrationContext={isTournamentRegistrationReturnTo(returnTo)}
     >
       <SignInForm
         redirectError={redirectError}

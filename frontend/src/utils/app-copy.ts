@@ -98,6 +98,7 @@ const english = {
   "Da primeira inscrição ao próximo encontro.": "From your first registration to your next event.",
   "Uma conta para acompanhar seus torneios na Karlbrüder.": "One account to follow your Karlbrüder tournaments.",
   "Você está continuando a inscrição em": "You are continuing registration for",
+  "Você está continuando sua inscrição no torneio.": "You are continuing your tournament registration.",
   "Monomachia Karlbrüder 2027": "Monomachia Karlbrüder 2027",
   "Criar conta na Karlbrüder": "Create a Karlbrüder account",
   "Entrar na Karlbrüder": "Sign in to Karlbrüder",
