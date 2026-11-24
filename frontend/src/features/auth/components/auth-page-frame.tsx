@@ -8,7 +8,7 @@ type Props = {
   language: AppLanguage;
   title: string;
   subtitle: string;
-  showRegistrationContext?: boolean;
+  showTournamentRegistrationMessage?: boolean;
   children: ReactNode;
 };
 
@@ -16,7 +16,7 @@ export function AuthPageFrame({
   language,
   title,
   subtitle,
-  showRegistrationContext = false,
+  showTournamentRegistrationMessage = false,
   children,
 }: Props) {
   const t = (key: AppCopyKey) => appCopy(language, key);
@@ -30,7 +30,7 @@ export function AuthPageFrame({
             <h1 className="visually-hidden">{title}</h1>
             <h2>{t("Da primeira inscrição ao próximo encontro.")}</h2>
             <p>{t("Uma conta para acompanhar seus torneios na Karlbrüder.")}</p>
-            {showRegistrationContext && (
+            {showTournamentRegistrationMessage && (
               <>
                 <hr className="account-auth-divider" />
                 <p className="account-auth-muted">

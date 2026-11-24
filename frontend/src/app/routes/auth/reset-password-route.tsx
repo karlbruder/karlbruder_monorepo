@@ -5,13 +5,13 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import PasswordResetPanel from "@/features/auth/components/password-reset-panel";
-import { readReturnTo } from "@/features/auth/utils/account-navigation";
+import { getReturnToPath } from "@/features/auth/utils/account-navigation";
 
 export default function ResetPasswordRoute() {
   const auth = useAuthSession();
   const { language } = useLanguage();
   const [searchParams] = useSearchParams();
-  const returnTo = readReturnTo(searchParams) ?? "/";
+  const returnTo = getReturnToPath(searchParams) ?? "/";
   const navigate = useNavigate();
   const redirectError = useSupabaseAuthRedirectError(language, "update_password");
   return (
@@ -19,7 +19,7 @@ export default function ResetPasswordRoute() {
       language={language}
       title={appCopy(language, "Escolha uma nova senha")}
       subtitle={appCopy(language, "Escolha uma nova senha")}
-      showRegistrationContext={false}
+      showTournamentRegistrationMessage={false}
     >
       <PasswordResetPanel
         redirectError={redirectError}

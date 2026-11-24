@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
-import { emailConfirmationRedirectUrl } from "@/features/auth/utils/account-navigation";
+import { getEmailConfirmationRedirectUrl } from "@/features/auth/utils/account-navigation";
 import { signUp } from "@/features/auth/api/auth";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -36,7 +36,7 @@ export default function SignUpForm({ returnTo, onSuccess, language, authLoading,
       const { error } = await signUp({
         email,
         password,
-        options: { emailRedirectTo: emailConfirmationRedirectUrl() },
+        options: { emailRedirectTo: getEmailConfirmationRedirectUrl() },
       });
       if (error) {
         if (isSupabaseAuthServiceUnavailable(error)) {
