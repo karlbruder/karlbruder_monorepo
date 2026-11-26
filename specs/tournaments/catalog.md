@@ -25,8 +25,8 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-006:** Catalog display does not replace server-side checks of registration windows, eligibility, duplicates, and capacity.
 - **CAT-007:** Monomachia 2027 uses the same tournament capability as later events. Its v1 discipline is `longsword`, following issue #20's single-discipline starting model.
 - **CAT-008:** Guild staff may edit any tournament facts at any time, including after registrations begin, subject to domain constraints such as the confirmed-capacity minimum. Participant notifications about tournament fact changes are deferred. Future notification work covers event dates, registration dates, payment deadline, schedule, location, regulation, equipment requirements, and cancellation policy. Preserve earlier policy acceptances when documents change.
-- **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Pix destination and receiving-account details are payment configuration.
-- **CAT-010:** Staff may change products and prices for future registrations. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
+- **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Staff can create products or reuse existing active products during tournament creation and for existing tournaments. A shared product remains one product across its linked tournaments. Staff can see every linked tournament before changing it. Pix destination and receiving-account details are payment configuration.
+- **CAT-010:** Staff may change a product name, description, or price for future registrations, or deactivate the product. The change affects every linked tournament. The staff interface shows those tournaments and the shared effect before confirmation. Deactivation makes the product unavailable for new registrations in all linked tournaments. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
 
 Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
 
@@ -55,8 +55,8 @@ Guild staff (admins) can create and manage all tournaments. API naming and displ
 - **CAT-AC-005:** A guest can view public tournament listings and details, while a guest or non-member regular user cannot list or retrieve internal tournaments.
 - **CAT-AC-006:** A guild member or guild staff user can view internal tournaments. Administrative event changes require the admin role.
 - **CAT-AC-007:** Tournament edits preserve prior acceptance evidence. Notifications about changed tournament facts remain future work.
-- **CAT-AC-009:** Staff can configure multiple registration products with distinct prices and descriptions for a tournament.
-- **CAT-AC-010:** Changing a product or price does not alter an existing registration’s agreed product description or amount.
+- **CAT-AC-009:** Staff can configure multiple registration products with distinct prices and descriptions during tournament creation and for an existing tournament. Staff can reuse a product and see each linked tournament before a shared change.
+- **CAT-AC-010:** Changing or deactivating a shared product affects future availability or terms across its linked tournaments. Existing registrations retain the agreed product name, description, and amount. A new amount creates a new price record.
 - **CAT-AC-008:** Explicitly closing new registrations rejects new submissions even within the date window. A full event that remains open displays a waitlist warning without claiming that form submission itself assigns waitlist status.
 
 ## Open questions

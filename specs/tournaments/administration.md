@@ -30,6 +30,8 @@ Give guild staff (admins) control over tournament participation, payment review,
 
 - **ADM-012:** Staff can add and rename tournament tags and maintain their eligibility descriptions in tournament configuration. A tag referenced by any registration cannot be deleted, including under concurrent requests. Staff can list athletes and their selected tags from tournament detail and change an individual registration’s tags at any time. Staff checks eligibility on the tournament day. Tag changes require neither notifications nor audit history.
 
+- **ADM-013:** The staff athlete list identifies each registration’s selected offering using its order-item name snapshot. Renaming or deactivating the catalog product does not change that name. A historical registration without a snapshot shows a localized unavailable label. The list shows the tournament-wide total of all registration records, including cancellations, the confirmed count, and configured capacity. These totals do not change with search or pagination. An unset capacity is unlimited. Only confirmed registrations occupy seats.
+
 ## Lifecycle boundary
 
 The initial registration states are `awaiting_payment`, `awaiting_payment_confirmation`, `confirmed`, `waitlist`, and `cancelled`. Paid cancellation is still `registration_status = cancelled`. Its order payment links a Refund with separate `awaiting_refund` or `completed` progress. Only confirmation consumes capacity; review does not. Cancellation and refund progress must remain distinguishable so an outstanding refund does not block a new registration. Broader documentation/refusal outcomes remain to be designed rather than inferred as mandatory enum values.
@@ -59,6 +61,8 @@ application. Staff can select, confirm, or cancel a waitlisted participant on th
 - **ADM-AC-005:** An export contains only its agreed fields and excludes restricted safety notes and payment proofs.
 - **ADM-AC-006:** A guild admin can manage any tournament without a separate event assignment.
 - **ADM-AC-007:** An admin can correct registration data after confirmation without a correction email, while invalid duplicates and capacity/lifecycle violations are still rejected.
+
+- **ADM-AC-008:** Staff can identify each athlete’s historical selected offering. Missing snapshots show an unavailable label. The total includes all statuses, is independent of search, and is shown alongside confirmed count and finite, zero, or unlimited capacity. An empty tournament shows zero registrations.
 
 ## Open questions
 
