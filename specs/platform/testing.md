@@ -1,7 +1,7 @@
 # Backend concurrency testing
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-04
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -52,7 +52,7 @@ The issue must:
 | Area | Cases to assess and cover |
 | --- | --- |
 | Registration | Concurrent number allocation and duplicate active-registration attempts. Audit the existing registration race test before migrating it to the shared methodology |
-| Capacity | Two approvals with one remaining seat. Confirm at most one registration and persist the other paid-waitlist outcome |
+| Capacity | Two approvals with one remaining seat. Confirm at most one registration and persist the other waitlist outcome |
 | Proof review | Repeated or competing approvals, and approval versus rejection of the same proof. Persist one decision and at most one receipt without duplicate notices |
 | Proof replacement | Replacement versus approval/rejection. Review only the exact current submission and preserve proof history |
 | Commit and delivery | Verify saved outcomes and released locks before account lookup or SMTP. Delivery failure leaves the committed decision intact |

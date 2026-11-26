@@ -501,7 +501,7 @@ def test_policy_archive_survives_lost_commit_acknowledgment(committed_policy_tou
 
 def test_waitlist_confirmation_and_payment_approval_share_last_seat(setup):
     from app.core import db
-    from app.tournaments.services.paid_waitlist import confirm_paid_waitlist_registration
+    from app.tournaments.services.waitlist import confirm_waitlist_registration
 
     engine = db.sync_engine
     tournament_id, token, _ = _event_and_payload(engine)
@@ -528,7 +528,7 @@ def test_waitlist_confirmation_and_payment_approval_share_last_seat(setup):
                 def pause(_session):
                     started.set()
                     assert release.wait(10)
-                confirm_paid_waitlist_registration(session, tournament_id, first_number, admin)
+                confirm_waitlist_registration(session, tournament_id, first_number, admin)
 
         def approve():
             with Session(engine) as session:

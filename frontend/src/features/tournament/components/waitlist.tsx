@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { confirmPaidWaitlist, getPaidWaitlist, WaitlistError } from "@/features/tournament/api/paid-waitlist";
+import { confirmWaitlist, getWaitlist, WaitlistError } from "@/features/tournament/api/waitlist";
 import { cancelRegistration, getRegistrationRefund } from "@/features/tournament/api/registration-refunds";
 import { TagPills } from "@/features/tournament/components/tournament-tags";
 import "@/features/tournament/components/tournament-registration.css";
-import "@/features/tournament/components/paid-waitlist.css";
+import "@/features/tournament/components/waitlist.css";
 
 type Props = { token: string; userId: string; tournamentId: string; language: "pt" | "en" };
 type Action = { number: string; name: string; type: "confirm" | "cancel" };
 
-export function PaidWaitlist({ token, userId, tournamentId, language }: Props) {
+export function Waitlist({ token, userId, tournamentId, language }: Props) {
   const en = language === "en";
-  const query = useQuery({ queryKey: ["paid-waitlist", userId, tournamentId], queryFn: ({ signal }) => getPaidWaitlist(token, tournamentId, signal), refetchOnMount: "always" });
+  const query = useQuery({ queryKey: ["waitlist", userId, tournamentId], queryFn: ({ signal }) => getWaitlist(token, tournamentId, signal), refetchOnMount: "always" });
   const [action, setAction] = useState<Action | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export function PaidWaitlist({ token, userId, tournamentId, language }: Props) {
     setPending(true); setError(""); setResult(null);
     try {
       if (action.type === "confirm") {
-        await confirmPaidWaitlist(token, tournamentId, action.number);
+        await confirmWaitlist(token, tournamentId, action.number);
         setResult({ message: en ? `${action.name}: participation confirmed.` : `${action.name}: participação confirmada.` });
       } else {
         await cancelRegistration(token, Number(tournamentId), action.number);
@@ -57,7 +57,7 @@ export function PaidWaitlist({ token, userId, tournamentId, language }: Props) {
     {query.data && <>
       <div className="waitlist-facts">
         <div><strong>{query.data.confirmed_count}{query.data.competitor_capacity !== null && ` / ${query.data.competitor_capacity}`}</strong><span>{en ? "Confirmed participants" : "Participantes confirmados"}</span></div>
-        <div><strong>{query.data.registrations.length}</strong><span>{en ? "Approved payments waiting" : "Pagamentos aprovados em espera"}</span></div>
+        <div><strong>{query.data.registrations.length}</strong><span>{en ? "Participants waiting" : "Participantes em espera"}</span></div>
         <div><strong>{remaining === null ? (en ? "Unlimited" : "Ilimitada") : remaining}</strong><span>{en ? "Available seats" : "Vagas disponíveis"}</span></div>
       </div>
       <div className="registration-notice"><strong>{en ? "No automatic promotion" : "Nenhuma promoção automática"}</strong><p>{en ? "A free seat does not change a registration. Staff explicitly selects whom to confirm." : "O surgimento de uma vaga não muda nenhuma inscrição. A equipe seleciona explicitamente quem confirmar."}</p></div>

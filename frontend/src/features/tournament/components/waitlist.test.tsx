@@ -2,15 +2,15 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithQuery } from "@/testing/render-with-query";
-import { PaidWaitlist } from "@/features/tournament/components/paid-waitlist";
-import { WaitlistError } from "@/features/tournament/api/paid-waitlist";
+import { Waitlist } from "@/features/tournament/components/waitlist";
+import { WaitlistError } from "@/features/tournament/api/waitlist";
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), confirm: vi.fn(), cancel: vi.fn(), refund: vi.fn() }));
-vi.mock("@/features/tournament/api/paid-waitlist", async (importOriginal) => ({ ...await importOriginal(), getPaidWaitlist: mocks.get, confirmPaidWaitlist: mocks.confirm }));
+vi.mock("@/features/tournament/api/waitlist", async (importOriginal) => ({ ...await importOriginal(), getWaitlist: mocks.get, confirmWaitlist: mocks.confirm }));
 vi.mock("@/features/tournament/api/registration-refunds", () => ({ cancelRegistration: mocks.cancel, getRegistrationRefund: mocks.refund }));
 vi.mock("@/features/tournament/components/tournament-tags", () => ({ TagPills: () => null }));
 const item = { registration_number: "R1", full_name: "Ana", social_name: null, registration_status: "waitlist", parental_consent_required: false, tags: [] };
-function renderPage() { renderWithQuery(<MemoryRouter><PaidWaitlist token="token" userId="staff" tournamentId="42" language="en" /></MemoryRouter>); }
+function renderPage() { renderWithQuery(<MemoryRouter><Waitlist token="token" userId="staff" tournamentId="42" language="en" /></MemoryRouter>); }
 beforeEach(() => { vi.resetAllMocks(); mocks.get.mockResolvedValue({ competitor_capacity: 2, confirmed_count: 1, registrations: [item] }); });
 afterEach(cleanup);
 

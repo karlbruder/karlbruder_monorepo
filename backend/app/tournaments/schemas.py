@@ -538,13 +538,13 @@ class StaffRegistrationSummaryRead(BaseModel):
     tags: list[TagRead]
 
 
-class StaffPaidWaitlistRead(BaseModel):
+class StaffWaitlistRead(BaseModel):
     competitor_capacity: int | None
     confirmed_count: int
     registrations: list[StaffRegistrationSummaryRead]
 
 
-class PaidWaitlistConfirmationRead(BaseModel):
+class WaitlistConfirmationRead(BaseModel):
     registration_status: str
 
 

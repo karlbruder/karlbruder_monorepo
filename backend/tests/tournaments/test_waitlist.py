@@ -1,4 +1,4 @@
-"""Staff may select a paid waitlist registration when a seat is available."""
+"""Staff may select a waitlist registration when a seat is available."""
 
 import pytest
 from sqlalchemy import select
@@ -9,7 +9,7 @@ from tests.tournaments.test_tournament_registrations import _headers, setup as r
 
 
 @pytest.fixture(name="setup")
-def paid_waitlist_setup(monkeypatch, db_session):
+def waitlist_setup(monkeypatch, db_session):
     yield from registration_setup.__wrapped__(monkeypatch, db_session)
 
 
@@ -54,7 +54,7 @@ def test_full_tournament_rejects_confirmation(setup):
 
 
 @pytest.mark.parametrize('refundable', [True, False])
-def test_paid_waitlist_cancellation_respects_refund_policy(setup, refundable):
+def test_waitlist_cancellation_respects_refund_policy(setup, refundable):
     from app.karlmart.payments.models import Payment, Refund
     from tests.tournaments.test_payment_review_decisions import _decide
     from tests.tournaments.test_registration_refunds import _pending_refundable
@@ -100,7 +100,7 @@ def test_other_tournament_and_non_waitlist_registration_conflict(setup):
     assert client.post(f'/api/staff/tournaments/999999/registrations/{registration.registration_number}/confirm', headers=headers).status_code == 409
 
 
-def test_capacity_change_and_cancellation_do_not_promote_paid_waitlist(setup):
+def test_capacity_change_and_cancellation_do_not_promote_waitlist(setup):
     from app.karlmart.payments.models import Payment
     from tests.tournaments.test_payment_review_decisions import _decide
 

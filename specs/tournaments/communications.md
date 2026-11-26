@@ -1,7 +1,7 @@
 # Tournament communications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Keep participants informed about registration, payment, confirmation, and waitli
 
 ## Required communication types
 
-The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on confirmation through payment approval, paid waitlist entry, completed refund, and rejected payment evidence. Each notice is required when its triggering workflow is delivered. Notifications for material event-fact changes are deferred under CAT-008. The broader reminder and announcement suite also remains deferred.
+The source calls for form-received acknowledgment, payment instructions, pending-payment reminders, definitive confirmation, waitlist entry, waitlist call-up, documentation-pending notices, cancellation, and general organization messages. The owner's answers require email on confirmation through payment approval, waitlist entry, completed refund, and rejected payment evidence. Each notice is required when its triggering workflow is delivered. Notifications for material event-fact changes are deferred under CAT-008. The broader reminder and announcement suite also remains deferred.
 
 The acceptance criteria for acknowledgments and editable templates apply when those later messaging capabilities are delivered. They do not expand PROD-011's first-release notification scope. Staff may contact waitlisted participants as part of their operational judgment; this does not introduce an automated invitation workflow.
 
@@ -40,7 +40,7 @@ actual verified Payment. Refund references the payment and retains its completio
 evidence separately from cancelled participation. Notify from the committed
 workflow outcome, rather than treating the presence of a proof or record as a
 new trigger. Payment-review decisions now invoke the notification helper after
-commit for rejection, confirmed approval, or paid waitlist. Recording a completed refund attempts an email to the account's current
+commit for rejection, confirmed approval, or waitlist. Recording a completed refund attempts an email to the account's current
 address after commit. The message links to the specific cancelled registration.
 Delivery failure leaves the completed refund recorded and is shown to staff.
 

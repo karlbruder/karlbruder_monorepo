@@ -2,7 +2,7 @@ import { apiBaseUrl } from "@/config/environment";
 import { apiFetch } from "@/lib/api-fetch";
 import type { StaffRegistrationSummary } from "@/features/tournament/api/tournaments";
 
-export type PaidWaitlist = {
+export type Waitlist = {
   competitor_capacity: number | null;
   confirmed_count: number;
   registrations: StaffRegistrationSummary[];
@@ -21,10 +21,10 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
   return response.json();
 }
 
-export function getPaidWaitlist(token: string, tournamentId: string, signal?: AbortSignal) {
-  return request<PaidWaitlist>(token, `${encodeURIComponent(tournamentId)}/waitlist`, { signal });
+export function getWaitlist(token: string, tournamentId: string, signal?: AbortSignal) {
+  return request<Waitlist>(token, `${encodeURIComponent(tournamentId)}/waitlist`, { signal });
 }
 
-export function confirmPaidWaitlist(token: string, tournamentId: string, number: string) {
+export function confirmWaitlist(token: string, tournamentId: string, number: string) {
   return request<{ registration_status: string }>(token, `${encodeURIComponent(tournamentId)}/registrations/${encodeURIComponent(number)}/confirm`, { method: "POST" });
 }

@@ -1,7 +1,7 @@
 # Monomachia Karlbrüder 2027
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-18
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -23,7 +23,7 @@
 | Registration | Authenticated application flow under the latest product direction |
 | Application entry | `app.karlbruder.com/tournaments/registration` from `karlbruder.com` or event links |
 | Registration date convention | Opening day through closing day, inclusive, UTC−03:00 |
-| Seat assignment | Staff confirmation occupies a seat, during payment approval or later selection from the paid waitlist; registration/proof review does not |
+| Seat assignment | Staff confirmation occupies a seat, during payment approval or later selection from the waitlist; registration/proof review does not |
 
 ## Rules
 

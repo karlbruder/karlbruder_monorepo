@@ -1,4 +1,4 @@
-"""Staff selection from a tournament's paid waitlist."""
+"""Staff selection from a tournament's waitlist."""
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -29,7 +29,7 @@ def _confirmed_count(session: Session, tournament_id: int) -> int:
     ) or 0
 
 
-def read_paid_waitlist(session: Session, tournament_id: int, actor: User) -> dict:
+def read_waitlist(session: Session, tournament_id: int, actor: User) -> dict:
     _require_admin(actor)
     registrations = list_tournament_registrations_for_staff(session, tournament_id, actor)
     tournament = session.get(Tournament, tournament_id)
@@ -40,7 +40,7 @@ def read_paid_waitlist(session: Session, tournament_id: int, actor: User) -> dic
     }
 
 
-def confirm_paid_waitlist_registration(
+def confirm_waitlist_registration(
     session: Session, tournament_id: int, registration_number: str, actor: User,
 ) -> dict:
     _require_admin(actor)

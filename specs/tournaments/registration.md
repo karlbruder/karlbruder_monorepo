@@ -1,7 +1,7 @@
 # Tournament registration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@ Allow an authenticated user to register for a tournament, retain a registration 
 - **REG-003:** Each accepted registration receives a unique, human-friendly `registration_number` for participant/staff reference, not an access credential. The developer may choose its exact format and sequence semantics. A tournament slug, year, and sequential number, such as `MONO2027001`, is an acceptable example rather than a mandatory format.
 - **REG-004:** Within a tournament, a non-cancelled registration blocks another registration for the same user UUID, normalized email, or normalized identity document. Duplicates return HTTP 409, including concurrent submissions. Cancelled registrations do not block a new registration, including while their refund is awaiting processing. Participation cancellation and refund progress must remain distinguishable so a refund does not reactivate a registration.
 - **REG-005:** Registration is available from the configured opening day through the configured closing day, inclusive, in fixed UTC−03:00. The window is expressed as calendar days, not configurable times within those days. Creation outside the date range returns HTTP 400, following issue #20.
-- **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `awaiting_payment_confirmation` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm an already-paid waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
+- **REG-006:** Creation produces `awaiting_payment`. Proof submission stores the file for manual guild-staff review; it does not approve payment or reserve a seat. Neither `awaiting_payment` nor `awaiting_payment_confirmation` consumes capacity. When staff approves payment, the registration becomes `confirmed` and occupies a seat if one is available, or becomes `waitlist` and the user is notified by email if the tournament is full. A waitlisted registration has no seat. Staff may later select and confirm a waitlisted participant under CAP-005, without approving payment again; this also assigns capacity transactionally.
 - **REG-007:** Successful submission shows the registration number, registration summary, current status, and applicable next step. A waitlisted participant has already had payment approved but has no confirmed seat. Status messages must reflect that distinction.
 - **REG-008:** Participants can retrieve and correct their own registrations under PRIV-005 and follow their status. The cross-tournament personal list returns only the authenticated account’s registrations, including cancelled records, even for admins. The tournament registration list returns every registration to admins. Other authenticated callers receive only their own registrations in the owner-safe projection, including cancelled rows. The default personal registration page shows only the signed-in account's own non-cancelled registration. An explicit notification link can show the named owned registration, including a cancelled record, without reopening it. An admin still receives the full list, and that page ignores every other row. Other authorized platform users may see only the limited participant-directory projection under PRIV-006, without an opt-out choice. A registration number is not authorization to retrieve a private record.
 - **REG-009:** Safety notes are staff-only. Participants may retrieve and correct other permitted registration fields, excluding staff/system-managed fields listed in PRIV-005. Public and participant-facing projections omit `staff_safety_note`; edits preserve validation, uniqueness, ownership, and acceptance evidence.
@@ -32,7 +32,7 @@ Allow an authenticated user to register for a tournament, retain a registration 
 - **REG-014:** Repeated submissions use the ordinary create rules. If no blocking non-cancelled registration exists, the request attempts creation. Otherwise the duplicate rule applies. No special retry or replay-success behavior is required, including when the client lost the first response.
 - **REG-015:** A minor registers themselves and uploads a scanned signed parental consent form through the platform at creation time. The client obtains a presigned upload URL from the backend, sends the file directly to private object storage, then completes JSON registration with the returned storage key. If a later event date change makes an existing participant a minor without a form, their registration remains unchanged. The owner can upload the missing form through the platform before participation. The registration response and view identify the missing form independently of payment instructions. Participation also requires parental accompaniment during the event, where both the minor and parent present identity documents for staff verification under the [consent and privacy rules](consent-and-privacy.md#rules).
 - **REG-016:** Cancelled registrations can be reopened only by admins manually through the Supabase UI. The application does not offer participant or admin reopening controls. A manual reopening must preserve non-cancelled uniqueness and any applicable seat limit; it must not coexist with a conflicting replacement registration.
-- **REG-017:** Staff may close new registrations independently of the date window. Full capacity alone does not close registrations; warn applicants about the paid waitlist while creation remains open. Unconfigured capacity means unlimited, and the paid waitlist has no size limit.
+- **REG-017:** Staff may close new registrations independently of the date window. Full capacity alone does not close registrations; warn applicants about the waitlist while creation remains open. Unconfigured capacity means unlimited, and the waitlist has no size limit.
 - **REG-018:** The Monomachia private registration route supports Portuguese and English interface copy, including validation, request errors, and the registration result. A language choice on the public Monomachia page carries to the application through the registration URL and survives sign-in; switching languages does not discard entered fields or change API values. Official event terms and regulation remain in their configured source language until approved translations exist.
 
 - **REG-019:** An athlete selects one available registration product for the tournament. Registration creates an order and an order item for that selection. The order item retains the product name, description, and agreed price. The backend verifies that the selected product belongs to the tournament and that its submitted price is still the active current price. If the option or price becomes unavailable while the form is open, the form reloads the options and requires a new selection. It preserves entered information and a selected consent file. If reloading fails, the athlete can retry without reloading the page.
@@ -116,7 +116,7 @@ Policy replacement leaves earlier acceptance references intact.
 
 This table distinguishes registration participation from refund progress without prescribing the table/column layout. `awaiting_refund` is the required displayed refund status. The developer can choose how to store it alongside cancelled participation and completed-refund evidence. Other extended outcomes follow the relevant payment specification.
 
-The latest answers supersede both issue #20's creation-time waitlisting and the earlier draft rule that review reserved capacity. Seats are assigned only by staff confirmation, during payment approval or later selection from the paid waitlist. Staff chooses whom to select; the system enforces capacity, not a queue priority or automatic call-up policy. See [payments](payments-and-confirmation.md), [capacity](capacity-and-waitlist.md), and [administration](administration.md).
+The latest answers supersede both issue #20's creation-time waitlisting and the earlier draft rule that review reserved capacity. Seats are assigned only by staff confirmation, during payment approval or later selection from the waitlist. Staff chooses whom to select; the system enforces capacity, not a queue priority or automatic call-up policy. See [payments](payments-and-confirmation.md), [capacity](capacity-and-waitlist.md), and [administration](administration.md).
 
 ## Acceptance criteria
 
@@ -137,7 +137,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 - **REG-AC-015:** Requests on the opening and closing calendar days are within the window in fixed UTC−03:00; requests before the opening day or after the closing day are rejected.
 - **REG-AC-016:** The registration owner UUID is the already authenticated Supabase user's ID; changing an account email does not require a new owner mapping or user identity.
 - **REG-AC-017:** A participant can correct their permitted registration fields but cannot edit ownership, identifiers, timestamps, or staff-controlled status, or retrieve staff-only safety notes. Edits cannot bypass duplicate constraints.
-- **REG-AC-018:** A staff-selected paid waitlisted registration can become `confirmed` without a second payment approval, subject to eligibility and available capacity. An available seat alone does not change its status.
+- **REG-AC-018:** A staff-selected waitlisted registration can become `confirmed` without a second payment approval, subject to eligibility and available capacity. An available seat alone does not change its status.
 - **REG-AC-019:** An English choice on the Monomachia landing page opens the private registration route in English; the same language survives refresh and Google sign-in return. Both languages offer the same fields, independent declarations, coverage and results notices, errors, and no-seat success outcome without changing the submitted payload.
 - **REG-AC-020:** An admin opening the personal registration page sees their own registration, or the creation form when they have none, even when another participant's registration comes first in the staff list.
 
@@ -145,7 +145,7 @@ The latest answers supersede both issue #20's creation-time waitlisting and the 
 ## Implementation baseline
 
 Source inspection on 4 November 2026 found tournament catalog and registration routes, acceptance snapshots, private parental-consent-form and payment-proof uploads, and Alembic migrations. Financial evidence records exist. Staff payment review now approves or rejects exact proofs, with atomic confirmation
-or paid waitlist and owner-visible rejection reasons. The personal registration
+or waitlist and owner-visible rejection reasons. The personal registration
 screen lets the owner confirm cancellation for refundable tournaments and track refund progress separately
 from participation. It links to the owner's cancelled registrations while the
 main panel selects the active registration or allows a new one. Waitlist selection
@@ -173,10 +173,10 @@ rejection reason when staff reject the current
 proof. After approval it shows Payment confirmed separately from the place status.
 Before approval the panel shows the registration’s agreed price. After approval it
 shows the amount staff recorded, including zero, for both confirmed places and
-paid waitlist entries. If no recorded amount is available, it shows the agreed
+waitlist entries. If no recorded amount is available, it shows the agreed
 price. The order item price is retained with the registration.
 After a valid upload, it refreshes the saved status and hides the obsolete reason.
-Confirmed participation means a seat is assigned. Paid waitlist means payment was
+Confirmed participation means a seat is assigned. Waitlist means payment was
 approved without a seat, with no second payment or automatic promotion. Approved
 and cancelled registrations have no proof-upload controls or Pix payment prompt.
 Participants can refresh the persisted status independently of email delivery.

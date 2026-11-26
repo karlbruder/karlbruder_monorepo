@@ -8,7 +8,7 @@ import { StaffWaitlistRoute } from "@/app/routes/tournament/staff-waitlist-route
 const list = vi.hoisted(() => vi.fn());
 vi.mock("@/features/auth/hooks/use-auth-session", () => ({ useAuthSession: () => ({ session: { access_token: "token", user: { id: "user", app_metadata: { karlbruder_role: "regular_user" } } } }) }));
 vi.mock("@/hooks/use-language", () => ({ useLanguage: () => ({ language: "en" }) }));
-vi.mock("@/features/tournament/api/paid-waitlist", () => ({ getPaidWaitlist: list, confirmPaidWaitlist: vi.fn(), WaitlistError: class extends Error {} }));
+vi.mock("@/features/tournament/api/waitlist", () => ({ getWaitlist: list, confirmWaitlist: vi.fn(), WaitlistError: class extends Error {} }));
 afterEach(cleanup);
 
 it("does not request the waitlist when a signed-in user is not staff", () => {
