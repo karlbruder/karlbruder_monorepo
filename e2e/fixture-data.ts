@@ -5,6 +5,8 @@ type FixtureData = {
   registration_tournament_id: number
   payment_tournament_id: number
   payment_registration_number: string
+  waitlist_tournament_id: number
+  waitlist_refund_tournament_id: number
   staff_id: string
 }
 

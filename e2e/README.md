@@ -1,11 +1,11 @@
 # End-to-end tests
 
 **Created**: 2026-11-20
-**Last updated**: 2026-11-20
+**Last updated**: 2026-11-26
 
 These tests exercise the application through a browser and real service boundaries.
 The stack and its data are disposable. The suite covers readiness, sign-in,
-registration for a selected tournament, and staff payment approval.
+registration for a selected tournament, staff payment approval, and waitlist selection and cancellation.
 
 ## What runs where
 
@@ -45,6 +45,8 @@ To run the payment journey alone on a fresh stack, use:
 ```sh
 ./scripts/e2e/run.sh tests/payment-approval.spec.ts
 ```
+
+Run the waitlist journeys alone with `./scripts/e2e/run.sh tests/waitlist.spec.ts`. They use isolated capacity-one tournaments and synthetic accounts. One tournament has a refundable cancellation policy.
 
 Each run chooses a project name beginning with `kb-e2e-`. Set `E2E_PROJECT` to
 another unique name with that prefix if needed. A run refuses to reuse an
