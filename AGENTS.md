@@ -24,6 +24,7 @@ Use these entry points when the task needs them:
 | Frontend screens, components, styling, or visible copy | Relevant [design references](specs/design/README.md) and [application vocabulary](specs/taxonomy.md#application-vocabulary) |
 | Deployment or stack composition | Relevant sections of [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) |
 | Local Compose, ports, or database | [Local development](specs/platform/local-development.md) |
+| End-to-end tests, fixtures, or stack | Relevant sections of the [E2E guide](e2e/README.md) |
 | Team access to AWS | [Team access](specs/platform/team-access.md) and [AWS team access](docs/aws-team-access.md) |
 | An operational procedure | The relevant [runbook](docs/runbooks/README.md) |
 
