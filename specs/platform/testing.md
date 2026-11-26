@@ -52,6 +52,7 @@ The issue must:
 | Area | Cases to assess and cover |
 | --- | --- |
 | Registration | Concurrent number allocation and duplicate active-registration attempts. Audit the existing registration race test before migrating it to the shared methodology |
+| Shared registration products | Registration selection overlapping a product edit, repricing, or deactivation. The workflow locks the product and rereads its current price. An overlapping-request probe remains outstanding. |
 | Capacity | Two approvals with one remaining seat. Confirm at most one registration and persist the other waitlist outcome |
 | Proof review | Repeated or competing approvals, and approval versus rejection of the same proof. Persist one decision and at most one receipt without duplicate notices |
 | Proof replacement | Replacement versus approval/rejection. Review only the exact current submission and preserve proof history |

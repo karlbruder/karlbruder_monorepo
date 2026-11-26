@@ -33,7 +33,7 @@ def test_list_and_confirm_waitlist_without_changing_other_registrations(setup):
     result = client.get(f'{base}/waitlist', headers=headers)
     assert result.status_code == 200
     assert result.json()['registrations'][0]['registration_number'] == registration.registration_number
-    assert set(result.json()['registrations'][0]) == {'registration_number', 'full_name', 'social_name', 'registration_status', 'parental_consent_required', 'tags'}
+    assert set(result.json()['registrations'][0]) == {'registration_number', 'full_name', 'social_name', 'registration_status', 'parental_consent_required', 'product_name', 'tags'}
     result = client.post(f'{base}/registrations/{registration.registration_number}/confirm', headers=headers)
     assert result.status_code == 200, result.text
     assert result.json() == {'registration_status': 'confirmed'}

@@ -17,6 +17,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.karlmart.catalog.schemas import ProductDraft
 from app.tournaments.services import TOURNAMENT_SLUG_PATTERN
 
 
@@ -76,6 +77,39 @@ class TournamentCreate(BaseModel):
                 "registration_closes_on must not precede registration_opens_on"
             )
         return self
+
+
+class StaffTournamentCreate(TournamentCreate):
+    existing_product_ids: list[int] = Field(default_factory=list)
+    new_products: list[ProductDraft] = Field(default_factory=list)
+
+
+class OfferingInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    existing_product_ids: list[int] = Field(default_factory=list)
+    new_products: list[ProductDraft] = Field(default_factory=list)
+
+
+class LinkedTournamentRead(BaseModel):
+    id: int
+    name: str
+
+
+class StaffProductRead(BaseModel):
+    id: int
+    name: str
+    description: str
+    is_active: bool
+    price_id: int | None
+    amount: Decimal | None
+    currency: str | None
+    tournaments: list[LinkedTournamentRead]
+
+
+class StaffRegistrationTotals(BaseModel):
+    total: int
+    confirmed_count: int
+    competitor_capacity: int | None
 
 
 class TournamentRead(BaseModel):
@@ -530,6 +564,7 @@ class TagSelection(BaseModel):
 
 
 class StaffRegistrationSummaryRead(BaseModel):
+    product_name: str | None
     parental_consent_required: bool
     registration_number: str
     full_name: str
