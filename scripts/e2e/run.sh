@@ -59,7 +59,7 @@ for attempt in {1..90}; do
 done
 "${compose[@]}" exec -T backend alembic upgrade head
 "${compose[@]}" exec -T backend alembic current
-"${compose[@]}" exec -T -e PYTHONPATH=/app backend python /e2e/seed.py > "$runtime/fixtures.json"
+"${compose[@]}" exec -T -e PYTHONPATH=/app:/e2e backend python -m seeds > "$runtime/fixtures.json"
 "${compose[@]}" exec -T ministack aws --endpoint-url http://localhost:4566 --region us-east-2 s3api put-bucket-cors --bucket kb-local-bucket --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:5174"],"AllowedMethods":["GET","PUT"],"AllowedHeaders":["Content-Type"],"MaxAgeSeconds":3000}]}'
 if [[ ${E2E_MODE:-test} == explore ]]; then
   ln -s "$runtime/fixtures.json" "$fixture_link"

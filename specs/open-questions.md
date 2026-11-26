@@ -1,7 +1,7 @@
 # Open-question index
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-14
+**Last updated**: 2026-11-26
 
 There are **2 current-scope question entries** and **14 deferred question entries**. Each entry is defined once, in its owning specification, with a stable ID. Answer it there or refer to the ID in chat. This index links to the questions without duplicating them.
 
@@ -57,6 +57,6 @@ The local/production stack split, Supabase UUID ownership, seat assignment only 
 
 Late Pix transfers are a staff judgment: staff may accept them subject to ordinary capacity checks or decline participation. A refund obligation requires a refundable tournament policy. Staff may explicitly increase capacity, but the system does not increase it or make late-payment judgments automatically.
 
-Waitlist selection is also a staff judgment based on the event, participants, and capacity. The system imposes no queue priority, automatic promotion, mandatory invitation acceptance, or invitation expiry. Staff confirmation of a selected already-paid waitlisted participant checks and assigns available capacity without a second payment approval.
+Waitlist selection is also a staff judgment based on the event, participants, and capacity. The system imposes no queue priority, automatic promotion, mandatory invitation acceptance, or invitation expiry. Staff confirmation of a selected waitlisted participant checks and assigns available capacity without a second payment approval.
 
 Pix-only payments in BRL, PDF/JPEG/PNG proofs up to 10 MB, staff access to proof history, refunds of the received amount within 10 business days, unlimited null capacity, an uncapped waitlist, staff closure of new registrations, and the ban on capacity reductions below confirmed participation are settled. Email uses Portuguese, the configured Suporte Karlbrüder sender, and the current account email. Participant-list opt-out is removed; limited directory/results visibility is disclosed in terms. Interim retention is indefinite pending a final policy review; that review is not an additional current question entry.

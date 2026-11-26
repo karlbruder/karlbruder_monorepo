@@ -1,7 +1,7 @@
 # Karlbrüder application wireframes
 
 **Created**: 2026-10-18
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -70,7 +70,7 @@ Use the relevant screens as the visual baseline for authorized frontend work. Fo
 | [WF-03 · Account access](index.html#WF-03/login) | Visitor · first release | [AUTH-001–003/006](../../identity/authentication-and-access.md): sign-in, sign-up, verification, recovery, new password, signed-in password change (`changepassword`), expired session, unavailable service. Routes `/account/sign-in` through `/account/password`. AUTH-AC-002/003. |
 | [WF-04 · Self-registration](index.html#WF-04/adult) | Participant · first release | [REG-001–005/010/011/015/019](../../tournaments/registration.md), [PRIV-001/002/010](../../tournaments/consent-and-privacy.md): product choice, adult, minor, full event, validation error, duplicate, closure during entry. REG-AC-001/003/007/010/015. |
 | [WF-05 · Pix and proof](index.html#WF-05/initial) | Participant · first release | [PAY-001/003/004/006/010/011](../../tournaments/payments-and-confirmation.md): first upload, replacement, rejection/resubmission, invalid file, late payment. PAY-AC-001/003/006/010/012. |
-| [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, paid waitlist. REG-AC-011, PAY-AC-007. |
+| [WF-06 · Registration status](index.html#WF-06/review) | Participant · first release | [REG-006/007](../../tournaments/registration.md), [CAP-002/005/007](../../tournaments/capacity-and-waitlist.md): reviewing, confirmed, waitlist. REG-AC-011, PAY-AC-007. |
 | [WF-07 · My registrations](index.html#WF-07/list) | Participant · proposed (#63) | [REG-007/008](../../tournaments/registration.md), [AUTH-009](../../identity/authentication-and-access.md): personal list and empty state. REG-AC-005. |
 | [WF-24 · My tags](index.html#WF-24/edit) | Participant · proposed | [REG-005/008](../../tournaments/registration.md): editable selection, closed window, save feedback, and a tournament with no tags. |
 | [WF-26 · Tournament athletes](index.html#WF-26/list) | Staff · proposed | [ADM-001/002](../../tournaments/administration.md): list, empty and filtered states, and a link to registration management. |
@@ -83,7 +83,7 @@ Use the relevant screens as the visual baseline for authorized frontend work. Fo
 | [WF-22 · Change role](index.html#WF-22/choose) | Admin · proposed | Three roles, feedback, self-demotion and last-admin scenarios. [#74](https://github.com/karlbruder/karlbruder_monorepo/issues/74). |
 | [WF-09 · Review queue](index.html#WF-09/queue) | Staff · first release | [ADM-001/002/004](../../tournaments/administration.md): pending proofs, empty queue, loading, failure and restricted access. ADM-AC-002/006. |
 | [WF-10 · Payment decision](index.html#WF-10/available) | Staff · first release | [PAY-004/005/011/013](../../tournaments/payments-and-confirmation.md), [CAP-003](../../tournaments/capacity-and-waitlist.md): available/full, rejection reason, late Pix, minor evidence, changed capacity or evidence, loading, access failure and notification failure. PAY-AC-005/007/011/012, ADM-AC-003/004. |
-| [WF-11 · Paid waitlist selection](index.html#WF-11/seat) | Staff · later operations interface | [CAP-003/005/009](../../tournaments/capacity-and-waitlist.md): staff selection with/without capacity, no payment reapproval. CAP-AC-004/009. |
+| [WF-11 · Waitlist selection](index.html#WF-11/seat) | Staff · later operations interface | [CAP-003/005/009](../../tournaments/capacity-and-waitlist.md): staff selection with/without capacity, no payment reapproval. CAP-AC-004/009. |
 | [WF-12 · Tournament settings](index.html#WF-12/edit) | Staff · tournament administration | [CAT-008/009](../../tournaments/catalog.md), [CAP-009](../../tournaments/capacity-and-waitlist.md). Covers creation, editing, independent document uploads and replacement, registration closure, refund eligibility, and rejected capacity reduction. CAT-AC-007, CAP-AC-007/008. |
 | [WF-13 · Cancellation/refund](index.html#WF-13/confirm) | Participant confirmation and refund status, staff queue and transfer recording | [REG-013/016](../../tournaments/registration.md), [PAY-009/012](../../tournaments/payments-and-confirmation.md): unpaid, paid cancellation, refund pending/completed, staff recording. PAY-AC-008/009/013. |
 | [WF-14 · Results/directory](index.html#WF-14/unavailable) | Audience constrained by event · later concept | [RES-001/003/004](../../tournaments/results.md), [PRIV-006](../../tournaments/consent-and-privacy.md): unavailable/published container, limited authenticated directory, restricted internal event. RES-AC-002/003/004, PRIV-AC-003/004. |
@@ -111,7 +111,7 @@ Issue [#75](https://github.com/karlbruder/karlbruder_monorepo/issues/75) defers 
 3. **Evidence rejected:** WF-10/reject → WF-05/rejected → WF-06/review. Require a reason, explain notification, show resubmission, and do not imply participation cancellation. The staff document history and participant's latest-only view stay distinct. WF-06 → WF-05/replace illustrates replacing existing evidence without requesting a second payment or inventing a participation-status transition.
 4. **Minor:** WF-04/minor and WF-10/minor show the private scanned parental consent form. WF-06/confirmed retains the event-day obligation for accompaniment and in-person document checks. No extra identity-document upload is invented.
 5. **Correction and concurrency:** WF-04/duplicate, WF-04/closed, WF-08/conflict, and WF-10/race show failures without claiming success. A displayed capacity count never replaces the backend transaction.
-6. **Paid waitlist:** WF-11 confirms an eligible selected person only with an available seat. No queue position, automatic promotion, invitation expiration, or second approval of payment.
+6. **Waitlist:** WF-11 confirms an eligible selected person only with an available seat. No queue position, automatic promotion, invitation expiration, or second approval of payment.
 7. **Cancellation:** WF-13 illustrates a future refundable tournament. Monomachia uses the registration status view without the athlete cancellation control. WF-13 distinguishes cancelled participation from refund progress, releases capacity immediately, retains the received-amount/10-business-day rule, and offers no reopening control.
 8. **Roles and future scope:** compare WF-01/public and member. Inspect WF-14 restricted access and the private-data-free directory. WF-15 does not equate tournament payments with dues. WF-16 has no loans, reservations, per-unit tracking, or member access.
 
