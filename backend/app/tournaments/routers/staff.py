@@ -17,6 +17,8 @@ from app.tournaments.schemas import (
     AdditionalDocumentPublish,
     AdditionalDocumentRead,
     StaffRegistrationSummaryRead,
+    StaffPaidWaitlistRead,
+    PaidWaitlistConfirmationRead,
     TagInput,
     TagRead,
     TagSelection,
@@ -34,7 +36,7 @@ from app.tournaments.schemas import (
     TournamentRead,
     additional_document_read,
 )
-from app.tournaments.services import payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
+from app.tournaments.services import paid_waitlist, payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
 from app.tournaments.services.tournament_administration import (
     create_tournament_configuration,
 )
@@ -220,6 +222,28 @@ def list_registrations(
     session: Annotated[Session, Depends(get_session)],
 ):
     return tournament_registrations.list_tournament_registrations_for_staff(session, tournament_id, admin)
+
+
+@router.get("/{tournament_id}/waitlist", response_model=StaffPaidWaitlistRead)
+def get_paid_waitlist(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return paid_waitlist.read_paid_waitlist(session, tournament_id, admin)
+
+
+@router.post(
+    "/{tournament_id}/registrations/{registration_number}/confirm",
+    response_model=PaidWaitlistConfirmationRead,
+)
+def confirm_paid_waitlist_registration(
+    tournament_id: int,
+    registration_number: str,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return paid_waitlist.confirm_paid_waitlist_registration(session, tournament_id, registration_number, admin)
 
 
 @router.post("/{tournament_id}/tags", response_model=TagRead, status_code=201)

@@ -88,12 +88,12 @@ def _event_and_payload(engine):
         return tournament.id, token, payload
 
 
-def _register(session, tournament_id, token):
-    user = User(id=uuid4(), email="fixture@example.test")
+def _register(session, tournament_id, token, *, email="fixture@example.test", document="AB-123"):
+    user = User(id=uuid4(), email=email)
     offering = session.scalar(select(TournamentProduct).where(TournamentProduct.tournament_id == tournament_id))
     price = session.scalar(select(Price).where(Price.product_id == offering.product_id))
     payload = RegistrationCreate(
-        **_registration(), acceptance_language="pt", acceptance_token=token,
+        **_registration(email=email, document=document), acceptance_language="pt", acceptance_token=token,
         tournament_product_id=offering.id, price_id=price.id,
     )
     return create_tournament_registration(
@@ -497,3 +497,61 @@ def test_policy_archive_survives_lost_commit_acknowledgment(committed_policy_tou
         for version_id, expected in [(current_id, new_bytes), (prior_id, prior_bytes)]:
             issued = download(session, storage, tournament_id, "rules", version_id, actor)
             assert objects[issued["download_url"].removeprefix(archive_url)] == expected
+
+
+def test_waitlist_confirmation_and_payment_approval_share_last_seat(setup):
+    from app.core import db
+    from app.tournaments.services.paid_waitlist import confirm_paid_waitlist_registration
+
+    engine = db.sync_engine
+    tournament_id, token, _ = _event_and_payload(engine)
+    admin = User(id=uuid4(), app_metadata={"karlbruder_role": "admin"})
+    started, release = Event(), Event()
+    try:
+        with Session(engine) as session:
+            first = _register(session, tournament_id, token)
+            second = _register(session, tournament_id, token, email="second@example.test", document="second")
+            first.registration_status = "waitlist"
+            second.registration_status = "awaiting_payment_confirmation"
+            session.get(Tournament, tournament_id).competitor_capacity = 1
+            document = TournamentRegistrationDocument(
+                registration_id=second.id, document_type="payment_proof",
+                file=StoredFile(storage_key=f"fixture/{uuid4()}", original_file_name="proof.pdf", content_type="application/pdf", size_bytes=8),
+            )
+            session.add(document)
+            session.commit()
+            first_number, second_number, document_id = first.registration_number, second.registration_number, document.id
+
+        def confirm():
+            with Session(engine) as session:
+                @event.listens_for(session, "before_commit")
+                def pause(_session):
+                    started.set()
+                    assert release.wait(10)
+                confirm_paid_waitlist_registration(session, tournament_id, first_number, admin)
+
+        def approve():
+            with Session(engine) as session:
+                return record_payment_review_decision(
+                    session, admin, second_number,
+                    PaymentReviewDecisionCreate(document_id=document_id, decision="approved", amount_received="1.00", requirements_checked=True),
+                    accounts=Mock(), sender=Mock(), application_base_url=None, from_address="fixture@example.test",
+                )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            confirmation = pool.submit(confirm)
+            assert started.wait(10)
+            approval = pool.submit(approve)
+            try:
+                with pytest.raises(TimeoutError):
+                    approval.result(timeout=0.3)
+            finally:
+                release.set()
+            confirmation.result(timeout=10)
+            approval.result(timeout=10)
+        with Session(engine) as session:
+            statuses = session.scalars(select(TournamentRegistration.registration_status).where(TournamentRegistration.tournament_id == tournament_id)).all()
+            assert sorted(statuses) == ["confirmed", "waitlist"]
+    finally:
+        release.set()
+        _cleanup(engine, tournament_id)

@@ -538,6 +538,16 @@ class StaffRegistrationSummaryRead(BaseModel):
     tags: list[TagRead]
 
 
+class StaffPaidWaitlistRead(BaseModel):
+    competitor_capacity: int | None
+    confirmed_count: int
+    registrations: list[StaffRegistrationSummaryRead]
+
+
+class PaidWaitlistConfirmationRead(BaseModel):
+    registration_status: str
+
+
 class PersonalRegistrationSummary(BaseModel):
     tournament_id: int
     tournament_name: str
