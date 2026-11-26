@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-20
+**Last updated**: 2026-11-26
 
 Monorepo for the Karlbrüder public website and tournament application.
 Association membership and equipment inventory are future capabilities.
@@ -162,7 +162,7 @@ name starting with `kb-e2e-` when a stable name is needed. Failure logs are in
 For agent exploration, run `E2E_MODE=explore make test-e2e` in a terminal. The
 command prints the frontend URL and the temporary fixture metadata path. Press
 Enter to remove the stack and its data. The synthetic account names and password
-are in `scripts/e2e/seed.py`. Do not use these credentials outside this stack.
+are in `scripts/e2e/seeds/accounts.py`. Do not use these credentials outside this stack.
 
 ## Agentic development
 

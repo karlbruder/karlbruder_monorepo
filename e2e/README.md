@@ -53,10 +53,12 @@ another unique name with that prefix if needed. A run refuses to reuse an
 existing project's resources. Runs use fixed host ports and cannot run in
 parallel with another E2E run on the same host.
 
+The Python seed package under [`scripts/e2e/seeds/`](../scripts/e2e/seeds/) creates accounts and tournament fixtures. Playwright runs the browser journeys after the seed completes. The separate `tests/seed.spec.ts` starts Playwright agent exploration and is excluded from the normal suite.
+
 The bootstrap creates temporary Auth signing keys, an internal HTTPS certificate,
 and fixture metadata. They are deleted during cleanup and are not test artifacts.
 The fixture accounts and password are synthetic. Their values are in
-[`scripts/e2e/seed.py`](../scripts/e2e/seed.py). Never use them outside this
+[`scripts/e2e/seeds/accounts.py`](../scripts/e2e/seeds/accounts.py). Never use them outside this
 stack.
 
 After a failure, service logs are retained in `e2e/artifacts/services.log`.
