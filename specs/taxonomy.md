@@ -1,7 +1,7 @@
 # Taxonomy
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-26
+**Last updated**: 2026-11-27
 
 These names are the shared vocabulary for the rest of the specifications.
 
@@ -13,6 +13,11 @@ These names are the shared vocabulary for the rest of the specifications.
 | Guild | The organization is the guild. Its administrative area is the guild panel. Staff refers to people with administrative access |
 | Tournament registration | Participate in an event through `TournamentRegistration`, `registration_number`, and `/api/tournaments/{tournament_id}/registrations`. The frontend entry is `/tournaments/registration` |
 | Discipline | The tournament's sporting discipline, such as `longsword`. Keep the `discipline` field |
+| Phase / round / match | Conduction organizes a tournament into phases, each with rounds containing matches and any byes. A match has two distinct participants from the same phase |
+| Bound | One assault occurrence within a match. A confirmed inconclusive occurrence remains in history without consuming Monomachia's valid-bound limit |
+| Arena | A competition area with a required number and optional name. Use Arena in product copy. Ordered matches are distributed cyclically across Arenas under [TC-008/009](tournaments/conduction.md#arenas-organization-and-calls) |
+| Check-in | The organizer marks presence on the participant list. This does not change registration status or replace existing participation requirements |
+| Organizer / match staff | Operational functions of guild staff (admins). They do not introduce authorization roles or event-specific or match-specific grants |
 | Parental consent form | The minor's signed document. Use `parental_consent_form` in fields and document purpose, and `parental-consent-form` in routes |
 | Stored file | `StoredFile` identifies a stored object. Shared metadata and storage operations belong to `app/core/files/` |
 | Archived file | `ArchivedFile` preserves a captured content version. `archive_file` belongs to `app/core/files/`. The consuming domain owns purpose, validation, access, retention, and current-version selection |

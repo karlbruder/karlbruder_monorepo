@@ -1,7 +1,7 @@
 # Specifications
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-11
+**Last updated**: 2026-11-19
 
 These living specifications describe required product behavior, architecture, and platform constraints. [Documentation](../docs/README.md) explains current implementation and operational procedures. [Decisions](decisions/README.md) retain significant choices and their rationale. Read only the relevant sections and decisions.
 
@@ -24,7 +24,7 @@ These living specifications describe required product behavior, architecture, an
 | Public website | [Presentation and navigation](public-website/presentation-and-navigation.md) | landing |
 | Identity | [Authentication and access](identity/authentication-and-access.md) | frontend, backend |
 | Tournaments | [Catalog](tournaments/catalog.md), [registration](tournaments/registration.md) | frontend, backend |
-| Tournament operations | [Payments and confirmation](tournaments/payments-and-confirmation.md), [capacity and waitlist](tournaments/capacity-and-waitlist.md), [administration](tournaments/administration.md) | frontend, backend |
+| Tournament operations | [Payments and confirmation](tournaments/payments-and-confirmation.md), [capacity and waitlist](tournaments/capacity-and-waitlist.md), [administration](tournaments/administration.md), [conduction](tournaments/conduction.md) | frontend, backend |
 | Tournament outputs | [Results](tournaments/results.md), [consent and privacy](tournaments/consent-and-privacy.md), [communications](tournaments/communications.md) | frontend, backend |
 | First major event | [Monomachia 2027](tournaments/events/monomachia-2027.md) | landing, frontend, backend |
 | Future association features | [Membership](membership/overview.md), [equipment inventory](inventory/overview.md) | frontend, backend |
@@ -41,6 +41,8 @@ Rule IDs such as `REG-001` identify intended behavior. Acceptance IDs such as `R
 Open questions are unresolved. An illustrative status or implementation option must not be treated as a complete contract. Resolve questions that affect a task before implementing the dependent behavior.
 
 The [wireframes](design/app-wireframes/README.md) illustrate these contracts with stable screen IDs and selectable states. They are draft design artifacts: example values and proposed layouts do not resolve open questions or establish implemented behavior. Reference both the screen/state and the owning rule when scoping a UI issue.
+
+[Tournament conduction](tournaments/conduction.md) defines preparation, check-in, Arenas, calls and match/bound operation. [Monomachia](tournaments/events/monomachia-2027.md#conduction-rules) owns the adopted event-specific sporting policies. [Results](tournaments/results.md) owns the shared live consultation and final-publication boundary. The [validation record](../docs/tournament-conduction-validation.md) separates source adoption from later prototype review. Issue #91 delivers specifications and a simulated prototype, not production implementation.
 
 ## Question ownership and terminology
 
