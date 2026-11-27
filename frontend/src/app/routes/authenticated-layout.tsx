@@ -23,5 +23,5 @@ export function AuthenticatedLayout() {
     return <Navigate to={buildSignInPath(returnTo, { sessionExpired: sessionLapsed })} replace />;
   }
 
-  return <Outlet />;
+  return <Outlet key={session.user.id} />;
 }

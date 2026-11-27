@@ -1,6 +1,6 @@
+import { captureSessionScope } from "@/lib/session-scope";
+import { apiFetch } from "@/lib/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "@/config/environment";
-import { apiFetch } from "@/lib/api-fetch";
 
 export const applicationRoles = ["regular_user", "guild_member", "admin"] as const;
 export type ApplicationRole = typeof applicationRoles[number];
@@ -25,14 +25,8 @@ export class StaffAccountError extends Error {
   }
 }
 
-async function request<T>(token: string, path: string, init: RequestInit): Promise<T> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/users${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...init.headers,
-    },
-  });
+async function request<T>(userId: string, path: string, init: RequestInit): Promise<T> {
+  const response = await apiFetch(`/staff/users${path}`, init, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new StaffAccountError(response.status);
   return response.json();
 }
@@ -41,14 +35,14 @@ function accountDirectoryKey(actorId: string) {
   return ["staff-accounts", actorId];
 }
 
-export function useStaffAccounts(token: string, actorId: string) {
+export function useStaffAccounts(actorId: string) {
   return useQuery({
     queryKey: accountDirectoryKey(actorId),
     queryFn: async ({ signal }) => {
       const accounts = new Map<string, StaffAccount>();
       let page: number | null = 1;
       while (page !== null) {
-        const result: StaffAccountPage = await request(token, `?page=${page}&per_page=100`, { signal });
+        const result: StaffAccountPage = await request(actorId, `?page=${page}&per_page=100`, { signal });
         for (const account of result.users) accounts.set(account.id, account);
         page = result.next_page;
       }
@@ -57,12 +51,13 @@ export function useStaffAccounts(token: string, actorId: string) {
   });
 }
 
-export function useUpdateStaffAccountRole(token: string, actorId: string, accountId: string) {
+export function useUpdateStaffAccountRole(actorId: string, accountId: string) {
   const client = useQueryClient();
   const queryKey = accountDirectoryKey(actorId);
   return useMutation({
+    onMutate: () => captureSessionScope(),
     mutationFn: (role: ApplicationRole) => request<StaffAccount>(
-      token,
+      actorId,
       `/${encodeURIComponent(accountId)}`,
       {
         method: "PATCH",
@@ -70,8 +65,10 @@ export function useUpdateStaffAccountRole(token: string, actorId: string, accoun
         body: JSON.stringify({ role }),
       },
     ),
-    onSuccess: async (updated) => {
+    onSuccess: async (updated, _role, scope) => {
+      if (!scope.isCurrent()) return;
       await client.cancelQueries({ queryKey });
+      if (!scope.isCurrent()) return;
       client.setQueryData<StaffAccount[]>(queryKey, (accounts) =>
         accounts?.map((account) => account.id === updated.id ? updated : account),
       );

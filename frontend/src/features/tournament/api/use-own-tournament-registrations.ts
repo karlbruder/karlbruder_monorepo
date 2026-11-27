@@ -7,12 +7,11 @@ export function ownTournamentRegistrationsQueryKey(tournamentId: number) {
 
 export function useOwnTournamentRegistrations(
   tournamentId: number | undefined,
-  accessToken: string | undefined,
   userId: string,
 ) {
   return useQuery({
     queryKey: [...ownTournamentRegistrationsQueryKey(tournamentId ?? 0), userId],
-    queryFn: ({ signal }) => listOwnRegistrations(tournamentId!, accessToken!, signal),
-    enabled: Boolean(tournamentId && accessToken),
+    queryFn: ({ signal }) => listOwnRegistrations(tournamentId!, userId, signal),
+    enabled: Boolean(tournamentId && userId),
   });
 }

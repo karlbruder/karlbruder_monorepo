@@ -1,3 +1,4 @@
+import { captureSessionScope } from "@/lib/session-scope";
 import { useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -23,7 +24,7 @@ export function StaffTournamentListRoute() {
   const { session } = useAuthSession();
   const { language } = useLanguage();
   const [offset, setOffset] = useState(0);
-  const query = useStaffTournaments(session!.access_token, session!.user.id, offset);
+  const query = useStaffTournaments(session!.user.id, offset);
   const en = language === "en";
   return <section className="staff-tournaments">
     <div className="staff-page-heading"><h1>{en ? "Tournaments" : "Torneios"}</h1>
@@ -45,7 +46,7 @@ export function StaffTournamentCreateRoute() {
   const en = language === "en";
   return <section>
     <h1>{en ? "Create tournament" : "Criar torneio"}</h1>
-    <StaffTournamentForm token={session!.access_token} userId={session!.user.id} language={language} onSaved={(saved) => {
+    <StaffTournamentForm userId={session!.user.id} language={language} onSaved={(saved) => {
       void client.invalidateQueries({ queryKey: ["staff-tournaments"] });
       if (isActiveVisit()) navigate(`/staff/tournaments/${saved.id}`);
     }} />
@@ -63,7 +64,7 @@ export function StaffTournamentDetailRoute() {
   const client = useQueryClient();
   const isActiveVisit = useActiveVisit();
   const visitId = useId();
-  const query = useStaffTournament(session!.access_token, session!.user.id, tournamentId, visitId);
+  const query = useStaffTournament(session!.user.id, tournamentId, visitId);
   const missing = query.error instanceof StaffTournamentError && query.error.status === 404;
   const [deleting, setDeleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -71,23 +72,26 @@ export function StaffTournamentDetailRoute() {
   const en = language === "en";
   async function remove() {
     if (deleting) return;
+    const scope = captureSessionScope();
     setDeleting(true); setError("");
     try {
-      await deleteStaffTournament(session!.access_token, tournamentId);
+      await deleteStaffTournament(session!.user.id, tournamentId);
+      if (!scope.isCurrent()) return;
       client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" });
       await client.invalidateQueries({ queryKey: ["staff-tournaments"] });
-      if (isActiveVisit()) navigate("/staff/tournaments");
+      if (scope.isCurrent() && isActiveVisit()) navigate("/staff/tournaments");
     } catch (caught) {
+      if (!scope.isCurrent()) return;
       setError(caught instanceof StaffTournamentError && caught.status === 409 ? (en ? "This tournament has registrations and cannot be deleted." : "Este torneio possui inscrições e não pode ser excluído.") : (en ? "Could not delete the tournament. Try again." : "Não foi possível excluir o torneio. Tente novamente."));
     } finally { setDeleting(false); }
   }
   return <section><Link to="/staff/tournaments">← {en ? "Tournaments" : "Torneios"}</Link>
     {query.isLoading && <p role="status">{en ? "Loading tournament..." : "Carregando torneio..."}</p>}
     {query.isError && <p role="alert">{en ? "Could not load this tournament." : "Não foi possível carregar este torneio."} <button onClick={() => query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
-    {query.data && !missing && <><h1>{query.data.name}</h1><p><Link to={`/staff/tournaments/${tournamentId}/athletes`}>{en ? "Manage athletes" : "Gerenciar atletas"}</Link>{" · "}<Link to={`/staff/tournaments/${tournamentId}/waitlist`}>{en ? "Waitlist" : "Lista de espera"}</Link>{" · "}<Link to="/staff/payment-reviews">{en ? "Payment review" : "Conferência de pagamentos"}</Link></p><StaffTournamentForm key={query.data.id} token={session!.access_token} userId={session!.user.id} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" }); if (isActiveVisit()) navigate("/staff/tournaments"); }} />
-      <TournamentProducts token={session!.access_token} userId={session!.user.id} tournamentId={tournamentId} language={language} />
-      <StaffTagConfiguration token={session!.access_token} userId={session!.user.id} tournamentId={tournamentId} language={language} />
-      <StaffTournamentDocuments key={`policies-${query.data.id}`} token={session!.access_token} userId={session!.user.id} tournamentId={query.data.id} language={language} />
+    {query.data && !missing && <><h1>{query.data.name}</h1><p><Link to={`/staff/tournaments/${tournamentId}/athletes`}>{en ? "Manage athletes" : "Gerenciar atletas"}</Link>{" · "}<Link to={`/staff/tournaments/${tournamentId}/waitlist`}>{en ? "Waitlist" : "Lista de espera"}</Link>{" · "}<Link to="/staff/payment-reviews">{en ? "Payment review" : "Conferência de pagamentos"}</Link></p><StaffTournamentForm key={query.data.id} userId={session!.user.id} event={query.data} language={language} onSaved={() => { client.invalidateQueries({ queryKey: ["staff-tournaments"] }); client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" }); if (isActiveVisit()) navigate("/staff/tournaments"); }} />
+      <TournamentProducts userId={session!.user.id} tournamentId={tournamentId} language={language} />
+      <StaffTagConfiguration userId={session!.user.id} tournamentId={tournamentId} language={language} />
+      <StaffTournamentDocuments key={`policies-${query.data.id}`} userId={session!.user.id} tournamentId={query.data.id} language={language} />
       <div className="review-card staff-delete-panel">
       {!confirming ? <button className="staff-danger-button" onClick={() => setConfirming(true)}>{en ? "Delete tournament" : "Excluir torneio"}</button> : <div><p>{en ? "Delete this tournament? This cannot be undone." : "Excluir este torneio? Esta ação não pode ser desfeita."}</p><button className="staff-danger-button" disabled={deleting} onClick={remove}>{en ? "Confirm deletion" : "Confirmar exclusão"}</button>{" "}<button disabled={deleting} onClick={() => setConfirming(false)}>{en ? "Cancel" : "Cancelar"}</button></div>}
       </div>

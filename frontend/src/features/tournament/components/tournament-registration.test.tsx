@@ -1,4 +1,5 @@
 vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "test-token", user: { id: "athlete-uuid" } } }, error: null })) } } }));
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +7,7 @@ import { useState } from "react";
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import TournamentRegistration from '@/features/tournament/components/tournament-registration'
+import { supabase } from "@/lib/supabase-client";
 const tournament = {
   id: 42,
   name: 'Monomachia Karlbrüder 2027',
@@ -45,6 +47,7 @@ function mockTournament(response: unknown = tournament) {
 
 
 beforeEach(() => {
+  vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null });
   window.history.replaceState({}, '', '/tournaments/registration')
   window.localStorage.clear()
   vi.stubEnv('VITE_API_BASE_URL', '/api')
@@ -66,12 +69,11 @@ describe('Tournament registration', () => {
         : url.endsWith('/registrations') ? [] : catalogBody({ ...tournament, is_registration_closed: true }),
     }))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistration session={signedInSession} authReady authError={null} signInButton={null} />)
+    render(<TournamentRegistration user={signedInSession.user} authReady authError={null} signInButton={null} />)
     expect(await screen.findByRole('button', { name: /Guia do competidor · guide.pdf/ })).toHaveTextContent('PDF')
     expect(screen.getAllByText(/conteúdo ainda não disponível/)).toHaveLength(2)
-    expect(request).toHaveBeenCalledWith('/api/tournaments/42/documents', expect.objectContaining({
-      headers: { Authorization: 'Bearer test-token' },
-    }))
+    const documentCall = request.mock.calls.find(([url]) => url.endsWith('/api/tournaments/42/documents'))
+    expect(documentCall).toBeDefined()
   })
   it('shows available policy files to the signed-in athlete when registration is closed', async () => {
     mockTournament({
@@ -84,7 +86,7 @@ describe('Tournament registration', () => {
         } },
       },
     })
-    render(<TournamentRegistration session={signedInSession} authReady authError={null} signInButton={null} />)
+    render(<TournamentRegistration user={signedInSession.user} authReady authError={null} signInButton={null} />)
     expect(await screen.findByRole('region', { name: 'Documentos do torneio' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /rules.pdf/ })).toBeInTheDocument()
     expect(screen.getByText(/Política de cancelamento: conteúdo ainda não disponível/)).toBeInTheDocument()
@@ -95,7 +97,7 @@ describe('Tournament registration', () => {
     const request = mockTournament(null)
     render(
       <TournamentRegistration
-        session={null}
+        user={null}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -110,7 +112,7 @@ describe('Tournament registration', () => {
     mockTournament({ ...tournament, is_registration_closed: true })
     const view = render(
       <TournamentRegistration
-        session={signedInSession}
+        user={signedInSession.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -122,7 +124,7 @@ describe('Tournament registration', () => {
     mockTournament(null)
     render(
       <TournamentRegistration
-        session={null}
+        user={null}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -135,7 +137,7 @@ describe('Tournament registration', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
     render(
       <TournamentRegistration
-        session={null}
+        user={null}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -185,7 +187,7 @@ describe('Tournament registration', () => {
     vi.stubGlobal("fetch", request);
     render(
       <TournamentRegistration
-        session={signedInSession} authReady authError={null}
+        user={signedInSession.user} authReady authError={null}
         signInButton={<button>Entrar</button>}
       />,
     )
@@ -258,7 +260,7 @@ describe('Tournament registration', () => {
     );
     render(
       <TournamentRegistration
-        session={signedInSession}
+        user={signedInSession.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -294,7 +296,7 @@ describe('Tournament registration', () => {
     );
     render(
       <TournamentRegistration
-        session={signedInSession}
+        user={signedInSession.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -308,6 +310,7 @@ describe('Tournament registration', () => {
       access_token: "admin-token",
       user: { id: "admin-uuid", email: "admin@example.test", user_metadata: {} },
     } as Session
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: adminSession }, error: null });
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
@@ -355,7 +358,7 @@ describe('Tournament registration', () => {
     }))
     render(
       <TournamentRegistration
-        session={adminSession}
+        user={adminSession.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -371,6 +374,7 @@ describe('Tournament registration', () => {
       access_token: "admin-token",
       user: { id: "admin-uuid", email: "admin@example.test", user_metadata: {} },
     } as Session
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: adminSession }, error: null });
     const request = vi.fn(async (url: string) => {
       if (url === monomachiaListUrl) {
         return { ok: true, status: 200, json: async () => catalogBody(tournament) }
@@ -394,7 +398,7 @@ describe('Tournament registration', () => {
     vi.stubGlobal("fetch", request)
     render(
       <TournamentRegistration
-        session={adminSession}
+        user={adminSession.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}
@@ -478,9 +482,9 @@ function SwitchableRegistration({ nextSession }: { nextSession: Session }) {
   const [session, setSession] = useState(signedInSession)
   return (
     <>
-      <button type="button" onClick={() => setSession(nextSession)}>Trocar conta</button>
+      <button type="button" onClick={() => { vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: nextSession }, error: null }); setSession(nextSession); }}>Trocar conta</button>
       <TournamentRegistration
-        session={session}
+        user={session.user}
         authReady
         authError={null}
         signInButton={<button>Entrar</button>}

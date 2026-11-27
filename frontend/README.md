@@ -1,7 +1,7 @@
 # Karlbrüder frontend
 
 **Created**: 2026-01-11
-**Last updated**: 2026-11-26
+**Last updated**: 2026-11-27
 
 React and TypeScript application built with Vite. Supabase owns authentication.
 FastAPI owns domain rules and data. The public website lives in `landing/`.
@@ -14,7 +14,7 @@ FastAPI owns domain rules and data. The public website lives in `landing/`.
 | `src/app/provider.tsx` | Query, auth-session, and language provider composition |
 | `src/app/router.tsx` | URL-to-route mapping |
 | `src/app/routes/` | Screens, navigation, and feature composition |
-| `src/features/` | Auth, tournament registration/payment proofs, and diagnostics |
+| `src/features/` | Auth and tournament registration/payment proofs |
 | `src/lib/` | Supabase, Query, and request helpers |
 
 [AGENTS.md](AGENTS.md) owns the full layout, dependency, and editing rules.
@@ -87,8 +87,10 @@ Keep `VITE_API_BASE_URL=/api`.
 | Local Compose | Vite to `http://backend:8000`. No Nginx service |
 | Production Compose | Separate Nginx service to the backend. The frontend image's Nginx serves static assets |
 
-All three preserve `/api`. Domain requests use `src/lib/api-fetch.ts` and feature
-API modules. Private uploads send bytes directly to a backend-issued presigned URL.
+All three preserve `/api`. Feature API modules use the shared request boundary.
+`src/lib/api-client.ts` obtains the current Supabase session for authenticated
+requests and limits credentials to the configured backend. Private uploads send
+bytes directly to a backend-issued presigned URL, outside the API client.
 
 Follow the [tournament API guide](../backend/app/tournaments/README.md) for registration,
 parental-consent-form and proof routes, acceptance tokens, and access restrictions.
@@ -179,8 +181,10 @@ WF-11 provides staff waitlist selection and cancellation. An awaiting refund lin
 
 ## Build and checks
 
-Run `make test-frontend` from the repository root. It uses the local development
-image, without `compose.test.yml`.
+Run `make test-frontend TEST_PROJECT=kb-test-your-name` from the repository root.
+It uses the frontend service in `compose.test.yml` without host ports, backend
+services, or development credentials. Use a unique project name when other
+test stacks may be running. The target removes the project with `down -v`.
 
 From `frontend/`:
 

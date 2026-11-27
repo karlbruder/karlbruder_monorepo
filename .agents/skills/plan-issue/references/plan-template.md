@@ -3,7 +3,7 @@
 Write the complete populated template to `.local/plan-issue/issue-<number>-<short-kebab-case-title>__plan_<N>__<model>.md` in the repository root. Replace the bracketed guidance and repeat the step section only as needed. Add detail where a step would otherwise be ambiguous. The file must contain the entire plan, not just a summary or pointer to chat.
 
 ```markdown
-# Plan: issue #[number] — [title]
+# Plan: issue #[number], [title]
 
 - Issue: [GitHub URL]
 - Repository: [owner/repo and local root]
@@ -15,7 +15,7 @@ Write the complete populated template to `.local/plan-issue/issue-<number>-<shor
 - Issue captured: [timestamp and relevant clarification links]
 - Status: awaiting_plan_approval
 - Active step: none
-- Commit owner: human; agent never stages or commits
+- Commit owner: human. The agent never stages or commits
 - Project URL / issue item: [if known, otherwise resolve when starting work]
 - Project status / last sync result: not checked
 - Pre-existing changes: [files/areas and ownership boundaries]
@@ -24,13 +24,20 @@ Write the complete populated template to `.local/plan-issue/issue-<number>-<shor
 
 [Concrete outcome, dependencies, and non-goals.]
 
+## Out of scope
+
+[Nearby work that must not leak into this plan. Omit when there is nothing useful to bound.]
+
 ## Steps
 
 ### Step 1: [suggested conventional commit subject]
 
 - Status: planned
 - Starting HEAD: not started
-- Change: [one outcome, affected areas, and applicable rules or dependencies]
+- Depends on: [none, or Step N]
+- Change: [one outcome, named files, functions, endpoints, or tables, and applicable rules]
+- Failure paths and edge cases: [cases to handle and test in this step, or none for non-behavior changes]
+- Done when: [observable result that ends the step]
 - Verification: [criteria covered, tests in this commit if applicable, and checks with expected results]
 - Results: not run
 - Actual commit: none

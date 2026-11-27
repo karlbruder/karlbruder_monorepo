@@ -10,7 +10,7 @@ import { AuthSessionContext } from "@/features/auth/hooks/use-auth-session";
 import { LanguageProvider } from "@/components/language-provider";
 import { createQueryClient } from "@/lib/query-client";
 
-vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "staff" } } }, error: null })) } } }));
 const admin = { access_token: "staff-token", user: { id: "staff", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
 const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, pix_key: "fixture" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -49,7 +49,7 @@ it("lists multiple tournaments and saves tournament settings independently of do
     expect(payload).not.toHaveProperty(field);
   }
   expect(JSON.parse(init.body)).not.toHaveProperty("registration_fee_amount");
-  expect(init.headers.Authorization).toBe("Bearer staff-token");
+  expect(init.headers.get("Authorization")).toBe("Bearer staff-token");
   await screen.findByRole("link", { name: "Second event" });
 });
 it("opens the saved tournament for document uploads after creating it", async () => {
@@ -120,7 +120,7 @@ it("publishes both policies independently and keeps the current file on a failed
   expect([...put.headers]).toEqual([["content-type", "application/octet-stream"]]);
   expect(put.body).toBe(newRules);
   const [, finalize] = fetchMock.mock.calls.find(([url]) => url === endpoint + "/rules")!;
-  expect(finalize.headers.Authorization).toBe("Bearer staff-token");
+  expect(finalize.headers.get("Authorization")).toBe("Bearer staff-token");
   expect(JSON.parse(finalize.body)).toEqual({ storage_key: "stage-rules", original_file_name: "regras-novas.pdf" });
 });
 
@@ -131,7 +131,7 @@ it("adds a titled competitor’s guide without saving the tournament form", asyn
   const guide = { id: 9, title: "Guia do competidor", original_file_name: "guide.pdf", content_type: "application/pdf" };
   let documents: typeof guide[] = [];
   fetchMock.mockImplementation(async (url: string) => {
-    if (url === listing) return json(documents);
+    if (url.endsWith(listing)) return json(documents);
     if (url.endsWith("/policy-documents")) return json({});
     if (url === endpoint + "/upload-url") return json({
       storage_key: "staged-guide", upload_url: uploadUrl, required_headers: { "Content-Type": "application/octet-stream" },
@@ -318,4 +318,28 @@ it.each(["edit", "create", "delete"])("does not redirect a later draft when a pe
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Second draft" } });
   await act(async () => { finish(operation === "delete" ? new Response(null, { status: 204 }) : json(event)); });
   expect(screen.getByLabelText("Nome")).toHaveValue("Second draft");
+});
+
+it("does not finalize a staff document upload after the session changes", async () => {
+  const { endSessionScope } = await import("@/lib/session-scope");
+  const endpoint = "/api/staff/tournaments/1/policy-documents/rules";
+  const storage = "https://storage.example.test/pending";
+  let finishUpload!: (response: Response) => void;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === endpoint + "/upload-url") return json({ storage_key: "staged", upload_url: storage, required_headers: { "Content-Type": "application/pdf" } });
+    if (url === storage) return new Promise<Response>(resolve => { finishUpload = resolve; });
+    if (url.endsWith("/policy-documents")) return json({});
+    if (url.endsWith("/documents")) return json([]);
+    return json(event);
+  });
+  render(tree("/staff/tournaments/1"));
+  const rules = within(await screen.findByRole("region", { name: "Regulamento" }));
+  fireEvent.click(rules.getByRole("button", { name: "Enviar arquivo" }));
+  fireEvent.change(rules.getByLabelText("Arquivo"), { target: { files: [new File(["%PDF"], "rules.pdf", { type: "application/pdf" })] } });
+  fireEvent.click(rules.getByRole("button", { name: "Publicar documento" }));
+  await waitFor(() => expect(finishUpload).toBeTypeOf("function"));
+  endSessionScope();
+  finishUpload(new Response(null, { status: 200 }));
+  await waitFor(() => expect(rules.getByRole("button", { name: "Publicar documento" })).not.toBeDisabled());
+  expect(fetchMock.mock.calls.some(([url]) => url === endpoint)).toBe(false);
 });

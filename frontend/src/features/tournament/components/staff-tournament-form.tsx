@@ -1,3 +1,4 @@
+import { captureSessionScope } from "@/lib/session-scope";
 import { useRef, useState, type FormEvent } from "react";
 import { normalizedDraft, useStaffProducts, validProductDraft, type OfferingSelection } from "@/features/tournament/api/staff-products";
 import { TournamentProductSelection } from "@/features/tournament/components/tournament-product-selection";
@@ -59,14 +60,14 @@ function saveErrorMessage(error: unknown, en: boolean): string {
   }
   return generic;
 }
-export function StaffTournamentForm({ token, userId, event, language, onSaved }: { token: string; userId: string; event?: StaffTournament; language: AppLanguage; onSaved: (saved: StaffTournament) => void }) {
+export function StaffTournamentForm({ userId, event, language, onSaved }: { userId: string; event?: StaffTournament; language: AppLanguage; onSaved: (saved: StaffTournament) => void }) {
   const [originalValues] = useState(() => initialValues(event));
   const [values, setValues] = useState(originalValues);
   const [internal, setInternal] = useState(event?.is_internal ?? false);
   const [closed, setClosed] = useState(event?.is_registration_closed ?? false);
   const [refundsAllowed, setRefundsAllowed] = useState(event?.refunds_allowed ?? false);
   const [selection, setSelection] = useState<OfferingSelection>({ existing_product_ids: [], new_products: [] });
-  const products = useStaffProducts(token, userId, undefined, !event);
+  const products = useStaffProducts(userId, undefined, !event);
   const [productError, setProductError] = useState(false);
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
@@ -77,6 +78,7 @@ export function StaffTournamentForm({ token, userId, event, language, onSaved }:
     if (inFlight.current) return;
     if (!event && selection.new_products.some(draft => !validProductDraft(draft))) { setProductError(true); return; }
     setProductError(false);
+    const scope = captureSessionScope();
     inFlight.current = true; setPending(true); setError(null);
     try {
       const payload: Record<string, unknown> = {
@@ -94,9 +96,10 @@ export function StaffTournamentForm({ token, userId, event, language, onSaved }:
         payload.existing_product_ids = selection.existing_product_ids;
         payload.new_products = selection.new_products.map(normalizedDraft);
       }
-      onSaved(await saveStaffTournament(token, payload, event ? String(event.id) : undefined));
+      const saved = await saveStaffTournament(userId, payload, event ? String(event.id) : undefined);
+      if (scope.isCurrent()) onSaved(saved);
     } catch (caught) {
-      setError(caught);
+      if (scope.isCurrent()) setError(caught);
     } finally { inFlight.current = false; setPending(false); }
   }
   return <form className="staff-tournament-form review-card" onSubmit={submit}>

@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   PaymentProofRequestError,
-  requestPaymentProofUploadUrl,
-  submitPaymentProof,
-  uploadFileToPresignedUrl,
+  uploadPaymentProof,
 } from "@/features/tournament/api/tournaments";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
@@ -17,10 +15,11 @@ import {
 import { validateParentalConsentFormFile } from "@/features/tournament/utils/validate-parental-consent-form-file";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
+import { captureSessionScope } from "@/lib/session-scope";
 
 type Props = {
   tournament: Tournament;
-  session: Session;
+  user: User;
   registrationNumber: string;
   registrationStatus: string;
   onProofSubmitted: (registration: OwnerRegistration) => void;
@@ -67,7 +66,7 @@ function messageForProofRequest(error: unknown): AppCopyKey {
 
 export default function TournamentPaymentPanel({
   tournament,
-  session,
+  user,
   registrationNumber,
   registrationStatus,
   onProofSubmitted,
@@ -85,7 +84,7 @@ export default function TournamentPaymentPanel({
   const { data: payment, dataUpdatedAt, error, isFetching, refetch } = useTournamentRegistrationPayment(
     tournament.id,
     registrationNumber,
-    session.access_token,
+    user.id,
   );
 
   const awaitingPayment =
@@ -127,7 +126,9 @@ export default function TournamentPaymentPanel({
       setFileError("Escolha PDF, JPEG ou PNG de até 10 MB.");
       return;
     }
+    const scope = captureSessionScope();
     const validationError = await validateParentalConsentFormFile(file);
+    if (!scope.isCurrent()) return;
     if (validationError) {
       setFileError("Este arquivo não foi aceito. Escolha PDF, JPEG ou PNG de até 10 MB.");
       return;
@@ -137,23 +138,14 @@ export default function TournamentPaymentPanel({
     requestPending.current = true;
     setPending(true);
     try {
-      const uploadInfo = await requestPaymentProofUploadUrl(
-        tournament.id,
-        registrationNumber,
-        session.access_token,
-        file.name,
-      );
-      await uploadFileToPresignedUrl(uploadInfo.upload_url, file, uploadInfo.required_headers);
-      const updatedRegistration = await submitPaymentProof(tournament.id, registrationNumber, session.access_token, {
-        storage_key: uploadInfo.storage_key,
-        original_file_name: file.name,
-      });
+      const updatedRegistration = await uploadPaymentProof(tournament.id, registrationNumber, user.id, file);
+      scope.throwIfChanged();
       onProofSubmitted(updatedRegistration);
       form.reset();
       setReplaceMode(false);
       await invalidatePayment();
     } catch (submitError) {
-      setRequestError(messageForProofRequest(submitError));
+      if (scope.isCurrent()) setRequestError(messageForProofRequest(submitError));
     } finally {
       requestPending.current = false;
       setPending(false);

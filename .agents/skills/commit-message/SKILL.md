@@ -85,7 +85,7 @@ closing references. Do not require an issue just because a style often includes 
 
 For Conventional Commits, use `type(scope): imperative summary`. Omit the scope
 when it adds no clarity. Choose the actual change type, such as `feat`, `fix`,
-`refactor`, `docs`, `test`, `perf`, or `chore`. Keep the subject concise, preferably
+`refactor`, `docs`, `test`, `perf`, or `chore`. Start the summary in lowercase and focus on why the change exists, not a file list. Keep the subject concise, preferably
 under 72 characters, without a trailing period. Use `!` or a `BREAKING CHANGE:`
 footer only for an established compatibility break.
 

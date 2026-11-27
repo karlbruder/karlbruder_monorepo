@@ -1,3 +1,4 @@
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "admin" } } }, error: null })) } } }));
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { renderWithQuery } from "@/testing/render-with-query";
@@ -21,7 +22,7 @@ it("finds a refund and records the fixed UTC−03 transfer time after full-amoun
     return Response.json({ items: completed ? [] : [refund], total: completed ? 0 : 1, limit: 20, offset: 0 });
   });
   vi.stubGlobal("fetch", request);
-  renderWithQuery(<RegistrationRefundQueue token="staff" userId="admin" language="en" />);
+  renderWithQuery(<RegistrationRefundQueue userId="admin" language="en" />);
 
   fireEvent.change(screen.getByLabelText("Find exact registration"), { target: { value: "  T42-1 " } });
   fireEvent.click(screen.getByRole("button", { name: "Search" }));

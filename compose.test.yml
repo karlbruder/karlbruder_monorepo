@@ -1,4 +1,4 @@
-# Isolated backend tests. This file publishes no host ports.
+# Isolated application tests. This file publishes no host ports.
 # PostgreSQL data is in memory and disappears when the container stops.
 # Use a distinct project name whenever another test stack may already be running:
 #   docker compose -f compose.test.yml -p kb-test-<name> run --rm backend pytest -x
@@ -40,3 +40,17 @@ services:
 
     volumes:
       - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    restart: "no"
+    network_mode: none
+    environment:
+      VITE_SUPABASE_URL: https://test.example.invalid
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_not_a_real_key
+      VITE_API_BASE_URL: /api
+    volumes:
+      - ./frontend/src:/app/src:ro

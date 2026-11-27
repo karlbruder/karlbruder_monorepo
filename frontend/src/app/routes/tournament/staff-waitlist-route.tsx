@@ -7,5 +7,5 @@ export function StaffWaitlistRoute() {
   const { tournamentId = "" } = useParams();
   const { session } = useAuthSession();
   const { language } = useLanguage();
-  return <Waitlist token={session!.access_token} userId={session!.user.id} tournamentId={tournamentId} language={language} />;
+  return <Waitlist userId={session!.user.id} tournamentId={tournamentId} language={language} />;
 }

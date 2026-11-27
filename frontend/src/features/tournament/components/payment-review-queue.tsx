@@ -2,13 +2,13 @@ import { useState } from "react";
 import { usePaymentReviewQueue, PaymentReviewRequestError } from "@/features/tournament/api/payment-reviews";
 import { appCopy, type AppLanguage } from "@/utils/app-copy";
 
-export function PaymentReviewQueue({ token, userId, language, onReview }: {
-  token: string; userId: string; language: AppLanguage; onReview: (number: string) => void;
+export function PaymentReviewQueue({ userId, language, onReview }: {
+  userId: string; language: AppLanguage; onReview: (number: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
   const [offset, setOffset] = useState(0);
-  const query = usePaymentReviewQueue(token, userId, filter, offset);
+  const query = usePaymentReviewQueue(userId, filter, offset);
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
   if (query.error instanceof PaymentReviewRequestError && query.error.status === 403) return <p role="alert">{t("Acesso restrito à equipe.")}</p>;
   return <>

@@ -8,12 +8,12 @@ export function tournamentRegistrationPaymentQueryKey(tournamentId: number, regi
 export function useTournamentRegistrationPayment(
   tournamentId: number | undefined,
   registrationNumber: string | undefined,
-  accessToken: string | undefined,
+  userId: string | undefined,
 ) {
   return useQuery({
-    queryKey: tournamentRegistrationPaymentQueryKey(tournamentId ?? 0, registrationNumber ?? ""),
+    queryKey: [...tournamentRegistrationPaymentQueryKey(tournamentId ?? 0, registrationNumber ?? ""), userId],
     queryFn: ({ signal }) =>
-      getPaymentInstructions(tournamentId!, registrationNumber!, accessToken!, signal),
-    enabled: Boolean(tournamentId && registrationNumber && accessToken),
+      getPaymentInstructions(tournamentId!, registrationNumber!, userId!, signal),
+    enabled: Boolean(tournamentId && registrationNumber && userId),
   });
 }

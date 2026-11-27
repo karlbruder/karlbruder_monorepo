@@ -1,3 +1,4 @@
+import { captureSessionScope } from "@/lib/session-scope";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { addTournamentProducts, changeProductPrice, deactivateProduct, editProduct, formatProductPrice, normalizedDraft, useStaffProducts, validProductDraft, type OfferingSelection, type StaffProduct } from "@/features/tournament/api/staff-products";
@@ -12,11 +13,11 @@ function message(error: unknown, en: boolean) {
   return en ? "Could not save. Your changes are still here. Try again." : "Não foi possível salvar. Suas alterações foram mantidas. Tente novamente.";
 }
 
-export function TournamentProducts({ token, userId, tournamentId, language }: { token: string; userId: string; tournamentId: string; language: AppLanguage }) {
+export function TournamentProducts({ userId, tournamentId, language }: { userId: string; tournamentId: string; language: AppLanguage }) {
   const en = language === "en";
   const client = useQueryClient();
-  const offered = useStaffProducts(token, userId, tournamentId);
-  const catalog = useStaffProducts(token, userId);
+  const offered = useStaffProducts(userId, tournamentId);
+  const catalog = useStaffProducts(userId);
   const [adding, setAdding] = useState(false);
   const [draftSelection, setSelection] = useState<OfferingSelection>(emptySelection);
   const selection = {
@@ -35,12 +36,14 @@ export function TournamentProducts({ token, userId, tournamentId, language }: { 
     event.preventDefault();
     if (inFlight.current) return;
     if ((!selection.existing_product_ids.length && !selection.new_products.length) || selection.new_products.some(draft => !validProductDraft(draft))) { setInvalid(true); return; }
+    const scope = captureSessionScope();
     setInvalid(false); setError(null); setSaved(false); inFlight.current = true; setPending(true);
     try {
-      await addTournamentProducts(token, tournamentId, { ...selection, new_products: selection.new_products.map(normalizedDraft) });
+      await addTournamentProducts(userId, tournamentId, { ...selection, new_products: selection.new_products.map(normalizedDraft) });
+      if (!scope.isCurrent()) return;
       setSelection(emptySelection()); setAdding(false); setSaved(true);
       await refresh();
-    } catch (caught) { setError(caught); } finally { inFlight.current = false; setPending(false); }
+    } catch (caught) { if (scope.isCurrent()) setError(caught); } finally { inFlight.current = false; setPending(false); }
   }
   return <section className="review-card tournament-products" aria-labelledby="tournament-products-title">
     <h2 id="tournament-products-title">{en ? "Registration products" : "Produtos de inscrição"}</h2>
@@ -48,7 +51,7 @@ export function TournamentProducts({ token, userId, tournamentId, language }: { 
     {offered.isError && <p role="alert">{en ? "Could not load products." : "Não foi possível carregar os produtos."} <button type="button" onClick={() => void offered.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {offered.data && <>
       {offered.data.length === 0 && <p>{en ? "No products offered for this tournament." : "Nenhum produto oferecido neste torneio."}</p>}
-      {offered.data.map(product => <ProductChange key={product.id} product={product} token={token} language={language} onSaved={refresh} />)}
+      {offered.data.map(product => <ProductChange key={product.id} product={product} userId={userId} language={language} onSaved={refresh} />)}
       {!adding && <button type="button" onClick={() => { setAdding(true); setSaved(false); }}>{en ? "Add product" : "Adicionar produto"}</button>}
       {saved && <p role="status">{en ? "Products added." : "Produtos adicionados."}</p>}
       {adding && <form onSubmit={add}>
@@ -64,7 +67,7 @@ export function TournamentProducts({ token, userId, tournamentId, language }: { 
 }
 
 type Change = "details" | "price" | "deactivate";
-function ProductChange({ product, token, language, onSaved }: { product: StaffProduct; token: string; language: AppLanguage; onSaved: () => Promise<void> }) {
+function ProductChange({ product, userId, language, onSaved }: { product: StaffProduct; userId: string; language: AppLanguage; onSaved: () => Promise<void> }) {
   const en = language === "en";
   const [action, setAction] = useState<Change | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -96,13 +99,15 @@ function ProductChange({ product, token, language, onSaved }: { product: StaffPr
   }
   async function confirm() {
     if (!action || inFlight.current) return;
+    const scope = captureSessionScope();
     inFlight.current = true; setPending(true); setError(null);
     try {
-      if (action === "details") await editProduct(token, product.id, { name: name.trim(), description: description.trim() });
-      if (action === "price") await changeProductPrice(token, product.id, amount.trim().replace(",", "."));
-      if (action === "deactivate") await deactivateProduct(token, product.id);
+      if (action === "details") await editProduct(userId, product.id, { name: name.trim(), description: description.trim() });
+      if (action === "price") await changeProductPrice(userId, product.id, amount.trim().replace(",", "."));
+      if (action === "deactivate") await deactivateProduct(userId, product.id);
+      if (!scope.isCurrent()) return;
       setAction(null); setConfirming(false); setSaved(true); await onSaved();
-    } catch (caught) { setError(caught); } finally { inFlight.current = false; setPending(false); }
+    } catch (caught) { if (scope.isCurrent()) setError(caught); } finally { inFlight.current = false; setPending(false); }
   }
   return <article className="tournament-product">
     <h3 ref={productHeading} tabIndex={-1}>{product.name} · {formatProductPrice(product.amount, language)} {product.is_active ? "" : (en ? "· Inactive" : "· Inativo")}</h3>

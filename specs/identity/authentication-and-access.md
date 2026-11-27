@@ -1,7 +1,7 @@
 # Authentication and access
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-24
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -22,7 +22,8 @@ Identify participants reliably and restrict personal records and administrative 
 - **AUTH-013:** Sign-in, sign-up, and email confirmation show tournament registration context only when the return path targets tournament registration. The context does not name a tournament unless its identity is known.
 - **AUTH-011:** Supabase Auth email templates use Portuguese only. That covers sign-up confirmation, password recovery, and other Auth-managed message types configured in the Supabase project, including security notifications when they are enabled. The application UI may offer English. Auth email language does not follow the UI language toggle until multi-language Auth email is delivered under the implementation decision below. Backend application mail stays Portuguese under [COM-008](../tournaments/communications.md#rules).
 - **AUTH-012:** The application must not show raw Supabase Auth API `error.message` text in the UI. Map `error.code` values from the [Supabase Auth error codes](https://supabase.com/docs/guides/auth/debugging/error-codes) to Portuguese and English copy in the frontend. Supabase remains the source of truth for password strength. The client does not reimplement that policy.
-- **AUTH-004:** The frontend supplies the current Supabase access token as `Authorization: Bearer <access_token>` on protected API requests. Sign-out removes access to protected application views, stops use of the active session, and clears the browser query cache. See [decision 0007](../decisions/0007-clear-browser-cache-on-sign-out.md). An API response of HTTP 401 signs the current user out. HTTP 403 leaves the session in place.
+- **AUTH-004:** The frontend supplies the current Supabase access token as `Authorization: Bearer <access_token>` on protected API requests. When sign-out starts, the frontend cancels session-bound requests and storage transfers and blocks new session-bound requests. Sign-out removes access to protected application views, stops use of the active session, and clears the browser query cache. Cancellation cannot undo requests already accepted by a server or revoke a presigned storage URL. A direct account change also cancels queries and clears the cache. A refresh for the same account retains it. See [decision 0007](../decisions/0007-clear-browser-cache-on-sign-out.md). An HTTP 401 for the current authenticated session signs the user out. An obsolete response or a guest 401 does not sign out the current user. HTTP 403 leaves the session in place.
+- **AUTH-004a:** Public tournament requests use the current session when available. While session lookup is pending, the registration entry shows a loading state. If lookup fails, it shows the session error and allows sign-in or retry.
 - **AUTH-005:** The backend verifies token signature, issuer, audience, expiry, required claims, and the expected authenticated role before trusting identity. It uses a FastAPI dependency on protected endpoints rather than treating every route as protected by global middleware.
 - **AUTH-006:** Missing, expired, or invalid tokens return HTTP 401. Authentication-service or signing-key retrieval failures must be distinguishable from invalid credentials; the current backend uses HTTP 503 for unavailability.
 
@@ -44,7 +45,7 @@ The initial `/api/users/me` verification endpoint does not need a local users ta
 - **AUTH-AC-005:** A non-admin participant cannot retrieve another participant's private registration or proof by changing a request identifier.
 - **AUTH-AC-006:** Verified guild staff can administer every tournament without an event-specific grant, while a signed-in user without the admin role cannot perform administrative actions.
 - **AUTH-AC-007:** Configured Supabase Auth emails for sign-up confirmation, password recovery, and enabled security notifications are sent in Portuguese.
-- **AUTH-AC-008:** Signing out clears cached application data. An API response of HTTP 401 signs the current user out. An HTTP 403 response does not.
+- **AUTH-AC-008:** Signing out or changing accounts clears cached application data. Refreshing the same account retains it. A current authenticated API response of HTTP 401 signs the user out once. An obsolete or guest 401 and an HTTP 403 do not sign out the current user.
 
 ## Implementation baseline
 
@@ -67,6 +68,8 @@ None for the agreed authentication and role boundaries. The association membersh
 Account routes and session-expiry behavior are defined by AUTH-003 and AUTH-004. Use the [frontend configuration guide](../../frontend/README.md#account-routes-and-supabase-redirect-urls) for hosted redirect setup and the [tournament API guide](../../backend/app/tournaments/README.md) for current resource-access responses. Future workflows must preserve the selected tournament through sign-in, the existing 401 contract, and trusted role checks. Self-registration, Supabase UUID ownership, and the three-role policy remain requirements.
 
 Role changes do not immediately change claims in already-issued access tokens. A demoted admin's existing token can retain admin access until it expires or is refreshed. The owner accepts this delay for now because access tokens are short-lived. Immediate revocation and a live role check on each privileged API call are not current requirements. The actual token lifetime is configured in Supabase and has not been verified here.
+
+Sign-out also does not immediately revoke already-issued credentials. The backend verifies access tokens locally without checking session revocation on each request. A token issued before sign-out can remain usable until it expires. Presigned storage URLs remain usable until they expire. Current parental consent, payment proof, and tournament policy URLs expire after 15 minutes. Frontend cancellation cannot revoke these credentials or undo work already accepted by a server. Immediate server-side revocation is deferred.
 
 When the product adds multi-language Auth email, keep one Supabase template per message type. Branch inside each template with Supabase Go template conditionals on `user_metadata` exposed as `{{ .Data.* }}`, as in [Customizing emails by language](https://supabase.com/docs/guides/troubleshooting/customizing-emails-by-language-KZ_38Q). Persist the person's language preference in `user_metadata` on sign-up and when they change language in the app. Do not adopt a separate Send Email Hook for Auth mail unless a later decision requires it.
 

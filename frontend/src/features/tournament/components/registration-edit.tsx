@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { RegistrationRequestError, updateRegistrationDetails } from "@/features/tournament/api/tournaments";
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { TournamentDocumentButton } from "@/features/tournament/components/tournament-document-button";
 import { RegistrationTags } from "@/features/tournament/components/tournament-tags";
+import { captureSessionScope } from "@/lib/session-scope";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { legalRoutes } from "@/config/legal-routes";
 import type { AppLanguage } from "@/utils/app-copy";
@@ -35,8 +36,8 @@ const emergency: Field[] = [
 ];
 const allFields = [...personal, ...experience, ...emergency];
 
-export function RegistrationEdit({ registration, tournament, session, language, onBack, onSaved, staff = false }: {
-  registration: OwnerRegistration; tournament: Tournament; session: Session; language: AppLanguage;
+export function RegistrationEdit({ registration, tournament, user, language, onBack, onSaved, staff = false }: {
+  registration: OwnerRegistration; tournament: Tournament; user: User; language: AppLanguage;
   onBack: () => void; onSaved: () => void; staff?: boolean;
 }) {
   const en = language === "en";
@@ -65,20 +66,24 @@ export function RegistrationEdit({ registration, tournament, session, language, 
     }
     payload.identity_document_type = values.identity_document_type;
     payload.handedness = values.handedness || null;
+    const scope = captureSessionScope();
     try {
-      await updateRegistrationDetails(tournament.id, registration.registration_number, session.access_token, payload);
+      await updateRegistrationDetails(tournament.id, registration.registration_number, user.id, payload);
+      if (!scope.isCurrent()) return;
       setSaved(true); onSaved();
-    } catch (caught) { setError(caught instanceof RegistrationRequestError && caught.status === 409 ? (en ? "This information conflicts with another registration, or this registration is closed." : "Estes dados entram em conflito com outra inscrição, ou a inscrição está encerrada.") : (en ? "Could not save the registration details. Check the fields and try again." : "Não foi possível salvar os dados da inscrição. Confira os campos e tente novamente.")); }
+    } catch (caught) { if (scope.isCurrent()) setError(caught instanceof RegistrationRequestError && caught.status === 409 ? (en ? "This information conflicts with another registration, or this registration is closed." : "Estes dados entram em conflito com outra inscrição, ou a inscrição está encerrada.") : (en ? "Could not save the registration details. Check the fields and try again." : "Não foi possível salvar os dados da inscrição. Confira os campos e tente novamente.")); }
     finally { setPending(false); }
   }
   async function cancel() {
     if (cancelPending) return;
     setCancelPending(true); setCancelError(false);
+    const scope = captureSessionScope();
     try {
-      await cancelRegistration(session.access_token, tournament.id, registration.registration_number);
+      await cancelRegistration(user.id, tournament.id, registration.registration_number);
+      if (!scope.isCurrent()) return;
       setCancelled(true); setConfirmCancel(false); onSaved();
     } catch {
-      setCancelError(true); onSaved();
+      if (scope.isCurrent()) { setCancelError(true); onSaved(); }
     } finally { setCancelPending(false); }
   }
   return <div className="registration-edit"><button type="button" onClick={onBack}>← {staff ? (en ? "Tournament athletes" : "Atletas do torneio") : (en ? "Registration status" : "Acompanhar inscrição")}</button><h2>{staff ? (en ? "Manage registration" : "Gerenciar inscrição") : (en ? "My registration details" : "Meus dados da inscrição")}</h2>{staff && <p>{registration.full_name} · {registration.registration_number}</p>}<p>{en ? "Corrections keep the same owner, tournament and registration number." : "Correções mantêm o mesmo titular, torneio e número."}</p><p>{registration.product_name && <>{en ? "Registration type" : "Tipo de inscrição"}: {registration.product_name}</>}</p>
@@ -98,7 +103,7 @@ export function RegistrationEdit({ registration, tournament, session, language, 
       {error && <p role="alert">{error}</p>}{saved && <p role="status">{en ? "Registration details saved." : "Dados da inscrição salvos."}</p>}
       <button className="registration-submit" type="submit" disabled={pending}>{en ? "Save changes" : "Salvar alterações"}</button>
     </form>
-    <RegistrationTags token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registration.registration_number} language={language} staff={staff} closed={!staff && tagsClosed} />
+    <RegistrationTags userId={user.id} tournamentId={tournament.id} number={registration.registration_number} language={language} staff={staff} closed={!staff && tagsClosed} />
     {!staff && <details className="registration-card"><summary>{en ? "Review my declarations" : "Rever minhas declarações"}</summary><p>{en ? "Your recorded declarations remain attached to this registration." : "Suas declarações registradas permanecem vinculadas a esta inscrição."}</p><ul>{[
       ["declares_truthful_information", "Informações verdadeiras", "Truthful information"],
       ["declares_has_required_equipment", "Equipamento obrigatório", "Required equipment"],
@@ -113,7 +118,7 @@ export function RegistrationEdit({ registration, tournament, session, language, 
         ["cancellation_policy", registration.cancellation_policy_version_id, en ? "accepted cancellation policy" : "política de cancelamento aceita"],
       ] as const).map(([purpose, versionId, label]) => versionId != null && (
         <TournamentDocumentButton key={`${purpose}-${versionId}`} label={label} tournamentId={tournament.id}
-          purpose={purpose} versionId={versionId} token={session.access_token} language={language} />
+          purpose={purpose} versionId={versionId} userId={user.id} language={language} />
       ))}
       <p>{en ? "If your circumstances change or you have questions about your declarations, contact the organizers at " : "Se suas circunstâncias mudarem ou você tiver dúvidas sobre suas declarações, entre em contato com a organização: "}<a href="mailto:suporte@karlbruder.com">suporte@karlbruder.com</a>.</p>
       <p>{en ? "For requests about personal data, see the " : "Para solicitações sobre dados pessoais, consulte a "}<a href={legalRoutes.privacy}>{en ? "Privacy Policy" : "Política de Privacidade"}</a>.</p>

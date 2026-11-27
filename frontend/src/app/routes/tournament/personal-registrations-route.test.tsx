@@ -5,6 +5,7 @@ import { renderWithQuery } from "@/testing/render-with-query";
 import { PersonalRegistrationsRoute } from "@/app/routes/tournament/personal-registrations-route";
 
 vi.mock("@/features/auth/hooks/use-auth-session", () => ({ useAuthSession: () => ({ session: { access_token: "token", user: { id: "owner" } } }) }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "token", user: { id: "owner" } } }, error: null })) } } }));
 vi.mock("@/hooks/use-language", () => ({ useLanguage: () => ({ language: "en", changeLanguage: () => {} }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 

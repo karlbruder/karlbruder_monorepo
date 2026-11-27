@@ -1,7 +1,7 @@
 # Karlbrüder
 
 **Created**: 2023-03-24
-**Last updated**: 2026-11-26
+**Last updated**: 2026-11-27
 
 Monorepo for the Karlbrüder public website and tournament application.
 Association membership and equipment inventory are future capabilities.
@@ -14,7 +14,7 @@ Association membership and equipment inventory are future capabilities.
 | `frontend/` | React/TypeScript/Vite application | [Frontend README](frontend/README.md) |
 | `backend/` | FastAPI, token verification, domain rules, and database access | [Backend README](backend/README.md) |
 | `compose.yml` | Local website, application, PostgreSQL, and Ministack | [Local setup](#local-setup-with-docker-compose) |
-| `compose.test.yml` | Isolated backend tests without host ports | [Backend checks](backend/README.md#tests-and-lint) |
+| `compose.test.yml` | Isolated application tests without host ports | [Backend checks](backend/README.md#tests-and-lint) |
 | `compose.e2e.yml` | Disposable application and local Auth for browser checks | [Browser checks](#browser-checks) |
 | `compose.production.yml` | Cloud stack on both dev and prod hosts | [Deployment guide](docs/deployment.md) |
 | `Makefile` | Local service, database, and check commands | `make help` |
@@ -115,7 +115,8 @@ The backend container health check tests domain database connectivity. It does
 not verify migrations. Liveness alone does not verify connectivity. The separately
 configured Auth diagnostic can fail without disabling JWT verification.
 See [backend diagnostics](backend/README.md#diagnostics) for metadata, Auth, and
-identity endpoints. The frontend currently has no diagnostics route.
+identity endpoints. The frontend currently has no diagnostics route. For local checks,
+open `http://localhost:5173/api/health` or `http://localhost:5173/api/health/db`.
 
 Source inspection does not establish live integration health. Remaining platform
 constraints and gaps belong to [local development](specs/platform/local-development.md).
@@ -130,7 +131,7 @@ Run these targets from the repository root:
 | `make test-e2e` | Chromium browser checks against a disposable stack |
 | `make test-backend TEST_PROJECT=kb-test-your-name` | Pytest in isolated Compose. Choose a unique project name |
 | `make lint-backend TEST_PROJECT=kb-test-your-name` | Ruff in isolated Compose |
-| `make test-frontend` | Vitest in the frontend development image |
+| `make test-frontend TEST_PROJECT=kb-test-your-name` | Vitest in isolated Compose |
 | `make test-landing` | React tests in the landing development image |
 | `make ci TEST_PROJECT=kb-test-your-name` | All application tests, lint where configured, and production image builds |
 

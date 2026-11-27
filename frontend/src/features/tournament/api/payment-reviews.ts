@@ -1,6 +1,5 @@
+import { apiFetch } from "@/lib/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api-fetch";
-import { apiBaseUrl } from "@/config/environment";
 
 export type ReviewQueue = {
   items: { registration_number: string; tournament_id: number; tournament_name: string; full_name: string; document_id: number; submitted_at: string }[];
@@ -38,30 +37,30 @@ export class PaymentReviewRequestError extends Error {
   readonly status: number;
   constructor(status: number) { super(`Payment review request failed: ${status}`); this.status = status; }
 }
-async function request<T>(token: string, path = "", init: RequestInit = {}): Promise<T> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/payment-reviews${path}`, {
-    ...init, headers: { Authorization: `Bearer ${token}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-  });
+async function request<T>(userId: string, path = "", init: RequestInit = {}): Promise<T> {
+  const response = await apiFetch(`/staff/tournaments/payment-reviews${path}`, {
+    ...init, headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new PaymentReviewRequestError(response.status);
   return response.json();
 }
-export function listPendingPaymentProofs(token: string, filter: string, offset: number, signal?: AbortSignal) {
+export function listPendingPaymentProofs(userId: string, filter: string, offset: number, signal?: AbortSignal) {
   const params = new URLSearchParams({ limit: "20", offset: String(offset) });
   if (filter) params.set("registration_number", filter);
-  return request<ReviewQueue>(token, `?${params}`, { signal });
+  return request<ReviewQueue>(userId, `?${params}`, { signal });
 }
-export function getPaymentReview(token: string, number: string, signal?: AbortSignal) {
-  return request<ReviewDetail>(token, `/${encodeURIComponent(number)}`, { signal });
+export function getPaymentReview(userId: string, number: string, signal?: AbortSignal) {
+  return request<ReviewDetail>(userId, `/${encodeURIComponent(number)}`, { signal });
 }
-export function decidePaymentReview(token: string, number: string, decision: ReviewDecision) {
-  return request<DecisionResult>(token, `/${encodeURIComponent(number)}/decisions`, { method: "POST", body: JSON.stringify(decision) });
+export function decidePaymentReview(userId: string, number: string, decision: ReviewDecision) {
+  return request<DecisionResult>(userId, `/${encodeURIComponent(number)}/decisions`, { method: "POST", body: JSON.stringify(decision) });
 }
-export function getReviewDocument(token: string, number: string, id: number) {
-  return request<{ download_url: string }>(token, `/${encodeURIComponent(number)}/documents/${id}/download-url`);
+export function getReviewDocument(userId: string, number: string, id: number) {
+  return request<{ download_url: string }>(userId, `/${encodeURIComponent(number)}/documents/${id}/download-url`);
 }
-export function usePaymentReviewQueue(token: string, userId: string, filter: string, offset: number) {
-  return useQuery({ queryKey: ["payment-reviews", userId, "queue", filter, offset], queryFn: ({ signal }) => listPendingPaymentProofs(token, filter, offset, signal) });
+export function usePaymentReviewQueue(userId: string, filter: string, offset: number) {
+  return useQuery({ queryKey: ["payment-reviews", userId, "queue", filter, offset], queryFn: ({ signal }) => listPendingPaymentProofs(userId, filter, offset, signal) });
 }
-export function usePaymentReview(token: string, userId: string, number: string) {
-  return useQuery({ queryKey: ["payment-reviews", userId, "detail", number], queryFn: ({ signal }) => getPaymentReview(token, number, signal) });
+export function usePaymentReview(userId: string, number: string) {
+  return useQuery({ queryKey: ["payment-reviews", userId, "detail", number], queryFn: ({ signal }) => getPaymentReview(userId, number, signal) });
 }

@@ -1,6 +1,5 @@
+import { apiFetch } from "@/lib/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { apiBaseUrl } from "@/config/environment";
-import { apiFetch } from "@/lib/api-fetch";
 import { StaffTournamentError } from "@/features/tournament/api/staff-tournaments";
 
 export type StaffProduct = {
@@ -16,11 +15,11 @@ export type StaffProduct = {
 export type ProductDraft = { name: string; description: string; amount: string };
 export type OfferingSelection = { existing_product_ids: number[]; new_products: ProductDraft[] };
 
-async function request<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await apiFetch(`${apiBaseUrl()}${path}`, {
+async function request<T>(userId: string, path: string, init: RequestInit = {}): Promise<T> {
+  const response = await apiFetch(`${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-  });
+    headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     throw new StaffTournamentError(response.status, body && typeof body === "object" && "detail" in body ? body.detail : null);
@@ -28,30 +27,30 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
   return response.json();
 }
 
-export function useStaffProducts(token: string, userId: string, tournamentId?: string, enabled = true) {
+export function useStaffProducts(userId: string, tournamentId?: string, enabled = true) {
   return useQuery({
     queryKey: ["staff-products", userId, tournamentId ?? "all"],
     enabled,
     queryFn: async ({ signal }) => {
       const path = tournamentId ? `/staff/tournaments/${encodeURIComponent(tournamentId)}/products` : "/staff/tournaments/products";
-      const products = await request<StaffProduct[]>(token, path, { signal });
+      const products = await request<StaffProduct[]>(userId, path, { signal });
       if (!Array.isArray(products)) throw new Error("Invalid product list");
       return products;
     },
   });
 }
 
-export function addTournamentProducts(token: string, tournamentId: string, selection: OfferingSelection) {
-  return request<StaffProduct[]>(token, `/staff/tournaments/${encodeURIComponent(tournamentId)}/products`, { method: "POST", body: JSON.stringify(selection) });
+export function addTournamentProducts(userId: string, tournamentId: string, selection: OfferingSelection) {
+  return request<StaffProduct[]>(userId, `/staff/tournaments/${encodeURIComponent(tournamentId)}/products`, { method: "POST", body: JSON.stringify(selection) });
 }
-export function editProduct(token: string, id: number, details: { name: string; description: string }) {
-  return request(token, `/staff/products/${id}`, { method: "PATCH", body: JSON.stringify(details) });
+export function editProduct(userId: string, id: number, details: { name: string; description: string }) {
+  return request(userId, `/staff/products/${id}`, { method: "PATCH", body: JSON.stringify(details) });
 }
-export function changeProductPrice(token: string, id: number, amount: string) {
-  return request(token, `/staff/products/${id}/prices`, { method: "POST", body: JSON.stringify({ amount }) });
+export function changeProductPrice(userId: string, id: number, amount: string) {
+  return request(userId, `/staff/products/${id}/prices`, { method: "POST", body: JSON.stringify({ amount }) });
 }
-export function deactivateProduct(token: string, id: number) {
-  return request(token, `/staff/products/${id}/deactivate`, { method: "POST" });
+export function deactivateProduct(userId: string, id: number) {
+  return request(userId, `/staff/products/${id}/deactivate`, { method: "POST" });
 }
 
 export function validProductDraft(draft: ProductDraft): boolean {

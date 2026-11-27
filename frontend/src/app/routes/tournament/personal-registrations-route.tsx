@@ -22,7 +22,7 @@ export function PersonalRegistrationsRoute() {
   const { session } = useAuthSession();
   const { language } = useLanguage();
   const en = language === "en";
-  const query = useQuery({ queryKey: ["personal-registrations", session!.user.id], queryFn: ({ signal }) => listPersonalRegistrations(session!.access_token, signal), refetchOnMount: "always" });
+  const query = useQuery({ queryKey: ["personal-registrations", session!.user.id], queryFn: ({ signal }) => listPersonalRegistrations(session!.user.id, signal), refetchOnMount: "always" });
   return (
     <div className="application-page" lang={en ? "en-US" : "pt-BR"}>
       <main className="application-body">

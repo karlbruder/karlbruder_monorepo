@@ -16,16 +16,16 @@ export function StaffAthletesRoute() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const en = language === "en";
-  const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
-  const totals = useQuery({ queryKey: ["staff-registration-totals", session!.user.id, tournamentId], queryFn: ({ signal }) => getStaffRegistrationTotals(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.user.id, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const totals = useQuery({ queryKey: ["staff-registration-totals", session!.user.id, tournamentId], queryFn: ({ signal }) => getStaffRegistrationTotals(session!.user.id, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
   const details = useQuery({
     queryKey: ["staff-registration", session!.user.id, tournamentId, registrationNumber],
-    queryFn: ({ signal }) => getOwnRegistration(Number(tournamentId), registrationNumber!, session!.access_token, signal),
+    queryFn: ({ signal }) => getOwnRegistration(Number(tournamentId), registrationNumber!, session!.user.id, signal),
     enabled: !!registrationNumber,
   });
   const tournament = useQuery({
     queryKey: ["staff-registration-tournament", session!.user.id, tournamentId],
-    queryFn: ({ signal }) => getTournament(Number(tournamentId), session!.access_token, signal),
+    queryFn: ({ signal }) => getTournament(Number(tournamentId), session!.user.id, signal),
     enabled: !!registrationNumber,
   });
   const matches = query.data?.filter(item => `${item.full_name} ${item.social_name ?? ""} ${item.registration_number}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
@@ -33,7 +33,7 @@ export function StaffAthletesRoute() {
     {(details.isPending || tournament.isPending) && <p role="status">{en ? "Loading registration..." : "Carregando inscrição..."}</p>}
     {(details.isError || tournament.isError) && <p role="alert">{en ? "Could not load registration." : "Não foi possível carregar a inscrição."} <button type="button" onClick={() => { void details.refetch(); void tournament.refetch(); }}>{en ? "Try again" : "Tentar novamente"}</button></p>}
     {(details.isError || tournament.isError) && <button type="button" onClick={() => navigate(`/staff/tournaments/${tournamentId}/athletes`)}>{en ? "Back" : "Voltar"}</button>}
-    {details.data && tournament.data && <RegistrationEdit staff registration={details.data} tournament={tournament.data} session={session!} language={language} onBack={() => navigate(`/staff/tournaments/${tournamentId}/athletes`)} onSaved={() => { void details.refetch(); void query.refetch(); }} />}
+    {details.data && tournament.data && <RegistrationEdit staff registration={details.data} tournament={tournament.data} user={session!.user} language={language} onBack={() => navigate(`/staff/tournaments/${tournamentId}/athletes`)} onSaved={() => { void details.refetch(); void query.refetch(); }} />}
   </section>;
   const title = en ? "Tournament athletes" : "Atletas do torneio";
   return (

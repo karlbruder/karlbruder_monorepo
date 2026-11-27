@@ -1,4 +1,6 @@
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
+import { endSessionScope } from "@/lib/session-scope";
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "test-access-token", user: { id: "athlete-uuid" } } }, error: null })) } } }));
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
@@ -81,7 +83,7 @@ describe("Tournament payment panel", () => {
     render(
       <TournamentPaymentPanel
         tournament={tournament}
-        session={session}
+        user={session.user}
         registrationNumber="T42-000001-5"
       />,
     );
@@ -104,7 +106,7 @@ describe("Tournament payment panel", () => {
     render(
       <TournamentPaymentPanel
         tournament={tournament}
-        session={session}
+        user={session.user}
         registrationNumber="T42-000001-5"
       />,
     );
@@ -113,7 +115,7 @@ describe("Tournament payment panel", () => {
 
   it("shows an unknown current fee instead of the older catalog fee", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, registration_fee_amount: null }) }));
-    render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+    render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber={paymentInstructions.registration_number} />);
     await screen.findByRole("heading", { name: "Pagamento da inscrição" });
     expect(screen.getAllByText("A confirmar").length).toBeGreaterThan(0);
     expect(screen.queryByText(/150,00/)).not.toBeInTheDocument();
@@ -172,7 +174,7 @@ describe("Tournament payment panel", () => {
     render(
       <TournamentPaymentPanel
         tournament={tournament}
-        session={session}
+        user={session.user}
         registrationNumber="T42-000001-5"
       />,
     );
@@ -186,6 +188,28 @@ describe("Tournament payment panel", () => {
       expect.objectContaining({ method: "POST" }),
     ));
     expect(await screen.findByText(/Recebemos seu comprovante/)).toBeInTheDocument();
+  });
+
+  it("does not finalize an upload after the account changes", async () => {
+    let finishUpload!: (value: { ok: boolean }) => void;
+    const request = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/payment")) return { ok: true, json: async () => paymentInstructions };
+      if (url.endsWith("/upload-url")) return { ok: true, json: async () => ({ storage_key: "staged", upload_url: "https://storage.example.test/proof", expires_in_seconds: 900, required_headers: { "Content-Type": "application/pdf" } }) };
+      if (url === "https://storage.example.test/proof") return new Promise<{ ok: boolean }>(resolve => { finishUpload = resolve; });
+      throw new Error(`Unexpected request ${url} ${init?.method}`);
+    });
+    vi.stubGlobal("fetch", request);
+    render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber="T42-000001-5" />);
+    await screen.findByRole("heading", { name: "Pagamento da inscrição" });
+    fireEvent.change(document.querySelector("#payment_proof") as HTMLInputElement, { target: { files: [mockPdfFile()] } });
+    fireEvent.submit(screen.getByRole("form", { name: "Comprovante de pagamento" }));
+    await waitFor(() => expect(request.mock.calls.some(([url]) => url === "https://storage.example.test/proof")).toBe(true));
+    const storageCall = request.mock.calls.find(([url]) => url === "https://storage.example.test/proof")!;
+    expect((storageCall[1]?.headers as Headers).has("Authorization")).toBe(false);
+    endSessionScope();
+    finishUpload({ ok: true });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Enviar comprovante" })).toBeEnabled());
+    expect(request.mock.calls.some(([url]) => url.endsWith("/payment-proof"))).toBe(false);
   });
 
   it("keeps latest proof visible when server rejects replacement file", async () => {
@@ -231,7 +255,7 @@ describe("Tournament payment panel", () => {
     render(
       <TournamentPaymentPanel
         tournament={tournament}
-        session={session}
+        user={session.user}
         registrationNumber="T42-000001-5"
         initialStatus="awaiting_payment_confirmation"
       />,
@@ -250,14 +274,14 @@ describe("Tournament payment panel", () => {
 
 it.each(["confirmed", "waitlist", "cancelled"])("does not offer another proof for %s registrations", async status => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => paymentInstructions }));
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} initialStatus={status} />);
+  render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber={paymentInstructions.registration_number} initialStatus={status} />);
   await screen.findByRole("heading", { name: "Pagamento da inscrição" });
   expect(screen.queryByText("EXAMPLE-FIXTURE-NOT-A-REAL-PIX-KEY")).not.toBeInTheDocument();
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });
 it("does not offer resubmission for a cancelled registration with a rejected proof", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...paymentInstructions, current_review: { document_id: 1, decision: "rejected", rejection_reason: "Unreadable proof", reviewed_at: "2026-11-05T12:00:00Z" } }) }));
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} initialStatus="cancelled" language="en" />);
+  render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber={paymentInstructions.registration_number} initialStatus="cancelled" language="en" />);
   await screen.findByText(/registration is cancelled/);
   expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
   expect(screen.queryByText("Unreadable proof")).not.toBeInTheDocument();
@@ -276,7 +300,7 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
     throw new Error("unexpected request");
   });
   vi.stubGlobal("fetch", request);
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} language={language} />);
+  render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber={paymentInstructions.registration_number} language={language} />);
   await screen.findByText("Unreadable beneficiary fixture");
   expect(screen.queryByText(/Faça o Pix|Complete the Pix transfer/)).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText(language === "pt" ? "Comprovante de pagamento" : "Payment proof", { selector: "input" }), { target: { files: [mockPdfFile("replacement.pdf")] } });
@@ -293,14 +317,14 @@ it.each(["pt", "en"] as const)("shows a rejected proof reason and resubmits only
 });
 it("rejects an invalid file locally without a storage request", async () => {
   const request = vi.fn().mockResolvedValue({ ok: true, json: async () => paymentInstructions }); vi.stubGlobal("fetch", request);
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={paymentInstructions.registration_number} />);
+  render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber={paymentInstructions.registration_number} />);
   await screen.findByRole("form");
   fireEvent.change(screen.getByLabelText("Comprovante de pagamento", { selector: "input" }), { target: { files: [new File(["bad"], "file.txt", { type: "text/plain" })] } });
   fireEvent.submit(screen.getByRole("form")); await screen.findByRole("alert"); expect(request).toHaveBeenCalledTimes(1);
 });
 it("reports inaccessible registrations instead of offering payment or creation", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "Not found" }) }));
-  render(<TournamentPaymentPanel tournament={tournament} session={session} registrationNumber="foreign" />);
+  render(<TournamentPaymentPanel tournament={tournament} user={session.user} registrationNumber="foreign" />);
   expect(await screen.findByRole("alert")).toHaveTextContent("Inscrição não encontrada ou sem acesso para esta conta.");
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });

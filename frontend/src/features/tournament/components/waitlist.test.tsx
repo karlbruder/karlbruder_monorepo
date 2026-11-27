@@ -10,7 +10,7 @@ vi.mock("@/features/tournament/api/waitlist", async (importOriginal) => ({ ...aw
 vi.mock("@/features/tournament/api/registration-refunds", () => ({ cancelRegistration: mocks.cancel, getRegistrationRefund: mocks.refund }));
 vi.mock("@/features/tournament/components/tournament-tags", () => ({ TagPills: () => null }));
 const item = { registration_number: "R1", full_name: "Ana", social_name: null, registration_status: "waitlist", parental_consent_required: false, tags: [] };
-function renderPage() { renderWithQuery(<MemoryRouter><Waitlist token="token" userId="staff" tournamentId="42" language="en" /></MemoryRouter>); }
+function renderPage() { renderWithQuery(<MemoryRouter><Waitlist userId="staff" tournamentId="42" language="en" /></MemoryRouter>); }
 beforeEach(() => { vi.resetAllMocks(); mocks.get.mockResolvedValue({ competitor_capacity: 2, confirmed_count: 1, registrations: [item] }); });
 afterEach(cleanup);
 
@@ -21,7 +21,7 @@ it("shows paid participants and confirms the selected registration", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Confirm participation" }));
   fireEvent.click(screen.getAllByRole("button", { name: "Confirm participation" })[1]);
   expect(await screen.findByText(/participation confirmed/)).toBeInTheDocument();
-  expect(mocks.confirm).toHaveBeenCalledWith("token", "42", "R1");
+  expect(mocks.confirm).toHaveBeenCalledWith("staff", "42", "R1");
 });
 
 it("disables confirmation when the event is full", async () => {
@@ -44,7 +44,7 @@ it.each([true, false])("shows cancellation and refund outcome: refund=%s", async
   renderPage();
   fireEvent.click(await screen.findByRole("button", { name: "Cancel registration" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
-  await waitFor(() => expect(mocks.refund).toHaveBeenCalledWith("token", 42, "R1"));
+  await waitFor(() => expect(mocks.refund).toHaveBeenCalledWith("staff", 42, "R1"));
   if (refundable) expect(await screen.findByRole("link", { name: "Open refund queue" })).toHaveAttribute("href", "/staff/refunds");
   else expect(await screen.findByText(/without an awaiting refund/)).toBeInTheDocument();
 });

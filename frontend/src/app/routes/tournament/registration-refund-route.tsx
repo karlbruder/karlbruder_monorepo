@@ -8,6 +8,6 @@ export function RegistrationRefundRoute() {
   const { language } = useLanguage();
   return <section>
     <h1>{appCopy(language, "Reembolsos pendentes")}</h1>
-    {session && <RegistrationRefundQueue key={session.user.id} token={session.access_token} userId={session.user.id} language={language} />}
+    {session && <RegistrationRefundQueue userId={session.user.id} language={language} />}
   </section>;
 }
