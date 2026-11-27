@@ -1,0 +1,7 @@
+[mcp_servers.playwright-test]
+command = "node"
+args = ["e2e/node_modules/playwright/cli.js", "run-test-mcp-server", "--headless", "--config", "e2e/playwright.agents.config.ts"]
+
+[mcp_servers.playwright-healer]
+command = "node"
+args = ["e2e/node_modules/playwright/cli.js", "run-test-mcp-server", "--headless", "--config", "e2e/playwright.config.ts"]

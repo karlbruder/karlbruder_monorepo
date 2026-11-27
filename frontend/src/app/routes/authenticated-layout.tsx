@@ -2,7 +2,7 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import { appCopy } from "@/utils/app-copy";
-import { signInPathWithReturnTo } from "@/features/auth/utils/account-navigation";
+import { buildSignInPath } from "@/features/auth/utils/account-navigation";
 
 export function AuthenticatedLayout() {
   const { authReady, session, sessionLapsed } = useAuthSession();
@@ -20,7 +20,7 @@ export function AuthenticatedLayout() {
   }
 
   if (!session) {
-    return <Navigate to={signInPathWithReturnTo(returnTo, { sessionExpired: sessionLapsed })} replace />;
+    return <Navigate to={buildSignInPath(returnTo, { sessionExpired: sessionLapsed })} replace />;
   }
 
   return <Outlet />;

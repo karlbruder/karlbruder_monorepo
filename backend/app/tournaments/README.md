@@ -1,7 +1,7 @@
 # Tournament module
 
 **Created**: 2026-10-26
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-26
 
 This module manages tournament configuration, registration, participant documents,
 payment review, and cancellation. It serves Monomachia and other tournaments
@@ -76,6 +76,41 @@ can later set `confirmed` or `waitlist`. Other states are
 The registration number has the format `T<tournament id>-<six-digit serial>-<Luhn digit>`.
 It is a reference, not a credential. The tournament row lock protects allocation
 of its serial number.
+
+### Registration offerings for staff
+
+`POST /api/staff/tournaments` accepts optional `existing_product_ids` and
+`new_products` arrays. Each new product has `name`, `description`, and `amount`.
+Tournament creation, product creation, prices, and links share one transaction.
+Omitting both arrays creates a tournament without offerings. The tournament PUT
+contract remains unchanged.
+
+`GET /api/staff/products` lists shared catalog products and their current BRL prices.
+`GET /api/staff/tournaments/products` adds linked tournament IDs and names,
+including internal tournaments and inactive products.
+`GET /api/staff/tournaments/{id}/products` lists products linked to that event.
+`POST` to that path accepts the same two arrays and adds all links atomically.
+A missing tournament or product returns 404. A duplicate link, repeated ID, or
+inactive product returns 409. Invalid input returns 422 and commits nothing.
+
+`PATCH /api/staff/products/{id}` replaces name and description. `POST
+/api/staff/products/{id}/prices` accepts `amount` and creates a price when the
+amount differs from the current price. An unchanged amount leaves the current
+price in place. `POST /api/staff/products/{id}/deactivate` makes the product
+unavailable for future registrations in every linked tournament. An inactive
+product cannot be edited, repriced, or reattached through these operations.
+Names and descriptions must be nonblank. Names have at most 255 characters.
+Amounts are finite, nonnegative BRL decimals with up to two fractional digits
+and at most ten integer digits. Unknown properties are rejected. Existing
+price records and order-item snapshots are unchanged. Staff must review all
+linked tournaments before applying shared changes in the interface.
+
+`GET /api/staff/tournaments/{id}/registration-totals` returns `total`,
+`confirmed_count`, and `competitor_capacity`. Total includes every registration
+status. Capacity is null when unlimited. Only confirmed registrations occupy
+seats. The staff registration list includes `product_name` from the order-item
+snapshot or null when no snapshot exists. Guests receive 401 and authenticated
+non-admins receive 403 on these staff resources.
 
 ### Reading and editing registrations
 

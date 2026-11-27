@@ -1,0 +1,111 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./scripts/e2e/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  auth:
+    image: supabase/gotrue:v2.186.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      PORT: 9999
+      API_EXTERNAL_URL: https://auth-gateway/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      DATABASE_URL: postgres://postgres:postgres@db:5432/auth?search_path=auth
+      GOTRUE_SITE_URL: http://localhost:5174
+      GOTRUE_JWT_SECRET: ${E2E_JWT_SECRET:?}
+      GOTRUE_JWT_KEYS: ${E2E_JWT_KEYS:?}
+      GOTRUE_JWT_KEY_ID: e2e
+      GOTRUE_JWT_ISSUER: https://auth-gateway/auth/v1
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      GOTRUE_MAILER_AUTOCONFIRM: 'true'
+      GOTRUE_DISABLE_SIGNUP: 'false'
+  auth-gateway:
+    image: nginx:1.27-alpine
+    depends_on: [auth]
+    ports:
+      - '127.0.0.1:54331:80'
+    volumes:
+      - ./scripts/e2e/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${E2E_DIR:?}:/run/e2e:ro
+  ministack:
+    image: ministackorg/ministack:1.5.27
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-2
+      S3_PERSIST: '0'
+    ports:
+      - '127.0.0.1:4567:4566'
+    volumes:
+      - ./ministack/bootstrap-ministack.sh:/etc/localstack/init/ready.d/bootstrap-ministack.sh:ro
+      - ./ministack/ministack-aws-emulator-stack.yml:/etc/localstack/init/ministack-aws-emulator-stack.yml:ro
+    healthcheck:
+      test: [CMD, aws, --endpoint-url, 'http://localhost:4566', --region, us-east-2, s3api, head-bucket, --bucket, kb-local-bucket]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+  backend:
+    build:
+      context: ./backend
+      target: development
+    depends_on:
+      db:
+        condition: service_healthy
+      ministack:
+        condition: service_healthy
+    environment:
+      ENV_NAME: local
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: postgres
+      AUTH_DB_HOST: db
+      AUTH_DB_USER: postgres
+      AUTH_DB_PASSWORD: postgres
+      AUTH_DB_NAME: auth
+      SUPABASE_URL: https://auth-gateway
+      SUPABASE_SERVICE_ROLE_KEY: ${E2E_SERVICE_KEY:?}
+      SSL_CERT_FILE: /run/e2e/gateway.crt
+      NO_PROXY: auth-gateway,localhost,127.0.0.1
+      no_proxy: auth-gateway,localhost,127.0.0.1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-2
+      S3_BUCKET_NAME: kb-local-bucket
+      S3_ENDPOINT_URL: http://ministack:4566
+      S3_BROWSER_ENDPOINT_URL: http://localhost:4567
+      SENTRY_DSN: https://example.invalid/1
+      SENTRY_ENABLED: 'false'
+      SMTP_ENABLED: 'false'
+    volumes:
+      - ./backend:/app
+      - ${E2E_DIR:?}/backend.env:/app/.env:ro
+      - ./scripts/e2e/seeds:/e2e/seeds:ro
+      - ${E2E_DIR:?}:/run/e2e:ro
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    depends_on: [backend, auth-gateway]
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_SUPABASE_URL: http://localhost:54331
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_e2e
+    ports:
+      - '127.0.0.1:5174:5173'
+volumes:
+  db_data:

@@ -24,6 +24,7 @@ Use these entry points when the task needs them:
 | Frontend screens, components, styling, or visible copy | Relevant [design references](specs/design/README.md) and [application vocabulary](specs/taxonomy.md#application-vocabulary) |
 | Deployment or stack composition | Relevant sections of [architecture](specs/architecture.md) and [decision 0003](specs/decisions/0003-local-and-production-stacks.md) |
 | Local Compose, ports, or database | [Local development](specs/platform/local-development.md) |
+| End-to-end tests, fixtures, or stack | Relevant sections of the [E2E guide](e2e/README.md) |
 | Team access to AWS | [Team access](specs/platform/team-access.md) and [AWS team access](docs/aws-team-access.md) |
 | An operational procedure | The relevant [runbook](docs/runbooks/README.md) |
 
@@ -76,6 +77,11 @@ Read-only `gh` commands, such as viewing, retrieving, and listing, do not requir
 
 ## Implement and verify
 
+- For Playwright agent workflows, prefer Cursor with an available Grok model.
+  If Cursor, Grok, or the required integration is unavailable, use the Codex
+  Playwright agents. Follow the setup in [the E2E README](e2e/README.md).
+  Use a model and reasoning effort suited to the task. Keep context and agent
+  calls focused to limit token use. Ordinary test runs do not require an agent.
 - Follow the relevant rules and acceptance criteria. Cite a rule ID in the test description or in verification notes when that helps a reader find the rule. Do not use the ID as the whole test name.
 - Open questions are unresolved decisions. Consult [the open-question index](specs/open-questions.md) before asking for a product decision. Ask about a question that affects the requested behavior, and continue work that does not depend on it. Do not invent the business rule.
 - When a requested change alters behavior, update the owning specification in the same change.

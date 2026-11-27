@@ -1,0 +1,8 @@
+.waitlist-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0; }
+.waitlist-facts > div { background: var(--surface); border: 1px solid var(--line); padding: 18px; }
+.waitlist-facts strong, .waitlist-facts span { display: block; }
+.waitlist-facts strong { font-size: 1.6rem; }
+.waitlist-facts span { color: var(--muted); font-size: var(--text-sm); }
+.waitlist-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 600px) { .waitlist-facts { gap: 6px; } .waitlist-facts > div { padding: 10px; overflow-wrap: anywhere; } .waitlist-facts strong { font-size: 1.2rem; } }
+.waitlist-table { min-width: 780px; }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
-import { passwordRecoveryRedirectUrl } from "@/features/auth/utils/account-navigation";
+import { getPasswordRecoveryRedirectUrl } from "@/features/auth/utils/account-navigation";
 import { resetPasswordForEmail } from "@/features/auth/api/auth";
 import { appCopy } from "@/utils/app-copy";
 import type { AppCopyKey, AppLanguage } from "@/utils/app-copy";
@@ -29,7 +29,7 @@ export default function PasswordRecoveryForm({ returnTo, language }: Props) {
     setServiceUnavailable(false);
     try {
       const { error } = await resetPasswordForEmail(email, {
-        redirectTo: passwordRecoveryRedirectUrl(returnTo),
+        redirectTo: getPasswordRecoveryRedirectUrl(returnTo),
       });
       if (error) {
         if (isSupabaseAuthServiceUnavailable(error)) {

@@ -421,3 +421,34 @@
 .staff-delete-panel:has(div > .staff-danger-button) {
   border-inline-start: 3px solid var(--danger-edge);
 }
+
+.tournament-products,
+.tournament-product-selection {
+  min-width: 0;
+}
+
+.tournament-product {
+  border-top: 1px solid var(--border, #d4d0ca);
+  padding: 1rem 0;
+}
+
+.tournament-product-selection label:not(.review-check),
+.tournament-product form label {
+  display: grid;
+  gap: .35rem;
+  margin: .8rem 0;
+}
+
+.tournament-product-selection :is(input:not([type="checkbox"]), textarea),
+.tournament-product form :is(input, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.tournament-product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin: 1rem 0;
+}

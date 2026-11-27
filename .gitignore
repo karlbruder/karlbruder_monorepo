@@ -1,6 +1,9 @@
 # Editor and local agent state
 .vscode
-.cursor
+!.cursor/
+.cursor/*
+!.cursor/mcp.json
+!.cursor/agents/
 .idea
 .local
 
@@ -31,3 +34,6 @@ __pycache__/
 
 # Local Ministack persistence (bind-mounted from compose.yml)
 ministack/data/
+
+# Playwright agent browser output
+.playwright-mcp/

@@ -1,7 +1,7 @@
 # Tournament administration
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@ Give guild staff (admins) control over tournament participation, payment review,
 - **ADM-003:** Authorized staff may correct any registration field at any time, including after confirmation, without a participant-notification requirement for the correction itself. They may review eligibility, record internal notes, and review payments. All corrections remain subject to ownership, uniqueness, capacity, and lifecycle constraints.
 - **ADM-004:** Status changes obey the [registration lifecycle](registration.md#lifecycle-boundary), manual staff approval, and capacity rules. A generic status-edit field must not bypass those constraints. Rejected evidence records a reason, notifies the participant, and permits resubmission under PAY-004. The absence of a correction notification does not suppress required workflow notifications.
 - **ADM-005:** A general administrative audit history is not required. Payment-proof review decisions retain the reviewer and decision time as part of the review workflow.
-- **ADM-006:** Staff chooses whom to select and confirm from the paid waitlist under CAP-005; no queue priority or automatic invitation deadline constrains that judgment. Confirmation still requires eligibility and available capacity. Staff can cancel an individual registration in the application after confirming the action. Staff also manages refunds. Cancellation immediately releases any occupied seat. Cancelling a registration with a verified receipt creates an `awaiting_refund` obligation only for a refundable tournament. Staff can enable refunds when the published cancellation policy permits them. Staff records the actual completed refund before refund confirmation is emailed to the user. A refund record does not mean money has automatically moved through a provider.
+- **ADM-006:** Staff chooses whom to select and confirm from the waitlist under CAP-005; no queue priority or automatic invitation deadline constrains that judgment. Confirmation still requires eligibility and available capacity. Staff can cancel an individual registration in the application after confirming the action. Staff also manages refunds. Cancellation immediately releases any occupied seat. Cancelling a registration with a verified receipt creates an `awaiting_refund` obligation only for a refundable tournament. Staff can enable refunds when the published cancellation policy permits them. Staff records the actual completed refund before refund confirmation is emailed to the user. A refund record does not mean money has automatically moved through a provider.
 - **ADM-007:** Planned exports include CSV/Excel, attendance lists, bracket-preparation lists, and HEMA Ratings data. Each export needs a defined purpose and field projection. Safety notes and payment proofs are excluded from general exports.
 - **ADM-008:** Event rules, payment instructions, and communication templates should be maintainable by authorized staff where the relevant capability is delivered. Their editing and versioning rules must preserve prior acceptance records.
 - **ADM-009:** Cancelled registrations may be reopened only by admins manually in the Supabase UI. Reopening is not an application control and must preserve the non-cancelled uniqueness and confirmed-capacity invariants. A cancelled registration otherwise permits a new registration for the same tournament.
@@ -29,6 +29,8 @@ Give guild staff (admins) control over tournament participation, payment review,
 - **ADM-011:** Staff decides whether to accept a late Pix transfer or decline participation. A refund obligation requires a refundable tournament policy. Staff may explicitly increase capacity before confirming additional participants. The deadline does not force a decision, and admin discretion does not bypass the configured capacity limit or refund-recording requirements.
 
 - **ADM-012:** Staff can add and rename tournament tags and maintain their eligibility descriptions in tournament configuration. A tag referenced by any registration cannot be deleted, including under concurrent requests. Staff can list athletes and their selected tags from tournament detail and change an individual registration’s tags at any time. Staff checks eligibility on the tournament day. Tag changes require neither notifications nor audit history.
+
+- **ADM-013:** The staff athlete list identifies each registration’s selected offering using its order-item name snapshot. Renaming or deactivating the catalog product does not change that name. A historical registration without a snapshot shows a localized unavailable label. The list shows the tournament-wide total of all registration records, including cancellations, the confirmed count, and configured capacity. These totals do not change with search or pagination. An unset capacity is unlimited. Only confirmed registrations occupy seats.
 
 ## Lifecycle boundary
 
@@ -41,14 +43,14 @@ TournamentRegistration. Payments retains shared Payment and Refund financial fac
 identify the exact proof, actual received amount and attributable actor/time.
 No review, receipt or refund row changes capacity or participation by itself.
 The payment-review command applies those facts and participation atomically.
-It confirms when capacity permits and records paid waitlist otherwise. Rejection
+It confirms when capacity permits and records waitlist otherwise. Rejection
 records its reason and returns to awaiting payment without cancelling participation.
 The cancellation command is available to staff. Registration owners can use it
 when the tournament allows refunds. The
 staff refund queue lists pending obligations across tournaments in deadline
 order and supports exact registration-number search. Staff records the transfer
 time and confirms the full amount after returning the money outside the
-application. Paid waitlist selection remains deferred.
+application. Staff can select, confirm, or cancel a waitlisted participant on the tournament waitlist screen. The refund queue shows applicable obligations.
 
 ## Acceptance criteria
 
@@ -59,6 +61,8 @@ application. Paid waitlist selection remains deferred.
 - **ADM-AC-005:** An export contains only its agreed fields and excludes restricted safety notes and payment proofs.
 - **ADM-AC-006:** A guild admin can manage any tournament without a separate event assignment.
 - **ADM-AC-007:** An admin can correct registration data after confirmation without a correction email, while invalid duplicates and capacity/lifecycle violations are still rejected.
+
+- **ADM-AC-008:** Staff can identify each athlete’s historical selected offering. Missing snapshots show an unavailable label. The total includes all statuses, is independent of search, and is shown alongside confirmed count and finite, zero, or unlimited capacity. An empty tournament shows zero registrations.
 
 ## Open questions
 
@@ -121,13 +125,11 @@ approval. Rejection requires a reason, which is shared with the participant.
 
 The screen submits the displayed proof ID. A conflict preserves draft fields
 and blocks submission until staff refreshes and checks the evidence again.
-The saved response determines confirmed participation or paid waitlist.
+The saved response determines confirmed participation or waitlist.
 Email failure is shown separately from a saved decision. A late deadline does
 not disable review. Portuguese and English interface copy is available.
 
 This screen does not provide cancellation, refunds, waitlist selection, generic
 status editing, registration corrections, or exports.
 
-Selecting and confirming an already-paid participant remains a known gap for a
-future staff administration issue. Payment approval can still add participants
-to the paid waitlist in this release.
+The tournament waitlist screen supports selection, confirmation, and cancellation. The current entry flow adds participants after payment approval. Free tournament registration remains future work.

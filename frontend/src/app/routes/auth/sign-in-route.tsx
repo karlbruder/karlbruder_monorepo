@@ -5,13 +5,13 @@ import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import SignInForm from "@/features/auth/components/sign-in-form";
-import { readReturnTo, readSessionExpiredFromSignIn } from "@/features/auth/utils/account-navigation";
+import { isTournamentRegistrationPath, getReturnToPath, hasSessionExpiredParameter } from "@/features/auth/utils/account-navigation";
 
 export default function SignInRoute() {
   const auth = useAuthSession();
   const { language } = useLanguage();
   const [searchParams] = useSearchParams();
-  const returnTo = readReturnTo(searchParams) ?? "/";
+  const returnTo = getReturnToPath(searchParams) ?? "/";
   const navigate = useNavigate();
   const redirectError = useSupabaseAuthRedirectError(language, "sign_in");
   return (
@@ -19,6 +19,7 @@ export default function SignInRoute() {
       language={language}
       title={appCopy(language, "Entrar na Karlbrüder")}
       subtitle={appCopy(language, "Boas-vindas de volta.")}
+      showTournamentRegistrationMessage={isTournamentRegistrationPath(returnTo)}
     >
       <SignInForm
         redirectError={redirectError}
@@ -27,7 +28,7 @@ export default function SignInRoute() {
         authLoading={auth.authLoading}
         authError={auth.authError}
         onGoogleSignIn={() => auth.signInWithGoogle(`${window.location.origin}${returnTo}`)}
-        sessionExpiredNotice={readSessionExpiredFromSignIn(searchParams)}
+        sessionExpiredNotice={hasSessionExpiredParameter(searchParams)}
         onClearSessionLapsedNotice={auth.clearSessionLapsedNotice}
         onSuccess={() => navigate(returnTo, { replace: true })}
       />

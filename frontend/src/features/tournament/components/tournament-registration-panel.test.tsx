@@ -62,7 +62,7 @@ it("refreshes a waitlisted registration to confirmed without another payment", a
     ? { ok: true, json: async () => payment }
     : { ok: true, json: async () => ({ ...registration, registration_status: status, parental_consent_required: false }) }));
   render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
-  await screen.findByText("Paid waitlist");
+  await screen.findByText("Waitlist");
   expect(await screen.findByText(/Do not pay again/)).toBeInTheDocument();
   expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
   status = "confirmed";
@@ -89,7 +89,7 @@ it.each(["awaiting_payment", "awaiting_payment_confirmation"])("suppresses payme
   expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Complete the Pix transfer|We received your proof/)).not.toBeInTheDocument();
   resolveRefresh({ ok: true, json: async () => ({ ...registration, registration_status: "waitlist", parental_consent_required: false }) });
-  expect(await screen.findByText("Paid waitlist")).toBeInTheDocument();
+  expect(await screen.findByText("Waitlist")).toBeInTheDocument();
   expect(screen.getByText(/Do not pay again/)).toBeInTheDocument();
 });
 

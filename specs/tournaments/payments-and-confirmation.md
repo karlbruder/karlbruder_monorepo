@@ -1,7 +1,7 @@
 # Tournament payments and confirmation
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-15
+**Last updated**: 2026-11-26
 
 | Field | Value |
 | --- | --- |
@@ -28,7 +28,7 @@ Let participants submit evidence of payment and let guild staff (admins) validat
 - **PAY-010:** Accept PDF, JPEG, and PNG proofs up to 10 MB each. Validate file type and size in the backend before accepting the upload.
 - **PAY-011:** Participants may replace submitted proof. Keep every submitted proof in restricted object storage for staff review. The participant sees only the latest submission. Downloads retain the submitted filename extension. Each replacement is new evidence requiring review, not proof of approval. Proof retention follows the privacy policy.
 - **PAY-012:** For a refundable tournament, refund the exact amount the guild received within 10 business days of paid-registration cancellation. Count weekdays starting the day after cancellation in fixed UTC-03:00. Ignore holidays. Staff records actual refund completion; cancellation alone does not fulfill the deadline or mark funds returned.
-- **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a paid waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses staff cancellation. A verified payment creates a refund obligation only if the tournament allows refunds. Rejecting proof alone is a different evidence-review action.
+- **PAY-013:** Accepting a late payment follows the ordinary capacity rules: confirmation requires an available seat; otherwise approved payment produces a waitlist entry. Staff may explicitly increase configured capacity before confirming more participants. The system neither increases capacity automatically nor confirms beyond it. Declining participation after an actual late transfer uses staff cancellation. A verified payment creates a refund obligation only if the tournament allows refunds. Rejecting proof alone is a different evidence-review action.
 
 ## Persistence contract
 
@@ -54,7 +54,7 @@ related payment and refund values consistent and account for money already retur
 
 The API supports proof submission, authorized retrieval, and exact-proof staff
 approval/rejection. Approval atomically saves the review, shared receipt, association,
-and confirmed or paid-waitlist outcome. Rejection returns to `awaiting_payment`
+and confirmed or waitlist outcome. Rejection returns to `awaiting_payment`
 with a separate current-proof review and reason. Only a new proof can be reviewed
 after rejection. Cancellation atomically records an obligation when the tournament
 allows refunds and a receipt linked to approved proof for that registration exists.
@@ -90,7 +90,7 @@ Waitlisted participants have already had payment approved. Staff later selects a
 - **PAY-AC-004:** An unauthorized user cannot view, upload, or replace another participant's proof.
 - **PAY-AC-005:** A payment-review decision is attributable to the authorized reviewer and time, and confirmation still respects capacity.
 - **PAY-AC-006:** A configured payment deadline is shown. Passing it does not automatically reject a late Pix transfer or prevent staff from reviewing it and deciding whether to accept or decline participation.
-- **PAY-AC-007:** Staff approval of payment without an allocatable seat records a paid waitlist outcome and sends an email rather than confirming participation.
+- **PAY-AC-007:** Staff approval of payment without an allocatable seat records a waitlist outcome and sends an email rather than confirming participation.
 - **PAY-AC-008:** Cancellation does not claim that a refund has been completed. Recording the completed guild refund triggers a refund-confirmation email to the user.
 - **PAY-AC-009:** Cancellation creates an obligation only for a verified payment in a refundable tournament. Disable athlete cancellation when refunds are off. Staff cancellation still releases any occupied seat immediately.
 - **PAY-AC-010:** PDF, JPEG, and PNG files at or below 10 MB are accepted; disallowed types and larger files are rejected without an accepted upload.

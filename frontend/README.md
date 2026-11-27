@@ -1,7 +1,7 @@
 # Karlbrüder frontend
 
 **Created**: 2026-01-11
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-26
 
 React and TypeScript application built with Vite. Supabase owns authentication.
 FastAPI owns domain rules and data. The public website lives in `landing/`.
@@ -173,7 +173,9 @@ Its rounder letterforms and softer corners can change heading wraps. The
 | WF-21, WF-22 | User directory with inline role editing and feedback |
 | WF-26, WF-25 | Athlete list and registration management, including staff tag controls |
 | WF-09, WF-10, WF-13 | Payment verification queue and decision, cancellation and refund status, and staff refund recording. Existing access rules and inline confirmations apply. |
-| WF-11, WF-14, WF-15, WF-16 | Paid-waitlist selection, results and directory, membership, and inventory remain concept screens. |
+| WF-14, WF-15, WF-16 | Results and directory, membership, and inventory remain concept screens. |
+
+WF-11 provides staff waitlist selection and cancellation. An awaiting refund links to the existing refund queue.
 
 ## Build and checks
 
@@ -201,7 +203,7 @@ Admins can open payment review from the home screen or `/staff/payment-reviews`.
 The queue covers all tournaments and supports exact registration-number search.
 Each review shows evidence history, document links, eligibility, and capacity.
 Staff supplies the received amount for approval or a reason for rejection.
-A saved result distinguishes confirmation from paid waitlist and email failure.
+A saved result distinguishes confirmation from waitlist and email failure.
 
 A stale proof or competing decision requires refreshing and inspecting evidence
 again. Draft amount and rejection text are retained. Backend authorization and
@@ -217,7 +219,7 @@ inaccessible records do not fall back to another registration. The default route
 still selects Monomachia. Sign-in retains the complete destination.
 
 Participants see the current rejection reason and can submit a new proof.
-Confirmed and paid-waitlist outcomes suppress payment prompts and proof uploads.
+Confirmed and waitlist outcomes suppress payment prompts and proof uploads.
 Waitlist copy explains that payment is approved without a confirmed seat and that
 staff confirmation is required. The status refresh does not depend on email delivery.
 Portuguese and English are available. Participants can confirm cancellation

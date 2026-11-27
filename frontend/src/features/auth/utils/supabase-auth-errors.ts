@@ -43,9 +43,6 @@ const CONTEXT_FALLBACK: Record<SupabaseAuthErrorContext, AppCopyKey> = {
   update_password: "Não foi possível atualizar a senha. Tente novamente.",
 };
 
-export const ACCOUNT_PASSWORD_POLICY_COPY_KEY: AppCopyKey =
-  "Use uma senha com pelo menos 8 caracteres, com letras maiúsculas e minúsculas, números e símbolos.";
-
 function readAuthErrorCode(error: AuthError): string | undefined {
   if (typeof error.code === "string" && error.code.length > 0) {
     return error.code;

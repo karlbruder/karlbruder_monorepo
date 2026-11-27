@@ -6,6 +6,7 @@ import { legalRoutes } from "@/config/legal-routes";
 import { StaffAccountsRoute } from "@/app/routes/staff-accounts-route";
 import { StaffLayout } from "@/app/routes/tournament/staff-layout";
 import { StaffTournamentListRoute, StaffTournamentCreateRoute, StaffTournamentDetailRoute } from "@/app/routes/tournament/staff-tournament-route";
+import { StaffWaitlistRoute } from "@/app/routes/tournament/staff-waitlist-route";
 import { StaffAthletesRoute } from "@/app/routes/tournament/staff-athletes-route";
 import { PaymentReviewRoute } from "@/app/routes/tournament/payment-review-route";
 import { RegistrationRefundRoute } from "@/app/routes/tournament/registration-refund-route";
@@ -44,6 +45,7 @@ export default function AppRouter() {
             <Route path="/staff/tournaments" element={<StaffTournamentListRoute />} />
             <Route path="/staff/tournaments/new" element={<StaffTournamentCreateRoute />} />
             <Route path="/staff/tournaments/:tournamentId" element={<StaffTournamentDetailRoute />} />
+            <Route path="/staff/tournaments/:tournamentId/waitlist" element={<StaffWaitlistRoute />} />
             <Route path="/staff/tournaments/:tournamentId/athletes" element={<StaffAthletesRoute />} />
             <Route path="/staff/tournaments/:tournamentId/athletes/:registrationNumber" element={<StaffAthletesRoute />} />
             <Route path="/staff/payment-reviews" element={<PaymentReviewRoute />} />

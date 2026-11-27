@@ -1,7 +1,7 @@
 # Authentication and access
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-05
+**Last updated**: 2026-11-24
 
 | Field | Value |
 | --- | --- |
@@ -19,6 +19,7 @@ Identify participants reliably and restrict personal records and administrative 
 - **AUTH-001:** Supabase Auth owns application identity. The frontend uses the official Supabase SDK for sign-up, sign-in, session restoration, and sign-out.
 - **AUTH-002:** Desired sign-in methods are email/password and Google. Email/password has separate sign-in and sign-up entry points, verification handling, and a password-recovery flow. A signed-in person can change the password on `/account/password` by entering the new password twice and submitting when both values match. The client calls Supabase `updateUser` with the new password. On success the active session stays signed in. On failure the client shows the Supabase error and the previous password remains in effect.
 - **AUTH-003:** Auth callbacks restore the session and return the user to an appropriate application screen. Registration entry should retain the chosen tournament through sign-in. The application uses these account routes: `/account/sign-in`, `/account/sign-up`, `/account/check-email`, `/account/recover`, `/account/new-password`, and `/account/password` for a signed-in password change. Email sign-up confirms through the configured Supabase Auth template and returns the person to sign-in. Recovery opens `/account/new-password` when the link establishes a session. Redirect URLs must be allowed on each hosted Supabase project the app uses.
+- **AUTH-013:** Sign-in, sign-up, and email confirmation show tournament registration context only when the return path targets tournament registration. The context does not name a tournament unless its identity is known.
 - **AUTH-011:** Supabase Auth email templates use Portuguese only. That covers sign-up confirmation, password recovery, and other Auth-managed message types configured in the Supabase project, including security notifications when they are enabled. The application UI may offer English. Auth email language does not follow the UI language toggle until multi-language Auth email is delivered under the implementation decision below. Backend application mail stays Portuguese under [COM-008](../tournaments/communications.md#rules).
 - **AUTH-012:** The application must not show raw Supabase Auth API `error.message` text in the UI. Map `error.code` values from the [Supabase Auth error codes](https://supabase.com/docs/guides/auth/debugging/error-codes) to Portuguese and English copy in the frontend. Supabase remains the source of truth for password strength. The client does not reimplement that policy.
 - **AUTH-004:** The frontend supplies the current Supabase access token as `Authorization: Bearer <access_token>` on protected API requests. Sign-out removes access to protected application views, stops use of the active session, and clears the browser query cache. See [decision 0007](../decisions/0007-clear-browser-cache-on-sign-out.md). An API response of HTTP 401 signs the current user out. HTTP 403 leaves the session in place.

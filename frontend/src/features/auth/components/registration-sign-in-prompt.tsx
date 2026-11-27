@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { accountRoutes } from "@/config/account-routes";
-import { signInPathWithReturnTo } from "@/features/auth/utils/account-navigation";
+import { buildSignInPath } from "@/features/auth/utils/account-navigation";
 import { appCopy } from "@/utils/app-copy";
 import type { AppLanguage } from "@/utils/app-copy";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
@@ -24,7 +24,7 @@ export default function RegistrationSignInPrompt({
   return (
     <div className="registration-sign-in-actions">
       <GoogleSignInButton language={language} loading={googleLoading} onSignIn={onGoogleSignIn} labelKey="Entrar com Google" />
-      <Link className="account-email-link" to={signInPathWithReturnTo(returnTo)}>
+      <Link className="account-email-link" to={buildSignInPath(returnTo)}>
         {t("Entrar com e-mail")}
       </Link>
       <p className="account-auth-muted">

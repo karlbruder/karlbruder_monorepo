@@ -1,7 +1,7 @@
 # Taxonomy
 
 **Created**: 2026-11-01
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 These names are the shared vocabulary for the rest of the specifications.
 
@@ -26,7 +26,7 @@ These names are the shared vocabulary for the rest of the specifications.
 | Payment and refund | Payments owns generic `Payment` and `Refund` facts. Tournaments owns settings, proof reviews, and the proof-to-payment association |
 | Awaiting payment | The participant still needs to pay. Generating a future gateway QR code leaves payment in this state |
 | Awaiting payment confirmation | Use `awaiting_payment_confirmation` after a proof is uploaded. A future gateway flow can use the same label when payment has been initiated and confirmation is pending |
-| Payment confirmed | Staff verified receipt or a future gateway confirmed success. Registration can separately show a confirmed place or paid waitlist |
+| Payment confirmed | Staff verified receipt or a future gateway confirmed success. Registration can separately show a confirmed place or waitlist |
 | Payment verification | The staff workflow. Staff approve payment or reject the uploaded proof. Use payment proof review for the staff record and its history |
 | New proof needed | The participant-facing label when staff reject the current proof and a replacement can be uploaded |
 | Processing | Reserve this payment label for a future gateway that explicitly reports processing |

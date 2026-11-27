@@ -4,18 +4,18 @@ import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/use-language";
 import PasswordRecoveryForm from "@/features/auth/components/password-recovery-form";
 import { accountRoutes } from "@/config/account-routes";
-import { readReturnTo } from "@/features/auth/utils/account-navigation";
+import { getReturnToPath } from "@/features/auth/utils/account-navigation";
 
 export default function PasswordRecoveryRoute() {
   const { language } = useLanguage();
   const [searchParams] = useSearchParams();
-  const returnTo = readReturnTo(searchParams) ?? accountRoutes.signIn;
+  const returnTo = getReturnToPath(searchParams) ?? accountRoutes.signIn;
   return (
     <AuthPageFrame
       language={language}
       title={appCopy(language, "Recuperar acesso")}
       subtitle={appCopy(language, "Recuperar acesso")}
-      showRegistrationContext={false}
+      showTournamentRegistrationMessage={false}
     >
       <PasswordRecoveryForm
         language={language}

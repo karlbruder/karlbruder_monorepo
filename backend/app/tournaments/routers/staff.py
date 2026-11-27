@@ -17,6 +17,8 @@ from app.tournaments.schemas import (
     AdditionalDocumentPublish,
     AdditionalDocumentRead,
     StaffRegistrationSummaryRead,
+    StaffWaitlistRead,
+    WaitlistConfirmationRead,
     TagInput,
     TagRead,
     TagSelection,
@@ -31,10 +33,14 @@ from app.tournaments.schemas import (
     StaffTournamentList,
     StaffTournamentRead,
     TournamentCreate,
+    StaffTournamentCreate,
+    OfferingInput,
+    StaffProductRead,
+    StaffRegistrationTotals,
     TournamentRead,
     additional_document_read,
 )
-from app.tournaments.services import payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
+from app.tournaments.services import tournament_products, waitlist, payment_proof_reviews, registration_cancellations, tournament_administration, tournament_registrations, tournament_tags
 from app.tournaments.services.tournament_administration import (
     create_tournament_configuration,
 )
@@ -45,7 +51,7 @@ router = APIRouter(prefix="/api/staff/tournaments")
 
 @router.post("", response_model=TournamentRead, status_code=status.HTTP_201_CREATED)
 def create_tournament(
-    payload: TournamentCreate,
+    payload: StaffTournamentCreate,
     admin: Annotated[User, Depends(require_admin)],
     session: Annotated[Session, Depends(get_session)],
 ) -> TournamentRead:
@@ -175,6 +181,11 @@ def list_staff_tournaments(
     )
 
 
+@router.get("/products", response_model=list[StaffProductRead])
+def list_product_tournaments(admin: Annotated[User, Depends(require_admin)], session: Annotated[Session, Depends(get_session)]):
+    return tournament_products.list_staff_tournament_products(session, admin)
+
+
 @router.get("/{tournament_id}", response_model=StaffTournamentRead)
 def get_staff_tournament(
     tournament_id: int,
@@ -220,6 +231,28 @@ def list_registrations(
     session: Annotated[Session, Depends(get_session)],
 ):
     return tournament_registrations.list_tournament_registrations_for_staff(session, tournament_id, admin)
+
+
+@router.get("/{tournament_id}/waitlist", response_model=StaffWaitlistRead)
+def get_waitlist(
+    tournament_id: int,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return waitlist.read_waitlist(session, tournament_id, admin)
+
+
+@router.post(
+    "/{tournament_id}/registrations/{registration_number}/confirm",
+    response_model=WaitlistConfirmationRead,
+)
+def confirm_waitlist_registration(
+    tournament_id: int,
+    registration_number: str,
+    admin: Annotated[User, Depends(require_admin)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    return waitlist.confirm_waitlist_registration(session, tournament_id, registration_number, admin)
 
 
 @router.post("/{tournament_id}/tags", response_model=TagRead, status_code=201)
@@ -326,3 +359,18 @@ def publish_additional_document(
         payload.original_file_name, title=payload.title,
     )
     return additional_document_read(document)
+
+
+@router.get("/{tournament_id}/products", response_model=list[StaffProductRead])
+def list_offerings(tournament_id: int, admin: Annotated[User, Depends(require_admin)], session: Annotated[Session, Depends(get_session)]):
+    return tournament_products.list_staff_tournament_products(session, admin, tournament_id)
+
+
+@router.post("/{tournament_id}/products", response_model=list[StaffProductRead])
+def add_offerings(tournament_id: int, payload: OfferingInput, admin: Annotated[User, Depends(require_admin)], session: Annotated[Session, Depends(get_session)]):
+    return tournament_products.attach_tournament_products(session, admin, tournament_id, payload)
+
+
+@router.get("/{tournament_id}/registration-totals", response_model=StaffRegistrationTotals)
+def registration_totals(tournament_id: int, admin: Annotated[User, Depends(require_admin)], session: Annotated[Session, Depends(get_session)]):
+    return tournament_registrations.registration_totals(session, admin, tournament_id)

@@ -1,4 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { normalizedDraft, useStaffProducts, validProductDraft, type OfferingSelection } from "@/features/tournament/api/staff-products";
+import { TournamentProductSelection } from "@/features/tournament/components/tournament-product-selection";
 import type { AppLanguage } from "@/utils/app-copy";
 import { saveStaffTournament, StaffTournamentError, type StaffTournament } from "@/features/tournament/api/staff-tournaments";
 
@@ -34,6 +36,7 @@ function saveErrorMessage(error: unknown, en: boolean): string {
   const generic = en ? "Could not save. Check the fields and try again." : "Não foi possível salvar. Confira os campos e tente novamente.";
   if (!(error instanceof StaffTournamentError)) return generic;
   if (error.status === 401 || error.status === 403) return en ? "Access denied. Sign in again with a staff account." : "Acesso negado. Entre novamente com uma conta da equipe.";
+  if (error.status === 404 || (error.status === 409 && ["Product is inactive", "Product already offered", "Duplicate product"].includes(String(error.detail)))) return en ? "A selected product is no longer available. Refresh the products and revise your selection." : "Um produto selecionado não está mais disponível. Atualize os produtos e revise sua seleção.";
   if (error.status === 409) {
     if (error.detail === "Tournament slug already exists") return en ? "This slug is already in use. Choose another identifier." : "Este identificador já está em uso. Escolha outro.";
     if (error.detail === "Capacity cannot be below confirmed participation") return en ? "Capacity cannot be below confirmed participation." : "A capacidade não pode ser menor que o número de participantes confirmados.";
@@ -56,19 +59,25 @@ function saveErrorMessage(error: unknown, en: boolean): string {
   }
   return generic;
 }
-export function StaffTournamentForm({ token, event, language, onSaved }: { token: string; event?: StaffTournament; language: AppLanguage; onSaved: (saved: StaffTournament) => void }) {
+export function StaffTournamentForm({ token, userId, event, language, onSaved }: { token: string; userId: string; event?: StaffTournament; language: AppLanguage; onSaved: (saved: StaffTournament) => void }) {
   const [originalValues] = useState(() => initialValues(event));
   const [values, setValues] = useState(originalValues);
   const [internal, setInternal] = useState(event?.is_internal ?? false);
   const [closed, setClosed] = useState(event?.is_registration_closed ?? false);
   const [refundsAllowed, setRefundsAllowed] = useState(event?.refunds_allowed ?? false);
+  const [selection, setSelection] = useState<OfferingSelection>({ existing_product_ids: [], new_products: [] });
+  const products = useStaffProducts(token, userId, undefined, !event);
+  const [productError, setProductError] = useState(false);
   const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState<unknown>(null);
   const en = language === "en";
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (pending) return;
-    setPending(true); setError(null);
+    if (inFlight.current) return;
+    if (!event && selection.new_products.some(draft => !validProductDraft(draft))) { setProductError(true); return; }
+    setProductError(false);
+    inFlight.current = true; setPending(true); setError(null);
     try {
       const payload: Record<string, unknown> = {
         is_internal: internal, is_registration_closed: closed, refunds_allowed: refundsAllowed,
@@ -81,10 +90,14 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
           ? event && value === originalValues[field.key] ? event[field.key] : new Date(`${value}T${time}`).toISOString()
           : field.key === "competitor_capacity" ? Number(value) : value;
       }
+      if (!event) {
+        payload.existing_product_ids = selection.existing_product_ids;
+        payload.new_products = selection.new_products.map(normalizedDraft);
+      }
       onSaved(await saveStaffTournament(token, payload, event ? String(event.id) : undefined));
     } catch (caught) {
       setError(caught);
-    } finally { setPending(false); }
+    } finally { inFlight.current = false; setPending(false); }
   }
   return <form className="staff-tournament-form review-card" onSubmit={submit}>
     <p>{en ? "Leave optional fields empty when not configured." : "Deixe os campos opcionais vazios quando não estiverem configurados."}</p>
@@ -99,7 +112,13 @@ export function StaffTournamentForm({ token, event, language, onSaved }: { token
     <label className="review-check"><input type="checkbox" checked={closed} onChange={e => setClosed(e.target.checked)} /> {en ? "Registration closed" : "Inscrições encerradas"}</label>
     <label className="review-check"><input type="checkbox" checked={refundsAllowed} disabled={!event} onChange={e => setRefundsAllowed(e.target.checked)} /> {en ? "Allow refunds under the cancellation policy" : "Permitir reembolsos conforme a política de cancelamento"}</label>
     </div>
-    {error != null && <p role="alert">{saveErrorMessage(error, en)}</p>}
+    {!event && <section aria-label={en ? "Registration products" : "Produtos de inscrição"}>
+      {products.isLoading && <p role="status">{en ? "Loading products..." : "Carregando produtos..."}</p>}
+      {products.isError && <p role="alert">{en ? "Could not load products." : "Não foi possível carregar os produtos."} <button type="button" onClick={() => void products.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
+      <TournamentProductSelection products={products.data ?? []} selection={selection} onChange={setSelection} language={language} />
+      {productError && <p role="alert">{en ? "Enter a name, description and valid BRL price for each product." : "Informe nome, descrição e preço em BRL válido para cada produto."}</p>}
+    </section>}
+    {error != null && <p role="alert">{saveErrorMessage(error, en)} {!event && error instanceof StaffTournamentError && (error.status === 404 || error.status === 409) && <button type="button" onClick={() => void products.refetch()}>{en ? "Refresh products" : "Atualizar produtos"}</button>}</p>}
     <p><button className="staff-primary-button" disabled={pending}>{pending ? (en ? "Saving..." : "Salvando...") : (en ? "Save tournament" : "Salvar torneio")}</button></p>
   </form>;
 }

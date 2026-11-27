@@ -12,7 +12,7 @@ export default function ChangePasswordRoute() {
       language={language}
       title={appCopy(language, "Alterar senha")}
       subtitle={appCopy(language, "Alterar senha")}
-      showRegistrationContext={false}
+      showTournamentRegistrationMessage={false}
     >
       <p className="account-auth-muted">{appCopy(language, "Você já está autenticada.")}</p>
       <PasswordUpdateForm language={language} onSuccess={() => navigate("/", { replace: true })} />

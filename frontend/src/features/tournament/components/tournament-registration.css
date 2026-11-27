@@ -555,6 +555,7 @@
 }
 
 .registration-option input {
+  flex-shrink: 0;
   margin-top: 0.25rem;
 }
 
