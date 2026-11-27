@@ -1,7 +1,7 @@
 # Architecture
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -100,7 +100,7 @@ The backend checks a trusted admin role. Choosing its storage representation is 
 ## Rules
 
 - **ARCH-001:** The backend owns domain validation, authorization, and domain database access. UI validation improves usability but is not authoritative.
-- **ARCH-002:** The frontend uses Supabase Auth for identity and sends the session access token to protected backend endpoints. Browser code does not access domain PostgreSQL directly.
+- **ARCH-002:** The frontend uses Supabase Auth for identity and sends the session access token to protected backend endpoints. A shared backend client obtains the current session and confines credentials to the configured backend. Feature API modules own endpoint behavior. Storage transfers use a separate request path. Browser code does not access domain PostgreSQL directly.
 - **ARCH-003:** Supabase owns authentication records. Karlbrüder owns tournament and association records in `public`. Application authorization is distinct from successful authentication.
 - **ARCH-004:** Users register only themselves. A registration references the existing Supabase `auth.users.id` UUID from the verified token subject, not email or a new tournament-specific user identity. A registration number is a reference, not an access credential.
 - **ARCH-005:** Payment proofs and other private uploaded files use Amazon S3 in production and Ministack S3 emulation locally. All access remains authorization-controlled. Private files are not public landing assets or Supabase Storage objects.
