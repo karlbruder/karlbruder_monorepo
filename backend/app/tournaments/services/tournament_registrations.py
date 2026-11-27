@@ -5,12 +5,13 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth.supabase.roles import get_application_role
 from app.core.files import FileStorage, FileStorageError
+from app.auth.exceptions import AdminAccessRequiredException
 from app.auth.models import User
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
@@ -21,7 +22,7 @@ from app.tournaments.exceptions import (
     RegistrationResourceNotFoundError,
 )
 from app.core.files.models import StoredFile
-from app.karlmart.catalog.models import Price, Product
+from app.karlmart.catalog import services as catalog
 from app.karlmart.orders.models import Order, OrderItem
 from app.tournaments.models import (
     RegistrationTag,
@@ -94,7 +95,7 @@ def list_tournament_registrations_for_staff(session: Session, tournament_id: int
     load_visible_tournament(session, tournament_id, actor)
     registrations = session.scalars(
         select(TournamentRegistration)
-        .options(selectinload(TournamentRegistration.documents), selectinload(TournamentRegistration.tournament))
+        .options(selectinload(TournamentRegistration.documents), selectinload(TournamentRegistration.tournament), selectinload(TournamentRegistration.order_item))
         .where(TournamentRegistration.tournament_id == tournament_id)
         .order_by(TournamentRegistration.full_name, TournamentRegistration.id)
     ).all()
@@ -113,6 +114,7 @@ def list_tournament_registrations_for_staff(session: Session, tournament_id: int
             "full_name": registration.full_name,
             "social_name": registration.social_name,
             "registration_status": registration.registration_status,
+            "product_name": registration.order_item.product_name if registration.order_item else None,
             "parental_consent_required": is_registration_parental_consent_required(registration),
             "tags": tags_by_registration.get(registration.id, []),
         }
@@ -185,29 +187,15 @@ def create_tournament_registration(
     tournament = load_visible_tournament(session, tournament_id, user, lock=True)
     from .tournament_tags import validate_tags
     validate_tags(session, tournament_id, payload.tag_ids)
-    option = session.execute(
-        select(TournamentProduct, Product, Price)
-        .join(Product, Product.id == TournamentProduct.product_id)
-        .join(Price, Price.product_id == Product.id)
-        .where(
-            TournamentProduct.id == payload.tournament_product_id,
-            TournamentProduct.tournament_id == tournament.id,
-            Product.is_active.is_(True),
-            Price.id == payload.price_id,
-            Price.is_active.is_(True),
-            Price.id == (
-                select(Price.id)
-                .where(Price.product_id == Product.id, Price.is_active.is_(True))
-                .order_by(Price.id.desc())
-                .limit(1)
-                .correlate(Product)
-                .scalar_subquery()
-            ),
-        )
-        .with_for_update(of=(TournamentProduct, Product, Price))
-    ).one_or_none()
-    if option is None:
+    offering = session.scalar(select(TournamentProduct).where(
+        TournamentProduct.id == payload.tournament_product_id,
+        TournamentProduct.tournament_id == tournament.id,
+    ))
+    product = catalog.get_product(session, offering.product_id, lock=True) if offering else None
+    price = catalog.current_price(session, product.id) if product else None
+    if product is None or not product.is_active or price is None or price.id != payload.price_id:
         raise RegistrationNotAllowedError("Registration option is unavailable")
+    tournament_product = offering
     today = tournament_local_dates.current_local_calendar_date()
     if (
         tournament.registration_opens_on is None
@@ -244,7 +232,6 @@ def create_tournament_registration(
     acceptance = create_registration_acceptance(
         session, tournament, user.id, payload, accepted_from_ip
     )
-    tournament_product, product, price = option
     order = Order(user_id=user.id, status="pending", currency=price.currency)
     session.add(order)
     session.flush()
@@ -504,3 +491,17 @@ def read_tournament_registration(
     if registration is None or (registration.user_id != user.id and not staff):
         raise RegistrationResourceNotFoundError("Registration not found")
     return build_tournament_registration_read(registration, staff=staff)
+
+
+def registration_totals(session: Session, actor: User, tournament_id: int):
+    """Count every registration and confirmed seat for one tournament."""
+    if get_application_role(actor) != "admin":
+        raise AdminAccessRequiredException()
+    tournament = session.get(Tournament, tournament_id)
+    if tournament is None:
+        raise RegistrationResourceNotFoundError("Tournament not found")
+    total, confirmed = session.execute(select(
+        func.count(TournamentRegistration.id),
+        func.count(TournamentRegistration.id).filter(TournamentRegistration.registration_status == "confirmed"),
+    ).where(TournamentRegistration.tournament_id == tournament_id)).one()
+    return {"total": total, "confirmed_count": confirmed, "competitor_capacity": tournament.competitor_capacity}

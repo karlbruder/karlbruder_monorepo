@@ -22,9 +22,12 @@ from app.tournaments.schemas import (
     StaffTournamentList,
     StaffTournamentRead,
     TournamentCreate,
+    StaffTournamentCreate,
+    OfferingInput,
     TournamentRead,
 )
 from app.tournaments.services.registration_acceptances import PolicyVersions, current_policy_versions
+from app.tournaments.services.tournament_products import add_offerings
 from app.tournaments.services.tournament_catalog import build_tournament_read
 from app.tournaments.services.tournament_payment_settings import create_tournament_payment_settings
 from app.tournaments.services.tournament_slugs import resolve_tournament_slug
@@ -201,7 +204,7 @@ def delete_tournament(session: Session, actor: User, tournament_id: int) -> None
 
 def create_tournament_configuration(
     session: Session,
-    payload: TournamentCreate,
+    payload: StaffTournamentCreate,
     actor: User,
 ) -> TournamentRead:
     if get_application_role(actor) != "admin":
@@ -213,11 +216,14 @@ def create_tournament_configuration(
     )
     if session.scalar(select(Tournament.id).where(Tournament.slug == slug)) is not None:
         raise RegistrationConflictError("Tournament slug already exists")
-    tournament = Tournament(**{**payload.model_dump(exclude={"pix_key"}), "slug": slug})
+    tournament = Tournament(**{**payload.model_dump(exclude={"pix_key", "existing_product_ids", "new_products"}), "slug": slug})
     try:
         session.add(tournament)
         session.flush()
         create_tournament_payment_settings(session, tournament.id, payload.pix_key)
+        add_offerings(session, actor, tournament, OfferingInput(
+            existing_product_ids=payload.existing_product_ids, new_products=payload.new_products
+        ))
         response = build_tournament_read(tournament)
         session.commit()
     except Exception as error:

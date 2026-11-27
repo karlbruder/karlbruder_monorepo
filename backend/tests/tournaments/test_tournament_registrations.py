@@ -1725,6 +1725,7 @@ def test_tournament_tags_enforce_scope_ownership_and_deletion(setup):
     athletes = client.get(registrations_path, headers=admin)
     assert athletes.status_code == 200
     assert athletes.json() == [{
+        "product_name": "Fixture entry",
         "registration_number": number,
         "full_name": response.json()["full_name"],
         "social_name": None,

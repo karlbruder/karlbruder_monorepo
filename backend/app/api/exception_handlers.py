@@ -16,6 +16,7 @@ from app.auth.supabase.exceptions import (
     SupabaseAdminUnavailableError,
 )
 from app.core.files import FileStorageError
+from app.karlmart.catalog.exceptions import CatalogError, ProductInactiveError, ProductNotFoundError
 from app.tournaments.exceptions import (
     ParentalConsentFormNotAllowedError,
     ParentalConsentFormRequiredError,
@@ -31,6 +32,8 @@ from app.tournaments.exceptions import (
 logger = logging.getLogger(__name__)
 
 _ERROR_STATUS = {
+    ProductNotFoundError: 404,
+    ProductInactiveError: 409,
     SupabaseAccountNotFoundError: 404,
     SupabaseAdminUnavailableError: 503,
     InvalidCredentialsException: 401,
@@ -58,9 +61,10 @@ def register_api_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(AuthenticationError)
+    @app.exception_handler(CatalogError)
     @app.exception_handler(TournamentError)
     def handle_domain_error(
-        _request: Request, error: AuthenticationError | TournamentError
+        _request: Request, error: AuthenticationError | TournamentError | CatalogError
     ) -> JSONResponse:
         headers = (
             {"WWW-Authenticate": "Bearer"}

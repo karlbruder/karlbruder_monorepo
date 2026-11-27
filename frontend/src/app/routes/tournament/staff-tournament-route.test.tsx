@@ -1,3 +1,4 @@
+vi.mock("@/features/tournament/api/staff-products", async (original) => ({ ...await original<typeof import("@/features/tournament/api/staff-products")>(), useStaffProducts: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }) }));
 vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
