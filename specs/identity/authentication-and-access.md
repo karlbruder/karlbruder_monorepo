@@ -1,7 +1,7 @@
 # Authentication and access
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-24
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -22,7 +22,7 @@ Identify participants reliably and restrict personal records and administrative 
 - **AUTH-013:** Sign-in, sign-up, and email confirmation show tournament registration context only when the return path targets tournament registration. The context does not name a tournament unless its identity is known.
 - **AUTH-011:** Supabase Auth email templates use Portuguese only. That covers sign-up confirmation, password recovery, and other Auth-managed message types configured in the Supabase project, including security notifications when they are enabled. The application UI may offer English. Auth email language does not follow the UI language toggle until multi-language Auth email is delivered under the implementation decision below. Backend application mail stays Portuguese under [COM-008](../tournaments/communications.md#rules).
 - **AUTH-012:** The application must not show raw Supabase Auth API `error.message` text in the UI. Map `error.code` values from the [Supabase Auth error codes](https://supabase.com/docs/guides/auth/debugging/error-codes) to Portuguese and English copy in the frontend. Supabase remains the source of truth for password strength. The client does not reimplement that policy.
-- **AUTH-004:** The frontend supplies the current Supabase access token as `Authorization: Bearer <access_token>` on protected API requests. Sign-out removes access to protected application views, stops use of the active session, and clears the browser query cache. See [decision 0007](../decisions/0007-clear-browser-cache-on-sign-out.md). An API response of HTTP 401 signs the current user out. HTTP 403 leaves the session in place.
+- **AUTH-004:** The frontend supplies the current Supabase access token as `Authorization: Bearer <access_token>` on protected API requests. Sign-out removes access to protected application views, stops use of the active session, and clears the browser query cache. A direct account change also cancels queries and clears the cache. A refresh for the same account retains it. See [decision 0007](../decisions/0007-clear-browser-cache-on-sign-out.md). An HTTP 401 for the current authenticated session signs the user out. An obsolete response or a guest 401 does not sign out the current user. HTTP 403 leaves the session in place.
 - **AUTH-005:** The backend verifies token signature, issuer, audience, expiry, required claims, and the expected authenticated role before trusting identity. It uses a FastAPI dependency on protected endpoints rather than treating every route as protected by global middleware.
 - **AUTH-006:** Missing, expired, or invalid tokens return HTTP 401. Authentication-service or signing-key retrieval failures must be distinguishable from invalid credentials; the current backend uses HTTP 503 for unavailability.
 
@@ -44,7 +44,7 @@ The initial `/api/users/me` verification endpoint does not need a local users ta
 - **AUTH-AC-005:** A non-admin participant cannot retrieve another participant's private registration or proof by changing a request identifier.
 - **AUTH-AC-006:** Verified guild staff can administer every tournament without an event-specific grant, while a signed-in user without the admin role cannot perform administrative actions.
 - **AUTH-AC-007:** Configured Supabase Auth emails for sign-up confirmation, password recovery, and enabled security notifications are sent in Portuguese.
-- **AUTH-AC-008:** Signing out clears cached application data. An API response of HTTP 401 signs the current user out. An HTTP 403 response does not.
+- **AUTH-AC-008:** Signing out or changing accounts clears cached application data. Refreshing the same account retains it. A current authenticated API response of HTTP 401 signs the user out once. An obsolete or guest 401 and an HTTP 403 do not sign out the current user.
 
 ## Implementation baseline
 

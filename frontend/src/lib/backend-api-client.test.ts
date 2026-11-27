@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backendFetch } from "@/lib/backend-api-client";
 import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
 import { supabase } from "@/lib/supabase-client";
+import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn() } } }));
 
@@ -83,6 +84,12 @@ describe("backendFetch", () => {
     await expect(request).rejects.toMatchObject({ name: "AbortError" });
   });
 
+  it("does not send a request when the account changes during session lookup", async () => {
+    getSession.mockImplementationOnce(async () => { advanceSessionGeneration(); return result(session("token")); });
+    await expect(backendFetch("/private", {}, required)).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("reports the initiating session on a backend 401 and ignores 403", async () => {
     const handler = vi.fn();
     setApiUnauthorizedHandler(handler);
@@ -90,6 +97,6 @@ describe("backendFetch", () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 401 })).mockResolvedValueOnce(new Response(null, { status: 403 }));
     await backendFetch("/private", {}, required);
     await backendFetch("/private", {}, required);
-    expect(handler).toHaveBeenCalledExactlyOnceWith({ accountId: "account-a", accessToken: "token" });
+    expect(handler).toHaveBeenCalledExactlyOnceWith({ accountId: "account-a", accessToken: "token", generation: currentSessionGeneration() });
   });
 });

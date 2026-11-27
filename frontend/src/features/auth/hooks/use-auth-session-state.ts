@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSession, onAuthStateChange, signInWithOAuth, signOut as requestSignOut } from "@/features/auth/api/auth";
 import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
+import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 import type { AppCopyKey } from "@/utils/app-copy";
 
 export function useAuthSessionState() {
@@ -12,29 +13,22 @@ export function useAuthSessionState() {
   const [authError, setAuthError] = useState<AppCopyKey | null>(null);
   const [sessionLapsed, setSessionLapsed] = useState(false);
   const userInitiatedSignOutRef = useRef(false);
-  const previousAccountIdRef = useRef<string | undefined>(undefined);
+  const currentSessionRef = useRef<Session | null>(null);
   const expiredSignOutStartedRef = useRef(false);
   const queryClient = useQueryClient();
-  const accountId = session?.user.id;
 
   useEffect(() => {
-    const signedOut = previousAccountIdRef.current !== undefined && !accountId;
-    previousAccountIdRef.current = accountId;
-    if (signedOut) {
-      queryClient.clear();
-    }
-    if (accountId) {
-      expiredSignOutStartedRef.current = false;
-    }
-  }, [accountId, queryClient]);
-
-  useEffect(() => {
-    setApiUnauthorizedHandler(() => {
+    setApiUnauthorizedHandler((requestSession) => {
+      if (requestSession !== undefined && (!requestSession ||
+        requestSession.generation !== currentSessionGeneration() ||
+        requestSession.accountId !== currentSessionRef.current?.user.id ||
+        requestSession.accessToken !== currentSessionRef.current?.access_token)) return;
       if (expiredSignOutStartedRef.current) return;
       expiredSignOutStartedRef.current = true;
       userInitiatedSignOutRef.current = false;
+      const generation = currentSessionGeneration();
       void requestSignOut().then(({ error }) => {
-        if (error) setAuthError("Não foi possível sair. Tente novamente.");
+        if (error && generation === currentSessionGeneration()) setAuthError("Não foi possível sair. Tente novamente.");
       });
     });
     return () => setApiUnauthorizedHandler(null);
@@ -42,13 +36,29 @@ export function useAuthSessionState() {
 
   useEffect(() => {
     let active = true;
+    let authEventReceived = false;
+    const applySession = (nextSession: Session | null) => {
+      const previousSession = currentSessionRef.current;
+      if (previousSession?.user.id !== nextSession?.user.id) {
+        advanceSessionGeneration();
+        expiredSignOutStartedRef.current = false;
+        if (previousSession) {
+          void queryClient.cancelQueries();
+          queryClient.clear();
+        }
+      }
+      if (previousSession && !nextSession && !userInitiatedSignOutRef.current) setSessionLapsed(true);
+      if (nextSession && previousSession?.user.id !== nextSession.user.id) userInitiatedSignOutRef.current = false;
+      currentSessionRef.current = nextSession;
+      setSession(nextSession);
+    };
     getSession().then(({ data, error }) => {
-      if (!active) return;
-      setSession(data.session);
+      if (!active || authEventReceived) return;
+      applySession(data.session);
       setAuthError(error ? "Não foi possível recuperar sua sessão." : null);
       setAuthReady(true);
     }).catch(() => {
-      if (active) {
+      if (active && !authEventReceived) {
         setAuthError("Não foi possível recuperar sua sessão.");
         setAuthReady(true);
       }
@@ -56,12 +66,8 @@ export function useAuthSessionState() {
 
     const { data: { subscription } } = onAuthStateChange((_event, nextSession) => {
       if (!active) return;
-      setSession((previousSession) => {
-        if (previousSession && !nextSession && !userInitiatedSignOutRef.current) {
-          setSessionLapsed(true);
-        }
-        return nextSession;
-      });
+      authEventReceived = true;
+      applySession(nextSession);
       setAuthReady(true);
     });
 
@@ -69,7 +75,7 @@ export function useAuthSessionState() {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signInWithGoogle = async (redirectTo: string) => {
     try {
@@ -88,10 +94,11 @@ export function useAuthSessionState() {
   };
 
   const signOut = async () => {
+    const generation = currentSessionGeneration();
     userInitiatedSignOutRef.current = true;
     setSessionLapsed(false);
     const { error } = await requestSignOut();
-    if (error) setAuthError("Não foi possível sair. Tente novamente.");
+    if (error && generation === currentSessionGeneration()) setAuthError("Não foi possível sair. Tente novamente.");
   };
 
   const clearSessionLapsedNotice = () => setSessionLapsed(false);

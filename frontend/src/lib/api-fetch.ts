@@ -1,4 +1,4 @@
-export type RequestSession = { accountId: string; accessToken: string } | null;
+export type RequestSession = { accountId: string; accessToken: string; generation: number } | null;
 type ApiUnauthorizedHandler = (session?: RequestSession) => void;
 
 let apiUnauthorizedHandler: ApiUnauthorizedHandler | null = null;

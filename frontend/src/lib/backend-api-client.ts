@@ -1,6 +1,7 @@
 import { apiBaseUrl } from "@/config/environment";
 import { notifyApiUnauthorized } from "@/lib/api-fetch";
 import { supabase } from "@/lib/supabase-client";
+import { currentSessionGeneration } from "@/lib/session-generation";
 
 type BackendRequestOptions = {
   authentication: "optional" | "required";
@@ -25,9 +26,11 @@ function backendUrl(path: string): string {
 
 export async function backendFetch(path: string, init: RequestInit = {}, options: BackendRequestOptions): Promise<Response> {
   const url = backendUrl(path);
+  const generation = currentSessionGeneration();
   init.signal?.throwIfAborted();
   const { data: { session }, error } = await supabase.auth.getSession();
   init.signal?.throwIfAborted();
+  if (generation !== currentSessionGeneration()) throw new DOMException("Session changed", "AbortError");
   if (error) throw error;
   if (!session && options.authentication === "required") throw new Error("Authentication required");
   if (options.expectedAccountId && session?.user.id !== options.expectedAccountId) {
@@ -37,8 +40,9 @@ export async function backendFetch(path: string, init: RequestInit = {}, options
   headers.delete("Authorization");
   if (session) headers.set("Authorization", `Bearer ${session.access_token}`);
   const response = await fetch(url, { ...init, headers });
+  if (generation !== currentSessionGeneration()) throw new DOMException("Session changed", "AbortError");
   if (response.status === 401) {
-    notifyApiUnauthorized(session ? { accountId: session.user.id, accessToken: session.access_token } : null);
+    notifyApiUnauthorized(session ? { accountId: session.user.id, accessToken: session.access_token, generation } : null);
   }
   return response;
 }
