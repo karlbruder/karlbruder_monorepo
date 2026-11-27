@@ -33,18 +33,6 @@ describe("apiFetch", () => {
     expect((calls[1][1]?.headers as Headers).get("Authorization")).toBe("Bearer refreshed");
   });
 
-  it("sends anonymous requests without a session, credentials or 401 handling", async () => {
-    const handler = vi.fn();
-    setApiUnauthorizedHandler(handler);
-    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 401 }));
-    await apiFetch("/health", { headers: { Authorization: "Bearer supplied" }, credentials: "include" }, { authentication: "anonymous" });
-    const init = vi.mocked(fetch).mock.calls[0][1]!;
-    expect(getSession).not.toHaveBeenCalled();
-    expect((init.headers as Headers).has("Authorization")).toBe(false);
-    expect(init.credentials).toBe("omit");
-    expect(handler).not.toHaveBeenCalled();
-  });
-
   it("allows a guest optional request without forwarding caller credentials", async () => {
     getSession.mockResolvedValue(result(null));
     await apiFetch("/tournaments", { headers: { Authorization: "Bearer supplied" } }, { authentication: "optional" });

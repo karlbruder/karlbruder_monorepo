@@ -14,7 +14,7 @@ FastAPI owns domain rules and data. The public website lives in `landing/`.
 | `src/app/provider.tsx` | Query, auth-session, and language provider composition |
 | `src/app/router.tsx` | URL-to-route mapping |
 | `src/app/routes/` | Screens, navigation, and feature composition |
-| `src/features/` | Auth, tournament registration/payment proofs, and diagnostics |
+| `src/features/` | Auth and tournament registration/payment proofs |
 | `src/lib/` | Supabase, Query, and request helpers |
 
 [AGENTS.md](AGENTS.md) owns the full layout, dependency, and editing rules.
@@ -89,9 +89,8 @@ Keep `VITE_API_BASE_URL=/api`.
 
 All three preserve `/api`. Feature API modules use the shared request boundary.
 `src/lib/api-client.ts` obtains the current Supabase session for authenticated
-requests and limits credentials to the configured backend. Anonymous health checks
-skip session lookup and send no credentials. Private uploads send bytes directly
-to a backend-issued presigned URL, outside the API client.
+requests and limits credentials to the configured backend. Private uploads send
+bytes directly to a backend-issued presigned URL, outside the API client.
 
 Follow the [tournament API guide](../backend/app/tournaments/README.md) for registration,
 parental-consent-form and proof routes, acceptance tokens, and access restrictions.

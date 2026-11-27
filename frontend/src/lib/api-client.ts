@@ -10,7 +10,7 @@ export function setApiUnauthorizedHandler(handler: ApiUnauthorizedHandler | null
 }
 
 type ApiRequestOptions = {
-  authentication: "anonymous" | "optional" | "required";
+  authentication: "optional" | "required";
   expectedAccountId?: string;
 };
 
@@ -34,11 +34,6 @@ function apiUrl(path: string): string {
 export async function apiFetch(path: string, init: RequestInit = {}, options: ApiRequestOptions): Promise<Response> {
   const url = apiUrl(path);
   init.signal?.throwIfAborted();
-  if (options.authentication === "anonymous") {
-    const headers = new Headers(init.headers);
-    headers.delete("Authorization");
-    return fetch(url, { ...init, headers, credentials: "omit" });
-  }
   const scope = captureSessionScope();
   scope.throwIfChanged();
   const { data: { session }, error } = await supabase.auth.getSession();
