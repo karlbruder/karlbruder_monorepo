@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { StaffTournamentError } from "@/features/tournament/api/staff-tournaments";
 
@@ -16,7 +16,7 @@ export type ProductDraft = { name: string; description: string; amount: string }
 export type OfferingSelection = { existing_product_ids: number[]; new_products: ProductDraft[] };
 
 async function request<T>(userId: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await backendFetch(`${path}`, {
+  const response = await apiFetch(`${path}`, {
     ...init,
     headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
   }, { authentication: "required", expectedAccountId: userId });

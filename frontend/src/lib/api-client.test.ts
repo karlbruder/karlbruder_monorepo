@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { backendFetch } from "@/lib/backend-api-client";
-import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
+import { setApiUnauthorizedHandler } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase-client";
-import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
+import { endSessionScope, captureSessionScope } from "@/lib/session-scope";
 
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn() } } }));
 
@@ -21,11 +21,11 @@ afterEach(() => {
   setApiUnauthorizedHandler(null);
 });
 
-describe("backendFetch", () => {
+describe("apiFetch", () => {
   it("uses the current SDK token for each request and merges caller headers", async () => {
     getSession.mockResolvedValueOnce(result(session("old"))).mockResolvedValueOnce(result(session("refreshed")));
-    await backendFetch("/tournaments", { headers: { "Content-Type": "application/json", Authorization: "incorrect" } }, required);
-    await backendFetch("/tournaments", {}, required);
+    await apiFetch("/tournaments", { headers: { "Content-Type": "application/json", Authorization: "incorrect" } }, required);
+    await apiFetch("/tournaments", {}, required);
     const calls = vi.mocked(fetch).mock.calls;
     expect(new URL(calls[0][0] as string, window.location.origin).pathname).toBe("/api/tournaments");
     expect((calls[0][1]?.headers as Headers).get("Content-Type")).toBe("application/json");
@@ -33,29 +33,41 @@ describe("backendFetch", () => {
     expect((calls[1][1]?.headers as Headers).get("Authorization")).toBe("Bearer refreshed");
   });
 
+  it("sends anonymous requests without a session, credentials or 401 handling", async () => {
+    const handler = vi.fn();
+    setApiUnauthorizedHandler(handler);
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 401 }));
+    await apiFetch("/health", { headers: { Authorization: "Bearer supplied" }, credentials: "include" }, { authentication: "anonymous" });
+    const init = vi.mocked(fetch).mock.calls[0][1]!;
+    expect(getSession).not.toHaveBeenCalled();
+    expect((init.headers as Headers).has("Authorization")).toBe(false);
+    expect(init.credentials).toBe("omit");
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it("allows a guest optional request without forwarding caller credentials", async () => {
     getSession.mockResolvedValue(result(null));
-    await backendFetch("/tournaments", { headers: { Authorization: "Bearer supplied" } }, { authentication: "optional" });
+    await apiFetch("/tournaments", { headers: { Authorization: "Bearer supplied" } }, { authentication: "optional" });
     expect((vi.mocked(fetch).mock.calls[0][1]?.headers as Headers).has("Authorization")).toBe(false);
   });
 
   it("does not send a required request without a session or with a different account", async () => {
     getSession.mockResolvedValueOnce(result(null)).mockResolvedValueOnce(result(session("token")));
-    await expect(backendFetch("/private", {}, required)).rejects.toThrow("Authentication required");
-    await expect(backendFetch("/private", {}, { ...required, expectedAccountId: "account-b" })).rejects.toThrow("does not match");
+    await expect(apiFetch("/private", {}, required)).rejects.toThrow("Authentication required");
+    await expect(apiFetch("/private", {}, { ...required, expectedAccountId: "account-b" })).rejects.toThrow("does not match");
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("propagates SDK errors without making a request", async () => {
     const error = new Error("session lookup failed");
     getSession.mockResolvedValue(result(null, error));
-    await expect(backendFetch("/private", {}, required)).rejects.toBe(error);
+    await expect(apiFetch("/private", {}, required)).rejects.toBe(error);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it.each(["https://evil.example/api/private", "//evil.example/api/private", "/../outside", "/%2e%2e/outside", "/%2f..%2foutside", "/%252foutside"])(
     "rejects an unsafe destination before looking up credentials: %s", async (path) => {
-      await expect(backendFetch(path, {}, required)).rejects.toThrow();
+      await expect(apiFetch(path, {}, required)).rejects.toThrow();
       expect(getSession).not.toHaveBeenCalled();
       expect(fetch).not.toHaveBeenCalled();
     },
@@ -64,11 +76,11 @@ describe("backendFetch", () => {
   it("does not send requests aborted before or during session lookup", async () => {
     const before = new AbortController();
     before.abort();
-    await expect(backendFetch("/private", { signal: before.signal }, required)).rejects.toMatchObject({ name: "AbortError" });
+    await expect(apiFetch("/private", { signal: before.signal }, required)).rejects.toMatchObject({ name: "AbortError" });
     expect(getSession).not.toHaveBeenCalled();
     const during = new AbortController();
     getSession.mockImplementationOnce(async () => { during.abort(); return result(session("token")); });
-    await expect(backendFetch("/private", { signal: during.signal }, required)).rejects.toMatchObject({ name: "AbortError" });
+    await expect(apiFetch("/private", { signal: during.signal }, required)).rejects.toMatchObject({ name: "AbortError" });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -78,15 +90,15 @@ describe("backendFetch", () => {
     vi.mocked(fetch).mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
     }));
-    const request = backendFetch("/private", { signal: controller.signal }, required);
+    const request = apiFetch("/private", { signal: controller.signal }, required);
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
     controller.abort();
     await expect(request).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("does not send a request when the account changes during session lookup", async () => {
-    getSession.mockImplementationOnce(async () => { advanceSessionGeneration(); return result(session("token")); });
-    await expect(backendFetch("/private", {}, required)).rejects.toMatchObject({ name: "AbortError" });
+    getSession.mockImplementationOnce(async () => { endSessionScope(); return result(session("token")); });
+    await expect(apiFetch("/private", {}, required)).rejects.toMatchObject({ name: "AbortError" });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -95,8 +107,8 @@ describe("backendFetch", () => {
     setApiUnauthorizedHandler(handler);
     getSession.mockResolvedValue(result(session("token")));
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 401 })).mockResolvedValueOnce(new Response(null, { status: 403 }));
-    await backendFetch("/private", {}, required);
-    await backendFetch("/private", {}, required);
-    expect(handler).toHaveBeenCalledExactlyOnceWith({ accountId: "account-a", accessToken: "token", generation: currentSessionGeneration() });
+    await apiFetch("/private", {}, required);
+    await apiFetch("/private", {}, required);
+    expect(handler).toHaveBeenCalledExactlyOnceWith({ accountId: "account-a", accessToken: "token", scope: captureSessionScope() });
   });
 });

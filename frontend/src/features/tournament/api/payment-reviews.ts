@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 import { useQuery } from "@tanstack/react-query";
 
 export type ReviewQueue = {
@@ -38,7 +38,7 @@ export class PaymentReviewRequestError extends Error {
   constructor(status: number) { super(`Payment review request failed: ${status}`); this.status = status; }
 }
 async function request<T>(userId: string, path = "", init: RequestInit = {}): Promise<T> {
-  const response = await backendFetch(`/staff/tournaments/payment-reviews${path}`, {
+  const response = await apiFetch(`/staff/tournaments/payment-reviews${path}`, {
     ...init, headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
   }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new PaymentReviewRequestError(response.status);

@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { StaffTournamentError, usePublishTournamentDocument, useStaffPolicyDocuments } from "@/features/tournament/api/staff-tournaments";
 import { useAdditionalTournamentDocuments } from "@/features/tournament/api/use-additional-tournament-documents";
@@ -56,12 +56,12 @@ function StaffDocumentUpload({ userId, tournamentId, language, purpose, label, d
     if (file.size > maxBytes) return setError("large");
     if ([...file.name].length > 255) return setError("name");
     setError(null);
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     try {
       await publish.mutateAsync({ file, title: purpose ? undefined : title.trim() });
-      if (generation === currentSessionGeneration()) closeForm();
+      if (scope.isCurrent()) closeForm();
     } catch (caught) {
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       const status = caught instanceof StaffTournamentError ? caught.status : undefined;
       setError(status === 413 ? "large" : status === 415 ? "type" : "publish");
     }

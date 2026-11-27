@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { decidePaymentReview, getReviewDocument, PaymentReviewRequestError, usePaymentReview, type ReviewDetail, type ReviewDecision } from "@/features/tournament/api/payment-reviews";
@@ -48,15 +48,15 @@ function ReviewForm({ detail, userId, language, reload }: {
   const [refreshed, setRefreshed] = useState(false);
   const [openedAt] = useState(() => Date.now());
   const mutation = useMutation({
-    onMutate: () => currentSessionGeneration(),
+    onMutate: () => captureSessionScope(),
     mutationFn: (payload: ReviewDecision) => decidePaymentReview(userId, detail.registration.registration_number, payload),
-    onSuccess: (_result, _payload, generation) => {
-      if (generation !== currentSessionGeneration()) return;
+    onSuccess: (_result, _payload, scope) => {
+      if (!scope?.isCurrent()) return;
       void client.invalidateQueries({ queryKey: ["payment-reviews"] });
       void client.invalidateQueries({ queryKey: ["tournaments", detail.registration.tournament_id] });
     },
-    onError: (failure, _payload, generation) => {
-      if (generation !== currentSessionGeneration()) return;
+    onError: (failure, _payload, scope) => {
+      if (!scope?.isCurrent()) return;
       if (failure instanceof PaymentReviewRequestError && failure.status === 409) setStale(true);
       else setError("Não foi possível registrar a análise. Confira os dados e tente novamente.");
     },

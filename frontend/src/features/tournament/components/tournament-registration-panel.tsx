@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
-import { getOwnRegistration, requestParentalConsentFormUploadUrl, submitParentalConsentForm, uploadFileToPresignedUrl } from "@/features/tournament/api/tournaments";
+import { getOwnRegistration, stageParentalConsentForm, submitParentalConsentForm } from "@/features/tournament/api/tournaments";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
 import TournamentPaymentPanel from "@/features/tournament/components/tournament-payment-panel";
@@ -12,7 +12,7 @@ import { RegistrationProgress } from "@/features/tournament/components/registrat
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { RegistrationRefundStatus } from "@/features/tournament/components/registration-refund-status";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
-import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 
 function isTransientRefreshError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
@@ -41,28 +41,28 @@ export default function TournamentRegistrationPanel({ tournament, user, registra
   const confirmingCancellation = tournament.refunds_allowed === true && confirmCancellation;
   const cancellationHeading = useRef<HTMLHeadingElement>(null);
   const busy = useRef(false);
-  const cancellationGeneration = useRef(0);
   const registration = query.data;
   useEffect(() => {
     if (confirmingCancellation) cancellationHeading.current?.focus();
   }, [confirmingCancellation]);
 
   const cancellation = useMutation({
-    mutationFn: () => { cancellationGeneration.current = currentSessionGeneration(); return cancelRegistration(user.id, tournament.id, registrationNumber); },
-    onSuccess: async () => {
-      if (cancellationGeneration.current !== currentSessionGeneration()) return;
+    onMutate: () => captureSessionScope(),
+    mutationFn: () => cancelRegistration(user.id, tournament.id, registrationNumber),
+    onSuccess: async (_result, _variables, scope) => {
+      if (!scope.isCurrent()) return;
       onCancelled?.();
       await client.cancelQueries({ queryKey: registrationQueryKey });
-      if (cancellationGeneration.current !== currentSessionGeneration()) return;
+      if (!scope?.isCurrent()) return;
       client.setQueryData<typeof registration>(registrationQueryKey, current =>
         current ? { ...current, registration_status: "cancelled" } : current,
       );
       await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
     },
-    onError: async () => {
-      if (cancellationGeneration.current !== currentSessionGeneration()) return;
+    onError: async (_error, _variables, scope) => {
+      if (!scope?.isCurrent()) return;
       const refreshed = await query.refetch();
-      if (cancellationGeneration.current !== currentSessionGeneration()) return;
+      if (!scope?.isCurrent()) return;
       if (refreshed.data?.registration_status === "cancelled") {
         onCancelled?.();
         await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
@@ -87,18 +87,16 @@ export default function TournamentRegistrationPanel({ tournament, user, registra
     const input = form.elements.namedItem("parental_consent_form");
     const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
     busy.current = true; setPending(true); setFailed(false);
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     try {
       if (!file || await validateParentalConsentFormFile(file)) throw new Error("invalid file");
-      assertSessionGeneration(generation);
-      const upload = await requestParentalConsentFormUploadUrl(tournament.id, user.id);
-      assertSessionGeneration(generation);
-      await uploadFileToPresignedUrl(upload.upload_url, file, upload.required_headers);
-      assertSessionGeneration(generation);
-      await submitParentalConsentForm(tournament.id, registrationNumber, user.id, { storage_key: upload.storage_key, original_file_name: file.name });
+      scope.throwIfChanged();
+      const storageKey = await stageParentalConsentForm(tournament.id, user.id, file);
+      scope.throwIfChanged();
+      await submitParentalConsentForm(tournament.id, registrationNumber, user.id, { storage_key: storageKey, original_file_name: file.name });
       form.reset();
       await Promise.all([query.refetch(), client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) })]);
-    } catch { if (generation === currentSessionGeneration()) setFailed(true); } finally { busy.current = false; setPending(false); }
+    } catch { if (scope.isCurrent()) setFailed(true); } finally { busy.current = false; setPending(false); }
   }
   if (query.isPending) return <p role="status">{t("Carregando informações do torneio...")}</p>;
   const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);

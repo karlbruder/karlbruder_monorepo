@@ -8,7 +8,6 @@ export function StaffAccountsRoute() {
   if (!session) return null;
   return (
     <StaffAccountPanel
-      key={session.user.id}
       actorId={session.user.id}
       language={language}
     />

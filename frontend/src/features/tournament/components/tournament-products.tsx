@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { addTournamentProducts, changeProductPrice, deactivateProduct, editProduct, formatProductPrice, normalizedDraft, useStaffProducts, validProductDraft, type OfferingSelection, type StaffProduct } from "@/features/tournament/api/staff-products";
@@ -36,14 +36,14 @@ export function TournamentProducts({ userId, tournamentId, language }: { userId:
     event.preventDefault();
     if (inFlight.current) return;
     if ((!selection.existing_product_ids.length && !selection.new_products.length) || selection.new_products.some(draft => !validProductDraft(draft))) { setInvalid(true); return; }
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     setInvalid(false); setError(null); setSaved(false); inFlight.current = true; setPending(true);
     try {
       await addTournamentProducts(userId, tournamentId, { ...selection, new_products: selection.new_products.map(normalizedDraft) });
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       setSelection(emptySelection()); setAdding(false); setSaved(true);
       await refresh();
-    } catch (caught) { if (generation === currentSessionGeneration()) setError(caught); } finally { inFlight.current = false; setPending(false); }
+    } catch (caught) { if (scope.isCurrent()) setError(caught); } finally { inFlight.current = false; setPending(false); }
   }
   return <section className="review-card tournament-products" aria-labelledby="tournament-products-title">
     <h2 id="tournament-products-title">{en ? "Registration products" : "Produtos de inscrição"}</h2>
@@ -99,15 +99,15 @@ function ProductChange({ product, userId, language, onSaved }: { product: StaffP
   }
   async function confirm() {
     if (!action || inFlight.current) return;
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     inFlight.current = true; setPending(true); setError(null);
     try {
       if (action === "details") await editProduct(userId, product.id, { name: name.trim(), description: description.trim() });
       if (action === "price") await changeProductPrice(userId, product.id, amount.trim().replace(",", "."));
       if (action === "deactivate") await deactivateProduct(userId, product.id);
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       setAction(null); setConfirming(false); setSaved(true); await onSaved();
-    } catch (caught) { if (generation === currentSessionGeneration()) setError(caught); } finally { inFlight.current = false; setPending(false); }
+    } catch (caught) { if (scope.isCurrent()) setError(caught); } finally { inFlight.current = false; setPending(false); }
   }
   return <article className="tournament-product">
     <h3 ref={productHeading} tabIndex={-1}>{product.name} · {formatProductPrice(product.amount, language)} {product.is_active ? "" : (en ? "· Inactive" : "· Inativo")}</h3>

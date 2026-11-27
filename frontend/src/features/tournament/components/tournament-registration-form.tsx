@@ -6,9 +6,8 @@ import {
   createRegistration,
   getTournament,
   getTournamentProducts,
-  requestParentalConsentFormUploadUrl,
+  stageParentalConsentForm,
   RegistrationRequestError,
-  uploadFileToPresignedUrl,
 } from "@/features/tournament/api/tournaments";
 import type { AdditionalTournamentDocument, RegistrationCreate, RegistrationCreated, Tournament } from "@/features/tournament/api/tournaments";
 import type { TournamentProduct } from "@/features/tournament/api/tournaments";
@@ -21,7 +20,7 @@ import { TournamentDocumentButton } from "@/features/tournament/components/tourn
 import { TournamentDocuments } from "@/features/tournament/components/tournament-documents";
 import { TagChoices } from "@/features/tournament/components/tournament-tags";
 import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
-import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 
 type Props = {
   tournament: Tournament;
@@ -294,10 +293,10 @@ export default function TournamentRegistrationForm({
     setRequestError(null);
     if (!payload || !tags.data) return;
 
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     if (parentalConsentFormFile) {
       const clientFileError = await validateParentalConsentFormFile(parentalConsentFormFile);
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       if (clientFileError) {
         setErrors(previous => ({ ...previous, parental_consent_form: clientFileError }));
         return;
@@ -309,29 +308,23 @@ export default function TournamentRegistrationForm({
     try {
       let registrationPayload = { ...payload, tag_ids: selectedTags };
       if (parentalConsentFormFile) {
-        const uploadInfo = await requestParentalConsentFormUploadUrl(tournament.id, user.id);
-        assertSessionGeneration(generation);
-        await uploadFileToPresignedUrl(
-          uploadInfo.upload_url,
-          parentalConsentFormFile,
-          uploadInfo.required_headers,
-        );
-        assertSessionGeneration(generation);
+        const storageKey = await stageParentalConsentForm(tournament.id, user.id, parentalConsentFormFile);
+        scope.throwIfChanged();
         registrationPayload = {
           ...registrationPayload,
-          parental_consent_form_storage_key: uploadInfo.storage_key,
+          parental_consent_form_storage_key: storageKey,
           parental_consent_form_original_file_name: parentalConsentFormFile.name,
         };
       }
       const created = await createRegistration(tournament.id, user.id, registrationPayload);
-      assertSessionGeneration(generation);
+      scope.throwIfChanged();
       if (onRegistrationCreated) {
         onRegistrationCreated(created);
       } else {
         setResult(created);
       }
     } catch (error) {
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       if (error instanceof RegistrationRequestError && error.status === 400 && error.detail === "Registration option is unavailable") {
         setSelectedProductId(null);
         setProducts([]);

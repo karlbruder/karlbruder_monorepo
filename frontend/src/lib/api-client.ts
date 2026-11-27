@@ -1,20 +1,20 @@
 import { apiBaseUrl } from "@/config/environment";
 import { supabase } from "@/lib/supabase-client";
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope, type SessionScope } from "@/lib/session-scope";
 
-type RequestSession = { accountId: string; accessToken: string; generation: number } | null;
+type RequestSession = { accountId: string; accessToken: string; scope: SessionScope } | null;
 type ApiUnauthorizedHandler = (session: RequestSession) => void;
 let apiUnauthorizedHandler: ApiUnauthorizedHandler | null = null;
 export function setApiUnauthorizedHandler(handler: ApiUnauthorizedHandler | null) {
   apiUnauthorizedHandler = handler;
 }
 
-type BackendRequestOptions = {
-  authentication: "optional" | "required";
+type ApiRequestOptions = {
+  authentication: "anonymous" | "optional" | "required";
   expectedAccountId?: string;
 };
 
-function backendUrl(path: string): string {
+function apiUrl(path: string): string {
   const base = new URL(apiBaseUrl(), window.location.origin);
   const boundary = base.pathname.replace(/\/+$/, "");
   // Encoded separators can be interpreted differently by proxies and servers.
@@ -31,13 +31,19 @@ function backendUrl(path: string): string {
     ? `${url.pathname}${url.search}${url.hash}` : url.href;
 }
 
-export async function backendFetch(path: string, init: RequestInit = {}, options: BackendRequestOptions): Promise<Response> {
-  const url = backendUrl(path);
-  const generation = currentSessionGeneration();
+export async function apiFetch(path: string, init: RequestInit = {}, options: ApiRequestOptions): Promise<Response> {
+  const url = apiUrl(path);
   init.signal?.throwIfAborted();
+  if (options.authentication === "anonymous") {
+    const headers = new Headers(init.headers);
+    headers.delete("Authorization");
+    return fetch(url, { ...init, headers, credentials: "omit" });
+  }
+  const scope = captureSessionScope();
+  scope.throwIfChanged();
   const { data: { session }, error } = await supabase.auth.getSession();
   init.signal?.throwIfAborted();
-  if (generation !== currentSessionGeneration()) throw new DOMException("Session changed", "AbortError");
+  scope.throwIfChanged();
   if (error) throw error;
   if (!session && options.authentication === "required") throw new Error("Authentication required");
   if (options.expectedAccountId && session?.user.id !== options.expectedAccountId) {
@@ -46,10 +52,11 @@ export async function backendFetch(path: string, init: RequestInit = {}, options
   const headers = new Headers(init.headers);
   headers.delete("Authorization");
   if (session) headers.set("Authorization", `Bearer ${session.access_token}`);
-  const response = await fetch(url, { ...init, headers });
-  if (generation !== currentSessionGeneration()) throw new DOMException("Session changed", "AbortError");
+  const signal = init.signal ? AbortSignal.any([init.signal, scope.signal]) : scope.signal;
+  const response = await fetch(url, { ...init, headers, signal });
+  scope.throwIfChanged();
   if (response.status === 401) {
-    apiUnauthorizedHandler?.(session ? { accountId: session.user.id, accessToken: session.access_token, generation } : null);
+    apiUnauthorizedHandler?.(session ? { accountId: session.user.id, accessToken: session.access_token, scope } : null);
   }
   return response;
 }

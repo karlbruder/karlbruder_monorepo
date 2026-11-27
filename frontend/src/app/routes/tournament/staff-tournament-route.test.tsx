@@ -321,7 +321,7 @@ it.each(["edit", "create", "delete"])("does not redirect a later draft when a pe
 });
 
 it("does not finalize a staff document upload after the session changes", async () => {
-  const { advanceSessionGeneration } = await import("@/lib/session-generation");
+  const { endSessionScope } = await import("@/lib/session-scope");
   const endpoint = "/api/staff/tournaments/1/policy-documents/rules";
   const storage = "https://storage.example.test/pending";
   let finishUpload!: (response: Response) => void;
@@ -338,7 +338,7 @@ it("does not finalize a staff document upload after the session changes", async 
   fireEvent.change(rules.getByLabelText("Arquivo"), { target: { files: [new File(["%PDF"], "rules.pdf", { type: "application/pdf" })] } });
   fireEvent.click(rules.getByRole("button", { name: "Publicar documento" }));
   await waitFor(() => expect(finishUpload).toBeTypeOf("function"));
-  advanceSessionGeneration();
+  endSessionScope();
   finishUpload(new Response(null, { status: 200 }));
   await waitFor(() => expect(rules.getByRole("button", { name: "Publicar documento" })).not.toBeDisabled());
   expect(fetchMock.mock.calls.some(([url]) => url === endpoint)).toBe(false);

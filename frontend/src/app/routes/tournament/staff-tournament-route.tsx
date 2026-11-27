@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -72,16 +72,16 @@ export function StaffTournamentDetailRoute() {
   const en = language === "en";
   async function remove() {
     if (deleting) return;
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     setDeleting(true); setError("");
     try {
       await deleteStaffTournament(session!.user.id, tournamentId);
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       client.invalidateQueries({ queryKey: ["staff-tournament", session!.user.id, tournamentId], refetchType: "none" });
       await client.invalidateQueries({ queryKey: ["staff-tournaments"] });
-      if (generation === currentSessionGeneration() && isActiveVisit()) navigate("/staff/tournaments");
+      if (scope.isCurrent() && isActiveVisit()) navigate("/staff/tournaments");
     } catch (caught) {
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       setError(caught instanceof StaffTournamentError && caught.status === 409 ? (en ? "This tournament has registrations and cannot be deleted." : "Este torneio possui inscrições e não pode ser excluído.") : (en ? "Could not delete the tournament. Try again." : "Não foi possível excluir o torneio. Tente novamente."));
     } finally { setDeleting(false); }
   }

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSession, onAuthStateChange, signInWithOAuth, signOut as requestSignOut } from "@/features/auth/api/auth";
-import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
-import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
+import { setApiUnauthorizedHandler } from "@/lib/api-client";
+import { endSessionScope, captureSessionScope, cancelSessionWork } from "@/lib/session-scope";
 import type { AppCopyKey } from "@/utils/app-copy";
 
 export function useAuthSessionState() {
@@ -20,15 +20,22 @@ export function useAuthSessionState() {
   useEffect(() => {
     setApiUnauthorizedHandler((requestSession) => {
       if (!requestSession ||
-        requestSession.generation !== currentSessionGeneration() ||
+        !requestSession.scope.isCurrent() ||
         requestSession.accountId !== currentSessionRef.current?.user.id ||
         requestSession.accessToken !== currentSessionRef.current?.access_token) return;
       if (expiredSignOutStartedRef.current) return;
       expiredSignOutStartedRef.current = true;
       userInitiatedSignOutRef.current = false;
-      const generation = currentSessionGeneration();
+      const scope = captureSessionScope();
+      cancelSessionWork();
       void requestSignOut().then(({ error }) => {
-        if (error && generation === currentSessionGeneration()) setAuthError("Não foi possível sair. Tente novamente.");
+        if (error) throw error;
+      }).catch(() => {
+        if (scope === captureSessionScope()) {
+          endSessionScope();
+          expiredSignOutStartedRef.current = false;
+          setAuthError("Não foi possível sair. Tente novamente.");
+        }
       });
     });
     return () => setApiUnauthorizedHandler(null);
@@ -40,7 +47,7 @@ export function useAuthSessionState() {
     const applySession = (nextSession: Session | null) => {
       const previousSession = currentSessionRef.current;
       if (previousSession?.user.id !== nextSession?.user.id) {
-        advanceSessionGeneration();
+        endSessionScope();
         expiredSignOutStartedRef.current = false;
         if (previousSession) {
           void queryClient.cancelQueries();
@@ -94,11 +101,20 @@ export function useAuthSessionState() {
   };
 
   const signOut = async () => {
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     userInitiatedSignOutRef.current = true;
     setSessionLapsed(false);
-    const { error } = await requestSignOut();
-    if (error && generation === currentSessionGeneration()) setAuthError("Não foi possível sair. Tente novamente.");
+    cancelSessionWork();
+    try {
+      const { error } = await requestSignOut();
+      if (error) throw error;
+    } catch {
+      if (scope === captureSessionScope()) {
+        endSessionScope();
+        userInitiatedSignOutRef.current = false;
+        setAuthError("Não foi possível sair. Tente novamente.");
+      }
+    }
   };
 
   const clearSessionLapsedNotice = () => setSessionLapsed(false);

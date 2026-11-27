@@ -85,7 +85,7 @@ Mount providers at the lowest common ancestor of their consumers. Global mountin
 
 `features/<name>/api/` owns request functions and query or mutation hooks. It is the service layer. Do not add `services/` or a repository layer that only forwards arguments. Feature endpoints stay here, outside shared clients in `src/lib`.
 
-Auth API modules adapt the configured Supabase client. Domain API modules call FastAPI through `backendFetch`. Private uploads use the backend-issued presigned URL and required headers. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
+Auth API modules adapt the configured Supabase client. Domain API modules call FastAPI through `apiFetch`. Private uploads use the backend-issued presigned URL and required headers. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
 
 Keep controlled fields and submission feedback near the form. Separate meaningful notices, summaries, and panels when that improves readability. For large forms, extract payload parsing, validation, or request-error mapping into feature utilities before introducing a universal form framework. Preserve input values, duplicate-submit protection, errors, translations, and success behavior.
 
@@ -108,7 +108,7 @@ Do not add Axios, Yup, or Tamagui. Query can use `fetch`, and this application i
 
 ## Tests and review
 
-Run `make test-frontend` from the repository root. It uses the development Compose service. There is no frontend service in `compose.test.yml`. See [build and checks](README.md#build-and-checks) for lint and build commands.
+Run `make test-frontend` from the repository root. It uses the isolated frontend service in `compose.test.yml`. Pass a unique `TEST_PROJECT` when another test stack may be running. The target removes that project with `down -v`. See [build and checks](README.md#build-and-checks) for lint and build commands.
 
 - Colocate tests with source and move them together. Use `.test.ts` or `.test.tsx`, without `__tests__/`, a mirrored `frontend/tests/` tree, or `.spec` suffixes.
 - Put routing integration tests beside the route or router, rather than feature components that cannot import `src/app`.

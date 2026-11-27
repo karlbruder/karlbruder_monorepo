@@ -6,7 +6,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import AppProvider from "@/app/provider";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { supabase } from "@/lib/supabase-client";
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 
 vi.mock("@/lib/supabase-client", () => ({
   supabase: {
@@ -86,11 +86,47 @@ describe("AppProvider", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }));
     render(
       <AppProvider>
-        <button type="button" onClick={() => void backendFetch("/tournaments/42/registrations", {}, { authentication: "required", expectedAccountId: "account-a" })}>Carregar</button>
+        <button type="button" onClick={() => void apiFetch("/tournaments/42/registrations", {}, { authentication: "required", expectedAccountId: "account-a" })}>Carregar</button>
       </AppProvider>,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Carregar" }));
     await waitFor(() => expect(supabase.auth.signOut).toHaveBeenCalled());
+  });
+
+  it("aborts an in-flight request as soon as sign-out starts", async () => {
+    let finishSignOut!: (value: { error: null }) => void;
+    vi.mocked(supabase.auth.signOut).mockImplementation(() => new Promise(resolve => { finishSignOut = resolve; }));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation((_url, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+    })));
+    function SignOutButton() {
+      const { signOut } = useAuthSession();
+      return <button onClick={() => void signOut()}>Sign out</button>;
+    }
+    render(<AppProvider><CacheProbe /><SignOutButton /></AppProvider>);
+    await screen.findByText("account-a cached");
+    const request = apiFetch("/private", {}, { authentication: "required" });
+    const outcome = request.catch((error: unknown) => error);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(await outcome).toMatchObject({ name: "AbortError" });
+    await expect(apiFetch("/private", {}, { authentication: "required" })).rejects.toMatchObject({ name: "AbortError" });
+    act(() => authStateListener?.("SIGNED_OUT", null));
+    finishSignOut({ error: null });
+  });
+
+  it("allows new requests after sign-out fails while keeping old work cancelled", async () => {
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: new Error("unavailable") } as Awaited<ReturnType<typeof supabase.auth.signOut>>);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 200 })));
+    function SignOutButton() {
+      const { signOut, authError } = useAuthSession();
+      return <><button onClick={() => void signOut()}>Sign out</button>{authError && <p>{authError}</p>}</>;
+    }
+    render(<AppProvider><CacheProbe /><SignOutButton /></AppProvider>);
+    await screen.findByText("account-a cached");
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    await screen.findByText("Não foi possível sair. Tente novamente.");
+    await expect(apiFetch("/private", {}, { authentication: "required" })).resolves.toHaveProperty("status", 200);
   });
 
   it("cancels pending queries and clears the cache on a direct account switch", async () => {
@@ -118,7 +154,7 @@ describe("AppProvider", () => {
     await screen.findByText("account-a cached");
     let respond!: (response: Response) => void;
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise<Response>((resolve) => { respond = resolve; })));
-    const request = backendFetch("/private", {}, { authentication: "required" });
+    const request = apiFetch("/private", {}, { authentication: "required" });
     const result = request.catch((error: unknown) => error);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     act(() => { authStateListener?.("SIGNED_IN", accountB); authStateListener?.("SIGNED_IN", accountA); });
@@ -132,7 +168,7 @@ describe("AppProvider", () => {
     await screen.findByText("account-a cached");
     let respond!: (response: Response) => void;
     vi.stubGlobal("fetch", vi.fn().mockImplementationOnce(() => new Promise<Response>((resolve) => { respond = resolve; })));
-    const oldRequest = backendFetch("/private", {}, { authentication: "required" });
+    const oldRequest = apiFetch("/private", {}, { authentication: "required" });
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
     act(() => authStateListener?.("TOKEN_REFRESHED", refreshedA));
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: refreshedA }, error: null });
@@ -141,7 +177,7 @@ describe("AppProvider", () => {
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 401 }));
-    await Promise.all([backendFetch("/private", {}, { authentication: "required" }), backendFetch("/private", {}, { authentication: "required" })]);
+    await Promise.allSettled([apiFetch("/private", {}, { authentication: "required" }), apiFetch("/private", {}, { authentication: "required" })]);
     expect(supabase.auth.signOut).toHaveBeenCalledTimes(1);
   });
 
@@ -149,9 +185,9 @@ describe("AppProvider", () => {
     render(<AppProvider><CacheProbe /></AppProvider>);
     await screen.findByText("account-a cached");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(null, { status: 403 })).mockResolvedValueOnce(new Response(null, { status: 401 })));
-    await backendFetch("/private", {}, { authentication: "required" });
+    await apiFetch("/private", {}, { authentication: "required" });
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
-    await backendFetch("/public", {}, { authentication: "optional" });
+    await apiFetch("/public", {}, { authentication: "optional" });
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
     expect(screen.getByText("account-a cached")).toBeInTheDocument();
   });

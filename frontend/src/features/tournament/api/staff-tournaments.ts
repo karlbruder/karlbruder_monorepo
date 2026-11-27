@@ -1,5 +1,5 @@
-import { currentSessionGeneration, assertSessionGeneration } from "@/lib/session-generation";
-import { backendFetch } from "@/lib/backend-api-client";
+import { captureSessionScope } from "@/lib/session-scope";
+import { apiFetch } from "@/lib/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { uploadFileToPresignedUrl, type AdditionalTournamentDocument, type ParentalConsentFormUploadUrl, type PolicyPurpose } from "@/features/tournament/api/tournaments";
 import { additionalTournamentDocumentsKey } from "@/features/tournament/api/use-additional-tournament-documents";
@@ -26,7 +26,7 @@ export class StaffTournamentError extends Error {
 }
 
 async function request<T>(userId: string, path = "", init: RequestInit = {}): Promise<T> {
-  const response = await backendFetch(`/staff/tournaments${path}`, {
+  const response = await apiFetch(`/staff/tournaments${path}`, {
     ...init,
     headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
   }, { authentication: "required", expectedAccountId: userId });
@@ -66,7 +66,7 @@ export function useStaffPolicyDocuments(userId: string, tournamentId: number) {
   return useQuery({
     queryKey: policyDocumentsKey(userId, tournamentId),
     queryFn: async ({ signal }): Promise<StaffPolicyDocuments> => {
-      const response = await backendFetch(`/tournaments/${tournamentId}/policy-documents`, { signal }, { authentication: "required", expectedAccountId: userId });
+      const response = await apiFetch(`/tournaments/${tournamentId}/policy-documents`, { signal }, { authentication: "required", expectedAccountId: userId });
       if (!response.ok) throw new StaffTournamentError(response.status, null);
       return response.json();
     },
@@ -76,15 +76,15 @@ export function useStaffPolicyDocuments(userId: string, tournamentId: number) {
 export function usePublishTournamentDocument(userId: string, tournamentId: number, purpose?: PolicyPurpose) {
   const client = useQueryClient();
   return useMutation({
-    onMutate: () => currentSessionGeneration(),
+    onMutate: () => captureSessionScope(),
     mutationFn: async ({ file, title }: { file: File; title?: string }) => {
-      const generation = currentSessionGeneration();
+      const scope = captureSessionScope();
       const collection = purpose ? `policy-documents/${purpose}` : "documents";
       const path = `/${tournamentId}/${collection}`;
       const { storage_key, upload_url, required_headers } = await request<ParentalConsentFormUploadUrl>(userId, `${path}/upload-url`, { method: "POST" });
-      assertSessionGeneration(generation);
+      scope.throwIfChanged();
       await uploadFileToPresignedUrl(upload_url, file, required_headers);
-      assertSessionGeneration(generation);
+      scope.throwIfChanged();
       const init = {
         method: "POST", body: JSON.stringify({ storage_key, original_file_name: file.name, title }),
       };
@@ -92,19 +92,19 @@ export function usePublishTournamentDocument(userId: string, tournamentId: numbe
         ? { purpose, document: await request<StaffPolicyDocument>(userId, path, init) }
         : { purpose, document: await request<AdditionalTournamentDocument>(userId, path, init) };
     },
-    onSuccess: async (result, _variables, generation) => {
-      if (generation !== currentSessionGeneration()) return;
+    onSuccess: async (result, _variables, scope) => {
+      if (!scope.isCurrent()) return;
       if (result.purpose) {
         const queryKey = policyDocumentsKey(userId, tournamentId);
         await client.cancelQueries({ queryKey });
-        if (generation !== currentSessionGeneration()) return;
+        if (!scope.isCurrent()) return;
         const purpose = result.purpose;
         client.setQueryData<StaffPolicyDocuments>(queryKey, (current) => ({ ...current, [purpose]: result.document }));
         void client.invalidateQueries({ queryKey: ["tournaments"], refetchType: "none" });
       } else {
         const queryKey = additionalTournamentDocumentsKey(userId, tournamentId);
         await client.cancelQueries({ queryKey });
-        if (generation !== currentSessionGeneration()) return;
+        if (!scope.isCurrent()) return;
         client.setQueryData<AdditionalTournamentDocument[]>(queryKey, (current) => [
           ...(current ?? []).filter(document => document.id !== result.document.id), result.document,
         ]);

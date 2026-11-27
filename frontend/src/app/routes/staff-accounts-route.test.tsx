@@ -110,11 +110,11 @@ it("lets the sole admin demote their own account and refreshes the role after sa
   expect(pending).toBeDisabled();
   fireEvent.click(pending);
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/staff/users/staff", {
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/staff/users/staff", expect.objectContaining({
     method: "PATCH",
     headers: expect.any(Headers),
     body: JSON.stringify({ role: "regular_user" }),
-  }));
+  })));
   role = "regular_user";
   finishUpdate(json({ ...ownAccount, role }));
 

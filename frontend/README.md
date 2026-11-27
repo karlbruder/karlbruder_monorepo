@@ -88,9 +88,10 @@ Keep `VITE_API_BASE_URL=/api`.
 | Production Compose | Separate Nginx service to the backend. The frontend image's Nginx serves static assets |
 
 All three preserve `/api`. Feature API modules use the shared request boundary.
-`src/lib/backend-api-client.ts` obtains the current Supabase session for
-each request and limits credentials to the configured backend. Private uploads send bytes
-directly to a backend-issued presigned URL, outside the backend client.
+`src/lib/api-client.ts` obtains the current Supabase session for authenticated
+requests and limits credentials to the configured backend. Anonymous health checks
+skip session lookup and send no credentials. Private uploads send bytes directly
+to a backend-issued presigned URL, outside the API client.
 
 Follow the [tournament API guide](../backend/app/tournaments/README.md) for registration,
 parental-consent-form and proof routes, acceptance tokens, and access restrictions.
@@ -181,8 +182,10 @@ WF-11 provides staff waitlist selection and cancellation. An awaiting refund lin
 
 ## Build and checks
 
-Run `make test-frontend` from the repository root. It uses the local development
-image, without `compose.test.yml`.
+Run `make test-frontend TEST_PROJECT=kb-test-your-name` from the repository root.
+It uses the frontend service in `compose.test.yml` without host ports, backend
+services, or development credentials. Use a unique project name when other
+test stacks may be running. The target removes the project with `down -v`.
 
 From `frontend/`:
 

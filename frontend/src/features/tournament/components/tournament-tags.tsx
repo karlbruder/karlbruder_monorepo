@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteTag, getSelection, saveSelection, saveTag, TagRequestError, type TournamentTag } from "@/features/tournament/api/tournament-tags";
 import { tagsKey, useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
 import type { AppLanguage } from "@/utils/app-copy";
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import "@/features/tournament/components/tournament-tags.css";
 
 type Common = { userId: string; tournamentId: number | string; language: AppLanguage };
@@ -27,9 +27,9 @@ export function RegistrationTags({ userId, tournamentId, number, language, close
   async function submit(event: FormEvent) {
     event.preventDefault(); if (saving) return;
     setSaving(true); setMessage(null);
-    const generation = currentSessionGeneration();
-    try { const saved = await saveSelection(userId, tournamentId, number, selected, staff); if (generation !== currentSessionGeneration()) return; selection.refetch(); setDraft(saved.map(tag => tag.id)); setMessage("saved"); }
-    catch { if (generation === currentSessionGeneration()) setMessage("error"); }
+    const scope = captureSessionScope();
+    try { const saved = await saveSelection(userId, tournamentId, number, selected, staff); if (!scope.isCurrent()) return; selection.refetch(); setDraft(saved.map(tag => tag.id)); setMessage("saved"); }
+    catch { if (scope.isCurrent()) setMessage("error"); }
     finally { setSaving(false); }
   }
   if (!staff && definitions.data?.length === 0) return null;

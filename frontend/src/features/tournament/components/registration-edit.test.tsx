@@ -78,11 +78,11 @@ it("opens the accepted rules version from the read-only declarations", async () 
   expect(screen.queryByRole("button", { name: /accepted cancellation policy/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /accepted tournament rules/ }));
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl));
-  expect(request).toHaveBeenNthCalledWith(1, "/api/tournaments/42/policy-documents/rules/11/download-url", {
+  expect(request).toHaveBeenNthCalledWith(1, "/api/tournaments/42/policy-documents/rules/11/download-url", expect.objectContaining({
     headers: expect.any(Headers),
-  });
+  }));
   expect((request.mock.calls[0][1]?.headers as Headers).get("Authorization")).toBe("Bearer token");
-  expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: "omit" });
+  expect(request).toHaveBeenNthCalledWith(2, signedUrl, expect.objectContaining({ credentials: "omit" }));
 });
 
 

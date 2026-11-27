@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AdditionalTournamentDocument } from "@/features/tournament/api/tournaments";
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 
 export function additionalTournamentDocumentsKey(userId: string, tournamentId: number) {
   return ["additional-tournament-documents", userId, tournamentId];
@@ -11,7 +11,7 @@ export function useAdditionalTournamentDocuments(userId: string, tournamentId: n
     queryKey: additionalTournamentDocumentsKey(userId, tournamentId),
     enabled,
     queryFn: async ({ signal }): Promise<AdditionalTournamentDocument[]> => {
-      const response = await backendFetch(`/tournaments/${tournamentId}/documents`, { signal }, { authentication: "required", expectedAccountId: userId });
+      const response = await apiFetch(`/tournaments/${tournamentId}/documents`, { signal }, { authentication: "required", expectedAccountId: userId });
       if (!response.ok) throw new Error(`http-${response.status}`);
       const documents: unknown = await response.json();
       if (!Array.isArray(documents) || !documents.every(document => document

@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { completeRegistrationRefund, listPendingRefunds, type StaffRegistrationRefund } from "@/features/tournament/api/registration-refunds";
@@ -18,9 +18,9 @@ function RefundCompletionForm({ refund, userId, language, onRecorded, onClose }:
   useEffect(() => { heading.current?.focus(); }, []);
 
   const completion = useMutation({
-    onMutate: () => currentSessionGeneration(),
+    onMutate: () => captureSessionScope(),
     mutationFn: (completedAt: string) => completeRegistrationRefund(userId, refund, completedAt),
-    onSuccess: (result, _completedAt, generation) => { if (generation === currentSessionGeneration()) onRecorded(result.notification_result === "sent"); },
+    onSuccess: (result, _completedAt, scope) => { if (scope.isCurrent()) onRecorded(result.notification_result === "sent"); },
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {

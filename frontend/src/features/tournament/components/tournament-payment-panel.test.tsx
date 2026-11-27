@@ -1,5 +1,5 @@
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
-import { advanceSessionGeneration } from "@/lib/session-generation";
+import { endSessionScope } from "@/lib/session-scope";
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "test-access-token", user: { id: "athlete-uuid" } } }, error: null })) } } }));
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -206,7 +206,7 @@ describe("Tournament payment panel", () => {
     await waitFor(() => expect(request.mock.calls.some(([url]) => url === "https://storage.example.test/proof")).toBe(true));
     const storageCall = request.mock.calls.find(([url]) => url === "https://storage.example.test/proof")!;
     expect((storageCall[1]?.headers as Headers).has("Authorization")).toBe(false);
-    advanceSessionGeneration();
+    endSessionScope();
     finishUpload({ ok: true });
     await waitFor(() => expect(screen.getByRole("button", { name: "Enviar comprovante" })).toBeEnabled());
     expect(request.mock.calls.some(([url]) => url.endsWith("/payment-proof"))).toBe(false);

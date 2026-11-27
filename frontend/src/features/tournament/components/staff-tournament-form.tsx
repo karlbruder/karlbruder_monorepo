@@ -1,4 +1,4 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
+import { captureSessionScope } from "@/lib/session-scope";
 import { useRef, useState, type FormEvent } from "react";
 import { normalizedDraft, useStaffProducts, validProductDraft, type OfferingSelection } from "@/features/tournament/api/staff-products";
 import { TournamentProductSelection } from "@/features/tournament/components/tournament-product-selection";
@@ -78,7 +78,7 @@ export function StaffTournamentForm({ userId, event, language, onSaved }: { user
     if (inFlight.current) return;
     if (!event && selection.new_products.some(draft => !validProductDraft(draft))) { setProductError(true); return; }
     setProductError(false);
-    const generation = currentSessionGeneration();
+    const scope = captureSessionScope();
     inFlight.current = true; setPending(true); setError(null);
     try {
       const payload: Record<string, unknown> = {
@@ -97,9 +97,9 @@ export function StaffTournamentForm({ userId, event, language, onSaved }: { user
         payload.new_products = selection.new_products.map(normalizedDraft);
       }
       const saved = await saveStaffTournament(userId, payload, event ? String(event.id) : undefined);
-      if (generation === currentSessionGeneration()) onSaved(saved);
+      if (scope.isCurrent()) onSaved(saved);
     } catch (caught) {
-      if (generation === currentSessionGeneration()) setError(caught);
+      if (scope.isCurrent()) setError(caught);
     } finally { inFlight.current = false; setPending(false); }
   }
   return <form className="staff-tournament-form review-card" onSubmit={submit}>

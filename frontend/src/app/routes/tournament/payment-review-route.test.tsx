@@ -7,7 +7,7 @@ import AppRouter from "@/app/router";
 import { AuthSessionContext } from "@/features/auth/hooks/use-auth-session";
 import { LanguageProvider } from "@/components/language-provider";
 import { createQueryClient } from "@/lib/query-client";
-import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
+import { setApiUnauthorizedHandler } from "@/lib/api-client";
 import type { ReviewDetail } from "@/features/tournament/api/payment-reviews";
 
 vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "staff-id" } } }, error: null })) } } }));

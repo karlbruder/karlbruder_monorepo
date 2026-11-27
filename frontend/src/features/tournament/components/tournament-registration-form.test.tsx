@@ -541,8 +541,8 @@ it('retries a failed policy file request and opens the exact version without cha
   fireEvent.click(cancellation)
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledTimes(3))
   expect(createObjectURL.mock.calls).toEqual([[rulesFile], [rulesFile], [cancellationFile]])
-  const authorization = { headers: expect.any(Headers) }
-  const storageRequest = { credentials: 'omit' }
+  const authorization = expect.objectContaining({ headers: expect.any(Headers) })
+  const storageRequest = expect.objectContaining({ credentials: 'omit' })
   expect(request.mock.calls).toEqual([
     ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
     [firstSignedRules, storageRequest],
@@ -593,11 +593,11 @@ it('opens a custom document from its tile without adding a declaration', async (
   expect(screen.queryByRole('checkbox', { name: /Competitor's Guide/ })).not.toBeInTheDocument()
   fireEvent.click(within(card).getByRole('button', { name: /Competitor's Guide · guide.pdf/ }))
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(objectUrl))
-  expect(request).toHaveBeenNthCalledWith(1, '/api/tournaments/42/documents/23/download-url', {
+  expect(request).toHaveBeenNthCalledWith(1, '/api/tournaments/42/documents/23/download-url', expect.objectContaining({
     headers: expect.any(Headers),
-  })
+  }))
   expect((request.mock.calls[0][1].headers as Headers).get('Authorization')).toBe('Bearer test-access-token')
-  expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: 'omit' })
+  expect(request).toHaveBeenNthCalledWith(2, signedUrl, expect.objectContaining({ credentials: 'omit' }))
 })
 
 it('refreshes a replaced policy, preserves personal fields and requires new choices before resubmission', async () => {

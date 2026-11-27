@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createRegistration, listOwnRegistrations, listPersonalRegistrations, listStaffRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
-import { setApiUnauthorizedHandler } from '@/lib/backend-api-client'
+import { setApiUnauthorizedHandler } from '@/lib/api-client'
+import { endSessionScope } from '@/lib/session-scope'
 
 vi.mock('@/lib/supabase-client', () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: 'owner-token', user: { id: 'owner' } } }, error: null })) } } }))
 
@@ -120,6 +121,19 @@ describe('tournament registration API', () => {
     expect(options.method).toBe('PUT')
     expect(options.body).toBe(file)
     expect(options.headers.get('Content-Type')).toBe('application/pdf')
+  })
+
+  it('aborts a storage upload when the session ends', async () => {
+    const request = vi.fn().mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+    }))
+    vi.stubGlobal('fetch', request)
+    const file = new File(['proof'], 'proof.pdf', { type: 'application/pdf' })
+    const upload = uploadFileToPresignedUrl('https://storage.example.test/proof', file, {})
+    const outcome = upload.catch((error: unknown) => error)
+    endSessionScope()
+    expect(await outcome).toMatchObject({ name: 'AbortError' })
+    expect(request.mock.calls[0][1].signal.aborted).toBe(true)
   })
 
   it('does not send backend credentials or report a storage 401 as backend unauthorized', async () => {

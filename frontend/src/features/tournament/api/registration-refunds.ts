@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 
 export type RegistrationRefund = {
   amount_owed: string;
@@ -27,7 +27,7 @@ function registrationPath(tournamentId: number, number: string) {
 }
 
 async function request(userId: string, path: string, init: RequestInit = {}) {
-  const response = await backendFetch(`${path}`, {
+  const response = await apiFetch(`${path}`, {
     ...init,
     headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
   }, { authentication: "required", expectedAccountId: userId });
@@ -36,14 +36,14 @@ async function request(userId: string, path: string, init: RequestInit = {}) {
 }
 
 export async function cancelRegistration(userId: string, tournamentId: number, number: string) {
-  const response = await backendFetch(`${registrationPath(tournamentId, number)}/cancel`, { method: "POST" }, { authentication: "required", expectedAccountId: userId });
+  const response = await apiFetch(`${registrationPath(tournamentId, number)}/cancel`, { method: "POST" }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
 }
 
 export async function getRegistrationRefund(
   userId: string, tournamentId: number, number: string, signal?: AbortSignal,
 ): Promise<RegistrationRefund | null> {
-  const response = await backendFetch(`${registrationPath(tournamentId, number)}/refund`, { signal }, { authentication: "required", expectedAccountId: userId });
+  const response = await apiFetch(`${registrationPath(tournamentId, number)}/refund`, { signal }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   return response.json();
 }

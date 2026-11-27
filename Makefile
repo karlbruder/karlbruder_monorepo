@@ -22,7 +22,7 @@ help:
 	@echo "  make test-e2e            Run Chromium against a disposable application stack"
 	@echo "  make test-backend        Run backend pytest in an isolated Compose project"
 	@echo "  make lint-backend        Run Ruff in that same test project"
-	@echo "  make test-frontend       Run Vitest in the local frontend container"
+	@echo "  make test-frontend       Run Vitest in isolated Compose"
 	@echo "  make test-landing        Run the landing tests in the local landing container"
 	@echo "  make build-backend       Build the backend production image"
 	@echo "  make build-frontend      Build the frontend production image with CI placeholders"
@@ -32,8 +32,8 @@ help:
 	@echo "  make ci-landing          Test and build the landing image without landing/.env"
 	@echo "  make ci                  Run ci-backend, ci-frontend, and ci-landing"
 	@echo ""
-	@echo "Override the backend test project with TEST_PROJECT=kb-test-name."
-	@echo "test-frontend and test-landing use compose.yml, so the matching .env file must exist."
+	@echo "Override the test project with TEST_PROJECT=kb-test-name."
+	@echo "test-landing uses compose.yml, so landing/.env must exist."
 	@echo "The ci-* targets do not. They match the GitHub Actions workflows."
 
 up:
@@ -79,7 +79,10 @@ lint-backend:
 	exit $$status
 
 test-frontend:
-	docker compose run --rm --no-deps frontend npm test
+	docker compose -f compose.test.yml -p $(TEST_PROJECT) run --rm --no-deps frontend npm test; \
+	status=$$?; \
+	docker compose -f compose.test.yml -p $(TEST_PROJECT) down -v; \
+	exit $$status
 
 test-landing:
 	docker compose run --rm --no-deps -e CI=true landing npm test -- --watchAll=false

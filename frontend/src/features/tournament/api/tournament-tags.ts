@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 
 export type TournamentTag = { id: number; tournament_id: number; name: string; eligibility_description: string };
 
@@ -7,7 +7,7 @@ export class TagRequestError extends Error {
   constructor(status: number) { super(`Tag request failed: ${status}`); this.status = status; }
 }
 async function request<T>(userId: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await backendFetch(path, {
+  const response = await apiFetch(path, {
     ...init,
     headers: init.body ? { "Content-Type": "application/json" } : {},
   }, { authentication: "required", expectedAccountId: userId });

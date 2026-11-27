@@ -207,7 +207,7 @@ it("shows an access error after a shared product save is denied", async () => {
 });
 
 it("does not finish a tournament creation after the staff session changes", async () => {
-  const { advanceSessionGeneration } = await import("@/lib/session-generation");
+  const { endSessionScope } = await import("@/lib/session-scope");
   let finish!: (response: Response) => void;
   fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
     if (init?.method === "POST") return new Promise<Response>(resolve => { finish = resolve; });
@@ -219,7 +219,7 @@ it("does not finish a tournament creation after the staff session changes", asyn
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
   await waitFor(() => expect(finish).toBeTypeOf("function"));
-  advanceSessionGeneration();
+  endSessionScope();
   finish(json({ id: 42 }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Salvar torneio" })).not.toBeDisabled());
   expect(onSaved).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { backendFetch } from "@/lib/backend-api-client";
+import { apiFetch } from "@/lib/api-client";
 import type { StaffRegistrationSummary } from "@/features/tournament/api/tournaments";
 
 export type Waitlist = {
@@ -13,7 +13,7 @@ export class WaitlistError extends Error {
 }
 
 async function request<T>(userId: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await backendFetch(`/staff/tournaments/${path}`, {
+  const response = await apiFetch(`/staff/tournaments/${path}`, {
     ...init,
   }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new WaitlistError(response.status);

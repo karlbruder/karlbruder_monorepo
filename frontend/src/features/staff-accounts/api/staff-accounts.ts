@@ -1,5 +1,5 @@
-import { currentSessionGeneration } from "@/lib/session-generation";
-import { backendFetch } from "@/lib/backend-api-client";
+import { captureSessionScope } from "@/lib/session-scope";
+import { apiFetch } from "@/lib/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const applicationRoles = ["regular_user", "guild_member", "admin"] as const;
@@ -26,7 +26,7 @@ export class StaffAccountError extends Error {
 }
 
 async function request<T>(userId: string, path: string, init: RequestInit): Promise<T> {
-  const response = await backendFetch(`/staff/users${path}`, init, { authentication: "required", expectedAccountId: userId });
+  const response = await apiFetch(`/staff/users${path}`, init, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new StaffAccountError(response.status);
   return response.json();
 }
@@ -55,7 +55,7 @@ export function useUpdateStaffAccountRole(actorId: string, accountId: string) {
   const client = useQueryClient();
   const queryKey = accountDirectoryKey(actorId);
   return useMutation({
-    onMutate: () => currentSessionGeneration(),
+    onMutate: () => captureSessionScope(),
     mutationFn: (role: ApplicationRole) => request<StaffAccount>(
       actorId,
       `/${encodeURIComponent(accountId)}`,
@@ -65,10 +65,10 @@ export function useUpdateStaffAccountRole(actorId: string, accountId: string) {
         body: JSON.stringify({ role }),
       },
     ),
-    onSuccess: async (updated, _role, generation) => {
-      if (generation !== currentSessionGeneration()) return;
+    onSuccess: async (updated, _role, scope) => {
+      if (!scope.isCurrent()) return;
       await client.cancelQueries({ queryKey });
-      if (generation !== currentSessionGeneration()) return;
+      if (!scope.isCurrent()) return;
       client.setQueryData<StaffAccount[]>(queryKey, (accounts) =>
         accounts?.map((account) => account.id === updated.id ? updated : account),
       );
