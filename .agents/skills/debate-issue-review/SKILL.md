@@ -13,6 +13,11 @@ Challenge both reviewers and implementation. Agreement between reviewers is not
 proof. Separate whether a claim is correct from whether its proposed fix, severity,
 and timing are justified. Do not defend prior code or manufacture action items.
 
+Stay skeptical of the reviewers, and equally skeptical of the code. Most report
+text should not become an action item, but a real defect must not be dismissed
+only because no requirement mentions it. Prefer code, tests, diffs, and probe
+results over narrative. A strong claim with no probe gets lower confidence.
+
 The required deliverable is a complete `debate.md` report. Also create a visual
 report from the same findings, following [visual report](references/visual-report.md).
 The visual is best-effort. A rendering failure never replaces or blocks the Markdown.
@@ -71,6 +76,21 @@ separately. A fixed defect is already addressed, not a disproved historical clai
 Stop affected assessment if the referenced code or revisions cannot be inspected.
 Record what is missing and keep any supported partial assessment clearly limited.
 
+## Reading reviewer tags
+
+Tags from review-issue are a starting point. Never accept one without checking it.
+
+| Tag | Starting position |
+| --- | --- |
+| `reproduced` | Likely real. Attack the probe before agreeing |
+| `structural` | Check by reading the code |
+| `unverified` | Starts as `unfounded`. Keep it visible with its potential impact. Prove it or leave it |
+| `introduced` | Caused by the diff. Eligible for `fix-now` |
+| `pre-existing` | Not caused by the diff. Default `fix-later`, unless it is a correctness or security issue severe enough to block the merge |
+
+Reports saved before these tags existed have none. Judge them from the code and
+lower confidence where evidence is thin.
+
 ## Challenge claims and probes
 
 For each material claim:
@@ -85,11 +105,22 @@ For each material claim:
    assertions, and isolation. Separate setup failure from defective behavior.
    A passing reproducer can demonstrate a defect if it asserts that behavior.
    A failing probe can merely have invalid setup. Interpret what the check proves.
+   Read probes by the shared contract when they follow it:
+   - Exit `1` or `REPRODUCED`: the defect is shown. Supports `fix-now` or `fix-later`.
+   - Exit `0` or `NOT REPRODUCED`: the defect did not appear. Supports `wrong` or lowers confidence.
+   - Exit `2` or `SETUP FAILED`: inconclusive. Never proof either way. Fix the setup and rerun, or mark the claim blocked.
+
+   Attack each probe before trusting it. Check that it tests the stated claim,
+   that its control check passed, that the fixture is realistic, and that any
+   threshold is justified. A probe that does not test its claim is not evidence.
+   Probes without the contract get judged from their output, with lower confidence.
 4. Save counter-probes in this run without changing the reviewer's originals.
    Compare target/source under equivalent setup when causation is uncertain.
-5. Assess truth, scope, severity, and action separately. A missing test is not
-   automatically a defect. Static evidence can be conclusive. Failure to reproduce
-   is inconclusive unless it disproves the claimed scenario.
+5. Assess truth, scope, severity, and action separately. A missing test for new
+   behavior or for a changed failure path is a real gap. Judge its priority by the
+   risk of the untested path. A missing test for trivial code is a nit. Static
+   evidence can be conclusive. Failure to reproduce is inconclusive unless it
+   disproves the claimed scenario.
 
 Use the actual Compose test service when available. A unique project name alone
 does not isolate fixed ports, container names, bind mounts, or external databases.
@@ -150,7 +181,14 @@ Assign exactly one primary action category:
 | `already-addressed` | Previously valid and fixed in the inspected revision |
 | `solid-praise` | Supported positive claim that affects the decision |
 
-Rank actions by practical impact and likelihood. For privacy and security claims,
+Rank actions by practical impact and likelihood, in this order of concern:
+
+1. Correctness, data loss, authorization, and security.
+2. Broken tests and release blockers.
+3. Maintainability defects that will bite callers or reviewers.
+4. Performance, only with evidence of material cost at real load.
+
+Nitpicking is not a priority lane. For privacy and security claims,
 identify the applicable rule or reachable failure and assess actual access, data,
 and deployment conditions. Performance claims need evidence of material cost at
 realistic load. Reviewer confidence and probe exit status alone cannot establish

@@ -12,6 +12,11 @@ Use a short title that names the outcome. Replace the prompts with agreed detail
 ## Acceptance
 
 - [ ] [Observable result and the condition under which it should occur.]
+- [ ] [How the slice fails or is rejected, with the condition and the expected outcome. Omit when failure is not possible.]
+
+## Out of scope
+
+- [Nearby work that belongs elsewhere. Name the other issue when known. Omit when nothing could leak in.]
 ```
 
 Add a constraint, exclusion, or prerequisite only when it changes what the developer must deliver. For a prerequisite, name the behavior needed and whether it was verified. Link the relevant rule or spec excerpt beside the requirement when available. Use a published revision when possible and identify unpublished sources. Add nested tasks or a walkthrough only when the work is hard to follow without them. Leave routine coding choices to implementation and resolve material product questions before publication.
