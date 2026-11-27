@@ -36,6 +36,23 @@
     match.anchor = null;
   }
 
+  function reviewEnding(match, ending, now) {
+    stop(match,now); match.status = 'AWAITING_CONFIRMATION'; match.ending = ending;
+  }
+
+  function sportingMatches(state) {
+    let order = Math.max(0,...state.matches.map(match => match.sportingOrder || 0));
+    // Prepared history and older saved sessions have no recorded operation sequence.
+    for (const match of state.matches) if (match.sportingOrder == null &&
+      (['RUNNING','PAUSED','AWAITING_CONFIRMATION','FINALIZED'].includes(match.status) || match.bounds?.some(bound => bound.status === 'CONFIRMED'))) match.sportingOrder = ++order;
+    return [...state.matches].sort((a,b) => (a.sportingOrder ?? Infinity) - (b.sportingOrder ?? Infinity));
+  }
+
+  function beginOperation(state, match) {
+    sportingMatches(state);
+    match.sportingOrder ??= Math.max(0,...state.matches.map(item => item.sportingOrder || 0)) + 1;
+  }
+
   function refresh(state, now = Date.now()) {
     ensure(state);
     for (const match of state.matches) if (match.status === 'RUNNING' && !match.duel && clock(match, now) >= 180) {
@@ -50,7 +67,7 @@
   function derived(state) {
     const cards = Object.fromEntries(state.participants.map(person => [person.id, {yellow:0, red:0}]));
     const matches = {};
-    for (const match of state.matches) {
+    for (const match of sportingMatches(state)) {
       const value = {score:{A:0,B:0}, attacks:{A:0,B:0}, yellows:{A:0,B:0}, reds:{A:0,B:0}, verbals:{A:0,B:0}, valid:0, firstBlood:null, threes:{A:0,B:0}, accepted:0, winner:null, ending:null, pending:false, invalid:false};
       const priorExpelled = ['A','B'].filter(side => cards[sideId(match,side)]?.red >= 2);
       for (const bound of match.bounds || []) {
@@ -105,7 +122,7 @@
     if (!['CALLED','PAUSED'].includes(match.status)) fail('Chame os atletas ou pause a luta antes de iniciar.');
     if (derived(state).matches[id].ending || (!match.duel && clock(match,now) >= 180)) fail('A luta já atingiu uma condição de encerramento.');
     if (state.matches.some(item => item.id !== id && item.arenaId === match.arenaId && ['RUNNING','PAUSED','AWAITING_CONFIRMATION','CALLED'].includes(item.status))) fail('A Arena está ocupada por outra luta.');
-    match.status = 'RUNNING'; match.anchor = now;
+    beginOperation(state,match); match.status = 'RUNNING'; match.anchor = now;
   }
   function pause(state,id,now = Date.now()) {
     const match = matchById(state,id); if (match.status !== 'RUNNING') fail('A luta não está em combate.');
@@ -146,13 +163,13 @@
     bound.status = 'CONFIRMED';
     const value = derived(state).matches[id];
     if (value.invalid) { bound.status = 'DRAFT'; fail('O bound excede o encerramento permitido.'); }
-    if (value.ending) { stop(match,now); match.status = 'AWAITING_CONFIRMATION'; match.ending = value.ending; }
+    if (value.ending) reviewEnding(match,value.ending,now);
     state.published = false;
   }
   function declareWO(state,id,sides,reason,now = Date.now()) {
     const match = matchById(state,id); writable(state,match); const explanation = reasonRequired(reason);
     if (!sides.length || sides.some(side => !['A','B'].includes(side))) fail('Indique o atleta impossibilitado de continuar.');
-    match.wo = [...new Set(sides)]; stop(match,now); match.status = 'AWAITING_CONFIRMATION';
+    beginOperation(state,match); match.wo = [...new Set(sides)]; stop(match,now); match.status = 'AWAITING_CONFIRMATION';
     state.audit.push({action:'WO',match:id,who:'Equipe demo',when:new Date(now).toISOString(),reason:explanation});
     state.published = false;
   }
@@ -285,11 +302,12 @@
   }
 
   function impact(state,id) {
-    const index = state.matches.findIndex(match => match.id === id);
-    const following = state.matches.slice(index+1).map(match => match.id);
+    const matches = sportingMatches(state);
+    const index = matches.findIndex(match => match.id === id);
+    const following = matches.slice(index+1).map(match => match.id);
     state.needsReview = [...new Set([...state.needsReview,...following,'standings',...(state.qualifierIds.length ? ['qualifiers','podium'] : [])])];
     state.tieOrders = {}; state.published = false;
-    state.rounds.filter(round => round.phase === state.matches[index].phase && round.number >= state.matches[index].round).forEach(round => { round.reviewWasClosed ||= round.closed; round.closed = false; });
+    state.rounds.filter(round => round.phase === matches[index].phase && round.number >= matches[index].round).forEach(round => { round.reviewWasClosed ||= round.closed; round.closed = false; });
   }
   function reopen(state,id,reason,now = Date.now()) {
     const match = matchById(state,id); const explanation = reasonRequired(reason);
@@ -305,9 +323,11 @@
     const updated = {...bound,...patch}; validateBound(match,updated);
     if (!['DRAFT','CONFIRMED','VOIDED'].includes(updated.status)) fail('Estado de bound inválido.');
     Object.assign(bound,updated);
-    if (derived(state).matches[id].invalid) { Object.assign(bound,before); fail('A correção excede o limite ou mantém registros após o encerramento.'); }
+    const value = derived(state).matches[id];
+    if (value.invalid) { Object.assign(bound,before); fail('A correção excede o limite ou mantém registros após o encerramento.'); }
     if (match.confirmed) impact(state,id);
-    if (beforeMatch.ending && !derived(state).matches[id].ending && match.status !== 'RUNNING') match.status = 'AWAITING_CONFIRMATION';
+    if (value.ending) reviewEnding(match,value.ending,now);
+    else if (beforeMatch.ending && match.status !== 'RUNNING') match.status = 'AWAITING_CONFIRMATION';
     state.audit.push({action:'BOUND',match:id,who:'Equipe demo',when:new Date(now).toISOString(),reason:explanation,before,after:structuredClone(bound)});
     state.published = false;
   }
@@ -355,6 +375,7 @@
     const entries = [1,...ring]; return Array.from({length:8},(_,index) => [`p${entries[index]}`,`p${entries[15-index]}`]);
   });
   function fixtureResult(state,match,winner = 'A') {
+    beginOperation(state,match);
     match.bounds = [{id:'b1',type:'LIMBS_POINT',side:winner,warning:'NONE',at:8,status:'CONFIRMED'}];
     match.elapsed = 180; match.anchor = null; match.ending = 'TIME'; match.status = 'FINALIZED'; match.confirmed = true;
   }

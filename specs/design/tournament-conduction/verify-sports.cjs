@@ -20,6 +20,14 @@ function end(state,match) { sport.elapse(state,match.id,180,now); sport.confirm(
 function value(state,match) { return sport.derived(state).matches[match.id]; }
 function row(state,id,phase = 'qualification') { return sport.ranking(state,phase).find(item => item.id === id); }
 
+function sportingViews(state, fields = {}) {
+  const window = {ConductionSports:sport};
+  vm.runInNewContext(fs.readFileSync(`${__dirname}/sports-views.js`,'utf8'), {
+    window,location:{hash:''},document:{getElementById:id => ({value:fields[id]})},setTimeout,
+  });
+  return window.createConductionViews({state:() => state,escape:String,badge:String,route:id => id,notify:() => {},render:() => {},audience:() => 'admin',drafts:() => ({})});
+}
+
 test('MONO-007: 1/3/3 attacks, zero-score valid bounds and inconclusive records have distinct totals', () => {
   const {state,match} = playing();
   attack(state,match); attack(state,match,'TARGET_POINT','B'); attack(state,match,'CONTROL_POINT','A');
@@ -154,6 +162,82 @@ test('MONO-020/TC-019: removing the seventh bound requires explicit return to pa
   match.confirmed = true; state.phase = 'final';
   sport.start(state,match.id,now); assert.equal(match.status,'RUNNING');
 });
+
+for (const paused of [false,true]) for (const ending of ['LIMIT','RED','DUEL']) {
+  test(`TC-017/MONO-020: a correction creating ${ending} from ${paused ? 'paused' : 'running'} stops the clock for explicit confirmation`, t => {
+    t.mock.method(Date,'now',() => now);
+    const state = demo.createScenario(ending === 'DUEL' ? 'cut-tie' : 'combat');
+    if (ending === 'DUEL') sport.setupTie(state);
+    const match = ending === 'DUEL' ? state.matches.at(-1) : state.matches.find(item => item.id === state.selectedMatchId);
+    sportingViews(state).handle('open',{dataset:{match:match.id}});
+    sport.start(state,match.id,now); sport.elapse(state,match.id,30,now);
+    if (ending === 'LIMIT') for (let index=0;index<6;index++) attack(state,match,'NO_SCORE','NONE','NONE',10+index);
+    if (ending === 'RED') for (let index=0;index<3;index++) attack(state,match,'INCONCLUSIVE','NONE','A',10+index);
+    const bound = attack(state,match,'INCONCLUSIVE','NONE','NONE',16);
+    if (paused) sport.pause(state,match.id,now);
+    const fields = {'edit-bound':bound.id,'edit-type':ending === 'LIMIT' ? 'NO_SCORE' : ending === 'DUEL' ? 'LIMBS_POINT' : 'INCONCLUSIVE',
+      'edit-side':ending === 'DUEL' ? 'A' : 'NONE','edit-warning':ending === 'RED' ? 'A' : 'NONE','sport-reason':'Conferência da ocorrência'};
+    sportingViews(state,fields).submit('edit-bound-form');
+    sport.refresh(state,now);
+    assert.equal(value(state,match).ending,ending);
+    assert.equal(match.ending,ending); assert.equal(match.status,'AWAITING_CONFIRMATION');
+    assert.equal(sport.clock(match,now),30); assert.equal(sport.clock(match,now+10000),30);
+    assert.ok(state.audit.some(item => item.reason === fields['sport-reason']));
+    assert.throws(() => sport.start(state,match.id,now),/Chame/);
+    sport.confirm(state,match.id); assert.equal(match.status,'FINALIZED');
+    const official = sport.ranking(state); sport.confirm(state,match.id); assert.deepEqual(sport.ranking(state),official);
+  });
+}
+
+for (const paused of [false,true]) {
+  test(`TC-016/017: a correction without an ending preserves the ${paused ? 'paused' : 'running'} clock`, t => {
+    t.mock.method(Date,'now',() => now);
+    const {state,match} = playing(); sport.elapse(state,match.id,30,now);
+    const bound = attack(state,match,'LIMBS_POINT','A','NONE',10);
+    if (paused) sport.pause(state,match.id,now);
+    sportingViews(state,{'edit-bound':bound.id,'edit-type':'TARGET_POINT','edit-side':'B','edit-warning':'NONE','sport-reason':'Lado e alvo corrigidos'}).submit('edit-bound-form');
+    assert.deepEqual(value(state,match).score,{A:0,B:3}); assert.equal(value(state,match).ending,null);
+    assert.equal(match.status,paused ? 'PAUSED' : 'RUNNING');
+    assert.equal(sport.clock(match,now),30); assert.equal(sport.clock(match,now+10000),paused ? 30 : 40);
+    assert.throws(() => sport.confirm(state,match.id),/Encerre o combate/);
+  });
+}
+
+for (const secondStart of [now,now+100000]) {
+  test(`MONO-011/019: reverse-order minigroup duels keep the red in the second played match with ${secondStart === now ? 'equal' : 'distinct'} clocks after reload`, () => {
+    let state = demo.createScenario('minigroup'); sport.setupTie(state);
+    const duels = state.matches.filter(match => match.duel);
+    const firstId = duels[2].id, secondId = duels[0].id;
+    const schedule = state.matches.map(match => [match.id,match.arenaId]);
+    let first = state.matches.find(match => match.id === firstId);
+    sportingViews(state).handle('open',{dataset:{match:first.id}}); sport.start(state,first.id,now);
+    attack(state,first,'INCONCLUSIVE','NONE','A'); attack(state,first,'INCONCLUSIVE','NONE','A');
+    attack(state,first,'LIMBS_POINT','A'); sport.confirm(state,first.id);
+    const official = structuredClone(value(state,first));
+    assert.equal(official.winner,'A'); assert.equal(official.invalid,false);
+    state = JSON.parse(JSON.stringify(state)); sport.ensure(state);
+    first = state.matches.find(match => match.id === firstId);
+    const second = state.matches.find(match => match.id === secondId);
+    sportingViews(state).handle('open',{dataset:{match:second.id}}); sport.start(state,second.id,secondStart);
+    for (let index=0;index<2;index++) {
+      const bound = sport.record(state,second.id,{type:'INCONCLUSIVE',side:'NONE',warning:'B',at:0},secondStart);
+      sport.accept(state,second.id,bound.id,secondStart);
+    }
+    assert.equal(value(state,second).reds.B,1); assert.equal(value(state,second).winner,'A');
+    assert.equal(second.status,'AWAITING_CONFIRMATION'); assert.deepEqual(value(state,first),official);
+    assert.equal(first.status,'FINALIZED'); assert.deepEqual(state.needsReview,[]);
+    sport.confirm(state,second.id);
+    assert.ok(state.needsReview.includes('tie-group'));
+    assert.equal(row(state,second.athleteB).credits.find(credit => credit.matchId === second.id).penalty,42);
+    assert.deepEqual(state.matches.map(match => [match.id,match.arenaId]),schedule);
+    sport.reopen(state,first.id,'Revisão do primeiro duelo disputado',secondStart);
+    assert.ok(state.needsReview.includes(second.id));
+    assert.deepEqual(value(state,first),official); assert.equal(value(state,second).reds.B,1);
+    sport.edit(state,first.id,'b1',{warning:'NONE'},'Advertência retirada',secondStart);
+    assert.equal(value(state,second).reds.B,0); assert.equal(value(state,second).yellows.B,1);
+    assert.ok(state.needsReview.includes(second.id));
+  });
+}
 test('MONO-018/019: duels allow scoreless bounds beyond seven and end on the first scoring attack', () => {
   const state = demo.createScenario('cut-tie'); sport.setupTie(state);
   const match = state.matches.at(-1); match.status = 'CALLED'; sport.start(state,match.id,now);

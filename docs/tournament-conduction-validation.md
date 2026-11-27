@@ -139,6 +139,18 @@ Fifty built-in Node checks passed, including a new regression check that each re
 
 The optional local preview was restarted at the existing loopback address because its earlier process was no longer running. Direct file navigation remains unverified under the browser tool's file-access policy. New screenshot capture was unavailable in this final pass. The earlier desktop/phone screenshots remain historical evidence, while the new walkthrough and reference checks were recorded from observed browser content. No production service, concurrent session, independent third-person usability session or regulatory validation is claimed.
 
+## Review corrections on 27 November 2026
+
+The owner authorized corrections to two confirmed review findings after the prototype approval. The fixes remain limited to the fictional simulation and its functional specifications. They do not constitute a new human walkthrough or production validation.
+
+The discipline correction preserves the sequence in which matches first enter operation separately from the displayed schedule. Playing the third minigroup duel first no longer transfers a later red to that already official duel. Reloading preserves the sequence. Reopening the first played duel identifies the later played duel for dependency review even when their creation order is reversed. Prepared history and saved sessions without an operation sequence retain their available history order. Reset a named scenario to verify a new operation sequence.
+
+The bound correction now applies the same ending transition as normal acceptance. A correction creating the seventh valid bound, a red or the first scoring duel attack stops the clock and enters result review from running or paused. Official confirmation remains explicit. Corrections without an ending preserve the running or paused clock. Removing an ending still requires the existing explicit return to paused and separate resume.
+
+`node specs/design/tournament-conduction/verify.cjs` passes all 60 checks. Ten regression checks cover reversed duel order with equal and distinct clock values, session restoration, dependent correction review, six corrected-ending cases and two corrections without an ending. Before the simulation changes, the initial eight new ending and duel-order checks failed while the existing 50 passed. The two additional clock controls were then added. The review's card-order reproducer now passes. A correction reproducer verifies the review state before confirmation and the official state afterward. JavaScript syntax, local document references and whitespace checks also pass.
+
+No fresh browser layout or multi-session check was performed for these logic changes. The existing browser evidence above remains historical. The backend Compose suite was not run because this correction changes no backend or authenticated frontend application code. The offline prototype uses its documented Node checks. These technical checks do not assert owner approval of the fixes.
+
 ## Issue acceptance evidence
 
 AC1–AC9 below identify the nine acceptance checks of issue #91 in their original order. They are traceability labels, not a duplicate delivery checklist. The issue retains that checklist. Human approval applies to the presented prototype. Agent checks establish the listed observable evidence.

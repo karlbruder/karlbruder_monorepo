@@ -88,10 +88,14 @@ git diff --check
 
 The verification script includes `verify-sports.cjs`. Checks cover simulation outcomes and projections, exact ranking, correction effects, discipline across matches, tie resolution, final scheduling and private-data exclusion. Exact units of 1/42 are a simulation convenience, not a production storage prescription. Browser evidence and actual limits are recorded in the [validation record](../../../docs/tournament-conduction-validation.md). Requirements adoption does not substitute for the responsible person's artifact walkthrough.
 
+Regression checks also operate minigroup duels outside creation order, restore the fictional session and correct the first played duel. Earlier official outcomes stay stable during ordinary operation. Later corrections mark dependent duels for review. Corrections that create a seventh valid bound, red card or first scoring duel attack stop a running or paused match for explicit result confirmation. Corrections without an ending preserve the current clock state.
+
 ## Functional sources and limits
 
 [Conduction](../../tournaments/conduction.md), [Monomachia rules](../../tournaments/events/monomachia-2027.md#conduction-rules), [results](../../tournaments/results.md) and [global admin access](../../identity/authentication-and-access.md#authorization-rules) own intended behavior. WF-14 links to this detailed sporting artifact and retains its limited directory reference.
 
 There is no production authorization, server clock, concurrency control, real transport, generic Swiss search, schema, migration or integration contract. Projection checks do not replace backend authorization tests. The full state is fictional and deliberately inspectable in the browser. Never enter real people or private information.
+
+The sequential simulation retains the order in which matches first enter operation separately from their schedule and Arena allocation. Pause, resume, reload and reopening keep that sequence. Prepared history and older saved sessions without this sequence retain their available history order. Reset the named scenarios before checking a new operation order. This simulation sequence is not a production time or concurrency design.
 
 Prepared progression supports the original sixteen active demo participants. Entry after drafting pairs, expulsion-dependent alternative pairings, changed qualifiers after a final starts and exceptional double WO require review/pending states. The demo does not invent replacements. These simulation limits do not establish production business rules. Registration-source refresh/linking, concurrent staff conflicts, real authentication and notification delivery remain specified functional expectations or later implementation work. They are not interactive integrations here. The validation record identifies those boundaries for modeling.
