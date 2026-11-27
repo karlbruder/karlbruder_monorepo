@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
-import { getOwnRegistration, getTournament, listStaffRegistrations } from "@/features/tournament/api/tournaments";
+import { getOwnRegistration, getTournament, getStaffRegistrationTotals, listStaffRegistrations } from "@/features/tournament/api/tournaments";
 import { RegistrationStatus } from "@/features/tournament/components/registration-status";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
 import "@/features/tournament/components/tournament-registration.css";
@@ -17,6 +17,7 @@ export function StaffAthletesRoute() {
   const navigate = useNavigate();
   const en = language === "en";
   const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const totals = useQuery({ queryKey: ["staff-registration-totals", session!.user.id, tournamentId], queryFn: ({ signal }) => getStaffRegistrationTotals(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
   const details = useQuery({
     queryKey: ["staff-registration", session!.user.id, tournamentId, registrationNumber],
     queryFn: ({ signal }) => getOwnRegistration(Number(tournamentId), registrationNumber!, session!.access_token, signal),
@@ -39,6 +40,9 @@ export function StaffAthletesRoute() {
     <section aria-labelledby="tournament-athletes-title">
       <Link to={`/staff/tournaments/${tournamentId}`}>← {en ? "Tournament" : "Torneio"}</Link>
       <h1 id="tournament-athletes-title">{title}</h1>
+      {totals.isPending && <p role="status">{en ? "Loading tournament totals..." : "Carregando totais do torneio..."}</p>}
+      {totals.isError && <p role="alert">{en ? "Could not load tournament totals." : "Não foi possível carregar os totais do torneio."} <button type="button" onClick={() => void totals.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
+      {totals.data && <div className="review-card"><p><strong>{en ? "Total registrations" : "Inscrições totais"}: {totals.data.total}</strong> · {en ? "Confirmed" : "Confirmadas"}: {totals.data.confirmed_count} · {en ? "Capacity" : "Capacidade"}: {totals.data.competitor_capacity ?? (en ? "Unlimited" : "Ilimitada")}</p><p className="muted">{en ? "Totals include cancellations. Only confirmed registrations occupy seats." : "O total inclui cancelamentos. Somente inscrições confirmadas ocupam vagas."}</p></div>}
       {query.isPending && <p role="status">{en ? "Loading athletes..." : "Carregando atletas..."}</p>}
       {query.isError && <p role="alert">{en ? "Could not load athletes." : "Não foi possível carregar os atletas."} <button type="button" onClick={() => void query.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}
       {query.data && (
@@ -61,6 +65,7 @@ export function StaffAthletesRoute() {
                   <tr>
                     <th scope="col">{en ? "Athlete" : "Atleta"}</th>
                     <th scope="col">{en ? "Registration" : "Inscrição"}</th>
+                    <th scope="col">{en ? "Registration type" : "Tipo de inscrição"}</th>
                     <th scope="col">Tags</th>
                     <th scope="col">{en ? "Action" : "Ação"}</th>
                   </tr>
@@ -74,6 +79,7 @@ export function StaffAthletesRoute() {
                         <div className="review-table-status"><RegistrationStatus status={item.registration_status} language={language} /></div>
                         {item.parental_consent_required && <p className="registration-notice" role="status">{en ? "Signed parental consent form missing. Verify before participation." : "Termo de responsabilidade assinado pendente. Verifique antes da participação."}</p>}
                       </td>
+                      <td>{item.product_name ?? (en ? "Unavailable" : "Indisponível")}</td>
                       <td><TagPills tags={item.tags} language={language} /></td>
                       <td><Link className="secondary-button" to={`/staff/tournaments/${encodeURIComponent(tournamentId)}/athletes/${encodeURIComponent(item.registration_number)}`}>{en ? "Manage registration" : "Gerenciar inscrição"}</Link></td>
                     </tr>

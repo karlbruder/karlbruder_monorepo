@@ -28,7 +28,7 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-009:** The tournament catalog lists and describes `Tournament` resources. Staff configure event facts and the products offered for each tournament. Each registration product has a name, description of included benefits, and a price in BRL. A tournament may offer multiple products. Staff can create products or reuse existing active products during tournament creation and for existing tournaments. A shared product remains one product across its linked tournaments. Staff can see every linked tournament before changing it. Pix destination and receiving-account details are payment configuration.
 - **CAT-010:** Staff may change a product name, description, or price for future registrations, or deactivate the product. The change affects every linked tournament. The staff interface shows those tournaments and the shared effect before confirmation. Deactivation makes the product unavailable for new registrations in all linked tournaments. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
 
-Registration uses catalog products and order items. Staff product configuration is not yet implemented. Each registration uses its order item price.
+Registration uses catalog products and order items. Staff configure tournament offerings in the application. Each registration uses its order item price.
 
 ## Tournament documents
 

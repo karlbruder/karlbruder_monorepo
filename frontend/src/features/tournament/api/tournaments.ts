@@ -552,6 +552,7 @@ export async function submitParentalConsentForm(
 }
 
 export type StaffRegistrationSummary = {
+  product_name: string | null;
   registration_number: string;
   full_name: string;
   social_name: string | null;
@@ -559,6 +560,16 @@ export type StaffRegistrationSummary = {
   parental_consent_required: boolean;
   tags: TournamentTag[];
 };
+
+export type StaffRegistrationTotals = { total: number; confirmed_count: number; competitor_capacity: number | null };
+
+export async function getStaffRegistrationTotals(token: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationTotals> {
+  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${encodeURIComponent(tournamentId)}/registration-totals`, {
+    headers: { Authorization: `Bearer ${token}` }, signal,
+  });
+  if (!response.ok) throw new Error(`http-${response.status}`);
+  return response.json();
+}
 
 export async function listStaffRegistrations(token: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationSummary[]> {
   const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${encodeURIComponent(tournamentId)}/registrations`, {
