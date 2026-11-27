@@ -22,6 +22,7 @@ that a live environment has been verified.
 | Sign in to AWS as a team member | [AWS team access](aws-team-access.md) |
 | Configure a service or deployment access | [Operational runbooks](runbooks/README.md) |
 | Start conduction modeling from approved rules, prototype scenarios and validation evidence | [Tournament conduction validation and handoff](tournament-conduction-validation.md) |
+| Review the proposed configurable conduction policy model | [Tournament conduction model](tournament-conduction-model.md) |
 
 Keep commands and current configuration in their owning guide. Link to the
 owning spec for requirements and the relevant ADR for rationale. Issues own

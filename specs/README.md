@@ -44,6 +44,8 @@ The [wireframes](design/app-wireframes/README.md) illustrate these contracts wit
 
 [Tournament conduction](tournaments/conduction.md) defines preparation, check-in, Arenas, calls and match/bound operation. [Monomachia](tournaments/events/monomachia-2027.md#conduction-rules) owns the adopted event-specific sporting policies. [Results](tournaments/results.md) owns the shared live consultation and final-publication boundary. The [validation record](../docs/tournament-conduction-validation.md) separates source adoption from later prototype review. Issue #91 delivers specifications and a simulated prototype, not production implementation.
 
+The [conduction model](../docs/tournament-conduction-model.md) describes the proposed configurable policy boundaries and reference configuration. It is a technical proposal, not evidence of production implementation.
+
 ## Question ownership and terminology
 
 Each unresolved product question is defined in one owning spec as `<PREFIX>-Q1`, with a stable ID. Other specs link to that entry instead of repeating it. `Open questions` contains current-scope product decisions. Routine event values such as fee, dates, venue, and regulation belong in Tournament configuration and are not additional product-policy questions. `Deferred questions` preserves later capability decisions. `Implementation decisions` and `Implementation and operations decisions` preserve engineering work and live-state verification without requiring another product answer for route naming, ports, or already selected services.

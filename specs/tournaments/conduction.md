@@ -74,6 +74,8 @@ Issue #91 does not deliver production features, API contracts, detailed entity m
 - **TC-022:** Retried submissions must not duplicate a bound, promotion, result confirmation or import. Pending or failed operations must not appear accepted. Concurrent stale edits must show a conflict and require refreshing the state instead of silently overwriting another staff member's work. Describe these observable guarantees without choosing request formats or synchronization technology in this issue.
 - **TC-023:** Confirm qualifiers only from completed, eligible results and resolved relevant ties. Complete the tournament only after its required phases and podium decisions are settled. An unresolved sporting exception remains a visible organizational decision and blocks dependent confirmation rather than inventing a winner. Staff separately publish final results.
 - **TC-024:** Keep the adopted rules used for a match and result identifiable. Later rule changes must not silently reinterpret already official history. The prototype identifies the Monomachia policy and its approved examples without prescribing technical ruleset version storage.
+- **TC-025:** Each tournament selects a validated sporting configuration from supported policies, parameters and identified strategies. Staff can edit it before the explicit conduction start. Starting binds the tournament to an identifiable version and locks its sporting configuration for the rest of that tournament, including later matches. A rejected or stale edit must not change the binding. Other tournaments and new versions remain independent. Configuration is not executable user-written code.
+- **TC-026:** The configuration lock does not prevent staff from conducting the configured competition, generating its later rounds, final or tie-breaks, or correcting records under the same rules. Corrections preserve history and require review and reconciliation under TC-019/020. Conduction start is distinct from catalog dates, registration status and event completion.
 
 ## User flow or contract
 
@@ -157,6 +159,8 @@ The prototype provides quick fictional entry and a reviewed batch of names throu
 - **TC-AC-018:** Given a minor whose existing participation requirements are not met, when presence is marked, then that mark does not override the signed-term and accompaniment requirements or expose their private documents.
 - **TC-AC-019:** Given a participant refresh after phase start, when a new source entry appears or an earlier one is absent, then no published pairing is silently changed and no existing result or participant is deleted by omission.
 - **TC-AC-020:** Given the Monomachia MVP, when the functional walkthrough is reviewed, then it covers preparation, Arena calls, multiple bounds, discipline, ranking, qualification, final and publication using the event's adopted rules and the permitted spectator view.
+- **TC-AC-021:** Given a valid pre-start configuration, when staff explicitly start conduction, then its version is bound to that tournament. Later configuration edits, including edits intended for future matches, are rejected. Another tournament and a new version remain independent, and historical results retain their applied rules.
+- **TC-AC-022:** Given a started tournament with a locked configuration, when staff generate an allowed later round or tie-break or correct a sporting record, then the action can proceed under the bound rules and affected decisions follow TC-020.
 
 ## Implementation baseline
 
@@ -172,7 +176,7 @@ External correction notifications remain under [RES-Q4](results.md#deferred-ques
 
 ## Implementation decisions
 
-The later modeling stage selects persistence, APIs, synchronization and concurrency mechanics. It must preserve the observable contracts above. The prototype may use reviewed scenarios for pairing and progression, without presenting them as a production Swiss algorithm.
+The [conduction policy model](../../docs/tournament-conduction-model.md) records configuration boundaries and the Monomachia reference. Further modeling selects persistence, APIs, synchronization and concurrency mechanics. It must preserve the observable contracts above. The prototype may use reviewed scenarios for pairing and progression, without presenting them as a production Swiss algorithm.
 
 ## Related specifications
 
