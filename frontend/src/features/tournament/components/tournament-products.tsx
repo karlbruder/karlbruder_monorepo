@@ -18,7 +18,11 @@ export function TournamentProducts({ token, userId, tournamentId, language }: { 
   const offered = useStaffProducts(token, userId, tournamentId);
   const catalog = useStaffProducts(token, userId);
   const [adding, setAdding] = useState(false);
-  const [selection, setSelection] = useState<OfferingSelection>(emptySelection);
+  const [draftSelection, setSelection] = useState<OfferingSelection>(emptySelection);
+  const selection = {
+    ...draftSelection,
+    existing_product_ids: draftSelection.existing_product_ids.filter(id => !offered.data?.some(product => product.id === id)),
+  };
   const [error, setError] = useState<unknown>(null);
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);

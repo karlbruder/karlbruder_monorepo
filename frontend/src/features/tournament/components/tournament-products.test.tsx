@@ -91,6 +91,46 @@ it("links an existing product to an existing tournament", async () => {
   expect(JSON.parse(init.body)).toEqual({ existing_product_ids: [7], new_products: [] });
 });
 
+it("refreshes a conflicting attachment and saves the remaining selection and retained draft", async () => {
+  const otherProduct = { ...product, id: 8, name: "Social" };
+  const catalog = [product, otherProduct];
+  const payloads: unknown[] = [];
+  let attached = false;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url === "/api/staff/tournaments/1/products" && init?.method === "POST") {
+      payloads.push(JSON.parse(String(init.body)));
+      if (payloads.length === 1) {
+        attached = true;
+        return json({ detail: "Product already offered" }, 409);
+      }
+      return json(catalog);
+    }
+    return json(url === "/api/staff/tournaments/1/products" ? (attached ? [product] : []) : catalog);
+  });
+  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="en" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Add product" }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: /Plena/ }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Social/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Add new product" }));
+  fireEvent.change(screen.getByLabelText("Product name"), { target: { value: "Plus" } });
+  fireEvent.change(screen.getByLabelText("Benefits description"), { target: { value: "Entry and gifts" } });
+  fireEvent.change(screen.getByLabelText("Price in BRL"), { target: { value: "125.50" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add to tournament" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Refresh products" }));
+  await screen.findByRole("button", { name: "Edit details" });
+  expect(screen.queryByRole("checkbox", { name: /Plena/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: /Social/ })).toBeChecked();
+  expect(screen.getByLabelText("Product name")).toHaveValue("Plus");
+  expect(screen.getByLabelText("Benefits description")).toHaveValue("Entry and gifts");
+  expect(screen.getByLabelText("Price in BRL")).toHaveValue("125.50");
+  fireEvent.click(screen.getByRole("button", { name: "Add to tournament" }));
+  expect(await screen.findByText("Products added.")).toBeInTheDocument();
+  expect(payloads).toEqual([
+    { existing_product_ids: [7, 8], new_products: [{ name: "Plus", description: "Entry and gifts", amount: "125.50" }] },
+    { existing_product_ids: [8], new_products: [{ name: "Plus", description: "Entry and gifts", amount: "125.50" }] },
+  ]);
+});
+
 it("blocks invalid draft prices without sending a tournament request", async () => {
   fetchMock.mockResolvedValue(json([]));
   renderWithQuery(<StaffTournamentForm token="token" userId="staff" language="pt" onSaved={vi.fn()} />);

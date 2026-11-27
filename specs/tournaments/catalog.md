@@ -1,7 +1,7 @@
 # Tournament catalog
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -29,6 +29,10 @@ Let application users discover the tournaments Karlbrüder hosts, review partici
 - **CAT-010:** Staff may change a product name, description, or price for future registrations, or deactivate the product. The change affects every linked tournament. The staff interface shows those tournaments and the shared effect before confirmation. Deactivation makes the product unavailable for new registrations in all linked tournaments. An existing order retains the selected product name, description, and agreed amount. Price terms are fixed when the price record is created. A new amount uses a new price record, even before a purchase.
 
 Registration uses catalog products and order items. Staff configure tournament offerings in the application. Each registration uses its order item price.
+
+When refreshing an existing tournament's offerings after an attachment conflict,
+exclude products already linked to that tournament from the pending selection.
+Preserve other selected products and new product drafts so staff can retry.
 
 ## Tournament documents
 
