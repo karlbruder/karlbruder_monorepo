@@ -5,6 +5,8 @@
 
 This is a proposed technical model for implementation planning. Production conduction is not implemented. The governing contracts are [conduction](../specs/tournaments/conduction.md), [Monomachia](../specs/tournaments/events/monomachia-2027.md#conduction-rules), and [results](../specs/tournaments/results.md). The [validation handoff](tournament-conduction-validation.md#modeling-handoff) records the approved source and prototype limits. This document does not depend on the owner's unpublished file or the prototype's in-memory objects.
 
+The proposed [persistence and operations contracts](tournament-conduction-persistence.md) extend this policy model with relationships, transitions, concurrency and API examples.
+
 ## Context and ownership
 
 The existing `Tournament` is the event context. `TournamentRegistration` is the source of eligible real participants. Supabase Auth owns account identity. Conduction owns the sporting participant and history within the existing tournament, not another catalog or account system. A participant may be explicitly linked to a registration without merging names or losing results. Source refresh and conflicts follow TC-004/005. Registration and attendance remain separate.
@@ -34,7 +36,7 @@ Each tournament has its own draft configuration. Staff select only registered st
 
 Before start, an authorized admin can replace or edit the draft and validate it again. At explicit conduction start, the backend validates and atomically binds the complete version to that tournament. The start and any competing edit must not both succeed against the same prior state. Once started, any sporting configuration update is rejected, even if it purports to apply only to a future match. A match, result and later correction resolve to that same version. Creating a new version or changing another tournament cannot change the bound event or reinterpret its history. Rejection of an edit leaves the existing binding intact.
 
-The lock covers sporting policy, including configured phase formats, round counts and advancement. It does not freeze the competition's operational state. Staff may prepare entries, check in, allocate Arenas, create and publish permitted later rounds, run tie-breaks and correct records under the bound policy. A changed result retains the earlier result and triggers review of dependent decisions under TC-019/020. Actual transition, history and concurrency contracts are specified in the subsequent modeling checkpoint.
+The lock covers sporting policy, including configured phase formats, round counts and advancement. It does not freeze the competition's operational state. Staff may prepare entries, check in, allocate Arenas, create and publish permitted later rounds, run tie-breaks and correct records under the bound policy. A changed result retains the earlier result and triggers review of dependent decisions under TC-019/020. The [operations model](tournament-conduction-persistence.md#states-and-accepted-records) describes the transition and concurrency contract.
 
 ## Policy matrix
 
