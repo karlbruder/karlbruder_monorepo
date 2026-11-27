@@ -1,7 +1,7 @@
 # Documentation
 
 **Created**: 2026-11-04
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 These guides explain how the current system works and how to operate it.
 [Specifications](../specs/README.md) own required behavior, contracts, and open
@@ -21,7 +21,7 @@ that a live environment has been verified.
 | Database function and trigger policy | [Decision 0010](../specs/decisions/0010-database-functions-trigger-and-procedures.md) |
 | Sign in to AWS as a team member | [AWS team access](aws-team-access.md) |
 | Configure a service or deployment access | [Operational runbooks](runbooks/README.md) |
-| Review the adopted conduction rules and future prototype evidence | [Tournament conduction validation](tournament-conduction-validation.md) |
+| Start conduction modeling from approved rules, prototype scenarios and validation evidence | [Tournament conduction validation and handoff](tournament-conduction-validation.md) |
 
 Keep commands and current configuration in their owning guide. Link to the
 owning spec for requirements and the relevant ADR for rationale. Issues own

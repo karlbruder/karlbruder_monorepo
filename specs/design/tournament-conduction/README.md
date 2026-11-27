@@ -1,11 +1,13 @@
 # Tournament conduction prototype
 
 **Created**: 2026-11-19
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 [Open preparation](index.html#COND-WF-01/preparation) or [operate a match](index.html#COND-WF-05/combat).
 
 This offline artifact demonstrates preparation, presence, Arena calls, bounds, discipline, official standings, seven qualification rounds, tie-breaks, four qualifiers, six final matches and final publication. All people, decisions and results are fictional. It changes no application or production service.
+
+The owner approved the presented prototype on 27 November 2026, at sporting revision `f240e5805b0b2a44dc51b8f69a885123792742bb`. Start the next stage from the [validation record and modeling handoff](../../../docs/tournament-conduction-validation.md#modeling-handoff). It separates the owner's approval, agent verification, required functional contracts and future implementation choices. The final documentation pass repairs specification links and reference labels without changing sporting behavior.
 
 ## Open and navigate
 
@@ -47,9 +49,9 @@ URLs use `#COND-WF-xx/scenario`. These are review anchors, not production routes
 | [COND-WF-04](index.html#COND-WF-04/called) | Arena queues and calls | TC-002/009/010/013 |
 | [COND-WF-05](index.html#COND-WF-05/combat) | Clock, bounds, discipline, endings, confirmation | TC-014–017, MONO-007–012 |
 | [COND-WF-06](index.html#COND-WF-06/combat) | Exact ranking, first blood, 3-point bounds, credits and sanctions | RES-006, MONO-013–015 |
-| [COND-WF-07](index.html#COND-WF-07/cut-tie) | Rounds, duels, qualifiers, final, podium and publication | MONO-006/017–019/021, RES-007 |
-| [COND-WF-08](index.html#COND-WF-08/correction) | Reopening, corrections, private history, dependent review | TC-019/020, MONO-020/022, RES-009 |
-| [COND-WF-09](index.html#COND-WF-09/internal) | Shared consultation, accepted provisional bounds, restricted event | TC-018/021, RES-004/005/008/010, PRIV-006 |
+| [COND-WF-07](index.html#COND-WF-07/cut-tie) | Rounds, duels, qualifiers, final, podium and publication | TC-023, MONO-006/017–019/021, RES-009 |
+| [COND-WF-08](index.html#COND-WF-08/correction) | Reopening, corrections, private history, dependent review | TC-019/020, MONO-020/022, RES-010 |
+| [COND-WF-09](index.html#COND-WF-09/internal) | Shared consultation, accepted provisional bounds, restricted event | TC-018/021, RES-004/005/008/011/012, PRIV-006 |
 
 | Starting scenarios | Alternative |
 | --- | --- |
@@ -92,4 +94,4 @@ The verification script includes `verify-sports.cjs`. Checks cover simulation ou
 
 There is no production authorization, server clock, concurrency control, real transport, generic Swiss search, schema, migration or integration contract. Projection checks do not replace backend authorization tests. The full state is fictional and deliberately inspectable in the browser. Never enter real people or private information.
 
-Prepared progression supports the original sixteen active demo participants. Entry after drafting pairs, expulsion-dependent alternative pairings, changed qualifiers after a final starts and exceptional double WO require review/pending states. The demo does not invent replacements. These simulation limits do not establish production business rules. The complete owner walkthrough and modeling handoff remain a separate checkpoint.
+Prepared progression supports the original sixteen active demo participants. Entry after drafting pairs, expulsion-dependent alternative pairings, changed qualifiers after a final starts and exceptional double WO require review/pending states. The demo does not invent replacements. These simulation limits do not establish production business rules. Registration-source refresh/linking, concurrent staff conflicts, real authentication and notification delivery remain specified functional expectations or later implementation work. They are not interactive integrations here. The validation record identifies those boundaries for modeling.

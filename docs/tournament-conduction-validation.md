@@ -1,24 +1,29 @@
 # Tournament conduction validation
 
 **Created**: 2026-11-19
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 ## Purpose and current evidence
 
 This record preserves the functional sources and product-owner decisions for [issue #91](https://github.com/karlbruder/karlbruder_monorepo/issues/91). It gives a later reviewer enough context to use the specifications without reconstructing a chat or opening a personal file path.
 
-The owner adopted the source's confirmed rules and functional MVP proposals on 19 November 2026. They also supplied the presence, Arena and shared-live-view decisions below. This is evidence of requirements adoption. A preparation prototype and agent browser checks are now available as recorded below. The responsible person's full prototype walkthrough, visual approval, production implementation and third-party regulatory review have not been recorded. Do not treat the source's technical examples as required APIs or database structures.
+The owner adopted the source's confirmed rules and functional MVP proposals on 19 November 2026. They also supplied the presence, Arena and shared-live-view decisions below. On 27 November 2026, the owner explicitly approved the presented prototype, including match/bound operation, standings and tie-breaks, final publication, corrections and spectator consultation. Sporting revision reviewed: `f240e5805b0b2a44dc51b8f69a885123792742bb`.
+
+This approval is distinct from the agent's technical walkthrough and automated checks. It does not assert that the owner personally ran every scenario, attended a meeting or approved production deployment. Production implementation and third-party regulatory review have not been performed. The final documentation pass corrects reference links and prepares the modeling handoff. Its human commit remains part of the delivery workflow.
+
+For a new reviewer, read the [modeling handoff](#modeling-handoff), the [functional conduction rules](../specs/tournaments/conduction.md), the [Monomachia policy](../specs/tournaments/events/monomachia-2027.md#conduction-rules), and the [prototype walkthrough](../specs/design/tournament-conduction/README.md#review-walkthrough). These repository files contain the required decisions. The original personal file and ignored local plan are not prerequisites.
 
 ## Sources and precedence
 
 | Source | Evidence and treatment |
 | --- | --- |
-| Issue #91 | Prototype and functional specifications, fictional data, existing admin access, access/privacy boundaries and later modeling handoff. Issue read on 19 November 2026, open and without comments |
+| Issue #91 | Prototype and functional specifications, fictional data, existing admin access, access/privacy boundaries and later modeling handoff. Read again on 27 November 2026, still open and without comments or scope changes |
 | `TournamentConduction-modelagem.md` | Version 1.3 dated 19 November 2026. Owner-supplied source defining confirmed rules, MVP proposals and residual exceptions |
 | Source fingerprint | SHA-256 `F3FD0CEEDC06C380BC242FA7B55983FC86EB16CBB743B84F9573BF24DFAC7317`. A local planning copy is retained. Required functional contents are consolidated in the linked repository specifications |
 | Owner's P1 response, 19 November 2026 | “Adotar também as propostas do arquivo” in response to adopting the confirmed rules and MVP proposals |
 | Owner's P2 response, 19 November 2026 | Basic organizer-marked presence, n numbered Arenas with optional names created during event preparation, sequential balanced distribution of matches without a draw |
 | Owner's P3 response, 19 November 2026 | Essentially the same sporting screen, editable by staff and read-only for spectators, with live updates as staff records are accepted |
+| Owner's prototype approval, 27 November 2026 | “Sim, aprovo o protótipo apresentado”. The question explicitly covered matches/bounds, classification/tie-breaks, final/publication, corrections and spectator consultation. Reviewed sporting revision: `f240e5805b0b2a44dc51b8f69a885123792742bb` |
 | Existing repository contracts | [AUTH-008](../specs/identity/authentication-and-access.md#authorization-rules), [results](../specs/tournaments/results.md#confirmed-direction), [privacy](../specs/tournaments/consent-and-privacy.md#rules) and the issue retain global admins, internal-event restrictions and private-data boundaries |
 
 The issue's functional boundary takes precedence over the source's technical sketches. The source's proposed per-event or per-match permissions do not create a new authorization contract. Organizer and match staff remain operational functions of existing admins. The owner's later Arena and shared-screen clarifications refine the earlier source.
@@ -65,19 +70,19 @@ Operational proposals adopted from the source include draft/confirmation distinc
 
 ## Prototype review contract
 
-The [conduction prototype](../specs/design/tournament-conduction/README.md) supplies opening instructions, scenario selection/reset and direct screen/state links for COND-WF-01–09. It demonstrates the shared sporting state through fictional interactions. The functional adoption above does not constitute the owner's approval of the rendered artifact.
+The [conduction prototype](../specs/design/tournament-conduction/README.md) supplies opening instructions, scenario selection/reset and direct screen/state links for COND-WF-01–09. It demonstrates the shared sporting state through fictional interactions. Requirements adoption and the later explicit prototype approval are separate evidence recorded above.
 
 | Screen group | Review states | Governing rules / acceptance |
 | --- | --- | --- |
 | COND-WF-01, event preparation | Event context, numbered/named or unnamed Arenas, missing configuration | TC-001/008/009, TC-AC-001/004–006 |
-| COND-WF-02, participants/check-in | Fictional/source entry, refresh/link conflict, presence list, existing participation requirements | TC-004–007, TC-AC-003/017–019 |
+| COND-WF-02, participants/check-in | Quick/batch/test fictional entry, homonyms, presence list and existing participation requirements. Source refresh/linking remains a functional integration contract | TC-004–007, TC-AC-003/017/018 |
 | COND-WF-03, phases/rounds | Reviewed pairs/bye, unpublished/published, incomplete and completed round | TC-011–013, MONO-016, TC-AC-008/016, MONO-AC-013 |
 | COND-WF-04, Arena queues/calls | Cyclic distribution, ordered queue and next athletes | TC-008–010, TC-AC-004–007 |
 | COND-WF-05, shared match view | Running, paused, accepted bounds, pending/failed record, read-only spectator, ending conditions | TC-014–018/021/022, MONO-007–012, TC-AC-009–013 |
-| COND-WF-06, classification | Exact official points, first bloods, 3-point bounds, credits and deductions | RES-006, MONO-013–015, RES-AC-006, MONO-AC-010/011 |
-| COND-WF-07, advancement/final | Seven rounds, cut tie, minigroup, four qualifiers, six final pairs, podium and final publication | MONO-006/017–019/021, RES-007, MONO-AC-014/015, RES-AC-007 |
-| COND-WF-08, corrections | Reasoned reopening/correction, private before/after history, dependency review and publication blocked by unresolved impact | TC-019/020, MONO-020/022, RES-009, TC-AC-013/014, RES-AC-009 |
-| COND-WF-09, sporting consultation | Same accepted provisional bounds/score, readonly audience, internal-event restriction and final-publication distinction | TC-018/021, RES-004/005/008/010, PRIV-006, TC-AC-012, RES-AC-004/008/010 |
+| COND-WF-06, classification | Exact official points, first bloods, 3-point bounds, credits and deductions | TC-018, RES-006, MONO-013–015, RES-AC-007, MONO-AC-011/012 |
+| COND-WF-07, advancement/final | Seven rounds, cut tie, minigroup, four qualifiers, six final pairs, podium and final publication | TC-023, MONO-006/017–019/021, RES-009, MONO-AC-005/014/015, RES-AC-008 |
+| COND-WF-08, corrections | Reasoned reopening/correction, private before/after history, dependency review and publication blocked by unresolved impact | TC-019/020, MONO-020/022, RES-010, TC-AC-014/015, MONO-AC-017, RES-AC-009 |
+| COND-WF-09, sporting consultation | Same accepted provisional bounds/score, readonly audience, internal-event restriction and final-publication distinction | TC-018/021, RES-004/005/008/011/012, PRIV-006, TC-AC-012, RES-AC-004/006/010–012 |
 
 The reproducible walkthrough must cover preparation and presence, Arenas and calls, multiple bounds and discipline, confirmed ranking, seven qualification rounds, cut ties, four qualifiers, six final matches, podium, authorized spectator consultation and correction impacts. Reviewers can use prepared progression scenarios without entering every match manually. At least one match must support actual simulated recording that changes the same consulted sporting state.
 
@@ -95,7 +100,7 @@ The agent checked fourteen relevant screen/scenario combinations at 1500 and 390
 
 The exercised path marked presence, prepared eight matches, allocated the three Arenas in the 3/3/2 distribution, published the round and called the first Arena's athletes without starting combat. Additional interactions covered event creation and switching with retained state, required Arena number and optional name, individual/batch/test entry with homonyms, empty/error recovery, invalid self-pairing rejection, a separate odd-count bye, preserved minor requirements after presence marking, input preservation during theme change, browser back/forward, the skip link, Escape/menu focus and keyboard scrolling inside the narrow participant table.
 
-These checks validate the preparation simulation. They do not validate a production Swiss algorithm, synchronization, authentication, scoring, later phase progression or final publication. The owner's review and the full sporting walkthrough remain outstanding.
+These preparation checks do not validate a production Swiss algorithm, synchronization or authentication. Sporting operation was verified separately in the next checkpoint, followed by the owner's approval recorded above.
 
 ## Sporting prototype verification
 
@@ -107,11 +112,11 @@ The integrated browser exercised draft/send acceptance, failure and retry, provi
 
 Forty-eight confirmed screen/scenario/theme combinations passed layout, control-label and image checks at actual CSS widths 1500 and 389 px. The phone target was approximately 390 px because the host window's existing scale converts integer viewport settings. No page-level horizontal overflow was found. Fonts reported loaded. The agent inspected actual desktop and phone screenshots. The initial screenshot failure was resolved by bringing the preview's host window forward. No browser-security or firewall policy was changed. The new bound/correction form columns were corrected during visual review so desktop options remain legible.
 
-Local evidence is recorded under `.local/plan-issue/` for the human checkpoint review. It includes desktop and phone captures and a JSON layout record. The local plan records their paths and execution revision. Direct file access, production services, concurrent staff sessions, real synchronization, optimized Swiss pairing and production security were not tested. The complete responsible-person walkthrough and final modeling handoff remain for checkpoint 4. This agent verification does not claim that owner review has happened.
+Local evidence is recorded under `.local/plan-issue/` for the human checkpoint review. It includes desktop and phone captures and a JSON layout record. The local plan records their paths and execution revision. Direct file access, production services, concurrent staff sessions, real synchronization, optimized Swiss pairing and production security were not tested. The later owner approval is separate from these agent checks.
 
 ## Validation record and remaining evidence
 
-| Evidence category | Recorded state on 19 November 2026 |
+| Evidence category | Historical and current evidence, dated below |
 | --- | --- |
 | Source available | Owner-supplied v1.3 was read and fingerprinted |
 | Rule adoption | Explicit owner adoption of confirmed rules and MVP proposals, followed by P2/P3 operational clarifications |
@@ -119,11 +124,58 @@ Local evidence is recorded under `.local/plan-issue/` for the human checkpoint r
 | Document consistency | Eight documents checked, 118 local links and 33 fragments resolved, 109 rule/acceptance IDs unique and references valid. Three ranking examples, six unique final pairings and the 3/3/2 Arena example checked. The question index retains two current and eleven deferred entries |
 | Preparation prototype | Four screen groups with ten starting scenarios. Agent browser checks and seventeen local verification checks recorded above |
 | Sporting extension | Nine screen groups, shared match consultation, official ranking, tie-breaks, final/publication and correction dependencies. Agent verification is recorded separately from owner approval |
-| Responsible-person walkthrough | Not performed for the complete artifact. Reserved for the next authorized checkpoint |
+| Owner's artifact review | Explicit approval on 27 November 2026 for presented sporting revision `f240e5805b0b2a44dc51b8f69a885123792742bb`. The scope and exact response are recorded above. Agent walkthrough evidence does not assert personal execution of every scenario by the owner |
 | Production verification | Not performed. No production implementation is delivered by this issue |
 
-When the prototype is reviewed, record the actual artifact revision, review date, responsible person's feedback, scenarios exercised, accepted changes and any limits. Requirements adoption does not substitute for the responsible person's walkthrough of the eventual artifact. Never invent a reviewer, meeting, approval or passing runtime result.
+The table retains the historical 19 November technical evidence. The owner's later approval is dated independently. The final reference pass changes links and documentation only. Required production behavior remains in the owning specifications, even where its integration is represented by a simulation limit.
 
-## Handoff boundary
+## Final verification on 27 November 2026
 
-The next modeling/decomposition issue consumes the functional specifications, adopted decision map, prototype screen/state links, usage instructions and actual review evidence. It selects technical structure and implementation slices. It must preserve the global admin and event privacy boundaries, review-dependent corrections, exact sporting calculations and accepted-live-record behavior. This record does not create that issue or prescribe its implementation plan.
+The agent repeated the walkthrough from a reset fictional preparation. Presence, eight initial matches and the 3/3/2 Arena allocation led to calls and an interactive 3 × 1 match. Accepted bounds were visible to a visitor before official confirmation. The official victory contributed exactly 50/42 ranking points. Seven prepared qualification rounds were completed. A four-athlete tie required six minigroup duels before confirming four finalists. Six final matches over three rounds then produced the published podium. Visitor consultation showed no mutation controls.
+
+The final pass also checked corrected reference notes in sixteen combinations across four sporting screens, both themes and actual CSS widths 1500 and 389 px. No page overflow or result-rule links to the missing section remained. The browser reported no console errors or warnings. These targeted checks complement the earlier correction, discipline, privacy and exceptional-state evidence. They do not claim that every earlier scenario was manually repeated on this date.
+
+Fifty built-in Node checks passed, including a new regression check that each rendered rule/acceptance link targets an existing section containing the cited ID. Eleven relevant documents were checked for 289 local links and 143 fragments. The 109 core TC/MONO/RES rule and acceptance IDs remained unique. Created dates were preserved and edited documents use 27 November 2026 as their update date. The Git comparison stays within docs/specs and the index remains unchanged.
+
+The optional local preview was restarted at the existing loopback address because its earlier process was no longer running. Direct file navigation remains unverified under the browser tool's file-access policy. New screenshot capture was unavailable in this final pass. The earlier desktop/phone screenshots remain historical evidence, while the new walkthrough and reference checks were recorded from observed browser content. No production service, concurrent session, independent third-person usability session or regulatory validation is claimed.
+
+## Issue acceptance evidence
+
+AC1–AC9 below identify the nine acceptance checks of issue #91 in their original order. They are traceability labels, not a duplicate delivery checklist. The issue retains that checklist. Human approval applies to the presented prototype. Agent checks establish the listed observable evidence.
+
+| Criterion | Evidence and reviewer | Limit |
+| --- | --- | --- |
+| AC1, complete navigable flow | COND-WF-01–08 and the reproducible walkthrough cover preparation, check-in, calls, multiple bounds, official ranking, seven rounds, qualification, six final matches and publication. Agent walkthrough and automated outcomes, approved prototype presented to the owner | Prepared progression demonstrates the sporting flow, not optimal Swiss pairing |
+| AC2, player/spectator consultation | COND-WF-09 shares accepted bounds and provisional score before match confirmation. Visitor/member/admin scenarios and projection tests cover public and internal boundaries. Owner explicitly approved consultation | No real authentication, network transport or concurrent viewers |
+| AC3, validated rules | Owner-supplied v1.3, its fingerprint, P1–P3 adoption and dated prototype approval. The decision map links each topic to its owner specification | Exceptional outcomes remain explicitly pending as adopted under MONO-022. No automatic winner is invented |
+| AC4, functional specification | TC-001–024 and TC-AC-001–020, MONO-006–022 and MONO-AC-005–019, RES-001–012 and RES-AC-001–012 define rules, transitions, roles, integration and criteria. Agent document/reference checks | These describe intended production behavior. Source refresh/linking and stale-edit handling are contracts, not implemented integrations |
+| AC5, operational functions and privacy | TC-002/003/007, AUTH-008, RES-004/005/011 and PRIV-010 preserve global admins and private-data boundaries. Simulation tests and audience walkthrough support the approved presentation | Two real admin sessions and backend authorization are not tested |
+| AC6, screen/spec consistency | Nine screen metadata groups, the map above, WF-14 linkage and rule/section checks. Final review corrects result-rule anchors and mismatched acceptance labels | The metadata repair does not change sporting policy or claim production implementation |
+| AC7, instructions and handoff | This dated record, the prototype opening/reset/walkthrough instructions and the modeling handoff below are committed-repository deliverables. Owner approval and future questions are distinguished | Final documentation/reference changes require their human review and commit |
+| AC8, independent next-stage use | Required rules, vocabulary, examples, decisions, opening instructions, limitations and modeling inputs are in linked repository files. A personal source path or ignored local plan is unnecessary | No independent third-person usability session was performed. The agent checked the package's references and instructions |
+| AC9, delivery boundary | All issue changes are confined to the relevant `specs/` and `docs/` artifacts. The Git comparison records no frontend/backend/landing implementation, dependencies, APIs or migrations | The next stage still selects technical structure and implementation slices |
+
+## Modeling handoff
+
+Use this record as the entry point after checking out the issue branch or its eventual merged revision. The approved sporting revision is `f240e5805b0b2a44dc51b8f69a885123792742bb`. Later documentation/reference corrections accompany this record and remain reviewable separately. This guide does not create the next issue or prescribe technical entities.
+
+| Input | What the next model must preserve |
+| --- | --- |
+| [Conduction and vocabulary](../specs/tournaments/conduction.md) | Tournament → phase → round → match → bound. Stable participant history, numbered Arenas, presence independence, transitions, correction dependencies and functional integration |
+| [Monomachia policy](../specs/tournaments/events/monomachia-2027.md#conduction-rules) | Seven Swiss rounds, four qualifiers, scoring/discipline, exact ranking, tie-breaks, phase separation, six-match final and explicit unresolved exceptions |
+| [Results](../specs/tournaments/results.md#confirmed-direction) | Accepted provisional records, official confirmation, distinct final publication, permitted projections and correction/republication |
+| [Identity](../specs/identity/authentication-and-access.md#authorization-rules), [privacy](../specs/tournaments/consent-and-privacy.md#rules) and [registration](../specs/tournaments/registration.md#rules) | Existing global admins and eligible sources. Internal-event membership boundary. No spectator access to private registration fields or full birth dates |
+| [Prototype and walkthrough](../specs/design/tournament-conduction/README.md) | Screen IDs, starting stories, reset, expected outcomes, shared sporting composition and explicit simulation limits |
+| [Question index](../specs/open-questions.md) | Keep current/deferred product questions with their existing owner and stable ID |
+
+The next issue must translate functional contracts into technical choices, then decompose implementation. Important boundaries include participant identity and source refresh/linking, authoritative match time, accepted versus draft operations, stale-edit conflicts, exact ranking and card recomputation, preserved published dependencies, authorized live projection and corrected publication history. The demo's object shapes, fractional units, local storage and prepared pairings are not required APIs, schemas or algorithms.
+
+| Remaining topic | Owner and disposition |
+| --- | --- |
+| Real coverage wording, publication/youth readiness and broader personal-data correction/deletion | PRIV-Q1 and PRIV-Q4 in the [privacy specification](../specs/tournaments/consent-and-privacy.md#open-questions). A fictional prototype does not resolve these requirements |
+| External correction-notification recipients and channels | RES-Q4 in [results](../specs/tournaments/results.md#deferred-questions). In-view updates and republication are already specified |
+| Double WO, simultaneous reds, missing/equal birth dates | Adopted pending-review behavior under MONO-022. Dependent advancement/publication blocks. No additional automatic criterion was approved |
+| Source refresh/link conflicts, concurrency, production authentication, authoritative clock and live transport | Functional requirements in TC/RES to model and implement. The demo does not simulate every integration. They are not newly unresolved sporting policies |
+| Other formats, tag-based rankings, real result imports, external ratings and exports | Later scope in the owning specifications. Do not add them to satisfy an invented completeness target for Monomachia |
+
+To reproduce the review from another checkout, follow the [opening instructions](../specs/design/tournament-conduction/README.md#open-and-navigate), choose a named scenario, reset it and follow the [walkthrough](../specs/design/tournament-conduction/README.md#review-walkthrough). Run the commands under [design and verification](../specs/design/tournament-conduction/README.md#design-and-verification). No ignored scripts, production account or personal source document is needed. File-backed browser access was not verified by the review tool. The loopback HTTP path is the tested route.

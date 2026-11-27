@@ -225,3 +225,15 @@ test('offline entry, styles, documentation and font references use available loc
   }
   for (const file of ['source-sans-3-OFL.txt','grenze-gotisch-OFL.txt','roboto-slab-LICENSE.txt']) assert.ok(fs.existsSync(path.resolve(directory, '../app-wireframes/fonts', file)));
 });
+
+test('screen reference links open an existing section containing the cited rule or acceptance criterion', () => {
+  for (const screen of demo.screens) for (const id of [...screen.rules,...screen.acceptance]) {
+    const [target,fragment] = demo.sourceLink(id).split('#');
+    const filename = path.resolve(directory,target);
+    assert.ok(fragmentExists(filename,fragment), `${screen.id}: ${id} → #${fragment}`);
+    const sections = fs.readFileSync(filename,'utf8').split(/^## /m);
+    const section = sections.find(part => part.split(/\r?\n/)[0].trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu,'').replace(/\s/g,'-') === fragment);
+    assert.ok(section?.includes(`**${id}:**`), `${screen.id}: ${id} is outside its linked section`);
+  }
+  assert.equal(demo.sourceLink('RES-006'),'../../tournaments/results.md#confirmed-direction');
+});

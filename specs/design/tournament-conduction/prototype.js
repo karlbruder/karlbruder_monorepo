@@ -94,12 +94,7 @@
     }).join('')}</div><p class="helper">A chamada não cria um resultado. A operação do combate registra bounds e confirma o resultado separadamente.</p>`;
   }
 
-  function sourceLink(id) {
-    if (id.startsWith('RES-')) return demo.sources.results + (id.includes('-AC-') ? '#acceptance-criteria' : '#rules');
-    if (id.startsWith('MONO-')) return demo.sources.event + (id.includes('-AC-') ? '#acceptance-criteria' : '#conduction-rules');
-    if (id.startsWith('PRIV-')) return demo.sources.privacy + '#rules';
-    return demo.sources.conduction + (id.includes('-AC-') ? '#acceptance-criteria' : '#rules');
-  }
+  const sourceLink = demo.sourceLink;
 
   function render(focusHeading = false) {
     sport.refresh(state());

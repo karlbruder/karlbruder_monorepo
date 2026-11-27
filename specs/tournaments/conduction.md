@@ -1,7 +1,7 @@
 # Tournament conduction
 
 **Created**: 2026-11-19
-**Last updated**: 2026-11-19
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -133,7 +133,7 @@ This rule balances counts across the fixed configured set. It does not choose op
 
 Use the existing tournament as context and eligible registrations as the real source of participants. Conduction owns sporting occurrences, progression and results. It does not import proofs, contact details or safety notes merely to create pairings. A refresh uses source identity, preserves history and reports conflicts. A manual participant can be explicitly linked without losing results. Withdrawal is explicit and never inferred from a missing refresh entry.
 
-The prototype provides quick fictional entry and a simulated import through the same functional journey. Importing participants is not importing match results. Production transport, external credentials and result-import support remain separate later decisions.
+The prototype provides quick fictional entry and a reviewed batch of names through the preparation journey. Registration refresh, source-import idempotency and explicit registration linking remain functional contracts under TC-004/005. They are not interactive source-integration scenarios in this artifact. Importing participants is not importing match results. Production transport, external credentials and result-import support remain separate later decisions.
 
 ## Acceptance criteria
 
@@ -160,7 +160,7 @@ The prototype provides quick fictional entry and a simulated import through the 
 
 ## Implementation baseline
 
-This document records intended behavior for issue #91 on 19 November 2026. No production conduction implementation or runtime verification is claimed. The new navigable prototype and its review evidence are subsequent deliverables. Existing WF-14 is an earlier results container, not proof of detailed match-operation behavior. The [validation record](../../docs/tournament-conduction-validation.md) distinguishes adopted rules from future prototype review.
+The functional direction was adopted on 19 November 2026. The owner approved the presented prototype on 27 November 2026. The [prototype guide](../design/tournament-conduction/README.md) and [validation and modeling handoff](../../docs/tournament-conduction-validation.md) identify the reviewed revision, reproducible scenarios, issue acceptance evidence and simulation limits. WF-14 links to the detailed sporting view. No production conduction implementation is claimed.
 
 ## Open questions
 

@@ -25,12 +25,19 @@
     {id: 'COND-WF-02', title: 'Participantes', heading: 'Participantes e check-in', rules: ['TC-004', 'TC-006', 'TC-007', 'PRIV-010'], acceptance: ['TC-AC-003', 'TC-AC-017', 'TC-AC-018'], note: 'Marcar presença não altera inscrição, elegibilidade, confrontos ou resultado. Dados e requisitos de menores são fictícios nesta revisão.'},
     {id: 'COND-WF-03', title: 'Rodadas', heading: 'Rodadas e confrontos', rules: ['TC-009', 'TC-011', 'TC-012', 'TC-013', 'MONO-016'], acceptance: ['TC-AC-005', 'TC-AC-006', 'TC-AC-008'], note: 'Os confrontos desta primeira rodada usam a ordem inicial do cenário. A distribuição entre Arenas é cíclica e independente da formação de adversários.'},
     {id: 'COND-WF-04', title: 'Arenas e chamadas', heading: 'Arenas e chamadas', rules: ['TC-002', 'TC-009', 'TC-010', 'TC-013'], acceptance: ['TC-AC-002', 'TC-AC-005', 'TC-AC-007'], note: 'A fila mantém a ordem das lutas. A chamada é explícita e não gera WO por ausência. Qualquer admin pode operar qualquer Arena.'},
-    {id:'COND-WF-05',title:'Luta e bounds',heading:'Conduzir luta',rules:['TC-014','TC-015','TC-016','TC-017','MONO-007','MONO-010','MONO-011'],acceptance:['TC-AC-009','TC-AC-010','TC-AC-011','MONO-AC-005'],note:'O cronômetro continua durante o registro. Bounds aceitos aparecem na consulta antes da confirmação oficial da luta.'},
-    {id:'COND-WF-06',title:'Classificação',heading:'Classificação da fase',rules:['RES-006','MONO-013','MONO-014','MONO-015'],acceptance:['RES-AC-006','MONO-AC-010','MONO-AC-011'],note:'A classificação oficial considera resultados confirmados. Valores exatos decidem a ordem. WO e folga não recebem bônus de saldo.'},
-    {id:'COND-WF-07',title:'Avanço e final',heading:'Classificados e final',rules:['MONO-006','MONO-017','MONO-018','MONO-019','MONO-021','RES-007'],acceptance:['MONO-AC-014','MONO-AC-015','RES-AC-007'],note:'Sete rodadas, desempate no corte, quatro classificados e seis confrontos únicos. Publicar o resultado final é uma ação própria.'},
-    {id:'COND-WF-08',title:'Correções',heading:'Correções e dependências',rules:['TC-019','TC-020','MONO-020','MONO-022','RES-009'],acceptance:['TC-AC-013','TC-AC-014','RES-AC-009'],note:'Reabertura e alteração exigem motivo. A história posterior fica preservada e exige revisão explícita antes de nova confirmação ou publicação.'},
-    {id:'COND-WF-09',title:'Acompanhamento',heading:'Acompanhar torneio',rules:['TC-018','TC-021','RES-004','RES-005','RES-008','RES-010','PRIV-006'],acceptance:['TC-AC-012','RES-AC-004','RES-AC-008','RES-AC-010'],note:'Mesma composição esportiva em modo de leitura. Evento interno admite somente membros e admins. Sem dados privados ou controles de edição.'},
+    {id:'COND-WF-05',title:'Luta e bounds',heading:'Conduzir luta',rules:['TC-014','TC-015','TC-016','TC-017','MONO-007','MONO-010','MONO-011'],acceptance:['TC-AC-009','TC-AC-010','TC-AC-011','MONO-AC-006','MONO-AC-009'],note:'O cronômetro continua durante o registro. Bounds aceitos aparecem na consulta antes da confirmação oficial da luta.'},
+    {id:'COND-WF-06',title:'Classificação',heading:'Classificação da fase',rules:['TC-018','RES-006','MONO-013','MONO-014','MONO-015'],acceptance:['RES-AC-007','MONO-AC-011','MONO-AC-012'],note:'A classificação oficial considera resultados confirmados. Valores exatos decidem a ordem. WO e folga não recebem bônus de saldo.'},
+    {id:'COND-WF-07',title:'Avanço e final',heading:'Classificados e final',rules:['TC-023','MONO-006','MONO-017','MONO-018','MONO-019','MONO-021','RES-009'],acceptance:['MONO-AC-005','MONO-AC-014','MONO-AC-015','RES-AC-008'],note:'Sete rodadas, desempate no corte, quatro classificados e seis confrontos únicos. Publicar o resultado final é uma ação própria.'},
+    {id:'COND-WF-08',title:'Correções',heading:'Correções e dependências',rules:['TC-019','TC-020','MONO-020','MONO-022','RES-010'],acceptance:['TC-AC-014','TC-AC-015','MONO-AC-017','RES-AC-009'],note:'Reabertura e alteração exigem motivo. A história posterior fica preservada e exige revisão explícita antes de nova confirmação ou publicação.'},
+    {id:'COND-WF-09',title:'Acompanhamento',heading:'Acompanhar torneio',rules:['TC-018','TC-021','RES-004','RES-005','RES-008','RES-011','RES-012','PRIV-006'],acceptance:['TC-AC-012','RES-AC-004','RES-AC-006','RES-AC-010','RES-AC-011','RES-AC-012'],note:'Mesma composição esportiva em modo de leitura. Evento interno admite somente membros e admins. Sem dados privados ou controles de edição.'},
   ];
+
+  function sourceLink(id) {
+    if (id.startsWith('RES-')) return sources.results + (id.includes('-AC-') ? '#acceptance-criteria' : '#confirmed-direction');
+    if (id.startsWith('MONO-')) return sources.event + (id.includes('-AC-') ? '#acceptance-criteria' : '#conduction-rules');
+    if (id.startsWith('PRIV-')) return sources.privacy + '#rules';
+    return sources.conduction + (id.includes('-AC-') ? '#acceptance-criteria' : '#rules');
+  }
 
   function participant(number, name, origin = 'TEST') {
     return {id: `p${number}`, name, origin, present: false, status: 'ACTIVE', registrationStatus: 'confirmed', guardianCheckPending: false};
@@ -169,7 +176,7 @@
     return match;
   }
 
-  const demo = {scenarioLabels, screens, sources, createScenario, setPresence, addParticipants, previewNames, addArena, prepareRound, pairingErrors, allocateMatches, publishRound, callNext};
+  const demo = {scenarioLabels, screens, sources, sourceLink, createScenario, setPresence, addParticipants, previewNames, addArena, prepareRound, pairingErrors, allocateMatches, publishRound, callNext};
   if (typeof module === 'object' && module.exports) module.exports = demo;
   else root.ConductionDemo = demo;
 })(typeof globalThis === 'object' ? globalThis : this);
