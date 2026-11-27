@@ -71,7 +71,7 @@ function StaffDocumentUpload({ token, userId, tournamentId, language, purpose, l
           <h3 id={`${inputId}-title`}>{label}</h3>
           {document ? (
             <TournamentDocumentButton key={document.id} label={document.original_file_name} className="staff-policy-file"
-              tournamentId={tournamentId} purpose={purpose} versionId={document.id} token={token} language={language}>
+              tournamentId={tournamentId} purpose={purpose} versionId={document.id} userId={userId} language={language}>
               {document.original_file_name} <span aria-hidden="true">↗</span>
             </TournamentDocumentButton>
           ) : purpose && <p>{en ? "No file published." : "Nenhum arquivo publicado."}</p>}
@@ -126,7 +126,7 @@ export function StaffTournamentDocuments(props: Props) {
   const en = language === "en";
   const titleId = useId();
   const query = useStaffPolicyDocuments(token, userId, tournamentId);
-  const additional = useAdditionalTournamentDocuments(token, userId, tournamentId);
+  const additional = useAdditionalTournamentDocuments(userId, tournamentId);
   return (
     <section className="review-card staff-tournament-documents" aria-labelledby={titleId}>
       <h2 id={titleId}>{appCopy(language, "Documentos do torneio")}</h2>
@@ -150,7 +150,7 @@ export function StaffTournamentDocuments(props: Props) {
               <li key={document.id}>
                 <strong>{document.title}</strong>
                 <TournamentDocumentButton label={`${document.title} · ${document.original_file_name}`} className="staff-policy-file"
-                  tournamentId={tournamentId} versionId={document.id} token={token} language={language}>
+                  tournamentId={tournamentId} versionId={document.id} userId={userId} language={language}>
                   {document.original_file_name} <span aria-hidden="true">↗</span>
                 </TournamentDocumentButton>
               </li>

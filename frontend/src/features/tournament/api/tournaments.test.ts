@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createRegistration, listOwnRegistrations, listPersonalRegistrations, listStaffRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
+import { setApiUnauthorizedHandler } from '@/lib/api-fetch'
+
+vi.mock('@/lib/supabase-client', () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: 'owner-token', user: { id: 'owner' } } }, error: null })) } } }))
 
 const payload: RegistrationCreate = {
   tournament_product_id: 1,
@@ -42,8 +45,9 @@ describe('tournament registration API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    expect(await listPersonalRegistrations('owner-token')).toEqual(registrations)
-    expect(request).toHaveBeenCalledWith('/api/tournaments/registrations', expect.objectContaining({ headers: { Authorization: 'Bearer owner-token' } }))
+    expect(await listPersonalRegistrations('owner')).toEqual(registrations)
+    expect(request).toHaveBeenCalledWith(expect.stringMatching(/\/api\/tournaments\/registrations$/), expect.objectContaining({ headers: expect.any(Headers) }))
+    expect((request.mock.calls[0][1].headers as Headers).get('Authorization')).toBe('Bearer owner-token')
   })
 
   it('loads staff registration summaries from the tournament registration collection', async () => {
@@ -71,15 +75,13 @@ describe('tournament registration API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    await createRegistration(1, 'test-token', payload)
+    await createRegistration(1, 'owner', payload)
 
     const [url, options] = request.mock.calls[0]
     expect(url).toBe('/api/tournaments/1/registrations')
     expect(options.method).toBe('POST')
-    expect(options.headers).toEqual({
-      Authorization: 'Bearer test-token',
-      'Content-Type': 'application/json',
-    })
+    expect(options.headers.get('Authorization')).toBe('Bearer owner-token')
+    expect(options.headers.get('Content-Type')).toBe('application/json')
     expect(JSON.parse(options.body as string)).toEqual(payload)
   })
 
@@ -97,12 +99,12 @@ describe('tournament registration API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    const upload = await requestParentalConsentFormUploadUrl(42, 'test-token')
+    const upload = await requestParentalConsentFormUploadUrl(42, 'owner')
 
     const [url, options] = request.mock.calls[0]
     expect(url).toBe('/api/tournaments/42/registrations/parental-consent-form/upload-url')
     expect(options.method).toBe('POST')
-    expect(options.headers).toEqual({ Authorization: 'Bearer test-token' })
+    expect(options.headers.get('Authorization')).toBe('Bearer owner-token')
     expect(upload.storage_key).toContain('parental_consent_form')
   })
 
@@ -120,6 +122,18 @@ describe('tournament registration API', () => {
     expect(options.headers.get('Content-Type')).toBe('application/pdf')
   })
 
+  it('does not send backend credentials or report a storage 401 as backend unauthorized', async () => {
+    const unauthorized = vi.fn()
+    setApiUnauthorizedHandler(unauthorized)
+    const request = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', request)
+    const file = new File(['proof'], 'proof.pdf', { type: 'application/pdf' })
+    await expect(uploadFileToPresignedUrl('https://storage.example.test/proof', file, {})).rejects.toThrow('presigned-upload-401')
+    expect((request.mock.calls[0][1].headers as Headers).has('Authorization')).toBe(false)
+    expect(unauthorized).not.toHaveBeenCalled()
+    setApiUnauthorizedHandler(null)
+  })
+
   it('listOwnRegistrations keeps an account id on a staff row and rejects a non-string account id', async () => {
     vi.stubEnv('VITE_API_BASE_URL', '/api')
     const staffRow = {
@@ -135,13 +149,13 @@ describe('tournament registration API', () => {
       json: async () => [staffRow],
     }))
 
-    await expect(listOwnRegistrations(42, 'test-token')).resolves.toEqual([staffRow])
+    await expect(listOwnRegistrations(42, 'owner')).resolves.toEqual([staffRow])
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => [{ ...staffRow, user_id: 42 }],
     }))
-    await expect(listOwnRegistrations(42, 'test-token')).rejects.toThrow('invalid-registration-list')
+    await expect(listOwnRegistrations(42, 'owner')).rejects.toThrow('invalid-registration-list')
   })
 })
 
@@ -153,12 +167,12 @@ it("retains a current rejection reason and rejects malformed review evidence", a
     current_review: { document_id: 20, decision: "rejected", rejection_reason: "Unreadable", reviewed_at: "2026-11-04T12:00:00Z" },
   };
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => body }));
-  expect((await getPaymentInstructions(1, "T1", "token")).current_review?.rejection_reason).toBe("Unreadable");
+  expect((await getPaymentInstructions(1, "T1", "owner")).current_review?.rejection_reason).toBe("Unreadable");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...body, current_review: { ...body.current_review, rejection_reason: null } }) }));
-  await expect(getPaymentInstructions(1, "T1", "token")).rejects.toThrow();
+  await expect(getPaymentInstructions(1, "T1", "owner")).rejects.toThrow();
 });
 it("rejects payment responses for a different registration", async () => {
   const { getPaymentInstructions } = await import("@/features/tournament/api/tournaments");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ registration_number: "other", registration_status: "confirmed", registration_fee_amount: null, payment_due_at: null, payment_options: { pix: { pix_key: null } }, latest_payment_proof: null }) }));
-  await expect(getPaymentInstructions(1, "T1", "token")).rejects.toThrow();
+  await expect(getPaymentInstructions(1, "T1", "owner")).rejects.toThrow();
 });

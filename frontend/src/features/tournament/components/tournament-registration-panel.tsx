@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { getOwnRegistration, requestParentalConsentFormUploadUrl, submitParentalConsentForm, uploadFileToPresignedUrl } from "@/features/tournament/api/tournaments";
 import type { OwnerRegistration, Tournament } from "@/features/tournament/api/tournaments";
 import { ownTournamentRegistrationsQueryKey } from "@/features/tournament/api/use-own-tournament-registrations";
@@ -12,6 +12,7 @@ import { RegistrationProgress } from "@/features/tournament/components/registrat
 import { cancelRegistration } from "@/features/tournament/api/registration-refunds";
 import { RegistrationRefundStatus } from "@/features/tournament/components/registration-refund-status";
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
+import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 
 function isTransientRefreshError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
@@ -22,16 +23,16 @@ function isTransientRefreshError(error: unknown): boolean {
   return status === 408 || status === 429 || status >= 500;
 }
 
-export default function TournamentRegistrationPanel({ tournament, session, registrationNumber, language, onCancelled }: {
-  tournament: Tournament; session: Session; registrationNumber: string; language: AppLanguage;
+export default function TournamentRegistrationPanel({ tournament, user, registrationNumber, language, onCancelled }: {
+  tournament: Tournament; user: User; registrationNumber: string; language: AppLanguage;
   onCancelled?: () => void;
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const client = useQueryClient();
-  const registrationQueryKey = ["tournaments", tournament.id, "registrations", registrationNumber, "owner", session.user.id] as const;
+  const registrationQueryKey = ["tournaments", tournament.id, "registrations", registrationNumber, "owner", user.id] as const;
   const query = useQuery({
     queryKey: registrationQueryKey,
-    queryFn: ({ signal }) => getOwnRegistration(tournament.id, registrationNumber, session.access_token, signal),
+    queryFn: ({ signal }) => getOwnRegistration(tournament.id, registrationNumber, user.id, signal),
   });
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -40,23 +41,28 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   const confirmingCancellation = tournament.refunds_allowed === true && confirmCancellation;
   const cancellationHeading = useRef<HTMLHeadingElement>(null);
   const busy = useRef(false);
+  const cancellationGeneration = useRef(0);
   const registration = query.data;
   useEffect(() => {
     if (confirmingCancellation) cancellationHeading.current?.focus();
   }, [confirmingCancellation]);
 
   const cancellation = useMutation({
-    mutationFn: () => cancelRegistration(session.access_token, tournament.id, registrationNumber),
+    mutationFn: () => { cancellationGeneration.current = currentSessionGeneration(); return cancelRegistration(user.id, tournament.id, registrationNumber); },
     onSuccess: async () => {
+      if (cancellationGeneration.current !== currentSessionGeneration()) return;
       onCancelled?.();
       await client.cancelQueries({ queryKey: registrationQueryKey });
+      if (cancellationGeneration.current !== currentSessionGeneration()) return;
       client.setQueryData<typeof registration>(registrationQueryKey, current =>
         current ? { ...current, registration_status: "cancelled" } : current,
       );
       await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
     },
     onError: async () => {
+      if (cancellationGeneration.current !== currentSessionGeneration()) return;
       const refreshed = await query.refetch();
+      if (cancellationGeneration.current !== currentSessionGeneration()) return;
       if (refreshed.data?.registration_status === "cancelled") {
         onCancelled?.();
         await client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) });
@@ -65,7 +71,7 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
   });
   function updateSubmittedStatus(submitted: OwnerRegistration) {
     if (submitted.tournament_id !== tournament.id || submitted.registration_number !== registrationNumber ||
-        (submitted.user_id && submitted.user_id !== session.user.id) || submitted.registration_status !== "awaiting_payment_confirmation") return;
+        (submitted.user_id && submitted.user_id !== user.id) || submitted.registration_status !== "awaiting_payment_confirmation") return;
     const state = client.getQueryState(registrationQueryKey);
     if (state?.status === "error" && !isTransientRefreshError(state.error)) return;
     client.setQueryData<typeof registration>(registrationQueryKey, current =>
@@ -81,20 +87,24 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
     const input = form.elements.namedItem("parental_consent_form");
     const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
     busy.current = true; setPending(true); setFailed(false);
+    const generation = currentSessionGeneration();
     try {
       if (!file || await validateParentalConsentFormFile(file)) throw new Error("invalid file");
-      const upload = await requestParentalConsentFormUploadUrl(tournament.id, session.access_token);
+      assertSessionGeneration(generation);
+      const upload = await requestParentalConsentFormUploadUrl(tournament.id, user.id);
+      assertSessionGeneration(generation);
       await uploadFileToPresignedUrl(upload.upload_url, file, upload.required_headers);
-      await submitParentalConsentForm(tournament.id, registrationNumber, session.access_token, { storage_key: upload.storage_key, original_file_name: file.name });
+      assertSessionGeneration(generation);
+      await submitParentalConsentForm(tournament.id, registrationNumber, user.id, { storage_key: upload.storage_key, original_file_name: file.name });
       form.reset();
       await Promise.all([query.refetch(), client.invalidateQueries({ queryKey: ownTournamentRegistrationsQueryKey(tournament.id) })]);
-    } catch { setFailed(true); } finally { busy.current = false; setPending(false); }
+    } catch { if (generation === currentSessionGeneration()) setFailed(true); } finally { busy.current = false; setPending(false); }
   }
   if (query.isPending) return <p role="status">{t("Carregando informações do torneio...")}</p>;
   const transientRefreshError = query.isError && Boolean(registration) && isTransientRefreshError(query.error);
-  if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== session.user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== session.user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
+  if ((query.isError && !transientRefreshError) || !registration || (registration.user_id && registration.user_id !== user.id)) return <section className="registration-card"><p role="alert">{t(query.error instanceof Error && query.error.message === "http-404" || registration?.user_id && registration.user_id !== user.id ? "Inscrição não encontrada ou sem acesso para esta conta." : "Não foi possível carregar sua inscrição.")}</p><button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button></section>;
   const cancelled = registration.registration_status === "cancelled";
-  if (editing && !cancelled) return <RegistrationEdit registration={registration} tournament={tournament} session={session} language={language} onBack={() => setEditing(false)} onSaved={() => { void query.refetch(); }} />;
+  if (editing && !cancelled) return <RegistrationEdit registration={registration} tournament={tournament} user={user} language={language} onBack={() => setEditing(false)} onSaved={() => { void query.refetch(); }} />;
   return <>
     {!cancelled && <RegistrationProgress current={registration.registration_status === "awaiting_payment" ? 2 : 3} language={language} />}
     <section className="registration-card" aria-label={t("Sua inscrição")}>
@@ -116,8 +126,8 @@ export default function TournamentRegistrationPanel({ tournament, session, regis
       </form>}
       {registration.registration_status === "confirmed" && !registration.parental_consent_required && <p className="registration-notice registration-notice-success" role="status">{t("Sua participação está confirmada. Você tem uma vaga. Não é necessário pagar novamente.")}</p>}
     </section>
-    {cancelled ? <RegistrationRefundStatus token={session.access_token} userId={session.user.id} tournamentId={tournament.id} number={registrationNumber} language={language} /> : <>
-      {!confirmingCancellation && <TournamentPaymentPanel tournament={tournament} session={session} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
+    {cancelled ? <RegistrationRefundStatus userId={user.id} tournamentId={tournament.id} number={registrationNumber} language={language} /> : <>
+      {!confirmingCancellation && <TournamentPaymentPanel tournament={tournament} user={user} registrationNumber={registrationNumber} registrationStatus={registration.registration_status} onProofSubmitted={updateSubmittedStatus} onRegistrationRefresh={() => query.refetch()} language={language} />}
       {tournament.refunds_allowed === true && <section className="registration-card">
         {confirmingCancellation ? <>
           <h2 ref={cancellationHeading} tabIndex={-1}>{t("Cancelar participação")}</h2>

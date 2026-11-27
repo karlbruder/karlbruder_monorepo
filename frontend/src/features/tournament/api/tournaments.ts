@@ -1,5 +1,7 @@
 import type { TournamentTag } from "@/features/tournament/api/tournament-tags";
 import { apiFetch } from "@/lib/api-fetch";
+import { backendFetch } from "@/lib/backend-api-client";
+import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 import { apiBaseUrl } from "@/config/environment";
 
 export type PolicyPurpose = "rules" | "cancellation_policy";
@@ -53,10 +55,8 @@ export type TournamentProduct = {
   currency: string | null;
 };
 
-export async function getTournamentProducts(id: number, token?: string, signal?: AbortSignal): Promise<TournamentProduct[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/products`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {}, signal,
-  });
+export async function getTournamentProducts(id: number, userId?: string, signal?: AbortSignal): Promise<TournamentProduct[]> {
+  const response = await backendFetch(`/tournaments/${id}/products`, { signal }, { authentication: "optional", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   const body: unknown = await response.json();
   if (!Array.isArray(body) || !body.every((option: unknown) => {
@@ -133,14 +133,14 @@ export type OwnerRegistration = RegistrationCreated & {
 };
 
 export async function updateRegistrationDetails(
-  tournamentId: number, number: string, token: string,
+  tournamentId: number, number: string, userId: string,
   details: Record<string, string | number | null>,
 ): Promise<void> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, {
+  const response = await backendFetch(`/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, {
     method: "PUT",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(details),
-  });
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new RegistrationRequestError(response.status, null);
 }
 
@@ -227,30 +227,33 @@ function isAcceptanceEvidence(event: Partial<Tournament>): boolean {
 }
 
 export async function downloadTournamentDocument(
-  tournamentId: number, purpose: PolicyPurpose | undefined, versionId: number, token: string,
+  tournamentId: number, purpose: PolicyPurpose | undefined, versionId: number, userId: string,
 ): Promise<Blob> {
+  const generation = currentSessionGeneration();
   const collection = purpose ? `policy-documents/${purpose}` : "documents";
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/${collection}/${versionId}/download-url`,
-    { headers: { Authorization: `Bearer ${token}` } },
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/${collection}/${versionId}/download-url`,
+    {}, { authentication: "required", expectedAccountId: userId },
   );
   if (!response.ok) throw new Error(`http-${response.status}`);
   const body = await response.json();
   if (typeof body?.download_url !== "string") throw new Error("invalid-policy-download-url");
   const url = new URL(body.download_url);
   if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("invalid-policy-download-url");
+  assertSessionGeneration(generation);
 
   const download = await fetch(url.href, { credentials: "omit" });
   if (!download.ok) throw new Error(`policy-download-${download.status}`);
   const file = await download.blob();
+  assertSessionGeneration(generation);
   if (!file.size || !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
     throw new Error("invalid-policy-document");
   }
   return file;
 }
 
-export async function getTournament(id: number, token?: string, signal?: AbortSignal): Promise<Tournament> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal });
+export async function getTournament(id: number, userId?: string, signal?: AbortSignal): Promise<Tournament> {
+  const response = await backendFetch(`/tournaments/${id}`, { signal }, { authentication: "optional", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   const body: unknown = await response.json();
   if (!isTournament(body) || body.id !== id) throw new Error("invalid-tournament");
@@ -288,7 +291,7 @@ export function monomachiaListQuery(): string {
 }
 
 export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tournament | null> {
-  const response = await apiFetch(monomachiaListQuery(), { signal });
+  const response = await backendFetch(monomachiaListQuery().slice(apiBaseUrl().length), { signal }, { authentication: "optional" });
   if (!response.ok) {
     throw new Error(`http-${response.status}`);
   }
@@ -305,14 +308,14 @@ export async function getMonomachiaTournament(signal: AbortSignal): Promise<Tour
 
 export async function requestParentalConsentFormUploadUrl(
   tournamentId: number,
-  token: string,
+  userId: string,
 ): Promise<ParentalConsentFormUploadUrl> {
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/parental-consent-form/upload-url`,
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/registrations/parental-consent-form/upload-url`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
     },
+    { authentication: "required", expectedAccountId: userId },
   );
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !body || typeof body !== "object") {
@@ -348,17 +351,16 @@ export async function uploadFileToPresignedUrl(
 
 export async function createRegistration(
   id: number,
-  token: string,
+  userId: string,
   payload: RegistrationCreate,
 ): Promise<RegistrationCreated> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${id}/registrations`, {
+  const response = await backendFetch(`/tournaments/${id}/registrations`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-  });
+  }, { authentication: "required", expectedAccountId: userId });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
@@ -399,13 +401,12 @@ function isOwnerRegistration(value: unknown): value is OwnerRegistration {
 
 export async function listOwnRegistrations(
   tournamentId: number,
-  token: string,
+  userId: string,
   signal?: AbortSignal,
 ): Promise<OwnerRegistration[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await backendFetch(`/tournaments/${tournamentId}/registrations`, {
     signal,
-  });
+  }, { authentication: "required", expectedAccountId: userId });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !Array.isArray(body)) {
     throw new Error(`http-${response.status}`);
@@ -416,8 +417,8 @@ export async function listOwnRegistrations(
   return body;
 }
 
-export async function getOwnRegistration(tournamentId: number, number: string, token: string, signal?: AbortSignal): Promise<OwnerRegistration & { parental_consent_required: boolean }> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, { headers: { Authorization: `Bearer ${token}` }, signal });
+export async function getOwnRegistration(tournamentId: number, number: string, userId: string, signal?: AbortSignal): Promise<OwnerRegistration & { parental_consent_required: boolean }> {
+  const response = await backendFetch(`/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`, { signal }, { authentication: "required", expectedAccountId: userId });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) throw new Error(`http-${response.status}`);
   if (!isOwnerRegistration(body) || body.tournament_id !== tournamentId || body.registration_number !== number || typeof body.parental_consent_required !== "boolean") throw new Error("invalid-registration");
@@ -465,12 +466,12 @@ function isPaymentInstructions(value: unknown): value is RegistrationPaymentInst
 export async function getPaymentInstructions(
   tournamentId: number,
   registrationNumber: string,
-  token: string,
+  userId: string,
   signal?: AbortSignal,
 ): Promise<RegistrationPaymentInstructions> {
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment`,
-    { headers: { Authorization: `Bearer ${token}` }, signal },
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment`,
+    { signal }, { authentication: "required", expectedAccountId: userId },
   );
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !isPaymentInstructions(body) || body.registration_number !== registrationNumber) {
@@ -482,16 +483,16 @@ export async function getPaymentInstructions(
 export async function requestPaymentProofUploadUrl(
   tournamentId: number,
   registrationNumber: string,
-  token: string,
+  userId: string,
   originalFileName: string,
 ): Promise<PaymentProofUploadUrl> {
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof/upload-url`,
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof/upload-url`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ original_file_name: originalFileName }),
-    },
+    }, { authentication: "required", expectedAccountId: userId },
   );
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !body || typeof body !== "object") {
@@ -513,19 +514,18 @@ export async function requestPaymentProofUploadUrl(
 export async function submitPaymentProof(
   tournamentId: number,
   registrationNumber: string,
-  token: string,
+  userId: string,
   payload: { storage_key: string; original_file_name: string },
 ): Promise<OwnerRegistration> {
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof`,
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/payment-proof`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-    },
+    }, { authentication: "required", expectedAccountId: userId },
   );
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -541,12 +541,12 @@ export async function submitPaymentProof(
 }
 
 export async function submitParentalConsentForm(
-  tournamentId: number, registrationNumber: string, token: string,
+  tournamentId: number, registrationNumber: string, userId: string,
   payload: { storage_key: string; original_file_name: string },
 ): Promise<void> {
-  const response = await apiFetch(
-    `${apiBaseUrl()}/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/parental-consent-form`,
-    { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+  const response = await backendFetch(
+    `/tournaments/${tournamentId}/registrations/${encodeURIComponent(registrationNumber)}/parental-consent-form`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, { authentication: "required", expectedAccountId: userId },
   );
   if (!response.ok) throw new Error(`http-${response.status}`);
 }
@@ -587,8 +587,8 @@ export type PersonalRegistrationSummary = {
   registration_status: string;
 };
 
-export async function listPersonalRegistrations(token: string, signal?: AbortSignal): Promise<PersonalRegistrationSummary[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/tournaments/registrations`, { headers: { Authorization: `Bearer ${token}` }, signal });
+export async function listPersonalRegistrations(userId: string, signal?: AbortSignal): Promise<PersonalRegistrationSummary[]> {
+  const response = await backendFetch("/tournaments/registrations", { signal }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   const body: unknown = await response.json();
   if (!Array.isArray(body) || !body.every(item => item && Number.isSafeInteger(item.tournament_id) && typeof item.tournament_name === "string" && typeof item.registration_number === "string" && typeof item.registration_status === "string")) throw new Error("invalid-registration-list");

@@ -44,7 +44,7 @@ it.each([true, false])("shows cancellation and refund outcome: refund=%s", async
   renderPage();
   fireEvent.click(await screen.findByRole("button", { name: "Cancel registration" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
-  await waitFor(() => expect(mocks.refund).toHaveBeenCalledWith("token", 42, "R1"));
+  await waitFor(() => expect(mocks.refund).toHaveBeenCalledWith("staff", 42, "R1"));
   if (refundable) expect(await screen.findByRole("link", { name: "Open refund queue" })).toHaveAttribute("href", "/staff/refunds");
   else expect(await screen.findByText(/without an awaiting refund/)).toBeInTheDocument();
 });

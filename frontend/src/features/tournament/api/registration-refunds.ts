@@ -1,5 +1,6 @@
 import { apiBaseUrl } from "@/config/environment";
 import { apiFetch } from "@/lib/api-fetch";
+import { backendFetch } from "@/lib/backend-api-client";
 
 export type RegistrationRefund = {
   amount_owed: string;
@@ -36,14 +37,16 @@ async function request(token: string, path: string, init: RequestInit = {}) {
   return response;
 }
 
-export async function cancelRegistration(token: string, tournamentId: number, number: string) {
-  await request(token, `${registrationPath(tournamentId, number)}/cancel`, { method: "POST" });
+export async function cancelRegistration(userId: string, tournamentId: number, number: string) {
+  const response = await backendFetch(`${registrationPath(tournamentId, number)}/cancel`, { method: "POST" }, { authentication: "required", expectedAccountId: userId });
+  if (!response.ok) throw new Error(`http-${response.status}`);
 }
 
 export async function getRegistrationRefund(
-  token: string, tournamentId: number, number: string, signal?: AbortSignal,
+  userId: string, tournamentId: number, number: string, signal?: AbortSignal,
 ): Promise<RegistrationRefund | null> {
-  const response = await request(token, `${registrationPath(tournamentId, number)}/refund`, { signal });
+  const response = await backendFetch(`${registrationPath(tournamentId, number)}/refund`, { signal }, { authentication: "required", expectedAccountId: userId });
+  if (!response.ok) throw new Error(`http-${response.status}`);
   return response.json();
 }
 

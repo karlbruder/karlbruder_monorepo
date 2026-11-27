@@ -21,7 +21,7 @@ export default function RegistrationRoute() {
       tournamentId={tournamentId}
       registrationNumber={registrationNumber}
       invalidLink={invalidLink}
-      session={auth.session}
+      user={auth.session?.user ?? null}
       authReady={auth.authReady}
       authError={auth.authError === "Não foi possível sair. Tente novamente." ? null : auth.authError}
       language={language}

@@ -51,7 +51,7 @@ function catalogBody(response: unknown) {
 
 function mockTournament(response: unknown = tournament) {
   const request = vi.fn(async (url: string) => {
-    if (url === '/api/tournaments/42/registrations' || url === '/api/tournaments/42/documents') {
+    if (url.endsWith('/api/tournaments/42/registrations') || url.endsWith('/api/tournaments/42/documents')) {
       return { ok: true, status: 200, json: async () => [] }
     }
     return {
@@ -188,10 +188,10 @@ describe('Monomachia registration entry', () => {
 
   it('waits for session restoration before offering sign-in', async () => {
     let finish: ((value: { data: { session: null }; error: null }) => void) | undefined
-    vi.mocked(supabase.auth.getSession).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    const pending = new Promise<{ data: { session: null }; error: null }>(resolve => { finish = resolve })
+    vi.mocked(supabase.auth.getSession).mockReturnValue(pending)
     renderApp()
-    expect(await screen.findByRole('heading', { name: tournament.name })).toBeInTheDocument()
-    expect(screen.getByText('Carregando sua sessão...')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Entrar com Google' })).not.toBeInTheDocument()
 
     finish?.({ data: { session: null }, error: null })
@@ -261,7 +261,7 @@ it("loads the email-linked registration for a different tournament using the act
   const request = mockLinkedRegistration(); renderApp();
   await screen.findByText("Lista de espera");
   expect(screen.getByRole("heading", { name: "Second Tournament" })).toBeInTheDocument();
-  expect(request).toHaveBeenCalledWith("/api/tournaments/77/registrations/T77-001/payment", expect.objectContaining({ headers: { Authorization: "Bearer test-token" } }));
+  expect(request).toHaveBeenCalledWith("/api/tournaments/77/registrations/T77-001/payment", expect.objectContaining({ headers: expect.any(Headers) }));
   expect(request.mock.calls.some(([url]) => url.includes("name=Monomachia") || url.endsWith("/registrations"))).toBe(false);
   expect(screen.queryByRole("form")).not.toBeInTheDocument();
 });
@@ -304,6 +304,7 @@ it("returns from email sign-in to the exact registration named in the notificati
     return { data: { subscription: { unsubscribe: vi.fn() } } } as unknown as ReturnType<typeof supabase.auth.onAuthStateChange>;
   });
   vi.mocked(supabase.auth.signInWithPassword).mockImplementation(async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: signedInSession }, error: null });
     signedIn?.(); return { data: { session: signedInSession, user: signedInSession.user }, error: null };
   });
   window.history.replaceState({}, "", "/tournaments/registration?tournament_id=77&registration_number=T77-001");

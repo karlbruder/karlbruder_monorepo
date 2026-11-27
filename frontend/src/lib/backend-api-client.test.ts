@@ -27,7 +27,7 @@ describe("backendFetch", () => {
     await backendFetch("/tournaments", { headers: { "Content-Type": "application/json", Authorization: "incorrect" } }, required);
     await backendFetch("/tournaments", {}, required);
     const calls = vi.mocked(fetch).mock.calls;
-    expect(new URL(calls[0][0] as string).pathname).toBe("/api/tournaments");
+    expect(new URL(calls[0][0] as string, window.location.origin).pathname).toBe("/api/tournaments");
     expect((calls[0][1]?.headers as Headers).get("Content-Type")).toBe("application/json");
     expect((calls[0][1]?.headers as Headers).get("Authorization")).toBe("Bearer old");
     expect((calls[1][1]?.headers as Headers).get("Authorization")).toBe("Bearer refreshed");

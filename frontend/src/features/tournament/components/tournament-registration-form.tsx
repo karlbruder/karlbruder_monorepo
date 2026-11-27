@@ -1,7 +1,7 @@
 import { legalRoutes } from "@/config/legal-routes";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import {
   createRegistration,
   getTournament,
@@ -21,10 +21,11 @@ import { TournamentDocumentButton } from "@/features/tournament/components/tourn
 import { TournamentDocuments } from "@/features/tournament/components/tournament-documents";
 import { TagChoices } from "@/features/tournament/components/tournament-tags";
 import { useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
+import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 
 type Props = {
   tournament: Tournament;
-  session: Session;
+  user: User;
   additionalDocuments?: AdditionalTournamentDocument[];
   language?: AppLanguage;
   onRegistrationCreated?: (registration: RegistrationCreated) => void;
@@ -225,7 +226,7 @@ function Success({ result, tournament, language }: { result: RegistrationCreated
 
 export default function TournamentRegistrationForm({
   tournament: initialTournament,
-  session,
+  user,
   additionalDocuments,
   language = "pt",
   onRegistrationCreated,
@@ -242,22 +243,22 @@ export default function TournamentRegistrationForm({
   const [productsState, setProductsState] = useState<"loading" | "ready" | "error">("loading");
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
-  const tags = useTournamentTags({ token: session.access_token, userId: session.user.id, tournamentId: tournament.id });
+  const tags = useTournamentTags({ userId: user.id, tournamentId: tournament.id });
   const requestPending = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
     setProductsState("loading");
-    getTournamentProducts(tournament.id, session.access_token, controller.signal)
+    getTournamentProducts(tournament.id, user.id, controller.signal)
       .then(options => { setProducts(options); setProductsState("ready"); })
       .catch(() => { if (!controller.signal.aborted) setProductsState("error"); });
     return () => controller.abort();
-  }, [tournament.id, session.access_token]);
+  }, [tournament.id, user.id]);
 
   const refreshProducts = async () => {
     setProductsState("loading");
     try {
-      const options = await getTournamentProducts(tournament.id, session.access_token);
+      const options = await getTournamentProducts(tournament.id, user.id);
       setProducts(options);
       setProductsState("ready");
     } catch {
@@ -270,7 +271,7 @@ export default function TournamentRegistrationForm({
     && isMinorAtTournamentStart(birthDateForDisplay, tournament.starts_at);
 
   const refreshPolicies = async (form: HTMLFormElement) => {
-    const refreshed = await getTournament(tournament.id, session.access_token);
+    const refreshed = await getTournament(tournament.id, user.id);
     setTournament(refreshed);
     form.querySelectorAll<HTMLInputElement>('.registration-declarations input').forEach(input => { input.checked = false; });
     setRequestError("Os termos mudaram. Leia o conteúdo atualizado e confirme suas escolhas novamente.");
@@ -282,7 +283,7 @@ export default function TournamentRegistrationForm({
     const form = event.currentTarget;
     const { payload, errors: nextErrors, parentalConsentFormFile } = readRegistration(
       event.currentTarget,
-      session.user.email,
+      user.email,
       tournament.starts_at,
       birthDateForDisplay,
       tournament.acceptance_tokens[language],
@@ -293,8 +294,10 @@ export default function TournamentRegistrationForm({
     setRequestError(null);
     if (!payload || !tags.data) return;
 
+    const generation = currentSessionGeneration();
     if (parentalConsentFormFile) {
       const clientFileError = await validateParentalConsentFormFile(parentalConsentFormFile);
+      if (generation !== currentSessionGeneration()) return;
       if (clientFileError) {
         setErrors(previous => ({ ...previous, parental_consent_form: clientFileError }));
         return;
@@ -306,25 +309,29 @@ export default function TournamentRegistrationForm({
     try {
       let registrationPayload = { ...payload, tag_ids: selectedTags };
       if (parentalConsentFormFile) {
-        const uploadInfo = await requestParentalConsentFormUploadUrl(tournament.id, session.access_token);
+        const uploadInfo = await requestParentalConsentFormUploadUrl(tournament.id, user.id);
+        assertSessionGeneration(generation);
         await uploadFileToPresignedUrl(
           uploadInfo.upload_url,
           parentalConsentFormFile,
           uploadInfo.required_headers,
         );
+        assertSessionGeneration(generation);
         registrationPayload = {
           ...registrationPayload,
           parental_consent_form_storage_key: uploadInfo.storage_key,
           parental_consent_form_original_file_name: parentalConsentFormFile.name,
         };
       }
-      const created = await createRegistration(tournament.id, session.access_token, registrationPayload);
+      const created = await createRegistration(tournament.id, user.id, registrationPayload);
+      assertSessionGeneration(generation);
       if (onRegistrationCreated) {
         onRegistrationCreated(created);
       } else {
         setResult(created);
       }
     } catch (error) {
+      if (generation !== currentSessionGeneration()) return;
       if (error instanceof RegistrationRequestError && error.status === 400 && error.detail === "Registration option is unavailable") {
         setSelectedProductId(null);
         setProducts([]);
@@ -376,7 +383,7 @@ export default function TournamentRegistrationForm({
             <Field name="social_name" label={t("Nome social (opcional)")} errors={errors} language={language} />
             <div className="registration-field">
               <label htmlFor="email">{t("E-mail da conta")} *</label>
-              <input id="email" name="email" type="email" value={session.user.email ?? ""} readOnly aria-invalid={Boolean(errors.email)} />
+              <input id="email" name="email" type="email" value={user.email ?? ""} readOnly aria-invalid={Boolean(errors.email)} />
               {errors.email && <span className="registration-field-error">{t(errors.email)}</span>}
             </div>
             <Field name="phone" label={t("Telefone")} errors={errors} language={language} type="tel" required />
@@ -441,7 +448,7 @@ export default function TournamentRegistrationForm({
         </section>
 
         <TournamentDocuments policies={acceptanceContent.policies} tournamentId={tournament.id}
-          additionalDocuments={additionalDocuments} token={session.access_token} language={language} />
+          additionalDocuments={additionalDocuments} userId={user.id} language={language} />
 
         <section className="registration-card registration-section" aria-labelledby="registration-safety-title">
           <h2 id="registration-safety-title"><span>03</span> {t("Segurança e participação")}</h2>
@@ -498,7 +505,7 @@ export default function TournamentRegistrationForm({
                       <label htmlFor={inputId}>{acceptanceContent.declarations[name]} *</label>
                       {file && purpose && policyName && (
                         <> <TournamentDocumentButton key={file.version_id} label={t(policyName)} className="registration-policy-inline"
-                          tournamentId={tournament.id} purpose={purpose} versionId={file.version_id} token={session.access_token} language={language}>
+                          tournamentId={tournament.id} purpose={purpose} versionId={file.version_id} userId={user.id} language={language}>
                           {t(policyName)} <span aria-hidden="true">↗</span>
                         </TournamentDocumentButton></>
                       )}

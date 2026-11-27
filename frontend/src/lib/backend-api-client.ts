@@ -21,7 +21,8 @@ function backendUrl(path: string): string {
   if (url.origin !== base.origin || (url.pathname !== boundary && !url.pathname.startsWith(`${boundary}/`))) {
     throw new Error("URL is outside the backend boundary");
   }
-  return url.href;
+  return base.origin === window.location.origin && apiBaseUrl().startsWith("/")
+    ? `${url.pathname}${url.search}${url.hash}` : url.href;
 }
 
 export async function backendFetch(path: string, init: RequestInit = {}, options: BackendRequestOptions): Promise<Response> {

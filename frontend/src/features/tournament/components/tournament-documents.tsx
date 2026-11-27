@@ -11,11 +11,11 @@ const formats: Readonly<Record<string, string>> = {
   "image/png": "PNG",
 };
 
-export function TournamentDocuments({ policies, additionalDocuments = [], tournamentId, token, language }: {
+export function TournamentDocuments({ policies, additionalDocuments = [], tournamentId, userId, language }: {
   policies: AcceptanceContent["policies"];
   additionalDocuments?: AdditionalTournamentDocument[];
   tournamentId: number;
-  token: string;
+  userId: string;
   language: AppLanguage;
 }) {
   const titleId = useId();
@@ -38,7 +38,7 @@ export function TournamentDocuments({ policies, additionalDocuments = [], tourna
           return (
             <li key={file.id}>
               <TournamentDocumentButton label={`${file.title} · ${file.original_file_name}`} className="tournament-document-tile"
-                tournamentId={tournamentId} purpose={file.purpose} versionId={file.id} token={token} language={language}>
+                tournamentId={tournamentId} purpose={file.purpose} versionId={file.id} userId={userId} language={language}>
                 <span className="tournament-document-icon" aria-hidden="true"><span /></span>
                 <span className="tournament-document-title">
                   <strong>{file.title}</strong>

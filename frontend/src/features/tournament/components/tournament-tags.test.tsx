@@ -9,7 +9,7 @@ vi.mock("@/features/tournament/api/tournament-tags", async original => ({
   getTags: vi.fn(), getSelection: vi.fn(), saveSelection: vi.fn(), saveTag: vi.fn(), deleteTag: vi.fn(),
 }));
 const tag = { id: 3, tournament_id: 42, name: "Mystai", eligibility_description: "Primeira competição" };
-const props = { token: "token", userId: "owner", tournamentId: 42, language: "pt" as const };
+const props = { userId: "owner", tournamentId: 42, language: "pt" as const };
 beforeEach(() => { vi.mocked(getTags).mockResolvedValue([tag]); vi.mocked(getSelection).mockResolvedValue([]); });
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
@@ -18,7 +18,7 @@ it("saves a participant's selected tags and displays the eligibility description
   renderWithQuery(<RegistrationTags {...props} number="T42-1" />);
   fireEvent.click(await screen.findByRole("checkbox", { name: /Mystai Primeira competição/ }));
   fireEvent.click(screen.getByRole("button", { name: "Salvar tags" }));
-  await waitFor(() => expect(saveSelection).toHaveBeenCalledWith("token", 42, "T42-1", [3], false));
+  await waitFor(() => expect(saveSelection).toHaveBeenCalledWith("owner", 42, "T42-1", [3], false));
   expect(await screen.findByText("Tags salvas.")).toBeInTheDocument();
 });
 
@@ -58,6 +58,6 @@ it("saves a staff tag change through the staff endpoint", async () => {
   renderWithQuery(<RegistrationTags {...props} number="T42-1" staff />);
   fireEvent.click(await screen.findByRole("checkbox", { name: /Mystai Primeira competição/ }));
   fireEvent.click(screen.getByRole("button", { name: "Salvar tags" }));
-  await waitFor(() => expect(saveSelection).toHaveBeenCalledWith("token", 42, "T42-1", [3], true));
+  await waitFor(() => expect(saveSelection).toHaveBeenCalledWith("owner", 42, "T42-1", [3], true));
   expect(await screen.findByText("Tags salvas.")).toBeInTheDocument();
 });

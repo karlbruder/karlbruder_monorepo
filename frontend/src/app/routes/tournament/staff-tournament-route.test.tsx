@@ -10,7 +10,7 @@ import { AuthSessionContext } from "@/features/auth/hooks/use-auth-session";
 import { LanguageProvider } from "@/components/language-provider";
 import { createQueryClient } from "@/lib/query-client";
 
-vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "staff" } } }, error: null })) } } }));
 const admin = { access_token: "staff-token", user: { id: "staff", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
 const event = { id: 1, name: "First event", slug: "first", starts_at: "2027-01-17T12:00:00Z", is_internal: false, is_registration_closed: false, competitor_capacity: null, pix_key: "fixture" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -131,7 +131,7 @@ it("adds a titled competitor’s guide without saving the tournament form", asyn
   const guide = { id: 9, title: "Guia do competidor", original_file_name: "guide.pdf", content_type: "application/pdf" };
   let documents: typeof guide[] = [];
   fetchMock.mockImplementation(async (url: string) => {
-    if (url === listing) return json(documents);
+    if (url.endsWith(listing)) return json(documents);
     if (url.endsWith("/policy-documents")) return json({});
     if (url === endpoint + "/upload-url") return json({
       storage_key: "staged-guide", upload_url: uploadUrl, required_headers: { "Content-Type": "application/octet-stream" },

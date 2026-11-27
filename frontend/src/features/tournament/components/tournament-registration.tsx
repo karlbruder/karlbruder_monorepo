@@ -2,7 +2,7 @@ import monomachiaMark from "@/features/tournament/assets/monomachia.svg";
 import { ApplicationFooter } from "@/components/application-footer";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 import { useRegistrationTournament } from "@/features/tournament/api/use-registration-tournament";
 import { useOwnTournamentRegistrations } from "@/features/tournament/api/use-own-tournament-registrations";
@@ -19,7 +19,7 @@ type Props = {
   tournamentId?: number;
   registrationNumber?: string;
   invalidLink?: boolean;
-  session: Session | null;
+  user: User | null;
   authReady: boolean;
   authError: AppCopyKey | null;
   signInButton: ReactNode;
@@ -51,27 +51,27 @@ function selectOwnActiveRegistration(registrations: OwnerRegistration[] | undefi
 }
 
 function SignedInRegistration({
-  session,
+  user,
   tournament,
   language,
   registrationNumber,
 }: {
-  session: Session;
+  user: User;
   tournament: Tournament;
   language: AppLanguage;
   registrationNumber?: string;
 }) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
-  const ownRegistrationsQuery = useOwnTournamentRegistrations(registrationNumber ? undefined : tournament.id, session.access_token, session.user.id);
-  const additionalDocuments = useAdditionalTournamentDocuments(session.access_token, session.user.id, tournament.id, !registrationNumber);
+  const ownRegistrationsQuery = useOwnTournamentRegistrations(registrationNumber ? undefined : tournament.id, user.id);
+  const additionalDocuments = useAdditionalTournamentDocuments(user.id, tournament.id, !registrationNumber);
   const [createdRegistration, setCreatedRegistration] = useState<RegistrationCreated | null>(null);
   const [cancelledNumber, setCancelledNumber] = useState<string>();
-  const activeRegistration = createdRegistration ?? selectOwnActiveRegistration(ownRegistrationsQuery.data, session.user.id);
+  const activeRegistration = createdRegistration ?? selectOwnActiveRegistration(ownRegistrationsQuery.data, user.id);
   const cancelledRegistrations = ownRegistrationsQuery.data?.filter(registration =>
     registration.registration_status === "cancelled" && (
-      session.user.app_metadata?.karlbruder_role === "admin"
-        ? registration.user_id === session.user.id
-        : !registration.user_id || registration.user_id === session.user.id
+      user.app_metadata?.karlbruder_role === "admin"
+        ? registration.user_id === user.id
+        : !registration.user_id || registration.user_id === user.id
     ),
   );
 
@@ -86,7 +86,7 @@ function SignedInRegistration({
 
   return (
     <>
-      <p className="registration-signed-in">{t("Você está conectado como")} {session.user.email}.</p>
+      <p className="registration-signed-in">{t("Você está conectado como")} {user.email}.</p>
       {!registrationNumber && additionalDocuments.isError && (
         <p className="registration-notice" role="alert">
           {language === "en" ? "Could not load additional documents." : "Não foi possível carregar os documentos adicionais."}
@@ -95,7 +95,7 @@ function SignedInRegistration({
       )}
       {!registrationNumber && (selectedRegistrationNumber || (ownRegistrationsQuery.isSuccess && unavailable)) && (
         <TournamentDocuments policies={tournament.acceptance_content[language].policies} tournamentId={tournament.id}
-          additionalDocuments={additionalDocuments.data} token={session.access_token} language={language} />
+          additionalDocuments={additionalDocuments.data} userId={user.id} language={language} />
       )}
       {!selectedRegistrationNumber && ownRegistrationsQuery.isPending ? (
         <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
@@ -104,7 +104,7 @@ function SignedInRegistration({
       ) : selectedRegistrationNumber ? (
         <TournamentRegistrationPanel
           tournament={tournament}
-          session={session}
+          user={user}
           key={selectedRegistrationNumber}
           registrationNumber={selectedRegistrationNumber}
           language={language}
@@ -117,7 +117,7 @@ function SignedInRegistration({
       ) : (
         <TournamentRegistrationForm
           tournament={tournament}
-          session={session}
+          user={user}
           additionalDocuments={additionalDocuments.data}
           language={language}
           onRegistrationCreated={handleRegistrationCreated}
@@ -137,16 +137,16 @@ function SignedInRegistration({
 }
 
 export default function TournamentRegistration({
-  session, authReady, authError, signInButton, language = "pt", tournamentId, registrationNumber, invalidLink = false,
+  user, authReady, authError, signInButton, language = "pt", tournamentId, registrationNumber, invalidLink = false,
 }: Props) {
   const t = (key: Parameters<typeof appCopy>[1]) => appCopy(language, key);
-  const { data: tournament, error, isFetching: loading, refetch } = useRegistrationTournament(tournamentId, session, !invalidLink && (!registrationNumber || Boolean(authReady && session)));
+  const { data: tournament, error, isFetching: loading, refetch } = useRegistrationTournament(tournamentId, user?.id, !invalidLink && (!registrationNumber || Boolean(authReady && user)));
 
   const loadIssue = error
     ? error.message === "http-401" ? "unauthorized" : error.message === "http-404" ? "missing" : "request"
     : tournament === null ? "missing" : null;
 
-  const showEventCover = !session && !registrationNumber && !invalidLink &&
+  const showEventCover = !user && !registrationNumber && !invalidLink &&
     !loading && !loadIssue && tournament && /^Monomachia\b/i.test(tournament.name);
 
   return (
@@ -167,19 +167,20 @@ export default function TournamentRegistration({
           <p className="registration-notice" role="alert">{t("Este link de inscrição não é válido.")}</p>
         ) : registrationNumber && !authReady ? (
           <p role="status">{t("Carregando sua sessão...")}</p>
-        ) : registrationNumber && !session ? (
+        ) : registrationNumber && !user ? (
           <section className="registration-card"><h2>{t("Sua inscrição")}</h2><p>{t("Entre com sua conta para consultar esta inscrição.")}</p>{signInButton}</section>
         ) : loading ? (
           <p className="registration-notice" role="status">{t("Carregando informações do torneio...")}</p>
         ) : loadIssue ? (
           <div>
             <p className="registration-notice" role="alert">
-              {loadIssue === "missing"
+              {authError ? t(authError) : loadIssue === "missing"
                 ? t("Este torneio não está disponível.")
                 : loadIssue === "unauthorized"
                   ? t("O acesso aos dados do torneio foi recusado. Entre novamente.")
                   : t("Não foi possível carregar os dados do torneio. Tente novamente.")}
             </p>
+            {authError && !user && signInButton}
             {loadIssue === "request" && (
               <button type="button" onClick={() => void refetch()}>{t("Tentar novamente")}</button>
             )}
@@ -192,14 +193,14 @@ export default function TournamentRegistration({
                   <h2 id="registration-next-title">{t("Sua inscrição")}</h2>
                   <p role="status">{t("Carregando sua sessão...")}</p>
                 </section>
-              ) : !session ? (
+              ) : !user ? (
                 <section className="registration-card" aria-labelledby="registration-next-title">
                   <h2 id="registration-next-title">{t("Sua inscrição")}</h2>
                   <p>{t("Entre com sua conta para se inscrever neste torneio.")}</p>
                   {signInButton}
                 </section>
               ) : (
-                <SignedInRegistration key={`${session.user.id}:${tournament.id}:${registrationNumber ?? ""}`} session={session} tournament={tournament} language={language} registrationNumber={registrationNumber} />
+                <SignedInRegistration key={`${user.id}:${tournament.id}:${registrationNumber ?? ""}`} user={user} tournament={tournament} language={language} registrationNumber={registrationNumber} />
               )}
               {authError && <p className="registration-auth-error" role="alert">{t(authError)}</p>}
             </div>
@@ -216,7 +217,7 @@ export default function TournamentRegistration({
                   <div><dt>{t("Local")}</dt><dd>{tournament.location || t("A confirmar")}</dd></div>
                   <div><dt>{t("Inscrições")}</dt><dd>{registrationWindow(tournament, language)}</dd></div>
                 </dl>
-                {!session && !registrationNumber && <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>}
+                {!user && !registrationNumber && <p className="registration-seat-note">{t("O envio da inscrição não confirma uma vaga. A equipe analisará o pagamento e a disponibilidade depois.")}</p>}
               </section>
             </aside>
           </div>

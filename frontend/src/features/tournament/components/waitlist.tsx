@@ -27,9 +27,9 @@ export function Waitlist({ token, userId, tournamentId, language }: Props) {
         await confirmWaitlist(token, tournamentId, action.number);
         setResult({ message: en ? `${action.name}: participation confirmed.` : `${action.name}: participação confirmada.` });
       } else {
-        await cancelRegistration(token, Number(tournamentId), action.number);
+        await cancelRegistration(userId, Number(tournamentId), action.number);
         try {
-          const refund = await getRegistrationRefund(token, Number(tournamentId), action.number);
+          const refund = await getRegistrationRefund(userId, Number(tournamentId), action.number);
           setResult(refund?.refund_status === "awaiting_refund"
             ? { message: en ? `${action.name}: registration cancelled. A refund is awaiting processing.` : `${action.name}: inscrição cancelada. Há um reembolso aguardando processamento.`, refund: true }
             : { message: en ? `${action.name}: registration cancelled without an awaiting refund.` : `${action.name}: inscrição cancelada sem reembolso pendente.` });

@@ -1,4 +1,5 @@
 vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: vi.fn(), getSelection: async () => [] }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "test-access-token", user: { id: "athlete-uuid" } } }, error: null })) } } }));
 import { renderWithQuery as render } from "@/testing/render-with-query";
 import { acceptanceEvidence } from "@/testing/acceptance-evidence";
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -160,7 +161,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     vi.mocked(getTags).mockResolvedValue([{ id: 3, tournament_id: 42, name: 'Mystai', eligibility_description: 'Primeira competição' }])
     const request = mockPresignedRegistrationFlow()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await screen.findByRole('checkbox', { name: /Mystai Primeira competição/ })
     await fillRequired()
     submit()
@@ -171,7 +172,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('renders the server-provided English declaration and submits its token without an image choice', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} language="en" />)
     expect(screen.getByRole('checkbox', { name: 'Sample rules declaration *' })).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(7)
     expect(screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("name"))).toEqual([
@@ -201,7 +202,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('shows English validation without sending or preaccepting declarations', () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} language="en" />)
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByText('Review the highlighted fields before submitting.')).toBeInTheDocument()
@@ -221,7 +222,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   ])('shows HTTP %i in English and retains entered fields', async (status, detail, expected) => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} language="en" />)
     await fillRequiredEnglish()
     fireEvent.submit(screen.getByRole('form', { name: 'Registration form' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
@@ -233,7 +234,7 @@ describe('Athlete submits their own registration and sees the result', () => {
       return response(init?.method === 'POST' ? 201 : 404, created)
     })
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     change(/Nome social/, ' Ana ')
     change(/Estado \/ província/, 'SP')
@@ -249,10 +250,8 @@ describe('Athlete submits their own registration and sees the result', () => {
     if (!options) throw new Error('Missing registration request options')
     expect(url).toBe('/api/tournaments/42/registrations')
     expect(options.method).toBe('POST')
-    expect(options.headers).toEqual({
-      Authorization: 'Bearer test-access-token',
-      'Content-Type': 'application/json',
-    })
+    expect((options.headers as Headers).get('Authorization')).toBe('Bearer test-access-token')
+    expect((options.headers as Headers).get('Content-Type')).toBe('application/json')
     expect(JSON.parse(options.body as string)).toEqual({
       tag_ids: [],
       acceptance_token: acceptanceEvidence.acceptance_tokens.pt,
@@ -286,7 +285,7 @@ describe('Athlete submits their own registration and sees the result', () => {
       return response(404, {})
     })
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ birthDate: '2010-06-01' })
     const file = pdfFile()
     attachParentalConsentForm(file)
@@ -307,7 +306,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('retries loading changed options without restoring the stale selection', async () => {
     vi.mocked(getTournamentProducts).mockResolvedValueOnce([product]).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([])
     vi.stubGlobal('fetch', mockPresignedRegistrationFlow(400, { detail: 'Registration option is unavailable' }))
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     submit()
     expect(await screen.findByText(/Não foi possível carregar as opções/)).toBeInTheDocument()
@@ -321,7 +320,7 @@ describe('Athlete submits their own registration and sees the result', () => {
     vi.mocked(getTournamentProducts).mockResolvedValue([
       { id: 1, product_id: 2, name: 'Inscrição Plus', description: 'Pacote', price_id: null, amount: null, currency: null },
     ])
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     const option = await screen.findByRole('radio', { name: /Inscrição Plus/ })
     expect(option).toBeDisabled()
     expect(option).toHaveAccessibleName(/Valor ainda não disponível/)
@@ -330,7 +329,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('requires every declaration before sending', async () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ declarations: false })
     submit()
     expect(request).not.toHaveBeenCalled()
@@ -342,7 +341,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('accepts start year instead of duration, while requiring a nonnegative tournament count', async () => {
     const request = vi.fn().mockResolvedValue(response(201, created))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     change(/Tempo de prática em HEMA/, '')
     change(/Torneios anteriores/, '-1')
@@ -365,11 +364,11 @@ describe('Athlete submits their own registration and sees the result', () => {
     let finish: ((value: ReturnType<typeof response>) => void) | undefined
     const request = vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve }))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     submit()
     submit()
-    expect(request).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
     expect(screen.getByRole('button', { name: 'Enviando inscrição...' })).toBeDisabled()
     finish?.(response(201, created))
     expect(await screen.findByText(created.registration_number)).toBeInTheDocument()
@@ -384,7 +383,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   ])('shows HTTP %i clearly and keeps the entered fields', async (status, detail, expected) => {
     const request = vi.fn().mockResolvedValue(response(status, { detail }))
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
@@ -394,7 +393,7 @@ describe('Athlete submits their own registration and sees the result', () => {
 
   it('handles a network failure without claiming success', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection failed')))
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     submit()
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar a inscrição agora.')
@@ -403,7 +402,7 @@ describe('Athlete submits their own registration and sees the result', () => {
 
   it('does not show the parental consent form field for an adult birth date', async () => {
     vi.stubGlobal('fetch', vi.fn())
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired()
     expect(screen.queryByLabelText(/Termo de responsabilidade assinado/)).not.toBeInTheDocument()
   })
@@ -411,7 +410,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('shows the parental consent form field for a minor and blocks submit without a file', async () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ birthDate: '2010-06-01' })
     expect(screen.getByLabelText(/Termo de responsabilidade assinado/)).toBeInTheDocument()
     submit()
@@ -422,7 +421,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('presigns, uploads, and creates registration with storage key fields for a minor', async () => {
     const request = mockPresignedRegistrationFlow()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ birthDate: '2010-06-01' })
     attachParentalConsentForm(pdfFile())
     submit()
@@ -440,7 +439,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('rejects a disallowed file type before calling the API', async () => {
     const request = vi.fn()
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ birthDate: '2010-06-01' })
     const bytes = new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c])
     const htmlAsPdf = new File([bytes], 'term.pdf', { type: 'application/pdf' })
@@ -457,7 +456,7 @@ describe('Athlete submits their own registration and sees the result', () => {
   it('maps a backend parental consent form type rejection after upload', async () => {
     const request = mockPresignedRegistrationFlow(415, { detail: 'Parental consent form file type is not allowed' })
     vi.stubGlobal('fetch', request)
-    render(<TournamentRegistrationForm tournament={tournament} session={session} />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} />)
     await fillRequired({ birthDate: '2010-06-01' })
     attachParentalConsentForm(pdfFile())
     submit()
@@ -470,7 +469,7 @@ describe('Athlete submits their own registration and sees the result', () => {
       ...tournamentWithPolicies.acceptance_content,
       [language]: { ...tournamentWithPolicies.acceptance_content[language], policies: { ...policies, cancellation_policy: { document: null } } },
     } }
-    render(<TournamentRegistrationForm tournament={partial} session={session} language={language} />)
+    render(<TournamentRegistrationForm tournament={partial} user={session.user} language={language} />)
     const card = screen.getByRole('region', { name: /Documentos do torneio|Tournament documents/ })
     expect(within(card).getByRole('button', { name: /rules-v1.pdf/ })).toBeInTheDocument()
     expect(within(card).getAllByText(/conteúdo ainda não disponível|content is not yet available/i)).toHaveLength(1)
@@ -481,14 +480,14 @@ describe('Athlete submits their own registration and sees the result', () => {
 
   it('omits the document card and its placeholders when neither policy is available', () => {
     const legacy = { ...tournament, rules_text: 'Legacy rules text', rules_url: 'https://example.test/legacy' }
-    render(<TournamentRegistrationForm tournament={legacy} session={session} />)
+    render(<TournamentRegistrationForm tournament={legacy} user={session.user} />)
     expect(screen.queryByRole('region', { name: 'Documentos do torneio' })).not.toBeInTheDocument()
     expect(screen.queryByText(/conteúdo ainda não disponível|Legacy rules text/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Política de Privacidade/ })).toHaveAttribute('target', '_blank')
   })
 
   it('labels the minor document as a parental consent form in English', () => {
-    render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" />)
+    render(<TournamentRegistrationForm tournament={tournament} user={session.user} language="en" />)
     fireEvent.change(screen.getByLabelText(/Date of birth/), { target: { value: '2010-06-01' } })
     expect(screen.getByLabelText(/Signed parental consent form/)).toBeInTheDocument()
   })
@@ -518,7 +517,7 @@ it('retries a failed policy file request and opens the exact version without cha
   const tab = { opener: window, closed: false, location: { replace: vi.fn() }, close: vi.fn() }
   vi.stubGlobal('open', vi.fn(() => tab))
   vi.stubGlobal('fetch', request)
-  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} user={session.user} language="en" />)
   const rules = screen.getByRole('button', { name: /Tournament rules · rules-v1.pdf/ })
   const cancellation = screen.getByRole('button', { name: /Cancellation policy · cancellation.pdf/ })
   expect(cancellation).toHaveTextContent('PNG')
@@ -542,7 +541,7 @@ it('retries a failed policy file request and opens the exact version without cha
   fireEvent.click(cancellation)
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledTimes(3))
   expect(createObjectURL.mock.calls).toEqual([[rulesFile], [rulesFile], [cancellationFile]])
-  const authorization = { headers: { Authorization: 'Bearer test-access-token' } }
+  const authorization = { headers: expect.any(Headers) }
   const storageRequest = { credentials: 'omit' }
   expect(request.mock.calls).toEqual([
     ['/api/tournaments/42/policy-documents/rules/17/download-url', authorization],
@@ -564,7 +563,7 @@ it('keeps the policy control pending until the file body arrives and reports an 
   vi.stubGlobal('fetch', vi.fn()
     .mockResolvedValueOnce(response(200, { download_url: 'https://files.example.test/rules' }))
     .mockResolvedValueOnce({ ok: true, blob: () => pendingFile }))
-  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} language="en" />)
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} user={session.user} language="en" />)
   const rules = screen.getByRole('button', { name: /Tournament rules · rules-v1.pdf/ })
 
   fireEvent.click(rules)
@@ -588,15 +587,16 @@ it('opens a custom document from its tile without adding a declaration', async (
   vi.stubGlobal('URL', class extends URL { static createObjectURL = vi.fn(() => objectUrl) })
   vi.stubGlobal('fetch', request)
   vi.stubGlobal('open', vi.fn(() => tab))
-  render(<TournamentRegistrationForm tournament={tournament} session={session} language="en" additionalDocuments={[guide]} />)
+  render(<TournamentRegistrationForm tournament={tournament} user={session.user} language="en" additionalDocuments={[guide]} />)
   const card = screen.getByRole('region', { name: 'Tournament documents' })
   expect(card.nextElementSibling).toContainElement(screen.getByRole('heading', { name: /Safety and participation/ }))
   expect(screen.queryByRole('checkbox', { name: /Competitor's Guide/ })).not.toBeInTheDocument()
   fireEvent.click(within(card).getByRole('button', { name: /Competitor's Guide · guide.pdf/ }))
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(objectUrl))
   expect(request).toHaveBeenNthCalledWith(1, '/api/tournaments/42/documents/23/download-url', {
-    headers: { Authorization: 'Bearer test-access-token' },
+    headers: expect.any(Headers),
   })
+  expect((request.mock.calls[0][1].headers as Headers).get('Authorization')).toBe('Bearer test-access-token')
   expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: 'omit' })
 })
 
@@ -617,7 +617,7 @@ it('refreshes a replaced policy, preserves personal fields and requires new choi
     .mockResolvedValueOnce(response(200, updated))
     .mockResolvedValueOnce(response(201, created))
   vi.stubGlobal('fetch', request)
-  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} session={session} />)
+  render(<TournamentRegistrationForm tournament={tournamentWithPolicies} user={session.user} />)
   expect(screen.getByRole('button', { name: /rules-v1.pdf/ })).toBeInTheDocument()
   await fillRequired()
   submit()

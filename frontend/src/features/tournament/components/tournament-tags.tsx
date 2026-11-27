@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteTag, getSelection, saveSelection, saveTag, TagRequestError, type TournamentTag } from "@/features/tournament/api/tournament-tags";
 import { tagsKey, useTournamentTags } from "@/features/tournament/api/use-tournament-tags";
 import type { AppLanguage } from "@/utils/app-copy";
+import { currentSessionGeneration } from "@/lib/session-generation";
 import "@/features/tournament/components/tournament-tags.css";
 
-type Common = { token: string; userId: string; tournamentId: number | string; language: AppLanguage };
+type Common = { userId: string; tournamentId: number | string; language: AppLanguage };
 export function TagPills({ tags, language }: { tags: TournamentTag[]; language: AppLanguage }) {
   return tags.length ? <ul className="tag-pills" aria-label={language === "en" ? "Selected tags" : "Tags selecionadas"}>{tags.map(tag => <li key={tag.id}>{tag.name}</li>)}</ul> : <span>{language === "en" ? "No tags" : "Sem tags"}</span>;
 }
@@ -15,10 +16,10 @@ export function TagChoices({ tags, selected, onChange, disabled, language, staff
     {tags.map(tag => <label className="tag-choice" key={tag.id}><input type="checkbox" checked={selected.includes(tag.id)} onChange={event => onChange(event.target.checked ? [...selected, tag.id] : selected.filter(id => id !== tag.id))} /><span><strong>{tag.name}</strong><span>{tag.eligibility_description}</span></span></label>)}
   </fieldset>;
 }
-export function RegistrationTags({ token, userId, tournamentId, number, language, closed = false, staff = false }: Common & { number: string; closed?: boolean; staff?: boolean }) {
+export function RegistrationTags({ userId, tournamentId, number, language, closed = false, staff = false }: Common & { number: string; closed?: boolean; staff?: boolean }) {
   const en = language === "en";
-  const definitions = useTournamentTags({ token, userId, tournamentId });
-  const selection = useQuery({ queryKey: ["registration-tags", userId, String(tournamentId), number, staff], queryFn: ({ signal }) => getSelection(token, tournamentId, number, staff, signal) });
+  const definitions = useTournamentTags({ userId, tournamentId });
+  const selection = useQuery({ queryKey: ["registration-tags", userId, String(tournamentId), number, staff], queryFn: ({ signal }) => getSelection(userId, tournamentId, number, staff, signal) });
   const [draft, setDraft] = useState<number[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<"error" | "saved" | null>(null);
@@ -26,8 +27,9 @@ export function RegistrationTags({ token, userId, tournamentId, number, language
   async function submit(event: FormEvent) {
     event.preventDefault(); if (saving) return;
     setSaving(true); setMessage(null);
-    try { const saved = await saveSelection(token, tournamentId, number, selected, staff); selection.refetch(); setDraft(saved.map(tag => tag.id)); setMessage("saved"); }
-    catch { setMessage("error"); }
+    const generation = currentSessionGeneration();
+    try { const saved = await saveSelection(userId, tournamentId, number, selected, staff); if (generation !== currentSessionGeneration()) return; selection.refetch(); setDraft(saved.map(tag => tag.id)); setMessage("saved"); }
+    catch { if (generation === currentSessionGeneration()) setMessage("error"); }
     finally { setSaving(false); }
   }
   if (!staff && definitions.data?.length === 0) return null;
@@ -41,16 +43,16 @@ export function RegistrationTags({ token, userId, tournamentId, number, language
       {message === "saved" && <p role="status">{en ? "Tags saved." : "Tags salvas."}</p>}{message === "error" && <p role="alert">{en ? "Could not save tags. Try again." : "Não foi possível salvar as tags. Tente novamente."}</p>}</>}
   </section>;
 }
-export function StaffTagConfiguration({ token, userId, tournamentId, language }: Common) {
-  const en = language === "en"; const client = useQueryClient(); const tags = useTournamentTags({ token, userId, tournamentId });
+export function StaffTagConfiguration({ userId, tournamentId, language }: Common) {
+  const en = language === "en"; const client = useQueryClient(); const tags = useTournamentTags({ userId, tournamentId });
   const [editing, setEditing] = useState<number | "new" | null>(null); const [name, setName] = useState(""); const [description, setDescription] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null); const [pending, setPending] = useState(false); const [message, setMessage] = useState("");
   function edit(tag?: TournamentTag) { setEditing(tag?.id ?? "new"); setName(tag?.name ?? ""); setDescription(tag?.eligibility_description ?? ""); setMessage(""); }
   async function submit(event: FormEvent) { event.preventDefault(); if (pending || editing === null) return; setPending(true); setMessage("");
-    try { await saveTag(token, tournamentId, { name, eligibility_description: description }, editing === "new" ? undefined : editing); await client.invalidateQueries({ queryKey: tagsKey(userId, tournamentId) }); setEditing(null); setMessage(en ? "Tag saved." : "Tag salva."); }
+    try { await saveTag(userId, tournamentId, { name, eligibility_description: description }, editing === "new" ? undefined : editing); await client.invalidateQueries({ queryKey: tagsKey(userId, tournamentId) }); setEditing(null); setMessage(en ? "Tag saved." : "Tag salva."); }
     catch { setMessage(en ? "Could not save the tag." : "Não foi possível salvar a tag."); } finally { setPending(false); }
   }
-  async function remove(id: number) { if (pending) return; setPending(true); setMessage(""); try { await deleteTag(token, tournamentId, id); await client.invalidateQueries({ queryKey: tagsKey(userId, tournamentId) }); setConfirmDelete(null); setMessage(en ? "Tag deleted." : "Tag excluída."); } catch (error) { setMessage(error instanceof TagRequestError && error.status === 409 ? (en ? "This tag is used by a registration and cannot be deleted." : "Esta tag está em uso por uma inscrição e não pode ser excluída.") : (en ? "Could not delete the tag." : "Não foi possível excluir a tag.")); } finally { setPending(false); } }
+  async function remove(id: number) { if (pending) return; setPending(true); setMessage(""); try { await deleteTag(userId, tournamentId, id); await client.invalidateQueries({ queryKey: tagsKey(userId, tournamentId) }); setConfirmDelete(null); setMessage(en ? "Tag deleted." : "Tag excluída."); } catch (error) { setMessage(error instanceof TagRequestError && error.status === 409 ? (en ? "This tag is used by a registration and cannot be deleted." : "Esta tag está em uso por uma inscrição e não pode ser excluída.") : (en ? "Could not delete the tag." : "Não foi possível excluir a tag.")); } finally { setPending(false); } }
   return <section className="review-card tag-panel"><h2>{en ? "Tournament tags" : "Tags do torneio"}</h2><p>{en ? "Configure tags and eligibility criteria for this tournament." : "Configure as tags e os critérios de elegibilidade deste torneio."}</p>
     <button type="button" onClick={() => edit()}>{en ? "Add tag" : "Adicionar tag"}</button>
     {tags.isPending && <p role="status">{en ? "Loading tags..." : "Carregando tags..."}</p>}{tags.isError && <p role="alert">{en ? "Could not load tags." : "Não foi possível carregar as tags."} <button type="button" onClick={() => void tags.refetch()}>{en ? "Try again" : "Tentar novamente"}</button></p>}

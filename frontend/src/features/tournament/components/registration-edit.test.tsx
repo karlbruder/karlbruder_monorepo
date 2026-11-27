@@ -6,6 +6,7 @@ import type { OwnerRegistration, Tournament } from "@/features/tournament/api/to
 import { RegistrationEdit } from "@/features/tournament/components/registration-edit";
 
 vi.mock("@/features/tournament/api/tournament-tags", async original => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "token", user: { id: "owner" } } }, error: null })) } } }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const session = { access_token: "token", user: { id: "owner" } } as Session;
 const tournament = { id: 42, is_registration_closed: false, registration_opens_on: "2026-01-01", registration_closes_on: "2027-01-01" } as Tournament;
@@ -15,7 +16,7 @@ it("saves corrected fields without sending status or acceptance evidence", async
   const request = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<{ ok: boolean }>>(async () => ({ ok: true }));
   vi.stubGlobal("fetch", request);
   const saved = vi.fn();
-  renderWithQuery(<RegistrationEdit session={session} tournament={tournament} registration={registration} language="pt" onBack={() => {}} onSaved={saved} />);
+  renderWithQuery(<RegistrationEdit user={session.user} tournament={tournament} registration={registration} language="pt" onBack={() => {}} onSaved={saved} />);
   fireEvent.change(screen.getByLabelText("Nome completo *"), { target: { value: "Ana Nova" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
   await waitFor(() => expect(saved).toHaveBeenCalledOnce());
@@ -28,7 +29,7 @@ it("saves corrected fields without sending status or acceptance evidence", async
 
 it("retains entered data when the backend rejects a duplicate", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 409 })));
-  renderWithQuery(<RegistrationEdit session={session} tournament={tournament} registration={registration} language="pt" onBack={() => {}} onSaved={() => {}} />);
+  renderWithQuery(<RegistrationEdit user={session.user} tournament={tournament} registration={registration} language="pt" onBack={() => {}} onSaved={() => {}} />);
   fireEvent.change(screen.getByLabelText("Número do documento *"), { target: { value: "DUPLICATE" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("conflito");
@@ -38,7 +39,7 @@ it("retains entered data when the backend rejects a duplicate", async () => {
 it("lets staff correct a cancelled registration without owner-only controls", async () => {
   const request = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<{ ok: boolean }>>(async () => ({ ok: true }));
   vi.stubGlobal("fetch", request);
-  renderWithQuery(<RegistrationEdit staff session={session} tournament={tournament} registration={{ ...registration, registration_status: "cancelled" }} language="en" onBack={() => {}} onSaved={() => {}} />);
+  renderWithQuery(<RegistrationEdit staff user={session.user} tournament={tournament} registration={{ ...registration, registration_status: "cancelled" }} language="en" onBack={() => {}} onSaved={() => {}} />);
   expect(screen.getByRole("heading", { name: "Manage registration" })).toBeInTheDocument();
   expect(screen.queryByText("Review my declarations")).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Full name *"), { target: { value: "Ana Corrected" } });
@@ -52,7 +53,7 @@ it.each([
   ["pt", "Rever minhas declarações", "Política de Privacidade"],
   ["en", "Review my declarations", "Privacy Policy"],
 ] as const)("provides organizer and privacy contacts with read-only declarations in %s", (language, summary, privacy) => {
-  renderWithQuery(<RegistrationEdit session={session} tournament={tournament} registration={registration} language={language} onBack={() => {}} onSaved={() => {}} />);
+  renderWithQuery(<RegistrationEdit user={session.user} tournament={tournament} registration={registration} language={language} onBack={() => {}} onSaved={() => {}} />);
   fireEvent.click(screen.getByText(summary));
   expect(screen.getByRole("link", { name: "suporte@karlbruder.com" })).toHaveAttribute("href", "mailto:suporte@karlbruder.com");
   expect(screen.getByRole("link", { name: privacy })).toHaveAttribute("href", "/privacy-policy");
@@ -70,7 +71,7 @@ it("opens the accepted rules version from the read-only declarations", async () 
   const tab = { opener: window, location: { replace: vi.fn() }, close: vi.fn() };
   vi.stubGlobal("open", vi.fn(() => tab));
   vi.stubGlobal("fetch", request);
-  renderWithQuery(<RegistrationEdit session={session} tournament={tournament}
+  renderWithQuery(<RegistrationEdit user={session.user} tournament={tournament}
     registration={{ ...registration, rules_version_id: 11, cancellation_policy_version_id: null }}
     language="en" onBack={() => {}} onSaved={() => {}} />);
   fireEvent.click(screen.getByText("Review my declarations"));
@@ -78,8 +79,9 @@ it("opens the accepted rules version from the read-only declarations", async () 
   fireEvent.click(screen.getByRole("button", { name: /accepted tournament rules/ }));
   await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith(downloadUrl));
   expect(request).toHaveBeenNthCalledWith(1, "/api/tournaments/42/policy-documents/rules/11/download-url", {
-    headers: { Authorization: "Bearer token" },
+    headers: expect.any(Headers),
   });
+  expect((request.mock.calls[0][1]?.headers as Headers).get("Authorization")).toBe("Bearer token");
   expect(request).toHaveBeenNthCalledWith(2, signedUrl, { credentials: "omit" });
 });
 
@@ -88,7 +90,7 @@ it.each([true, false])("staff confirms cancellation when refunds allowed is %s",
   const request = vi.fn(async () => ({ ok: true, status: 204 }));
   vi.stubGlobal("fetch", request);
   const saved = vi.fn();
-  renderWithQuery(<RegistrationEdit staff session={session} tournament={{ ...tournament, refunds_allowed: refundsAllowed }} registration={{ ...registration, parental_consent_required: true }} language="en" onBack={() => {}} onSaved={saved} />);
+  renderWithQuery(<RegistrationEdit staff user={session.user} tournament={{ ...tournament, refunds_allowed: refundsAllowed }} registration={{ ...registration, parental_consent_required: true }} language="en" onBack={() => {}} onSaved={saved} />);
   expect(screen.getByText(/Signed parental consent form missing/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Cancel participation" }));
   expect(request).not.toHaveBeenCalled();
@@ -101,7 +103,7 @@ it.each([true, false])("staff confirms cancellation when refunds allowed is %s",
 
 it("shows a cancellation error and permits retry", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500 })));
-  renderWithQuery(<RegistrationEdit staff session={session} tournament={tournament} registration={registration} language="en" onBack={() => {}} onSaved={() => {}} />);
+  renderWithQuery(<RegistrationEdit staff user={session.user} tournament={tournament} registration={registration} language="en" onBack={() => {}} onSaved={() => {}} />);
   fireEvent.click(screen.getByRole("button", { name: "Cancel participation" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not cancel");

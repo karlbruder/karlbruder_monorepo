@@ -2,14 +2,14 @@ import { useState, type ReactNode } from "react";
 import { downloadTournamentDocument, type PolicyPurpose } from "@/features/tournament/api/tournaments";
 import { appCopy, type AppLanguage } from "@/utils/app-copy";
 
-export function TournamentDocumentButton({ label, children, className, tournamentId, purpose, versionId, token, language }: {
+export function TournamentDocumentButton({ label, children, className, tournamentId, purpose, versionId, userId, language }: {
   label: string;
   children?: ReactNode;
   className?: string;
   tournamentId: number;
   purpose?: PolicyPurpose;
   versionId: number;
-  token: string;
+  userId: string;
   language: AppLanguage;
 }) {
   const [state, setState] = useState<"ready" | "loading" | "error">("ready");
@@ -26,7 +26,7 @@ export function TournamentDocumentButton({ label, children, className, tournamen
     setState("loading");
     let objectUrl: string | undefined;
     try {
-      const file = await downloadTournamentDocument(tournamentId, purpose, versionId, token);
+      const file = await downloadTournamentDocument(tournamentId, purpose, versionId, userId);
       if (tab.closed) throw new Error("policy-tab-closed");
       const url = URL.createObjectURL(file);
       objectUrl = url;

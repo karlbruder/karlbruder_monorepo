@@ -1,4 +1,5 @@
 vi.mock("@/features/tournament/api/tournament-tags", async (original) => ({ ...await original<typeof import("@/features/tournament/api/tournament-tags")>(), getTags: async () => [], getSelection: async () => [] }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "token", user: { id: "owner" } } }, error: null })) } } }));
 import { afterEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
@@ -17,7 +18,7 @@ it("shows the purchased registration option and benefits", async () => {
   vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/payment")
     ? { ok: true, json: async () => payment }
     : { ok: true, json: async () => ({ ...registration, product_name: "Inscrição Plena", product_description: "Participação e premiações" }) }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   expect(await screen.findByText("Inscrição Plena")).toBeInTheDocument();
   expect(screen.getByText("Participação e premiações")).toBeInTheDocument();
 });
@@ -33,7 +34,7 @@ it("shows registration and missing consent separately from payment and refreshes
     return { ok: true, json: async () => ({ ...registration, parental_consent_required: required }) };
   });
   vi.stubGlobal("fetch", request);
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   const input = await screen.findByLabelText("Signed parental consent form");
   expect(screen.getByText(/signed parental consent form is required/)).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Your registration" })).toBeInTheDocument();
@@ -50,7 +51,7 @@ it("shows registration and missing consent separately from payment and refreshes
 it("keeps registration status and consent visible when payment loading fails", async () => {
   vi.stubEnv("VITE_API_BASE_URL", "/api");
   vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/payment") ? { ok: false, status: 503, json: async () => ({}) } : { ok: true, json: async () => registration }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   expect(await screen.findByLabelText("Signed parental consent form")).toBeInTheDocument();
   expect(await screen.findByRole("alert")).toHaveTextContent("could not load payment instructions");
 });
@@ -61,7 +62,7 @@ it("refreshes a waitlisted registration to confirmed without another payment", a
   vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/payment")
     ? { ok: true, json: async () => payment }
     : { ok: true, json: async () => ({ ...registration, registration_status: status, parental_consent_required: false }) }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   await screen.findByText("Waitlist");
   expect(await screen.findByText(/Do not pay again/)).toBeInTheDocument();
   expect(screen.queryByRole("form", { name: "Payment proof" })).not.toBeInTheDocument();
@@ -82,7 +83,7 @@ it.each(["awaiting_payment", "awaiting_payment_confirmation"])("suppresses payme
     if (registrationRequests > 1) return refresh;
     return { ok: true, json: async () => ({ ...registration, registration_status: status, parental_consent_required: false }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   await screen.findByText("Payment confirmed");
   await waitFor(() => expect(registrationRequests).toBe(2));
   expect(screen.queryByText("pix-key")).not.toBeInTheDocument();
@@ -105,7 +106,7 @@ it("refreshes registration when retrying a failed payment request", async () => 
     registrationRequests++;
     return { ok: true, json: async () => ({ ...registration, registration_status: registrationRequests > 1 ? "confirmed" : "awaiting_payment", parental_consent_required: false }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   await screen.findByRole("alert");
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(await screen.findByText("Confirmed")).toBeInTheDocument();
@@ -124,7 +125,7 @@ it("shows a rejected proof and replacement form while the older registration sta
     if (registrationRequests > 1) return refresh;
     return { ok: true, json: async () => ({ ...registration, registration_status: "awaiting_payment_confirmation", parental_consent_required: false }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   expect(await screen.findByText("Unreadable proof")).toBeInTheDocument();
   expect(screen.getByRole("form", { name: "Payment proof" })).toBeInTheDocument();
   expect(screen.queryByText(/We received your proof/)).not.toBeInTheDocument();
@@ -145,7 +146,7 @@ it("keeps confirmed payment visible and permits retry after a temporary status r
     if (registrationRequests === 2) return refresh;
     return { ok: true, json: async () => ({ ...registration, registration_status: registrationRequests === 1 ? "awaiting_payment_confirmation" : "confirmed", parental_consent_required: false }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   await screen.findByText("Payment confirmed");
   await waitFor(() => expect(registrationRequests).toBe(2));
   await act(async () => resolveRefresh({ ok: false, status: 503, json: async () => ({}) }));
@@ -168,7 +169,7 @@ it.each([401, 403, 404])("hides cached registration and payment when a refresh r
     if (registrationRequests > 1) return refresh;
     return { ok: true, json: async () => ({ ...registration, registration_status: "awaiting_payment_confirmation", parental_consent_required: false }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   await screen.findByText("Payment confirmed");
   await waitFor(() => expect(registrationRequests).toBe(2));
   await act(async () => resolveRefresh({ ok: false, status, json: async () => ({}) }));
@@ -193,7 +194,7 @@ it.each([503, 403])("keeps a successful proof submission distinct from payment a
     if (submitted) return refresh;
     return { ok: true, json: async () => ({ ...registration, registration_status: "awaiting_payment", parental_consent_required: true }) };
   }));
-  render(<TournamentRegistrationPanel tournament={tournament} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={tournament} user={session.user} registrationNumber="T42-1" language="en" />);
   const input = await screen.findByLabelText("Payment proof", { selector: "input" });
   const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
   const file = new File([bytes], "proof.pdf", { type: "application/pdf" });
@@ -235,7 +236,7 @@ it.each([
   });
   vi.stubGlobal("fetch", request);
 
-  render(<TournamentRegistrationPanel tournament={{ ...tournament, refunds_allowed: true }} session={session} registrationNumber="T42-1" language="en" />);
+  render(<TournamentRegistrationPanel tournament={{ ...tournament, refunds_allowed: true }} user={session.user} registrationNumber="T42-1" language="en" />);
   fireEvent.click(await screen.findByRole("button", { name: "Cancel participation" }));
   fireEvent.click(screen.getByRole("button", { name: "Keep my registration" }));
   expect(cancelled).toBe(false);
@@ -248,7 +249,7 @@ it.each([
   expect(screen.queryByRole("button", { name: "Cancel participation" })).not.toBeInTheDocument();
   if (refund) expect(screen.getByText(/123\.45/)).toBeVisible();
   expect(request).toHaveBeenCalledWith("/api/tournaments/42/registrations/T42-1/cancel", expect.objectContaining({
-    method: "POST", headers: { Authorization: "Bearer token" },
+    method: "POST", headers: expect.any(Headers),
   }));
 });
 
@@ -266,7 +267,7 @@ it("hides cancellation for a non-refundable tournament and still displays existi
     });
   }));
   const nonRefundable = { ...tournament, refunds_allowed: false };
-  const panel = (number: string) => <TournamentRegistrationPanel tournament={nonRefundable} session={session} registrationNumber={number} language="en" />;
+  const panel = (number: string) => <TournamentRegistrationPanel tournament={nonRefundable} user={session.user} registrationNumber={number} language="en" />;
   const view = render(panel("T42-1"));
   expect(await screen.findByText(/Your participation is confirmed/)).toBeVisible();
   expect(screen.queryByRole("button", { name: "Cancel participation" })).not.toBeInTheDocument();

@@ -3,13 +3,13 @@ import { getRegistrationRefund } from "@/features/tournament/api/registration-re
 import { formatRefundAmount, formatRefundDeadline, formatRefundTime } from "@/features/tournament/utils/format-refund";
 import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
 
-export function RegistrationRefundStatus({ token, userId, tournamentId, number, language }: {
-  token: string; userId: string; tournamentId: number; number: string; language: AppLanguage;
+export function RegistrationRefundStatus({ userId, tournamentId, number, language }: {
+  userId: string; tournamentId: number; number: string; language: AppLanguage;
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const query = useQuery({
     queryKey: ["tournaments", tournamentId, "registrations", number, "refund", userId],
-    queryFn: ({ signal }) => getRegistrationRefund(token, tournamentId, number, signal),
+    queryFn: ({ signal }) => getRegistrationRefund(userId, tournamentId, number, signal),
   });
   const refund = query.data;
   return <section className="registration-card">
