@@ -6,6 +6,7 @@
 This is a proposed technical model for implementation planning. Production conduction is not implemented. The governing contracts are [conduction](../specs/tournaments/conduction.md), [Monomachia](../specs/tournaments/events/monomachia-2027.md#conduction-rules), and [results](../specs/tournaments/results.md). The [validation handoff](tournament-conduction-validation.md#modeling-handoff) records the approved source and prototype limits. This document does not depend on the owner's unpublished file or the prototype's in-memory objects.
 
 The proposed [persistence and operations contracts](tournament-conduction-persistence.md) extend this policy model with relationships, transitions, concurrency and API examples.
+The [calculation and correction examples](tournament-conduction-calculations.md) define reproducible sporting consequences under a bound configuration.
 
 ## Context and ownership
 
