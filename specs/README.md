@@ -44,7 +44,7 @@ The [wireframes](design/app-wireframes/README.md) illustrate these contracts wit
 
 [Tournament conduction](tournaments/conduction.md) defines preparation, check-in, Arenas, calls and match/bound operation. [Monomachia](tournaments/events/monomachia-2027.md#conduction-rules) owns the adopted event-specific sporting policies. [Results](tournaments/results.md) owns the shared live consultation and final-publication boundary. The [validation record](../docs/tournament-conduction-validation.md) separates source adoption from later prototype review. Issue #91 delivers specifications and a simulated prototype, not production implementation.
 
-The [conduction model](../docs/tournament-conduction-model.md) describes the proposed configurable policy boundaries and reference configuration. It is a technical proposal, not evidence of production implementation.
+The [conduction model](../docs/tournament-conduction-model.md) describes the proposed configurable policy boundaries and reference configuration. It links the persistence and calculation models and the [unpublished implementation drafts](../docs/tournament-conduction-implementation-drafts.md). These are technical proposals, not evidence of production implementation.
 
 ## Question ownership and terminology
 

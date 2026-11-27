@@ -7,6 +7,7 @@ This is a proposed technical model for implementation planning. Production condu
 
 The proposed [persistence and operations contracts](tournament-conduction-persistence.md) extend this policy model with relationships, transitions, concurrency and API examples.
 The [calculation and correction examples](tournament-conduction-calculations.md) define reproducible sporting consequences under a bound configuration.
+The [implementation issue drafts](tournament-conduction-implementation-drafts.md) provide reviewable delivery slices and traceability. They have not been published.
 
 ## Context and ownership
 
@@ -25,7 +26,7 @@ The candidates below come from the v1.3 sketch as described in [issue #105](http
 | Warnings, penalty adjustments and byes | Adapt | Preserve sporting occurrences and derived sanctions. A bye is an allocation, not a fictional match. |
 | Tie-breaks and ranking resolutions | Keep | They capture explicit sporting decisions and pending exceptions without inventing winners. |
 | Sporting change history and official-result snapshots | Adapt | Preserve earlier official and published outcomes and support explicit downstream reconciliation. Corrections remain possible under the bound policy. |
-| Match-to-ruleset references and recalculable projections | Adapt | Each match and result must resolve to the tournament's bound version. Later modeling specifies reference and projection mechanics. Recalculation cannot silently replace an official result. |
+| Match-to-ruleset references and recalculable projections | Adapt | Each match and result must resolve to the tournament's bound version. The persistence model specifies reference and projection mechanics. Recalculation cannot silently replace an official result. |
 | Idempotent participant import and version-checked mutations | Keep | Source identity, retries and stale edits have observable guarantees under TC-005/022. |
 | Numbered Arenas | Add | TC-008–010 require configured numbered areas and cyclic queues. |
 | Standalone tournament and event/match-specific grants | Reject | The existing catalog owns the event and global admins already have access under TC-001/002. |
