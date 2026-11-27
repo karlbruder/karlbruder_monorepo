@@ -11,6 +11,11 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    env: {
+      VITE_SUPABASE_URL: 'https://test.example.invalid',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_not_a_real_key',
+      VITE_API_BASE_URL: '/api',
+    },
     setupFiles: ['./src/testing/setup.ts'],
   },
 })
