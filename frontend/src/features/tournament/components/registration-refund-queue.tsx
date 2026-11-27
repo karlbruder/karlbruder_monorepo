@@ -1,12 +1,13 @@
+import { currentSessionGeneration } from "@/lib/session-generation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { completeRegistrationRefund, listPendingRefunds, type StaffRegistrationRefund } from "@/features/tournament/api/registration-refunds";
 import { formatRefundAmount, formatRefundDeadline, formatRefundTime } from "@/features/tournament/utils/format-refund";
 import { appCopy, type AppCopyKey, type AppLanguage } from "@/utils/app-copy";
 
-function RefundCompletionForm({ refund, token, language, onRecorded, onClose }: {
+function RefundCompletionForm({ refund, userId, language, onRecorded, onClose }: {
   refund: StaffRegistrationRefund;
-  token: string;
+  userId: string;
   language: AppLanguage;
   onRecorded: (notificationSent: boolean) => void;
   onClose: () => void;
@@ -17,8 +18,9 @@ function RefundCompletionForm({ refund, token, language, onRecorded, onClose }: 
   useEffect(() => { heading.current?.focus(); }, []);
 
   const completion = useMutation({
-    mutationFn: (completedAt: string) => completeRegistrationRefund(token, refund, completedAt),
-    onSuccess: result => onRecorded(result.notification_result === "sent"),
+    onMutate: () => currentSessionGeneration(),
+    mutationFn: (completedAt: string) => completeRegistrationRefund(userId, refund, completedAt),
+    onSuccess: (result, _completedAt, generation) => { if (generation === currentSessionGeneration()) onRecorded(result.notification_result === "sent"); },
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -66,8 +68,8 @@ function RefundCompletionForm({ refund, token, language, onRecorded, onClose }: 
   </div>;
 }
 
-export function RegistrationRefundQueue({ token, userId, language }: {
-  token: string; userId: string; language: AppLanguage;
+export function RegistrationRefundQueue({ userId, language }: {
+  userId: string; language: AppLanguage;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
@@ -77,10 +79,10 @@ export function RegistrationRefundQueue({ token, userId, language }: {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const query = useQuery({
     queryKey: ["registration-refunds", userId, filter, offset],
-    queryFn: ({ signal }) => listPendingRefunds(token, filter, offset, signal),
+    queryFn: ({ signal }) => listPendingRefunds(userId, filter, offset, signal),
   });
 
-  if (selected) return <RefundCompletionForm refund={selected} token={token} language={language}
+  if (selected) return <RefundCompletionForm refund={selected} userId={userId} language={language}
     onClose={() => { setSelected(undefined); void query.refetch(); }}
     onRecorded={sent => {
       setSelected(undefined);

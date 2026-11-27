@@ -85,7 +85,7 @@ Mount providers at the lowest common ancestor of their consumers. Global mountin
 
 `features/<name>/api/` owns request functions and query or mutation hooks. It is the service layer. Do not add `services/` or a repository layer that only forwards arguments. Feature endpoints stay here, outside shared clients in `src/lib`.
 
-Auth API modules adapt the configured Supabase client. Domain API modules call FastAPI through `apiFetch` and `apiBaseUrl`. Private uploads use the backend-issued presigned URL and required headers. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
+Auth API modules adapt the configured Supabase client. Domain API modules call FastAPI through `backendFetch`. Private uploads use the backend-issued presigned URL and required headers. Routes own navigation. Keep request types beside their functions until a separate feature type module clarifies ownership.
 
 Keep controlled fields and submission feedback near the form. Separate meaningful notices, summaries, and panels when that improves readability. For large forms, extract payload parsing, validation, or request-error mapping into feature utilities before introducing a universal form framework. Preserve input values, duplicate-submit protection, errors, translations, and success behavior.
 

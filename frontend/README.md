@@ -88,9 +88,8 @@ Keep `VITE_API_BASE_URL=/api`.
 | Production Compose | Separate Nginx service to the backend. The frontend image's Nginx serves static assets |
 
 All three preserve `/api`. Feature API modules use the shared request boundary.
-The new `src/lib/backend-api-client.ts` obtains the current Supabase session for
-each request and limits credentials to the configured backend. Existing callers
-still use `src/lib/api-fetch.ts` during migration. Private uploads send bytes
+`src/lib/backend-api-client.ts` obtains the current Supabase session for
+each request and limits credentials to the configured backend. Private uploads send bytes
 directly to a backend-issued presigned URL, outside the backend client.
 
 Follow the [tournament API guide](../backend/app/tournaments/README.md) for registration,

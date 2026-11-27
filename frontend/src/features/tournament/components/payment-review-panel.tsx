@@ -1,13 +1,14 @@
+import { currentSessionGeneration } from "@/lib/session-generation";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { decidePaymentReview, getReviewDocument, PaymentReviewRequestError, usePaymentReview, type ReviewDetail, type ReviewDecision } from "@/features/tournament/api/payment-reviews";
 import { appCopy, type AppLanguage, type AppCopyKey } from "@/utils/app-copy";
 
-function ReviewDocument({ token, number, document, language }: {
-  token: string; number: string; document: ReviewDetail["documents"][number]; language: AppLanguage;
+function ReviewDocument({ userId, number, document, language }: {
+  userId: string; number: string; document: ReviewDetail["documents"][number]; language: AppLanguage;
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
-  const link = useMutation({ mutationFn: () => getReviewDocument(token, number, document.id) });
+  const link = useMutation({ mutationFn: () => getReviewDocument(userId, number, document.id) });
   return <li>
     <strong>{document.original_file_name}</strong> · #{document.id}
     <p>{document.content_type} · {Math.ceil(document.size_bytes / 1024)} KB · {new Date(document.submitted_at).toLocaleString(language)}</p>
@@ -17,10 +18,10 @@ function ReviewDocument({ token, number, document, language }: {
   </li>;
 }
 
-export function PaymentReviewPanel({ token, userId, number, language }: {
-  token: string; userId: string; number: string; language: AppLanguage;
+export function PaymentReviewPanel({ userId, number, language }: {
+  userId: string; number: string; language: AppLanguage;
 }) {
-  const query = usePaymentReview(token, userId, number);
+  const query = usePaymentReview(userId, number);
   const t = (key: AppCopyKey) => appCopy(language, key);
   if (query.isPending) return <p role="status">{t("Carregando análises...")}</p>;
   if (query.isError && (!query.data || (query.error instanceof PaymentReviewRequestError && [403, 404].includes(query.error.status)))) return <>
@@ -28,11 +29,11 @@ export function PaymentReviewPanel({ token, userId, number, language }: {
     <button onClick={() => void query.refetch()}>{t("Tentar novamente")}</button>
   </>;
   if (!query.data) return null;
-  return <>{query.isError && <p role="alert">{t("Não foi possível carregar as análises.")}</p>}<ReviewForm key={number} detail={query.data} token={token} language={language} reload={async () => { const result = await query.refetch(); return result.isError ? undefined : result.data; }} /></>;
+  return <>{query.isError && <p role="alert">{t("Não foi possível carregar as análises.")}</p>}<ReviewForm key={number} detail={query.data} userId={userId} language={language} reload={async () => { const result = await query.refetch(); return result.isError ? undefined : result.data; }} /></>;
 }
 
-function ReviewForm({ detail, token, language, reload }: {
-  detail: ReviewDetail; token: string; language: AppLanguage; reload: () => Promise<ReviewDetail | undefined>;
+function ReviewForm({ detail, userId, language, reload }: {
+  detail: ReviewDetail; userId: string; language: AppLanguage; reload: () => Promise<ReviewDetail | undefined>;
 }) {
   const t = (key: AppCopyKey) => appCopy(language, key);
   const client = useQueryClient();
@@ -47,12 +48,15 @@ function ReviewForm({ detail, token, language, reload }: {
   const [refreshed, setRefreshed] = useState(false);
   const [openedAt] = useState(() => Date.now());
   const mutation = useMutation({
-    mutationFn: (payload: ReviewDecision) => decidePaymentReview(token, detail.registration.registration_number, payload),
-    onSuccess: () => {
+    onMutate: () => currentSessionGeneration(),
+    mutationFn: (payload: ReviewDecision) => decidePaymentReview(userId, detail.registration.registration_number, payload),
+    onSuccess: (_result, _payload, generation) => {
+      if (generation !== currentSessionGeneration()) return;
       void client.invalidateQueries({ queryKey: ["payment-reviews"] });
       void client.invalidateQueries({ queryKey: ["tournaments", detail.registration.tournament_id] });
     },
-    onError: failure => {
+    onError: (failure, _payload, generation) => {
+      if (generation !== currentSessionGeneration()) return;
       if (failure instanceof PaymentReviewRequestError && failure.status === 409) setStale(true);
       else setError("Não foi possível registrar a análise. Confira os dados e tente novamente.");
     },
@@ -98,11 +102,11 @@ function ReviewForm({ detail, token, language, reload }: {
     </section>}
     <div className="review-columns"><div>
       <section className="review-card"><h2>{t("Comprovante mais recente")}</h2>
-        <ul className="review-documents">{detail.documents.filter(doc => doc.id === detail.latest_document_id).map(doc => <ReviewDocument key={doc.id} token={token} number={r.registration_number} document={doc} language={language} />)}</ul>
+        <ul className="review-documents">{detail.documents.filter(doc => doc.id === detail.latest_document_id).map(doc => <ReviewDocument key={doc.id} userId={userId} number={r.registration_number} document={doc} language={language} />)}</ul>
         {!detail.latest_document_id && <p>{t("Nenhum documento disponível.")}</p>}
         <h3>{t("Termo do responsável")}</h3>
-        <ul className="review-documents">{detail.documents.filter(doc => doc.document_type === "parental_consent_form").map(doc => <ReviewDocument key={doc.id} token={token} number={r.registration_number} document={doc} language={language} />)}</ul>
-        <details><summary>{t("Histórico de documentos")}</summary><ul className="review-documents">{detail.documents.filter(doc => doc.document_type === "payment_proof" && doc.id !== detail.latest_document_id).map(doc => <ReviewDocument key={doc.id} token={token} number={r.registration_number} document={doc} language={language} />)}</ul></details>
+        <ul className="review-documents">{detail.documents.filter(doc => doc.document_type === "parental_consent_form").map(doc => <ReviewDocument key={doc.id} userId={userId} number={r.registration_number} document={doc} language={language} />)}</ul>
+        <details><summary>{t("Histórico de documentos")}</summary><ul className="review-documents">{detail.documents.filter(doc => doc.document_type === "payment_proof" && doc.id !== detail.latest_document_id).map(doc => <ReviewDocument key={doc.id} userId={userId} number={r.registration_number} document={doc} language={language} />)}</ul></details>
       </section>
       <section className="review-card"><h2>{t("Dados e elegibilidade")}</h2><dl>
         {fact("Nome completo", r.full_name)}{fact("Data de nascimento", r.birth_date)}{fact("Equipe", r.school_or_team_name)}{fact("Instrutor responsável (opcional)", r.instructor_name)}

@@ -1,3 +1,5 @@
+import { backendFetch } from "@/lib/backend-api-client";
+
 export type HealthResponse = {
   status: string;
   service?: string;
@@ -8,8 +10,8 @@ export type HealthResponse = {
 };
 
 export async function getHealthStatus() {
-  const healthResponse = await fetch("/api/health");
-  const databaseResponse = await fetch("/api/health/db");
+  const healthResponse = await backendFetch("/health", {}, { authentication: "optional" });
+  const databaseResponse = await backendFetch("/health/db", {}, { authentication: "optional" });
   for (const response of [healthResponse, databaseResponse]) {
     if (!response.ok) throw new Error(`The API responded with HTTP ${response.status}`);
   }

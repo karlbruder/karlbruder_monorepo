@@ -6,7 +6,6 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import AppProvider from "@/app/provider";
 import { useAuthSession } from "@/features/auth/hooks/use-auth-session";
 import { supabase } from "@/lib/supabase-client";
-import { apiFetch } from "@/lib/api-fetch";
 import { backendFetch } from "@/lib/backend-api-client";
 
 vi.mock("@/lib/supabase-client", () => ({
@@ -87,7 +86,7 @@ describe("AppProvider", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }));
     render(
       <AppProvider>
-        <button type="button" onClick={() => void apiFetch("/api/tournaments/42/registrations")}>Carregar</button>
+        <button type="button" onClick={() => void backendFetch("/tournaments/42/registrations", {}, { authentication: "required", expectedAccountId: "account-a" })}>Carregar</button>
       </AppProvider>,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Carregar" }));

@@ -1,3 +1,4 @@
+import { currentSessionGeneration } from "@/lib/session-generation";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -7,12 +8,12 @@ import { TagPills } from "@/features/tournament/components/tournament-tags";
 import "@/features/tournament/components/tournament-registration.css";
 import "@/features/tournament/components/waitlist.css";
 
-type Props = { token: string; userId: string; tournamentId: string; language: "pt" | "en" };
+type Props = { userId: string; tournamentId: string; language: "pt" | "en" };
 type Action = { number: string; name: string; type: "confirm" | "cancel" };
 
-export function Waitlist({ token, userId, tournamentId, language }: Props) {
+export function Waitlist({ userId, tournamentId, language }: Props) {
   const en = language === "en";
-  const query = useQuery({ queryKey: ["waitlist", userId, tournamentId], queryFn: ({ signal }) => getWaitlist(token, tournamentId, signal), refetchOnMount: "always" });
+  const query = useQuery({ queryKey: ["waitlist", userId, tournamentId], queryFn: ({ signal }) => getWaitlist(userId, tournamentId, signal), refetchOnMount: "always" });
   const [action, setAction] = useState<Action | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -21,25 +22,30 @@ export function Waitlist({ token, userId, tournamentId, language }: Props) {
 
   async function submit() {
     if (!action || pending) return;
+    const generation = currentSessionGeneration();
     setPending(true); setError(""); setResult(null);
     try {
       if (action.type === "confirm") {
-        await confirmWaitlist(token, tournamentId, action.number);
+        await confirmWaitlist(userId, tournamentId, action.number);
+        if (generation !== currentSessionGeneration()) return;
         setResult({ message: en ? `${action.name}: participation confirmed.` : `${action.name}: participação confirmada.` });
       } else {
         await cancelRegistration(userId, Number(tournamentId), action.number);
         try {
           const refund = await getRegistrationRefund(userId, Number(tournamentId), action.number);
+          if (generation !== currentSessionGeneration()) return;
           setResult(refund?.refund_status === "awaiting_refund"
             ? { message: en ? `${action.name}: registration cancelled. A refund is awaiting processing.` : `${action.name}: inscrição cancelada. Há um reembolso aguardando processamento.`, refund: true }
             : { message: en ? `${action.name}: registration cancelled without an awaiting refund.` : `${action.name}: inscrição cancelada sem reembolso pendente.` });
         } catch {
-          setResult({ message: en ? `${action.name}: registration cancelled. Could not check the refund; check the refund queue.` : `${action.name}: inscrição cancelada. Não foi possível consultar o reembolso; verifique a fila de reembolsos.`, refund: true });
+          if (generation !== currentSessionGeneration()) return;
+        setResult({ message: en ? `${action.name}: registration cancelled. Could not check the refund; check the refund queue.` : `${action.name}: inscrição cancelada. Não foi possível consultar o reembolso; verifique a fila de reembolsos.`, refund: true });
         }
       }
       setAction(null);
       await query.refetch();
     } catch (caught) {
+      if (generation !== currentSessionGeneration()) return;
       setError(action.type === "confirm" && caught instanceof WaitlistError && caught.status === 422
         ? (en ? "The signed parental consent form is required before confirmation." : "O termo de responsabilidade assinado é necessário antes da confirmação.")
         : action.type === "confirm" && caught instanceof WaitlistError && caught.status === 409

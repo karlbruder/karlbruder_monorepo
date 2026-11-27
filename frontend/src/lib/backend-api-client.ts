@@ -1,7 +1,13 @@
 import { apiBaseUrl } from "@/config/environment";
-import { notifyApiUnauthorized } from "@/lib/api-fetch";
 import { supabase } from "@/lib/supabase-client";
 import { currentSessionGeneration } from "@/lib/session-generation";
+
+type RequestSession = { accountId: string; accessToken: string; generation: number } | null;
+type ApiUnauthorizedHandler = (session: RequestSession) => void;
+let apiUnauthorizedHandler: ApiUnauthorizedHandler | null = null;
+export function setApiUnauthorizedHandler(handler: ApiUnauthorizedHandler | null) {
+  apiUnauthorizedHandler = handler;
+}
 
 type BackendRequestOptions = {
   authentication: "optional" | "required";
@@ -43,7 +49,7 @@ export async function backendFetch(path: string, init: RequestInit = {}, options
   const response = await fetch(url, { ...init, headers });
   if (generation !== currentSessionGeneration()) throw new DOMException("Session changed", "AbortError");
   if (response.status === 401) {
-    notifyApiUnauthorized(session ? { accountId: session.user.id, accessToken: session.access_token, generation } : null);
+    apiUnauthorizedHandler?.(session ? { accountId: session.user.id, accessToken: session.access_token, generation } : null);
   }
   return response;
 }

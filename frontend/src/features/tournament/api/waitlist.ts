@@ -1,5 +1,4 @@
-import { apiBaseUrl } from "@/config/environment";
-import { apiFetch } from "@/lib/api-fetch";
+import { backendFetch } from "@/lib/backend-api-client";
 import type { StaffRegistrationSummary } from "@/features/tournament/api/tournaments";
 
 export type Waitlist = {
@@ -13,18 +12,18 @@ export class WaitlistError extends Error {
   constructor(status: number) { super(`http-${status}`); this.status = status; }
 }
 
-async function request<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${path}`, {
-    ...init, headers: { Authorization: `Bearer ${token}` },
-  });
+async function request<T>(userId: string, path: string, init: RequestInit = {}): Promise<T> {
+  const response = await backendFetch(`/staff/tournaments/${path}`, {
+    ...init,
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new WaitlistError(response.status);
   return response.json();
 }
 
-export function getWaitlist(token: string, tournamentId: string, signal?: AbortSignal) {
-  return request<Waitlist>(token, `${encodeURIComponent(tournamentId)}/waitlist`, { signal });
+export function getWaitlist(userId: string, tournamentId: string, signal?: AbortSignal) {
+  return request<Waitlist>(userId, `${encodeURIComponent(tournamentId)}/waitlist`, { signal });
 }
 
-export function confirmWaitlist(token: string, tournamentId: string, number: string) {
-  return request<{ registration_status: string }>(token, `${encodeURIComponent(tournamentId)}/registrations/${encodeURIComponent(number)}/confirm`, { method: "POST" });
+export function confirmWaitlist(userId: string, tournamentId: string, number: string) {
+  return request<{ registration_status: string }>(userId, `${encodeURIComponent(tournamentId)}/registrations/${encodeURIComponent(number)}/confirm`, { method: "POST" });
 }

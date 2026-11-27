@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createRegistration, listOwnRegistrations, listPersonalRegistrations, listStaffRegistrations, requestParentalConsentFormUploadUrl, uploadFileToPresignedUrl, type RegistrationCreate } from '@/features/tournament/api/tournaments'
-import { setApiUnauthorizedHandler } from '@/lib/api-fetch'
+import { setApiUnauthorizedHandler } from '@/lib/backend-api-client'
 
 vi.mock('@/lib/supabase-client', () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: 'owner-token', user: { id: 'owner' } } }, error: null })) } } }))
 
@@ -56,8 +56,8 @@ describe('tournament registration API', () => {
     vi.stubGlobal('fetch', request)
     vi.stubEnv('VITE_API_BASE_URL', '/api')
 
-    expect(await listStaffRegistrations('staff-token', 42)).toEqual(summaries)
-    expect(request).toHaveBeenCalledWith('/api/staff/tournaments/42/registrations', expect.objectContaining({ headers: { Authorization: 'Bearer staff-token' } }))
+    expect(await listStaffRegistrations('owner', 42)).toEqual(summaries)
+    expect(request).toHaveBeenCalledWith('/api/staff/tournaments/42/registrations', expect.objectContaining({ headers: expect.any(Headers) }))
   })
 
   it('createRegistration sends JSON with the bearer token', async () => {

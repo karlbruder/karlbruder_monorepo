@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backendFetch } from "@/lib/backend-api-client";
-import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
+import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
 import { supabase } from "@/lib/supabase-client";
 import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 

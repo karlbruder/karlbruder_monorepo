@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSession, onAuthStateChange, signInWithOAuth, signOut as requestSignOut } from "@/features/auth/api/auth";
-import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
+import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
 import { advanceSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 import type { AppCopyKey } from "@/utils/app-copy";
 
@@ -19,10 +19,10 @@ export function useAuthSessionState() {
 
   useEffect(() => {
     setApiUnauthorizedHandler((requestSession) => {
-      if (requestSession !== undefined && (!requestSession ||
+      if (!requestSession ||
         requestSession.generation !== currentSessionGeneration() ||
         requestSession.accountId !== currentSessionRef.current?.user.id ||
-        requestSession.accessToken !== currentSessionRef.current?.access_token)) return;
+        requestSession.accessToken !== currentSessionRef.current?.access_token) return;
       if (expiredSignOutStartedRef.current) return;
       expiredSignOutStartedRef.current = true;
       userInitiatedSignOutRef.current = false;

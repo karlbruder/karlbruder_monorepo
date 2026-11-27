@@ -16,8 +16,8 @@ export function StaffAthletesRoute() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const en = language === "en";
-  const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
-  const totals = useQuery({ queryKey: ["staff-registration-totals", session!.user.id, tournamentId], queryFn: ({ signal }) => getStaffRegistrationTotals(session!.access_token, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const query = useQuery({ queryKey: ["staff-registrations", session!.user.id, tournamentId], queryFn: ({ signal }) => listStaffRegistrations(session!.user.id, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
+  const totals = useQuery({ queryKey: ["staff-registration-totals", session!.user.id, tournamentId], queryFn: ({ signal }) => getStaffRegistrationTotals(session!.user.id, tournamentId, signal), refetchOnMount: "always", enabled: !registrationNumber });
   const details = useQuery({
     queryKey: ["staff-registration", session!.user.id, tournamentId, registrationNumber],
     queryFn: ({ signal }) => getOwnRegistration(Number(tournamentId), registrationNumber!, session!.user.id, signal),

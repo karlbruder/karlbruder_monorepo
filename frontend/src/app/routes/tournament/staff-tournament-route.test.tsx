@@ -49,7 +49,7 @@ it("lists multiple tournaments and saves tournament settings independently of do
     expect(payload).not.toHaveProperty(field);
   }
   expect(JSON.parse(init.body)).not.toHaveProperty("registration_fee_amount");
-  expect(init.headers.Authorization).toBe("Bearer staff-token");
+  expect(init.headers.get("Authorization")).toBe("Bearer staff-token");
   await screen.findByRole("link", { name: "Second event" });
 });
 it("opens the saved tournament for document uploads after creating it", async () => {
@@ -120,7 +120,7 @@ it("publishes both policies independently and keeps the current file on a failed
   expect([...put.headers]).toEqual([["content-type", "application/octet-stream"]]);
   expect(put.body).toBe(newRules);
   const [, finalize] = fetchMock.mock.calls.find(([url]) => url === endpoint + "/rules")!;
-  expect(finalize.headers.Authorization).toBe("Bearer staff-token");
+  expect(finalize.headers.get("Authorization")).toBe("Bearer staff-token");
   expect(JSON.parse(finalize.body)).toEqual({ storage_key: "stage-rules", original_file_name: "regras-novas.pdf" });
 });
 
@@ -318,4 +318,28 @@ it.each(["edit", "create", "delete"])("does not redirect a later draft when a pe
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Second draft" } });
   await act(async () => { finish(operation === "delete" ? new Response(null, { status: 204 }) : json(event)); });
   expect(screen.getByLabelText("Nome")).toHaveValue("Second draft");
+});
+
+it("does not finalize a staff document upload after the session changes", async () => {
+  const { advanceSessionGeneration } = await import("@/lib/session-generation");
+  const endpoint = "/api/staff/tournaments/1/policy-documents/rules";
+  const storage = "https://storage.example.test/pending";
+  let finishUpload!: (response: Response) => void;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === endpoint + "/upload-url") return json({ storage_key: "staged", upload_url: storage, required_headers: { "Content-Type": "application/pdf" } });
+    if (url === storage) return new Promise<Response>(resolve => { finishUpload = resolve; });
+    if (url.endsWith("/policy-documents")) return json({});
+    if (url.endsWith("/documents")) return json([]);
+    return json(event);
+  });
+  render(tree("/staff/tournaments/1"));
+  const rules = within(await screen.findByRole("region", { name: "Regulamento" }));
+  fireEvent.click(rules.getByRole("button", { name: "Enviar arquivo" }));
+  fireEvent.change(rules.getByLabelText("Arquivo"), { target: { files: [new File(["%PDF"], "rules.pdf", { type: "application/pdf" })] } });
+  fireEvent.click(rules.getByRole("button", { name: "Publicar documento" }));
+  await waitFor(() => expect(finishUpload).toBeTypeOf("function"));
+  advanceSessionGeneration();
+  finishUpload(new Response(null, { status: 200 }));
+  await waitFor(() => expect(rules.getByRole("button", { name: "Publicar documento" })).not.toBeDisabled());
+  expect(fetchMock.mock.calls.some(([url]) => url === endpoint)).toBe(false);
 });

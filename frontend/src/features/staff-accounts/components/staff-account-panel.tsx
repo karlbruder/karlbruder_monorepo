@@ -63,12 +63,12 @@ const copy = {
   },
 };
 
-type PanelProps = { token: string; actorId: string; language: AppLanguage };
+type PanelProps = { actorId: string; language: AppLanguage };
 
-function AccountRoleForm({ account, token, actorId, language }: PanelProps & { account: StaffAccount }) {
+function AccountRoleForm({ account, actorId, language }: PanelProps & { account: StaffAccount }) {
   const labels = copy[language];
   const [draft, setDraft] = useState<ApplicationRole | null>(null);
-  const update = useUpdateStaffAccountRole(token, actorId, account.id);
+  const update = useUpdateStaffAccountRole(actorId, account.id);
   const role = draft ?? account.role;
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -111,9 +111,9 @@ function AccountRoleForm({ account, token, actorId, language }: PanelProps & { a
   );
 }
 
-export function StaffAccountPanel({ token, actorId, language }: PanelProps) {
+export function StaffAccountPanel({ actorId, language }: PanelProps) {
   const labels = copy[language];
-  const accounts = useStaffAccounts(token, actorId);
+  const accounts = useStaffAccounts(actorId);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const term = search.trim().toLowerCase();
@@ -147,7 +147,7 @@ export function StaffAccountPanel({ token, actorId, language }: PanelProps) {
       {showResults && (matches.length === 0
         ? <div className="operational-empty"><p>{labels.empty}</p></div>
         : <ul className="staff-account-list">{matches.slice(start, start + pageSize).map((account) =>
-            <AccountRoleForm key={account.id} account={account} token={token} actorId={actorId} language={language} />,
+            <AccountRoleForm key={account.id} account={account} actorId={actorId} language={language} />,
           )}</ul>)}
       {showResults && pageCount > 1 && (
         <nav aria-label={labels.pages}>

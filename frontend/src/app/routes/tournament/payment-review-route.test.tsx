@@ -7,10 +7,10 @@ import AppRouter from "@/app/router";
 import { AuthSessionContext } from "@/features/auth/hooks/use-auth-session";
 import { LanguageProvider } from "@/components/language-provider";
 import { createQueryClient } from "@/lib/query-client";
-import { setApiUnauthorizedHandler } from "@/lib/api-fetch";
+import { setApiUnauthorizedHandler } from "@/lib/backend-api-client";
 import type { ReviewDetail } from "@/features/tournament/api/payment-reviews";
 
-vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: {} } }));
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "staff-id" } } }, error: null })) } } }));
 const admin = { access_token: "staff-token", user: { id: "staff-id", app_metadata: { karlbruder_role: "admin" }, user_metadata: {} } } as unknown as Session;
 const detail: ReviewDetail = {
   registration: {
@@ -133,7 +133,7 @@ it("validates actual amounts and acknowledgements and submits the displayed proo
   await waitFor(() => expect(decisions()).toHaveLength(1));
   expect(screen.getByRole("button", { name: "Aprovar pagamento" })).toBeDisabled();
   expect(JSON.parse(decisions()[0][1].body)).toEqual({ document_id: 20, decision: "approved", amount_received: "123.45", requirements_checked: true });
-  expect(decisions()[0][1].headers.Authorization).toBe("Bearer staff-token");
+  expect(decisions()[0][1].headers.get("Authorization")).toBe("Bearer staff-token");
   await act(async () => finish(json({ review: detail.reviews[0], registration_status: "waitlist", notification_result: "sent" })));
   await screen.findByText("Pagamento aprovado. Lista de espera, sem vaga confirmada.");
   expect(screen.queryByRole("button", { name: "Aprovar pagamento" })).not.toBeInTheDocument();

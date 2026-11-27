@@ -1,3 +1,4 @@
+vi.mock("@/lib/supabase-client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "staff-token", user: { id: "staff" } } }, error: null })) } } }));
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderWithQuery } from "@/testing/render-with-query";
@@ -16,7 +17,7 @@ it("submits existing selections and multiple new drafts with the tournament and 
     if (init?.method === "POST") return json({ detail: "failure" }, 503);
     return json([]);
   });
-  renderWithQuery(<StaffTournamentForm token="token" userId="staff" language="pt" onSaved={vi.fn()} />);
+  renderWithQuery(<StaffTournamentForm userId="staff" language="pt" onSaved={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Torneio" } });
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(await screen.findByRole("checkbox", { name: /Plena/ }));
@@ -42,7 +43,7 @@ it("submits existing selections and multiple new drafts with the tournament and 
 
 it("requires review of all linked tournaments before saving, and cancel makes no mutation", async () => {
   fetchMock.mockImplementation(async (url: string) => url.includes("/products") ? json([product]) : json({}));
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="pt" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="pt" />);
   fireEvent.click(await screen.findByRole("button", { name: "Editar detalhes" }));
   expect(screen.getByLabelText("Nome do produto")).toHaveFocus();
   fireEvent.change(screen.getByLabelText("Nome do produto"), { target: { value: "Nova Plena" } });
@@ -64,7 +65,7 @@ it("retains price changes after a failed save and supports retry", async () => {
     if (url.endsWith("/prices") && init?.method === "POST") return ++attempts === 1 ? json({}, 503) : json({});
     return json([product]);
   });
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="en" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="en" />);
   fireEvent.click(await screen.findByRole("button", { name: "Change price" }));
   fireEvent.change(screen.getByLabelText("New price in BRL"), { target: { value: "120.50" } });
   fireEvent.click(screen.getByRole("button", { name: "Review change" }));
@@ -82,7 +83,7 @@ it("links an existing product to an existing tournament", async () => {
     if (url === "/api/staff/tournaments/1/products") return json([]);
     return json([product]);
   });
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="pt" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="pt" />);
   fireEvent.click(await screen.findByRole("button", { name: "Adicionar produto" }));
   fireEvent.click(await screen.findByRole("checkbox", { name: /Plena/ }));
   fireEvent.click(screen.getByRole("button", { name: "Adicionar ao torneio" }));
@@ -107,7 +108,7 @@ it("refreshes a conflicting attachment and saves the remaining selection and ret
     }
     return json(url === "/api/staff/tournaments/1/products" ? (attached ? [product] : []) : catalog);
   });
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="en" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="en" />);
   fireEvent.click(await screen.findByRole("button", { name: "Add product" }));
   fireEvent.click(await screen.findByRole("checkbox", { name: /Plena/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /Social/ }));
@@ -133,7 +134,7 @@ it("refreshes a conflicting attachment and saves the remaining selection and ret
 
 it("blocks invalid draft prices without sending a tournament request", async () => {
   fetchMock.mockResolvedValue(json([]));
-  renderWithQuery(<StaffTournamentForm token="token" userId="staff" language="pt" onSaved={vi.fn()} />);
+  renderWithQuery(<StaffTournamentForm userId="staff" language="pt" onSaved={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Torneio" } });
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(screen.getByRole("button", { name: "Adicionar novo produto" }));
@@ -151,13 +152,13 @@ it("confirms global deactivation and blocks duplicate submission while pending",
     if (url.endsWith("/deactivate") && init?.method === "POST") return new Promise<Response>(resolve => { finish = resolve; });
     return json([product]);
   });
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="pt" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="pt" />);
   fireEvent.click(await screen.findByRole("button", { name: "Desativar" }));
   const review = screen.getByRole("region", { name: "Confirmar alteração compartilhada" });
   expect(within(review).getByText(/Primeiro, Segundo/)).toBeInTheDocument();
   fireEvent.click(within(review).getByRole("button", { name: "Confirmar alteração" }));
   expect(within(review).getByRole("button", { name: "Salvando..." })).toBeDisabled();
-  expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/deactivate"))).toHaveLength(1);
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/deactivate"))).toHaveLength(1));
   finish(json({}));
   expect(await screen.findByRole("status")).toHaveTextContent("Produto atualizado.");
 });
@@ -165,7 +166,7 @@ it("confirms global deactivation and blocks duplicate submission while pending",
 it("retries a failed catalog load without losing a new product draft", async () => {
   let loads = 0;
   fetchMock.mockImplementation(async () => ++loads === 1 ? json({}, 503) : json([product]));
-  renderWithQuery(<StaffTournamentForm token="token" userId="staff" language="en" onSaved={vi.fn()} />);
+  renderWithQuery(<StaffTournamentForm userId="staff" language="en" onSaved={vi.fn()} />);
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not load products");
   fireEvent.click(screen.getByRole("button", { name: "Add new product" }));
   fireEvent.change(screen.getByLabelText("Product name"), { target: { value: "Draft" } });
@@ -181,7 +182,7 @@ it("lets staff remove a product that became inactive while creating a tournament
     if (init?.method === "POST") return json({ detail: "Product is inactive" }, 409);
     return json([]);
   });
-  renderWithQuery(<StaffTournamentForm token="token" userId="staff" language="pt" onSaved={vi.fn()} />);
+  renderWithQuery(<StaffTournamentForm userId="staff" language="pt" onSaved={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Torneio" } });
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
   fireEvent.click(await screen.findByRole("checkbox", { name: /Plena/ }));
@@ -197,10 +198,29 @@ it("lets staff remove a product that became inactive while creating a tournament
 
 it("shows an access error after a shared product save is denied", async () => {
   fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => init?.method === "PATCH" ? json({}, 403) : json([product]));
-  renderWithQuery(<TournamentProducts token="token" userId="staff" tournamentId="1" language="pt" />);
+  renderWithQuery(<TournamentProducts userId="staff" tournamentId="1" language="pt" />);
   fireEvent.click(await screen.findByRole("button", { name: "Editar detalhes" }));
   fireEvent.click(screen.getByRole("button", { name: "Revisar alteração" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirmar alteração" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Acesso negado");
   expect(within(screen.getByRole("region", { name: "Confirmar alteração compartilhada" })).getByText(/Primeiro, Segundo/)).toBeInTheDocument();
+});
+
+it("does not finish a tournament creation after the staff session changes", async () => {
+  const { advanceSessionGeneration } = await import("@/lib/session-generation");
+  let finish!: (response: Response) => void;
+  fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+    if (init?.method === "POST") return new Promise<Response>(resolve => { finish = resolve; });
+    return json([]);
+  });
+  const onSaved = vi.fn();
+  renderWithQuery(<StaffTournamentForm userId="staff" language="pt" onSaved={onSaved} />);
+  fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Torneio" } });
+  fireEvent.change(screen.getByLabelText("Início"), { target: { value: "2027-01-17" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar torneio" }));
+  await waitFor(() => expect(finish).toBeTypeOf("function"));
+  advanceSessionGeneration();
+  finish(json({ id: 42 }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Salvar torneio" })).not.toBeDisabled());
+  expect(onSaved).not.toHaveBeenCalled();
 });

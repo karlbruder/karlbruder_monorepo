@@ -1,5 +1,3 @@
-import { apiBaseUrl } from "@/config/environment";
-import { apiFetch } from "@/lib/api-fetch";
 import { backendFetch } from "@/lib/backend-api-client";
 
 export type RegistrationRefund = {
@@ -28,11 +26,11 @@ function registrationPath(tournamentId: number, number: string) {
   return `/tournaments/${tournamentId}/registrations/${encodeURIComponent(number)}`;
 }
 
-async function request(token: string, path: string, init: RequestInit = {}) {
-  const response = await apiFetch(`${apiBaseUrl()}${path}`, {
+async function request(userId: string, path: string, init: RequestInit = {}) {
+  const response = await backendFetch(`${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-  });
+    headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   return response;
 }
@@ -51,19 +49,19 @@ export async function getRegistrationRefund(
 }
 
 export async function listPendingRefunds(
-  token: string, filter: string, offset: number, signal?: AbortSignal,
+  userId: string, filter: string, offset: number, signal?: AbortSignal,
 ): Promise<RefundQueue> {
   const params = new URLSearchParams({ limit: "20", offset: String(offset) });
   if (filter) params.set("registration_number", filter);
-  const response = await request(token, `/staff/tournaments/refunds?${params}`, { signal });
+  const response = await request(userId, `/staff/tournaments/refunds?${params}`, { signal });
   return response.json();
 }
 
 export async function completeRegistrationRefund(
-  token: string, refund: StaffRegistrationRefund, completedAt: string,
+  userId: string, refund: StaffRegistrationRefund, completedAt: string,
 ): Promise<{ notification_result: string }> {
   const response = await request(
-    token, `/staff${registrationPath(refund.tournament_id, refund.registration_number)}/refund/complete`,
+    userId, `/staff${registrationPath(refund.tournament_id, refund.registration_number)}/refund/complete`,
     { method: "POST", body: JSON.stringify({ completed_at: completedAt }) },
   );
   return response.json();

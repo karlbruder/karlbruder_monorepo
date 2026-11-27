@@ -10,7 +10,6 @@ export function StaffAccountsRoute() {
     <StaffAccountPanel
       key={session.user.id}
       actorId={session.user.id}
-      token={session.access_token}
       language={language}
     />
   );

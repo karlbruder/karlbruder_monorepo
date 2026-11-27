@@ -1,5 +1,4 @@
 import type { TournamentTag } from "@/features/tournament/api/tournament-tags";
-import { apiFetch } from "@/lib/api-fetch";
 import { backendFetch } from "@/lib/backend-api-client";
 import { assertSessionGeneration, currentSessionGeneration } from "@/lib/session-generation";
 import { apiBaseUrl } from "@/config/environment";
@@ -563,18 +562,14 @@ export type StaffRegistrationSummary = {
 
 export type StaffRegistrationTotals = { total: number; confirmed_count: number; competitor_capacity: number | null };
 
-export async function getStaffRegistrationTotals(token: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationTotals> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${encodeURIComponent(tournamentId)}/registration-totals`, {
-    headers: { Authorization: `Bearer ${token}` }, signal,
-  });
+export async function getStaffRegistrationTotals(userId: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationTotals> {
+  const response = await backendFetch(`/staff/tournaments/${encodeURIComponent(tournamentId)}/registration-totals`, { signal }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   return response.json();
 }
 
-export async function listStaffRegistrations(token: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationSummary[]> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments/${encodeURIComponent(tournamentId)}/registrations`, {
-    headers: { Authorization: `Bearer ${token}` }, signal,
-  });
+export async function listStaffRegistrations(userId: string, tournamentId: number | string, signal?: AbortSignal): Promise<StaffRegistrationSummary[]> {
+  const response = await backendFetch(`/staff/tournaments/${encodeURIComponent(tournamentId)}/registrations`, { signal }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) throw new Error(`http-${response.status}`);
   return response.json();
 }

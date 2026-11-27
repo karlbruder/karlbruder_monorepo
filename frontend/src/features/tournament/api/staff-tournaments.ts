@@ -1,8 +1,8 @@
+import { currentSessionGeneration, assertSessionGeneration } from "@/lib/session-generation";
+import { backendFetch } from "@/lib/backend-api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "@/config/environment";
 import { uploadFileToPresignedUrl, type AdditionalTournamentDocument, type ParentalConsentFormUploadUrl, type PolicyPurpose } from "@/features/tournament/api/tournaments";
 import { additionalTournamentDocumentsKey } from "@/features/tournament/api/use-additional-tournament-documents";
-import { apiFetch } from "@/lib/api-fetch";
 
 export type StaffTournament = {
   id: number;
@@ -25,11 +25,11 @@ export class StaffTournamentError extends Error {
   }
 }
 
-async function request<T>(token: string, path = "", init: RequestInit = {}): Promise<T> {
-  const response = await apiFetch(`${apiBaseUrl()}/staff/tournaments${path}`, {
+async function request<T>(userId: string, path = "", init: RequestInit = {}): Promise<T> {
+  const response = await backendFetch(`/staff/tournaments${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-  });
+    headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+  }, { authentication: "required", expectedAccountId: userId });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const detail = body && typeof body === "object" && "detail" in body ? body.detail : null;
@@ -38,17 +38,17 @@ async function request<T>(token: string, path = "", init: RequestInit = {}): Pro
   return response.status === 204 ? undefined as T : response.json();
 }
 
-export function useStaffTournaments(token: string, userId: string, offset: number) {
-  return useQuery({ queryKey: ["staff-tournaments", userId, offset], queryFn: ({ signal }) => request<{ items: StaffTournament[]; total: number }>(token, `?limit=20&offset=${offset}`, { signal }) });
+export function useStaffTournaments(userId: string, offset: number) {
+  return useQuery({ queryKey: ["staff-tournaments", userId, offset], queryFn: ({ signal }) => request<{ items: StaffTournament[]; total: number }>(userId, `?limit=20&offset=${offset}`, { signal }) });
 }
-export function useStaffTournament(token: string, userId: string, id: string, visitId: string) {
-  return useQuery({ queryKey: ["staff-tournament", userId, id, visitId], queryFn: ({ signal }) => request<StaffTournament>(token, `/${encodeURIComponent(id)}`, { signal }) });
+export function useStaffTournament(userId: string, id: string, visitId: string) {
+  return useQuery({ queryKey: ["staff-tournament", userId, id, visitId], queryFn: ({ signal }) => request<StaffTournament>(userId, `/${encodeURIComponent(id)}`, { signal }) });
 }
-export function saveStaffTournament(token: string, values: Record<string, unknown>, id?: string) {
-  return request<StaffTournament>(token, id ? `/${encodeURIComponent(id)}` : "", { method: id ? "PUT" : "POST", body: JSON.stringify(values) });
+export function saveStaffTournament(userId: string, values: Record<string, unknown>, id?: string) {
+  return request<StaffTournament>(userId, id ? `/${encodeURIComponent(id)}` : "", { method: id ? "PUT" : "POST", body: JSON.stringify(values) });
 }
-export function deleteStaffTournament(token: string, id: string) {
-  return request<void>(token, `/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteStaffTournament(userId: string, id: string) {
+  return request<void>(userId, `/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 type StaffPolicyDocument = {
@@ -62,44 +62,49 @@ function policyDocumentsKey(userId: string, tournamentId: number) {
   return ["staff-policy-documents", userId, tournamentId];
 }
 
-export function useStaffPolicyDocuments(token: string, userId: string, tournamentId: number) {
+export function useStaffPolicyDocuments(userId: string, tournamentId: number) {
   return useQuery({
     queryKey: policyDocumentsKey(userId, tournamentId),
     queryFn: async ({ signal }): Promise<StaffPolicyDocuments> => {
-      const response = await apiFetch(`${apiBaseUrl()}/tournaments/${tournamentId}/policy-documents`, {
-        headers: { Authorization: `Bearer ${token}` }, signal,
-      });
+      const response = await backendFetch(`/tournaments/${tournamentId}/policy-documents`, { signal }, { authentication: "required", expectedAccountId: userId });
       if (!response.ok) throw new StaffTournamentError(response.status, null);
       return response.json();
     },
   });
 }
 
-export function usePublishTournamentDocument(token: string, userId: string, tournamentId: number, purpose?: PolicyPurpose) {
+export function usePublishTournamentDocument(userId: string, tournamentId: number, purpose?: PolicyPurpose) {
   const client = useQueryClient();
   return useMutation({
+    onMutate: () => currentSessionGeneration(),
     mutationFn: async ({ file, title }: { file: File; title?: string }) => {
+      const generation = currentSessionGeneration();
       const collection = purpose ? `policy-documents/${purpose}` : "documents";
       const path = `/${tournamentId}/${collection}`;
-      const { storage_key, upload_url, required_headers } = await request<ParentalConsentFormUploadUrl>(token, `${path}/upload-url`, { method: "POST" });
+      const { storage_key, upload_url, required_headers } = await request<ParentalConsentFormUploadUrl>(userId, `${path}/upload-url`, { method: "POST" });
+      assertSessionGeneration(generation);
       await uploadFileToPresignedUrl(upload_url, file, required_headers);
+      assertSessionGeneration(generation);
       const init = {
         method: "POST", body: JSON.stringify({ storage_key, original_file_name: file.name, title }),
       };
       return purpose
-        ? { purpose, document: await request<StaffPolicyDocument>(token, path, init) }
-        : { purpose, document: await request<AdditionalTournamentDocument>(token, path, init) };
+        ? { purpose, document: await request<StaffPolicyDocument>(userId, path, init) }
+        : { purpose, document: await request<AdditionalTournamentDocument>(userId, path, init) };
     },
-    onSuccess: async (result) => {
+    onSuccess: async (result, _variables, generation) => {
+      if (generation !== currentSessionGeneration()) return;
       if (result.purpose) {
         const queryKey = policyDocumentsKey(userId, tournamentId);
         await client.cancelQueries({ queryKey });
+        if (generation !== currentSessionGeneration()) return;
         const purpose = result.purpose;
         client.setQueryData<StaffPolicyDocuments>(queryKey, (current) => ({ ...current, [purpose]: result.document }));
         void client.invalidateQueries({ queryKey: ["tournaments"], refetchType: "none" });
       } else {
         const queryKey = additionalTournamentDocumentsKey(userId, tournamentId);
         await client.cancelQueries({ queryKey });
+        if (generation !== currentSessionGeneration()) return;
         client.setQueryData<AdditionalTournamentDocument[]>(queryKey, (current) => [
           ...(current ?? []).filter(document => document.id !== result.document.id), result.document,
         ]);

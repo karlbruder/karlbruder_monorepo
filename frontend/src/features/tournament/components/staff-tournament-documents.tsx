@@ -1,3 +1,4 @@
+import { currentSessionGeneration } from "@/lib/session-generation";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { StaffTournamentError, usePublishTournamentDocument, useStaffPolicyDocuments } from "@/features/tournament/api/staff-tournaments";
 import { useAdditionalTournamentDocuments } from "@/features/tournament/api/use-additional-tournament-documents";
@@ -6,10 +7,10 @@ import { TournamentDocumentButton } from "@/features/tournament/components/tourn
 import { tournamentPolicies } from "@/features/tournament/utils/tournament-policies";
 import { appCopy, type AppLanguage } from "@/utils/app-copy";
 
-type Props = { token: string; userId: string; tournamentId: number; language: AppLanguage };
+type Props = { userId: string; tournamentId: number; language: AppLanguage };
 const maxBytes = 10 * 1024 * 1024;
 
-function StaffDocumentUpload({ token, userId, tournamentId, language, purpose, label, document, children }: Props & {
+function StaffDocumentUpload({ userId, tournamentId, language, purpose, label, document, children }: Props & {
   purpose?: PolicyPurpose;
   label: string;
   document?: { id: number; original_file_name: string };
@@ -23,7 +24,7 @@ function StaffDocumentUpload({ token, userId, tournamentId, language, purpose, l
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [error, setError] = useState<"empty" | "large" | "type" | "name" | "publish" | null>(null);
-  const publish = usePublishTournamentDocument(token, userId, tournamentId, purpose);
+  const publish = usePublishTournamentDocument(userId, tournamentId, purpose);
   const en = language === "en";
   const action = purpose
     ? (document ? (en ? "Replace" : "Substituir") : (en ? "Upload file" : "Enviar arquivo"))
@@ -55,10 +56,12 @@ function StaffDocumentUpload({ token, userId, tournamentId, language, purpose, l
     if (file.size > maxBytes) return setError("large");
     if ([...file.name].length > 255) return setError("name");
     setError(null);
+    const generation = currentSessionGeneration();
     try {
       await publish.mutateAsync({ file, title: purpose ? undefined : title.trim() });
-      closeForm();
+      if (generation === currentSessionGeneration()) closeForm();
     } catch (caught) {
+      if (generation !== currentSessionGeneration()) return;
       const status = caught instanceof StaffTournamentError ? caught.status : undefined;
       setError(status === 413 ? "large" : status === 415 ? "type" : "publish");
     }
@@ -122,10 +125,10 @@ function StaffDocumentUpload({ token, userId, tournamentId, language, purpose, l
 }
 
 export function StaffTournamentDocuments(props: Props) {
-  const { token, userId, tournamentId, language } = props;
+  const { userId, tournamentId, language } = props;
   const en = language === "en";
   const titleId = useId();
-  const query = useStaffPolicyDocuments(token, userId, tournamentId);
+  const query = useStaffPolicyDocuments(userId, tournamentId);
   const additional = useAdditionalTournamentDocuments(userId, tournamentId);
   return (
     <section className="review-card staff-tournament-documents" aria-labelledby={titleId}>
