@@ -67,6 +67,8 @@ if [[ ${E2E_MODE:-test} == explore ]]; then
   echo "E2E stack ready at http://localhost:5174. Fixture metadata: $runtime/fixtures.json"
   echo 'Press Enter to tear it down.'
   read -r _ || true
+elif [[ ${E2E_MODE:-test} == debug ]]; then
+  E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix e2e test -- --debug=inspector "$@"
 else
   E2E_FIXTURE_FILE="$runtime/fixtures.json" npm --prefix e2e test -- "$@"
 fi
