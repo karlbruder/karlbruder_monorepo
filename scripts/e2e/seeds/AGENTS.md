@@ -18,6 +18,9 @@ application data and is excluded from the normal suite.
 ## Changes and verification
 
 - Use synthetic data only. Keep each stateful journey isolated from other tests.
+- Name seed modules, functions, accounts, and synthetic identifiers for the
+  scenario or use case they support. Do not use issue numbers in their names.
+  Apply this rule when planning and implementing seeds.
 - Group seeds by scenario or responsibility. Add a short module docstring that
   identifies the journeys supported. Extract a new module when a distinct
   scenario makes the existing module harder to navigate.
