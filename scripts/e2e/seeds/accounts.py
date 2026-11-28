@@ -18,6 +18,7 @@ def seed_accounts() -> dict:
             ('offering-staff', 'admin'), ('offering-a', 'regular_user'),
             ('offering-b', 'regular_user'), ('offering-c', 'regular_user'),
             ('offering-d', 'regular_user'), ('offering-e', 'regular_user'),
+            ('resubmission-owner', 'regular_user'), ('resubmission-staff', 'admin'),
         ]:
             email = f'{name}@example.test'
             response = auth.post('admin/users', headers={'Authorization': f'Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}'}, json={
