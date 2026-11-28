@@ -1,11 +1,11 @@
 # End-to-end tests
 
 **Created**: 2026-11-20
-**Last updated**: 2026-11-26
+**Last updated**: 2026-11-28
 
 These tests exercise the application through a browser and real service boundaries.
 The stack and its data are disposable. The suite covers readiness, sign-in,
-registration for a selected tournament, staff payment approval, and waitlist selection and cancellation.
+registration for a selected tournament, staff payment approval, waitlist selection and cancellation, and confirmed-registration cancellation and refund completion.
 
 ## What runs where
 
@@ -45,6 +45,8 @@ To run the payment journey alone on a fresh stack, use:
 ```sh
 ./scripts/e2e/run.sh tests/payment-approval.spec.ts
 ```
+
+Run the cancellation and refund journeys alone with `./scripts/e2e/run.sh tests/cancellation-refund.spec.ts`. They use separate refundable tournaments and synthetic payments.
 
 Run the waitlist journeys alone with `./scripts/e2e/run.sh tests/waitlist.spec.ts`. They use isolated capacity-one tournaments and synthetic accounts. One tournament has a refundable cancellation policy.
 

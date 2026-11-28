@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+type CancellationRegistration = { tournamentId: number; registrationNumber: string }
+
 type FixtureData = {
   registration_tournament_id: number
   payment_tournament_id: number
@@ -8,6 +10,7 @@ type FixtureData = {
   waitlist_tournament_id: number
   waitlist_refund_tournament_id: number
   staff_id: string
+  cancellationRefunds: { owner: CancellationRegistration; staffCancellation: CancellationRegistration }
 }
 
 export function fixtureData(): FixtureData {
