@@ -1,11 +1,11 @@
 # End-to-end tests
 
 **Created**: 2026-11-20
-**Last updated**: 2026-11-26
+**Last updated**: 2026-11-28
 
 These tests exercise the application through a browser and real service boundaries.
 The stack and its data are disposable. The suite covers readiness, sign-in,
-registration for a selected tournament, staff payment approval, and waitlist selection and cancellation.
+registration for a selected tournament, staff payment approval, waitlist selection and cancellation, and private-record authorization across real Auth roles.
 
 ## What runs where
 

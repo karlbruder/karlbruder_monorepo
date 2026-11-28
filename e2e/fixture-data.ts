@@ -2,6 +2,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 type FixtureData = {
+  authorization: {
+    owner_tournament_id: number
+    other_tournament_id: number
+    internal_tournament_id: number
+    owner_registration_number: string
+    other_registration_number: string
+    document_id: number
+    accounts: Record<'owner' | 'other' | 'member' | 'admin', string>
+  }
   registration_tournament_id: number
   payment_tournament_id: number
   payment_registration_number: string
