@@ -1,7 +1,7 @@
 # Tournament consent and privacy
 
 **Created**: 2026-10-17
-**Last updated**: 2026-11-18
+**Last updated**: 2026-11-27
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@ Collect the necessary participant declarations, preserve their evidence, and res
 
 ## Rules
 
-- **PRIV-001:** Require acceptance of the tournament rules. The rules state whether the organizer and its authorized providers will capture and transmit athletes’ image and voice live during matches and official ceremonies, and identify the official channels. Authorization for that live coverage is a condition of participation when specified in the rules. Replays, including automatic public archives, highlights, and advertising require specific authorization. New registrations have no separate image choice. Acknowledge the privacy information independently.
+- **PRIV-001:** Require acceptance of the tournament rules. The event documents disclose any intended photography, in-person video and audio recording, live coverage, replays, highlights, analysis and promotional use, including the channels and intended audience. Photography and recording may take place independently of live coverage. An event may make the disclosed uses a condition of participation and obtain the athlete's authorization during registration. No separate image choice is required for new registrations. The signed term for a minor must disclose the applicable uses and be signed by the legal guardian. Acknowledge privacy information independently. Confirm the applicable legal basis and required wording before release under PRIV-Q1.
 - **PRIV-002:** Required declarations cover truthful information, inherent HEMA risks, mandatory equipment, physical fitness, and awareness of cancellation, refund, and disqualification rules. Record truthful information independently. Require answers for emergency contact and participation declarations.
 - **PRIV-003:** Record the acceptance time, choices, and the IP evidence requested by the source. Retain references to the uploaded policy versions shown at acceptance. The handling and retention of that evidence must be defined in the privacy policy.
 - **PRIV-004:** Private fields include document number, date of birth, email, phone, emergency contacts, payment proofs, staff notes, and safety information. Public representations must use explicit permitted fields rather than exposing complete registration records.
@@ -36,8 +36,9 @@ audience before registration opens. Adapt the text to the event’s actual scope
 > A participação no torneio está condicionada à aceitação deste regulamento.
 > Ao aceitá-lo, o atleta autoriza a organização a captar sua imagem e voz
 > durante as lutas e cerimônias oficiais e a transmiti-las ao vivo pelos
-> canais oficiais indicados na página do torneio. Reprises, melhores momentos
-> e campanhas publicitárias exigem autorização específica.
+> canais oficiais indicados na página do torneio. As condições do evento
+> informarão também os usos previstos de gravações, reprises, melhores
+> momentos e material promocional e quem poderá acessá-los.
 >
 > A plataforma publicará o nome de exibição do atleta, a categoria, os
 > resultados das lutas e a classificação. A página do torneio informará,

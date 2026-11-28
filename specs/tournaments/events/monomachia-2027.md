@@ -52,7 +52,13 @@ Event values are staff-managed Tournament configuration, not product questions. 
 
 Registration prices are listed below. Pix destination, registration dates, capacity, venue, schedule, and final regulation remain unconfirmed. Populate these values for event rollout. Do not block generic platform design on them. Eligibility, minimum age, and any prizes/category criteria belong in the configured event regulation rather than hardcoded Monomachia logic. This does not introduce automated category eligibility beyond the shared staff-review rules.
 
+The minimum age for Monomachia participation is 14 years. Publish this requirement with the event conditions. The applicable age assessment date and enforcement mechanism are not specified by this decision.
+
+The intended registration experience presents the supplementary participation conditions as an attached PDF and obtains acceptance through a registration checkbox. The current additional-document mechanism does not record the attachment's version in registration acceptance evidence. Aligning that mechanism and its wording with this event requirement is future work.
+
 The table lists event configuration, not the full schema. `Tournament.is_registration_closed` and `RegistrationAcceptance` already support staff closure and versioned acceptance evidence. Monomachia omits the athlete cancellation control under [ADR 0011](../../decisions/0011-tournament-refund-eligibility.md).
+
+An athlete may withdraw at any time, including on the event day, by notifying the guild administration in person or at `suporte@karlbruder.com`. Withdrawal does not entitle the athlete to a refund, including when they withdraw from the waitlist. The event policy also states that no refund is due for postponement, cancellation, disqualification, refusal after late payment, or remaining on the waitlist without a seat. An extraordinary refund request may be sent to the guild administration at the same email for review, including after refusal of a late payment or when a waitlisted athlete receives no seat. The administration may grant a refund, but a request does not guarantee one. This review is separate from the application's ordinary refund flow.
 
 ## Registration options
 
@@ -64,11 +70,17 @@ capacity rules are the same for all three options.
 | --- | --- | --- |
 | Social Registration | R$ 50 | Participation and a trophy if the athlete wins one. No other winner prizes or sponsor coupons and giveaways. |
 | Full Registration | R$ 100 | Participation, winner prizes, and participation in the distribution of sponsor coupons and giveaways. |
-| Plus Registration | R$ 200 | All Full Registration benefits and a welcome and participation package, including a shirt, gifts, and breakfast. The complete package is not yet defined. |
+| Plus Registration | R$ 200 | All Full Registration benefits, a competitor kit in preparation, gifts and extra amenities such as snacks and drinks during the event. The complete package is not yet defined. |
 
 Social is intended as a lower-cost option that contributes to the event's costs.
 The product description identifies the benefits of each option. This specification
 does not define a separate perk inventory or fulfillment workflow.
+
+The R$ 100 Passe da Realeza is a separate spectator offering, not an official tournament entry. It includes a gift kit, participation in drawings, access to exclusive areas and non-competitive free bouts on Sunday with mandatory equipment. Spectator admission remains free. The pass does not consume tournament competitor capacity. Its platform offering and capacity handling require implementation and are not implied by the existing athlete registration products.
+
+Mandatory longsword equipment comprises a fencing mask with rear head and neck protection, rigid gorget, HEMA jacket or suitable gambeson, heavy longsword HEMA gloves, rigid elbow and forearm protection, rigid knee and shin protection, rigid groin protection, chest protector, HEMA pants, closed athletic shoes and a steel feder suitable for sporting combat. No skin may be exposed during bouts. Organizers inspect and approve equipment and weapons. Detailed specifications, including weight, flexibility and pre-approved brands, and the full prize details are planned for publication by the end of December 2026.
+
+Official YouTube live coverage is not confirmed. If offered, the intended live audience must sign in, subject to confirmation of the YouTube access mechanism. Registration authorizes the organizer and its authorized photographers and videographers to photograph and record athletes at the event even without live coverage. The disclosed uses include subsequent publication and promotion, replays, highlights, bout analysis and promotion of the next tournament. Photographs, promotional material and highlights may be publicly accessible. Named results may be public. The same legal guardian who signs a minor's term must accompany the athlete at the event. Requests concerning images and results go to `suporte@karlbruder.com` and are assessed under applicable rights and policy.
 
 ## Open questions
 
