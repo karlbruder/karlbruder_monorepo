@@ -11,6 +11,8 @@ def seed_accounts() -> dict:
     accounts = {}
     with httpx.Client(base_url=settings.issuer, timeout=10, trust_env=True) as auth:
         for name, role in [
+            ('authorization-owner', 'regular_user'), ('authorization-other', 'regular_user'),
+            ('authorization-member', 'guild_member'), ('authorization-admin', 'admin'),
             ('participant', 'regular_user'), ('owner', 'regular_user'),
             ('waitlist-a', 'regular_user'), ('waitlist-b', 'regular_user'),
             ('waitlist-c', 'regular_user'), ('refund-a', 'regular_user'),
